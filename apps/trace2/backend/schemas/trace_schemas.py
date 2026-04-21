@@ -59,3 +59,33 @@ class BatchDetailsRequest(BaseModel):
     @classmethod
     def check_batch_id(cls, value: str) -> str:
         return _validate_identifier(value, "batch_id", _BATCH_ID_MAX_LEN)
+
+
+class RecallReadinessRequest(BaseModel):
+    material_id: str
+    batch_id: str
+
+    @field_validator("material_id")
+    @classmethod
+    def check_material_id(cls, value: str) -> str:
+        return _validate_identifier(value, "material_id", _MATERIAL_ID_MAX_LEN)
+
+    @field_validator("batch_id")
+    @classmethod
+    def check_batch_id(cls, value: str) -> str:
+        return _validate_identifier(value, "batch_id", _BATCH_ID_MAX_LEN)
+
+
+class BatchPageRequest(BaseModel):
+    material_id: str
+    batch_id: str
+
+    @field_validator("material_id")
+    @classmethod
+    def check_material_id(cls, value: str) -> str:
+        return _validate_identifier(value, "material_id", _MATERIAL_ID_MAX_LEN)
+
+    @field_validator("batch_id")
+    @classmethod
+    def check_batch_id(cls, value: str) -> str:
+        return _validate_identifier(value, "batch_id", _BATCH_ID_MAX_LEN)

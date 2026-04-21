@@ -20,6 +20,11 @@ export const STATUS_TOKENS: Record<TokenKey, { label: string; fg: string; bg: st
   HIGH: { label: "High risk", fg: "#6a2212", bg: "#ecd9d0", dot: "oklch(55% 0.13 40)" },
   CRITICAL: { label: "Critical", fg: "#6a2212", bg: "#e4c8bf", dot: "oklch(48% 0.15 35)" },
   WITHIN_SHELF_LIFE: { label: "Within shelf life", fg: "#1a3f2c", bg: "#e4ebe0", dot: "oklch(48% 0.09 155)" },
+  OK: { label: "Within shelf life", fg: "#1a3f2c", bg: "#e4ebe0", dot: "oklch(48% 0.09 155)" },
+  Warning: { label: "Near expiry", fg: "#6b4a13", bg: "#f2e8cc", dot: "oklch(70% 0.12 75)" },
+  Critical: { label: "Expires soon", fg: "#6a2212", bg: "#e4c8bf", dot: "oklch(48% 0.15 35)" },
+  Expired: { label: "Expired", fg: "#6a2212", bg: "#ecd9d0", dot: "oklch(55% 0.13 40)" },
+  UNKNOWN: { label: "Unknown", fg: "#4a4539", bg: "#ebe6d9", dot: "oklch(60% 0.02 80)" },
 };
 
 export function StatusPill({ status, children, size = "md" }: { status: string; children?: ReactNode; size?: "sm" | "md" }) {
@@ -236,7 +241,7 @@ export function BarChart<T extends Record<string, any>>({
   const rows = sort ? [...data].sort((a, b) => (b[valueKey] as number) - (a[valueKey] as number)) : data;
   const m = max || Math.max(...rows.map((r) => r[valueKey] as number)) * 1.05;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, height }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, height, overflow: height ? "hidden" : "visible" }}>
       {rows.map((r, i) => {
         const pct = ((r[valueKey] as number) / m) * 100;
         return (

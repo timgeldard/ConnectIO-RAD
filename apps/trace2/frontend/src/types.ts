@@ -7,7 +7,13 @@ export type BatchStatus =
   | "RELEASED"
   | "IN_PROC";
 
-export type ShelfLifeStatus = "WITHIN_SHELF_LIFE";
+export type ShelfLifeStatus =
+  | "WITHIN_SHELF_LIFE"
+  | "OK"
+  | "Warning"
+  | "Critical"
+  | "Expired"
+  | "UNKNOWN";
 
 export interface Batch {
   material_id: string;
@@ -88,7 +94,7 @@ export interface FocalNode {
 
 export interface LineageNode {
   id: string;
-  level: 1 | 2;
+  level: number;
   material_id: string;
   material: string;
   batch: string;

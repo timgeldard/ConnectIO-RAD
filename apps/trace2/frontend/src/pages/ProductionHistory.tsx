@@ -1,12 +1,15 @@
 import type { Batch, ProductionEntry } from "../types";
-import { PRODUCTION_HISTORY } from "../data/mock";
+import { fetchProductionHistory } from "../data/api";
+import { useBatchData } from "../data/useBatchData";
+import { LoadFrame, EmptyBlock } from "../components/LoadFrame";
 import { Card, KPI, SectionHeader, fmtN } from "../ui";
 
 function BatchHistoryChart({ data, highlightId }: { data: ProductionEntry[]; highlightId: string }) {
+  if (data.length === 0) return null;
   const width = 1100;
   const height = 280;
   const pad = { l: 60, r: 20, t: 20, b: 60 };
-  const max = Math.max(...data.map((d) => d.qty)) * 1.1;
+  const max = Math.max(1, ...data.map((d) => d.qty)) * 1.1;
   const barW = (width - pad.l - pad.r) / data.length - 6;
   const yScale = (height - pad.t - pad.b) / max;
   return (
@@ -65,10 +68,11 @@ function BatchHistoryChart({ data, highlightId }: { data: ProductionEntry[]; hig
 }
 
 function BatchTrendChart({ data }: { data: ProductionEntry[] }) {
+  if (data.length < 2) return null;
   const width = 1100;
   const height = 240;
   const pad = { l: 60, r: 20, t: 20, b: 40 };
-  const max = Math.max(...data.map((d) => d.qty)) * 1.05;
+  const max = Math.max(1, ...data.map((d) => d.qty)) * 1.05;
   const xStep = (width - pad.l - pad.r) / (data.length - 1);
   const yScale = (height - pad.t - pad.b) / max;
   const pts = data.map((d, i) => [pad.l + i * xStep, height - pad.b - d.qty * yScale] as [number, number]);
@@ -80,7 +84,7 @@ function BatchTrendChart({ data }: { data: ProductionEntry[] }) {
         <circle key={i} cx={p[0]} cy={p[1]} r={3} fill="oklch(38% 0.06 155)" />
       ))}
       {data.map((d, i) =>
-        i % 2 === 0 ? (
+        i % Math.max(1, Math.floor(data.length / 8)) === 0 ? (
           <text
             key={i}
             x={pad.l + i * xStep}
@@ -96,34 +100,51 @@ function BatchTrendChart({ data }: { data: ProductionEntry[] }) {
   );
 }
 
-export function PageProductionHistory({ batch }: { batch: Batch }) {
+export function PageProductionHistory({ batch: headerBatch }: { batch: Batch }) {
+  const state = useBatchData(fetchProductionHistory, headerBatch.material_id, headerBatch.batch_id);
   return (
-    <div>
-      <SectionHeader
-        eyebrow="06 — PRODUCTION HISTORY"
-        title="All batches of this material"
-        subtitle="Production trend for material 20582002 — all batches across the selected date range. Batch ID filter does not apply to this page."
-      />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
-        <KPI label="Total batches" value={PRODUCTION_HISTORY.length} />
-        <KPI
-          label="Avg batch size"
-          value={fmtN(PRODUCTION_HISTORY.reduce((s, b) => s + b.qty, 0) / PRODUCTION_HISTORY.length, 0)}
-          unit="KG"
-        />
-        <KPI label="Released" value={PRODUCTION_HISTORY.filter((b) => b.status === "RELEASED").length} tone="good" />
-        <KPI
-          label="Blocked / QI"
-          value={PRODUCTION_HISTORY.filter((b) => ["BLOCKED", "Q_INSP", "IN_PROC"].includes(b.status)).length}
-          tone="warn"
-        />
-      </div>
-      <Card title="Batch size by process order" subtitle="Highlighted bar is the currently selected batch" style={{ marginBottom: 20 }}>
-        <BatchHistoryChart data={PRODUCTION_HISTORY} highlightId={batch.batch_id} />
-      </Card>
-      <Card title="Production volume trend" subtitle="Rolling 6-month view">
-        <BatchTrendChart data={PRODUCTION_HISTORY} />
-      </Card>
-    </div>
+    <LoadFrame
+      state={state}
+      eyebrow="06 — PRODUCTION HISTORY"
+      loadingTitle="Loading production history…"
+      loadingSubtitle={`Material ${headerBatch.material_id}`}
+    >
+      {({ batch, batches }) => {
+        const trendOrder = [...batches].reverse();
+        const totalQty = batches.reduce((s, b) => s + b.qty, 0);
+        const avg = batches.length ? totalQty / batches.length : 0;
+        const released = batches.filter((b) => b.status === "RELEASED").length;
+        const flagged = batches.filter((b) => ["BLOCKED", "Q_INSP", "IN_PROC"].includes(b.status)).length;
+        return (
+          <div>
+            <SectionHeader
+              eyebrow="06 — PRODUCTION HISTORY"
+              title="All batches of this material"
+              subtitle={`Production history for material ${batch.material_id} (${batch.material_name}). Batch ID filter does not apply to this page.`}
+            />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+              <KPI label="Total batches" value={batches.length} />
+              <KPI label="Avg batch size" value={fmtN(avg, 0)} unit="KG" sub="size vs avg is computed against this" />
+              <KPI label="Released" value={released} tone="good" />
+              <KPI label="Blocked / QI" value={flagged} tone={flagged > 0 ? "warn" : "muted"} />
+            </div>
+            {batches.length === 0 ? (
+              <Card title="Production volume">
+                <EmptyBlock message="No production history recorded for this material." />
+              </Card>
+            ) : (
+              <>
+                <Card title="Batch size by process order" subtitle="Highlighted bar is the currently selected batch" style={{ marginBottom: 20 }}>
+                  <BatchHistoryChart data={trendOrder} highlightId={batch.batch_id} />
+                </Card>
+                <Card title="Production volume trend" subtitle="Chronological (oldest → newest)">
+                  <BatchTrendChart data={trendOrder} />
+                </Card>
+              </>
+            )}
+          </div>
+        );
+      }}
+    </LoadFrame>
   );
 }

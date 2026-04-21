@@ -408,6 +408,98 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
+function BatchPicker({
+  materialDraft,
+  batchDraft,
+  onMaterialChange,
+  onBatchChange,
+  onApply,
+  dirty,
+}: {
+  materialDraft: string;
+  batchDraft: string;
+  onMaterialChange: (v: string) => void;
+  onBatchChange: (v: string) => void;
+  onApply: () => void;
+  dirty: boolean;
+}) {
+  const inputStyle: CSSProperties = {
+    padding: "6px 10px",
+    border: "1px solid var(--line-2)",
+    background: "var(--paper)",
+    color: "var(--ink)",
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: 12,
+    borderRadius: 2,
+    minWidth: 160,
+  };
+  function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && dirty) onApply();
+  }
+  return (
+    <div
+      style={{
+        padding: "10px 32px",
+        borderBottom: "1px solid var(--line)",
+        background: "var(--paper-2)",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        fontFamily: "'Inter', sans-serif",
+        fontSize: 11.5,
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 10,
+          color: "var(--ink-3)",
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+        }}
+      >
+        Live batch
+      </span>
+      <label style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-2)" }}>
+        Material
+        <input
+          value={materialDraft}
+          onChange={(e) => onMaterialChange(e.target.value)}
+          onKeyDown={handleKey}
+          style={inputStyle}
+          placeholder="Material ID"
+        />
+      </label>
+      <label style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-2)" }}>
+        Batch
+        <input
+          value={batchDraft}
+          onChange={(e) => onBatchChange(e.target.value)}
+          onKeyDown={handleKey}
+          style={inputStyle}
+          placeholder="Batch ID"
+        />
+      </label>
+      <button
+        onClick={onApply}
+        disabled={!dirty}
+        style={{
+          padding: "6px 14px",
+          fontSize: 11.5,
+          background: dirty ? "var(--ink)" : "var(--line)",
+          color: dirty ? "var(--paper)" : "var(--ink-3)",
+          border: "none",
+          borderRadius: 2,
+          cursor: dirty ? "pointer" : "not-allowed",
+          fontFamily: "'Inter', sans-serif",
+        }}
+      >
+        Load
+      </button>
+    </div>
+  );
+}
+
 function TweaksPanel({
   open,
   tweaks,
@@ -572,9 +664,14 @@ export default function App() {
     ...({ "--accent": tweaks.mono ? theme["--ink"] : ACCENT_MAP[tweaks.accent] } as CSSProperties),
   };
 
-  const batch: Batch = demoState === "qi" ? BATCH_FAIL : demoState === "recall" ? BATCH_RECALL : BATCH;
+  const mockBatch: Batch = demoState === "qi" ? BATCH_FAIL : demoState === "recall" ? BATCH_RECALL : BATCH;
   const pageDef = PAGES.find((p) => p.id === page) ?? PAGES[0];
   const PageComponent = pageDef.component;
+  const [liveMaterialId, setLiveMaterialId] = useState("20582002");
+  const [liveBatchId, setLiveBatchId] = useState("0008898869");
+  const [materialDraft, setMaterialDraft] = useState(liveMaterialId);
+  const [batchDraft, setBatchDraft] = useState(liveBatchId);
+  const batch: Batch = { ...mockBatch, material_id: liveMaterialId, batch_id: liveBatchId };
 
   return (
     <div style={{ ...cssVars, background: "var(--paper)", minHeight: "100vh", color: "var(--ink)" }}>
@@ -589,6 +686,17 @@ export default function App() {
             setMaxInputDepth={setMaxInputDepth}
             demoState={demoState}
             setDemoState={setDemoState}
+          />
+          <BatchPicker
+            materialDraft={materialDraft}
+            batchDraft={batchDraft}
+            onMaterialChange={setMaterialDraft}
+            onBatchChange={setBatchDraft}
+            onApply={() => {
+              setLiveMaterialId(materialDraft.trim());
+              setLiveBatchId(batchDraft.trim());
+            }}
+            dirty={materialDraft.trim() !== liveMaterialId || batchDraft.trim() !== liveBatchId}
           />
           <div style={{ padding: tweaks.density === "compact" ? "24px 32px" : "36px 44px", maxWidth: 1440 }}>
             <PageComponent batch={batch} navigate={setPage} />

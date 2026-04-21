@@ -1,21 +1,69 @@
 import { useState } from "react";
-import type { Batch, RecallEvent } from "../types";
-import { COUNTRIES, CUSTOMERS, DELIVERIES, EXPOSURE, RECALL_EVENTS } from "../data/mock";
+import type {
+  Batch,
+  CountryRow,
+  CustomerRow,
+  Delivery,
+  ExposureRow,
+  RecallEvent,
+} from "../types";
+import { fetchRecallReadiness } from "../data/api";
+import { useBatchData } from "../data/useBatchData";
+import { LoadFrame, EmptyBlock } from "../components/LoadFrame";
 import {
   BarChart, Button, Card, DataTable, Donut, KPI,
   SectionHeader, StatusPill, flag, fmtN,
 } from "../ui";
 
-export function PageRecallReadiness({ batch }: { batch: Batch }) {
+export function PageRecallReadiness({ batch: headerBatch }: { batch: Batch }) {
+  const state = useBatchData(fetchRecallReadiness, headerBatch.material_id, headerBatch.batch_id);
+  return (
+    <LoadFrame
+      state={state}
+      eyebrow="01 — RECALL READINESS"
+      loadingTitle="Loading batch exposure…"
+      loadingSubtitle={`Material ${headerBatch.material_id} · Batch ${headerBatch.batch_id}`}
+    >
+      {({ batch, countries, customers, deliveries, exposure, events }) => (
+        <RecallReadinessBody
+          batch={batch}
+          countries={countries}
+          customers={customers}
+          deliveries={deliveries}
+          exposure={exposure}
+          events={events}
+        />
+      )}
+    </LoadFrame>
+  );
+}
+
+function RecallReadinessBody({
+  batch,
+  countries,
+  customers,
+  deliveries,
+  exposure,
+  events,
+}: {
+  batch: Batch;
+  countries: CountryRow[];
+  customers: CustomerRow[];
+  deliveries: Delivery[];
+  exposure: ExposureRow[];
+  events: RecallEvent[];
+}) {
   const [riskFilter, setRiskFilter] = useState<"ALL" | "CRITICAL" | "HIGH" | "MEDIUM">("ALL");
   const [recallMode, setRecallMode] = useState(false);
 
-  const filteredExposure = riskFilter === "ALL" ? EXPOSURE : EXPOSURE.filter((e) => e.risk === riskFilter);
-  const exposedBatches = EXPOSURE.length;
-  const criticalBatches = EXPOSURE.filter((e) => e.risk === "CRITICAL").length;
-  const highRiskShipped = EXPOSURE.filter((e) => e.risk === "CRITICAL" || e.risk === "HIGH").reduce((s, e) => s + e.shipped, 0);
-  const exposedStock = EXPOSURE.reduce((s, e) => s + e.stock, 0);
-  const exposedCustomers = new Set(DELIVERIES.map((d) => d.customer)).size;
+  const filteredExposure = riskFilter === "ALL" ? exposure : exposure.filter((e) => e.risk === riskFilter);
+  const exposedBatches = exposure.length;
+  const criticalBatches = exposure.filter((e) => e.risk === "CRITICAL").length;
+  const highRiskShipped = exposure
+    .filter((e) => e.risk === "CRITICAL" || e.risk === "HIGH")
+    .reduce((s, e) => s + e.shipped, 0);
+  const exposedStock = exposure.reduce((s, e) => s + e.stock, 0);
+  const exposedCustomers = new Set(deliveries.map((d) => d.customer)).size;
 
   return (
     <div>
@@ -56,7 +104,7 @@ export function PageRecallReadiness({ batch }: { batch: Batch }) {
         <KPI label="Unrestricted" value={fmtN(batch.unrestricted, 1)} unit="KG" tone="good" />
         <KPI label="Blocked" value={fmtN(batch.blocked, 0)} unit="KG" tone={batch.blocked > 0 ? "bad" : "muted"} />
         <KPI label="Quality inspection" value={fmtN(batch.qi, 0)} unit="KG" tone={batch.qi > 0 ? "warn" : "muted"} />
-        <KPI label="Process order" value={<span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15 }}>{batch.process_order}</span>} sub={batch.plant_name} />
+        <KPI label="Process order" value={<span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15 }}>{batch.process_order || "—"}</span>} sub={batch.plant_name} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 28 }}>
@@ -70,42 +118,54 @@ export function PageRecallReadiness({ batch }: { batch: Batch }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
         <Card title="Shipped volume by country" subtitle="Where material from this batch has landed">
-          <BarChart data={COUNTRIES} valueKey="qty" labelKey="name" height={280}
-            color="oklch(42% 0.07 155)" format={(v) => fmtN(v, 0) + " KG"}
-          />
+          {countries.length === 0 ? (
+            <EmptyBlock message="No customer shipments recorded for this batch." />
+          ) : (
+            <BarChart data={countries} valueKey="qty" labelKey="name" height={280}
+              color="oklch(42% 0.07 155)" format={(v) => fmtN(v, 0) + " KG"}
+            />
+          )}
         </Card>
 
         <Card title="Despatched by customer" subtitle="Share of total shipped quantity">
-          <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
-            <Donut data={CUSTOMERS.slice(0, 8)} valueKey="qty" labelKey="name" size={200}
-              centerValue={fmtN(batch.total_shipped_kg, 0)} centerLabel="KG DESPATCHED"
-            />
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-              {CUSTOMERS.slice(0, 8).map((c, i) => (
-                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "'Inter', sans-serif", fontSize: 11.5 }}>
-                  <span style={{ width: 10, height: 10, background: ["oklch(48% 0.09 155)", "oklch(38% 0.06 155)", "oklch(58% 0.1 155)", "oklch(55% 0.13 40)", "oklch(65% 0.1 45)", "oklch(70% 0.12 75)", "oklch(55% 0.08 250)", "oklch(45% 0.06 250)"][i] }} />
-                  <span style={{ flex: 1, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--ink-2)", fontVariantNumeric: "tabular-nums" }}>{(c.share * 100).toFixed(1)}%</span>
-                </div>
-              ))}
+          {customers.length === 0 ? (
+            <EmptyBlock message="No customer-level despatch data available." />
+          ) : (
+            <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
+              <Donut data={customers.slice(0, 8)} valueKey="qty" labelKey="name" size={200}
+                centerValue={fmtN(batch.total_shipped_kg, 0)} centerLabel="KG DESPATCHED"
+              />
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                {customers.slice(0, 8).map((c, i) => (
+                  <div key={c.id || c.name || i} style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "'Inter', sans-serif", fontSize: 11.5 }}>
+                    <span style={{ width: 10, height: 10, background: ["oklch(48% 0.09 155)", "oklch(38% 0.06 155)", "oklch(58% 0.1 155)", "oklch(55% 0.13 40)", "oklch(65% 0.1 45)", "oklch(70% 0.12 75)", "oklch(55% 0.08 250)", "oklch(45% 0.06 250)"][i] }} />
+                    <span style={{ flex: 1, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--ink-2)", fontVariantNumeric: "tabular-nums" }}>{(c.share * 100).toFixed(1)}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </Card>
       </div>
 
-      <Card title="Customer shipment events" subtitle={`${DELIVERIES.length} deliveries · sorted by date`} noPad style={{ marginBottom: 28 }}>
-        <DataTable columns={[
-          { header: "Delivery", key: "delivery", mono: true },
-          { header: "Customer", key: "customer" },
-          { header: "Destination", key: "destination", muted: true },
-          { header: "Country", mono: true, render: (r) => <span>{flag(r.country)} {r.country}</span> },
-          { header: "Date", key: "date", mono: true, muted: true },
-          { header: "Qty (KG)", align: "right", mono: true, num: true, render: (r) => fmtN(r.qty, 1) },
-          { header: "Status", render: (r) => <StatusPill status={r.status} size="sm" /> },
-          { header: "Doc", key: "doc", mono: true, muted: true },
-        ]} rows={DELIVERIES}
-          emphasize={(r) => recallMode && r.status !== "PLANNED"}
-        />
+      <Card title="Customer shipment events" subtitle={`${deliveries.length} deliveries · sorted by date`} noPad style={{ marginBottom: 28 }}>
+        {deliveries.length === 0 ? (
+          <EmptyBlock message="No deliveries have been posted for this batch." />
+        ) : (
+          <DataTable columns={[
+            { header: "Delivery", key: "delivery", mono: true },
+            { header: "Customer", key: "customer" },
+            { header: "Destination", key: "destination", muted: true },
+            { header: "Country", mono: true, render: (r) => <span>{r.country ? `${flag(r.country)} ${r.country}` : "—"}</span> },
+            { header: "Date", key: "date", mono: true, muted: true },
+            { header: "Qty (KG)", align: "right", mono: true, num: true, render: (r) => fmtN(r.qty, 1) },
+            { header: "Status", render: (r) => <StatusPill status={r.status} size="sm" /> },
+            { header: "Doc", key: "doc", mono: true, muted: true },
+          ]} rows={deliveries}
+            emphasize={(r) => recallMode && r.status !== "PLANNED"}
+          />
+        )}
       </Card>
 
       <SectionHeader
@@ -130,23 +190,31 @@ export function PageRecallReadiness({ batch }: { batch: Batch }) {
       </div>
 
       <Card noPad style={{ marginBottom: 28 }}>
-        <DataTable columns={[
-          { header: "Material", key: "material" },
-          { header: "Batch", key: "batch", mono: true },
-          { header: "Plant", key: "plant", mono: true, muted: true },
-          { header: "Qty", align: "right", mono: true, num: true, render: (r) => fmtN(r.qty, 0) + " KG" },
-          { header: "In stock", align: "right", mono: true, num: true, render: (r) => fmtN(r.stock, 0) },
-          { header: "Shipped", align: "right", mono: true, num: true, render: (r) => fmtN(r.shipped, 0) },
-          { header: "Depth", align: "center", mono: true, render: (r) => "L" + r.path_depth },
-          { header: "Status", render: (r) => <StatusPill status={r.status} size="sm" /> },
-          { header: "Risk", render: (r) => <StatusPill status={r.risk} size="sm" /> },
-        ]} rows={filteredExposure}
-          emphasize={(r) => recallMode && (r.risk === "CRITICAL" || r.risk === "HIGH")}
-        />
+        {filteredExposure.length === 0 ? (
+          <EmptyBlock message={exposure.length === 0 ? "No downstream batches inherit material from this batch." : "No batches match the current risk filter."} />
+        ) : (
+          <DataTable columns={[
+            { header: "Material", key: "material" },
+            { header: "Batch", key: "batch", mono: true },
+            { header: "Plant", key: "plant", mono: true, muted: true },
+            { header: "Qty", align: "right", mono: true, num: true, render: (r) => fmtN(r.qty, 0) + " KG" },
+            { header: "In stock", align: "right", mono: true, num: true, render: (r) => fmtN(r.stock, 0) },
+            { header: "Shipped", align: "right", mono: true, num: true, render: (r) => fmtN(r.shipped, 0) },
+            { header: "Depth", align: "center", mono: true, render: (r) => "L" + r.path_depth },
+            { header: "Status", render: (r) => <StatusPill status={r.status} size="sm" /> },
+            { header: "Risk", render: (r) => <StatusPill status={r.risk} size="sm" /> },
+          ]} rows={filteredExposure}
+            emphasize={(r) => recallMode && (r.risk === "CRITICAL" || r.risk === "HIGH")}
+          />
+        )}
       </Card>
 
       <Card title="Batch movement timeline" subtitle="Reconstructs every posting that moved material from this batch — ready for regulatory submission">
-        <MovementTimeline events={RECALL_EVENTS} />
+        {events.length === 0 ? (
+          <EmptyBlock message="No postings recorded for this batch." />
+        ) : (
+          <MovementTimeline events={events} />
+        )}
       </Card>
     </div>
   );
@@ -159,7 +227,7 @@ function MovementTimeline({ events }: { events: RecallEvent[] }) {
     SALES_ISSUE: "oklch(55% 0.13 40)",
     ADJUSTMENT: "oklch(70% 0.12 75)",
   };
-  const maxMag = Math.max(...events.map((e) => Math.abs(e.qty)));
+  const maxMag = Math.max(1, ...events.map((e) => Math.abs(e.qty)));
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {events.map((e, i) => {
