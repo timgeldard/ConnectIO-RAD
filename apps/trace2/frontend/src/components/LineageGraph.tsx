@@ -61,12 +61,27 @@ export function LineageGraph({
     [allNodes],
   );
 
-  const viewW = Math.max(1480, (maxUp + maxDn + 1) * COL_W * 1.35);
-  const spanY = PADDING_Y * 2 + Math.max(
-    ...allNodes.map((n) => Math.abs(n.y) + NODE_H),
-    NODE_H,
-  );
-  const viewH = Math.max(560, spanY * 2);
+  // Auto-fit viewport to content bbox + margin, with lower bounds so tiny
+  // graphs (one or two nodes) don't blow up in size.
+  const margin = 120;
+  const contentMinX =
+    allNodes.length > 0 ? Math.min(...allNodes.map((n) => n.x - NODE_W / 2)) : -NODE_W / 2;
+  const contentMaxX =
+    allNodes.length > 0 ? Math.max(...allNodes.map((n) => n.x + NODE_W / 2)) : NODE_W / 2;
+  const contentMinY =
+    allNodes.length > 0 ? Math.min(...allNodes.map((n) => n.y)) : 0;
+  const contentMaxY =
+    allNodes.length > 0 ? Math.max(...allNodes.map((n) => n.y + NODE_H)) : NODE_H;
+  const contentW = Math.max(contentMaxX - contentMinX, NODE_W);
+  const contentH = Math.max(contentMaxY - contentMinY, NODE_H);
+  // Minimum viewBox width so a single node doesn't render at card-width scale.
+  const MIN_VIEW_W = 1200;
+  const MIN_VIEW_H = 500;
+  const viewW = Math.max(MIN_VIEW_W, contentW + margin * 2);
+  const viewH = Math.max(MIN_VIEW_H, contentH + margin * 2);
+  const viewCX = (contentMinX + contentMaxX) / 2;
+  const viewCY = (contentMinY + contentMaxY) / 2;
+  const spanY = viewH / 2;
 
   const onWheel = (e: React.WheelEvent<SVGSVGElement>) => {
     e.preventDefault();
@@ -251,7 +266,7 @@ export function LineageGraph({
           </span>
         </div>
       )}
-      <svg ref={svgRef} width="100%" height="100%" viewBox={`${-viewW / 2} ${-viewH / 2} ${viewW} ${viewH}`}
+      <svg ref={svgRef} width="100%" height="100%" viewBox={`${viewCX - viewW / 2} ${viewCY - viewH / 2} ${viewW} ${viewH}`}
         onWheel={onWheel} onMouseDown={onMouseDown}
         style={{ cursor: dragging ? "grabbing" : "grab", userSelect: "none", display: "block" }}
       >
@@ -260,20 +275,20 @@ export function LineageGraph({
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--line)" strokeWidth={0.5} />
           </pattern>
         </defs>
-        <rect x={-viewW} y={-viewH} width={viewW * 2} height={viewH * 2} fill="url(#grid)" />
+        <rect x={viewCX - viewW} y={viewCY - viewH} width={viewW * 2} height={viewH * 2} fill="url(#grid)" />
         <g transform={`translate(${view.x}, ${view.y}) scale(${view.k})`}>
           {columnLabels.map(({ c }) => (
-            <rect key={c} x={c * COL_W - NODE_W / 2 - 20} y={-spanY + PADDING_Y}
+            <rect key={c} x={c * COL_W - NODE_W / 2 - 20} y={viewCY - spanY + PADDING_Y}
               width={NODE_W + 40} height={spanY * 2 - PADDING_Y * 2}
               fill={c < 0 ? "oklch(96% 0.012 85 / 0.35)" : "oklch(97% 0.012 45 / 0.35)"}
             />
           ))}
           {columnLabels.map(({ c, l }) => (
-            <text key={c} x={c * COL_W} y={-spanY + PADDING_Y - 10} textAnchor="middle"
+            <text key={c} x={c * COL_W} y={viewCY - spanY + PADDING_Y - 10} textAnchor="middle"
               style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5, letterSpacing: "0.14em", fill: "var(--ink-3)" }}
             >{l}</text>
           ))}
-          <text x={0} y={-spanY + PADDING_Y - 10} textAnchor="middle"
+          <text x={0} y={viewCY - spanY + PADDING_Y - 10} textAnchor="middle"
             style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5, letterSpacing: "0.14em", fill: "oklch(38% 0.06 155)" }}
           >FOCAL BATCH</text>
           {edges.map((e, i) => <EdgeEl key={i} e={e} />)}

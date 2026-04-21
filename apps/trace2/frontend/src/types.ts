@@ -203,10 +203,8 @@ export interface RecallEvent {
 
 export type Tweaks = {
   theme: "light" | "dark";
-  accent: "forest" | "rust" | "navy" | "plum";
   density: "comfortable" | "compact";
   brandName: string;
-  mono: boolean;
 };
 
 export type DemoState = "default" | "qi" | "recall";

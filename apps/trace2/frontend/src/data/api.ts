@@ -18,13 +18,14 @@ import type {
   Supplier,
 } from "../types";
 
-export function focalIdFor(materialId: string, batchId: string): string {
-  return `${materialId}|${batchId}`;
+export function focalIdFor(materialId: string, batchId: string, plantId?: string): string {
+  const plantPart = plantId && plantId.trim() ? `|${plantId}` : "";
+  return `${materialId}|${batchId}${plantPart}`;
 }
 
 export function focalFromBatch(batch: Batch): FocalNode {
   return {
-    id: focalIdFor(batch.material_id, batch.batch_id),
+    id: focalIdFor(batch.material_id, batch.batch_id, batch.plant_id),
     material_id: batch.material_id,
     material: batch.material_name || batch.material_id,
     batch_id: batch.batch_id,
@@ -661,6 +662,7 @@ interface RawLineageRow {
   material_id: Nullable<string>;
   material: Nullable<string>;
   batch: Nullable<string>;
+  plant_id?: Nullable<string>;
   plant: Nullable<string>;
   qty: NumLike;
   uom: Nullable<string>;
@@ -669,6 +671,7 @@ interface RawLineageRow {
   link: Nullable<string>;
   parent_material_id: Nullable<string>;
   parent_batch_id: Nullable<string>;
+  parent_plant_id?: Nullable<string>;
 }
 
 export interface BottomUpPayload {
@@ -684,14 +687,21 @@ export interface TopDownPayload {
   deliveries: Delivery[];
 }
 
-function mapLineage(row: RawLineageRow, focalId: string): LineageNode {
+function mapLineage(
+  row: RawLineageRow,
+  focalId: string,
+  focalMat: string,
+  focalBat: string,
+): LineageNode {
   const level = Math.max(1, int(row.level, 1));
   const link = (str(row.link).toUpperCase() as LineageNode["link"]) || "INTERNAL";
   const parentMat = str(row.parent_material_id);
   const parentBatch = str(row.parent_batch_id);
+  const parentPlant = str(row.parent_plant_id);
   const isTopLevel = !parentMat || !parentBatch;
+  const parentIsFocal = parentMat === focalMat && parentBatch === focalBat;
   return {
-    id: `${str(row.material_id)}|${str(row.batch)}`,
+    id: focalIdFor(str(row.material_id), str(row.batch), str(row.plant_id)),
     level,
     material_id: str(row.material_id),
     material: str(row.material, str(row.material_id)),
@@ -704,7 +714,10 @@ function mapLineage(row: RawLineageRow, focalId: string): LineageNode {
     link: (["RECEIPT", "INTERNAL", "CONSUMPTION", "SALES_ORDER"] as const).includes(link as any)
       ? (link as LineageNode["link"])
       : "INTERNAL",
-    parent: isTopLevel ? focalId : `${parentMat}|${parentBatch}`,
+    parent:
+      isTopLevel || parentIsFocal
+        ? focalId
+        : focalIdFor(parentMat, parentBatch, parentPlant),
   };
 }
 
@@ -714,10 +727,11 @@ export async function fetchBottomUp(material_id: string, batch_id: string): Prom
     batch_id,
   });
   const header = requireHeader(raw, material_id, batch_id);
-  const focalId = `${material_id}|${batch_id}|0`;
+  const batch = buildBatch(header);
+  const focalId = focalIdFor(batch.material_id, batch.batch_id, batch.plant_id);
   return {
-    batch: buildBatch(header),
-    lineage: (raw.lineage ?? []).map((r) => mapLineage(r, focalId)),
+    batch,
+    lineage: (raw.lineage ?? []).map((r) => mapLineage(r, focalId, batch.material_id, batch.batch_id)),
   };
 }
 
@@ -730,10 +744,11 @@ export async function fetchTopDown(material_id: string, batch_id: string): Promi
     deliveries: RawDelivery[];
   }>("/api/top-down", { material_id, batch_id });
   const header = requireHeader(raw, material_id, batch_id);
-  const focalId = `${material_id}|${batch_id}|0`;
+  const batch = buildBatch(header);
+  const focalId = focalIdFor(batch.material_id, batch.batch_id, batch.plant_id);
   return {
-    batch: buildBatch(header),
-    lineage: (raw.lineage ?? []).map((r) => mapLineage(r, focalId)),
+    batch,
+    lineage: (raw.lineage ?? []).map((r) => mapLineage(r, focalId, batch.material_id, batch.batch_id)),
     countries: (raw.countries ?? []).map(mapCountry),
     customers: (raw.customers ?? []).map(mapCustomer),
     deliveries: (raw.deliveries ?? []).map(mapDelivery),

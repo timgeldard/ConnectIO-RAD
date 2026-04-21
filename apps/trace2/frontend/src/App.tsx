@@ -36,10 +36,8 @@ const PAGES: PageDef[] = [
 
 const TWEAK_DEFAULTS: Tweaks = {
   theme: "light",
-  accent: "forest",
   density: "comfortable",
   brandName: "Meridian",
-  mono: false,
 };
 
 const LIGHT_THEME: Record<string, string> = {
@@ -64,13 +62,6 @@ const DARK_THEME: Record<string, string> = {
   "--line": "#2a2620",
   "--line-2": "#3a352c",
   "--hover": "rgba(240,235,223,0.04)",
-};
-
-const ACCENT_MAP: Record<Tweaks["accent"], string> = {
-  forest: "oklch(38% 0.06 155)",
-  rust: "oklch(52% 0.20 28)",
-  navy: "oklch(38% 0.08 250)",
-  plum: "oklch(38% 0.08 320)",
 };
 
 function NavLink({ page, active, onClick }: { page: PageDef; active: boolean; onClick: () => void }) {
@@ -377,37 +368,6 @@ function Segmented<V extends string>({
   );
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      onClick={() => onChange(!checked)}
-      style={{
-        width: 34,
-        height: 18,
-        borderRadius: 9,
-        background: checked ? "oklch(38% 0.06 155)" : "var(--line-2)",
-        border: "none",
-        cursor: "pointer",
-        position: "relative",
-        padding: 0,
-      }}
-    >
-      <span
-        style={{
-          position: "absolute",
-          top: 2,
-          left: checked ? 18 : 2,
-          width: 14,
-          height: 14,
-          borderRadius: 7,
-          background: "var(--paper)",
-          transition: "left 150ms",
-        }}
-      />
-    </button>
-  );
-}
-
 function BatchPicker({
   materialDraft,
   batchDraft,
@@ -510,12 +470,6 @@ function TweaksPanel({
   setTweaks: (patch: Partial<Tweaks>) => void;
 }) {
   if (!open) return null;
-  const accents: { k: Tweaks["accent"]; hex: string }[] = [
-    { k: "forest", hex: "oklch(38% 0.06 155)" },
-    { k: "rust", hex: "oklch(48% 0.15 35)" },
-    { k: "navy", hex: "oklch(38% 0.08 250)" },
-    { k: "plum", hex: "oklch(38% 0.08 320)" },
-  ];
   return (
     <div
       style={{
@@ -555,25 +509,6 @@ function TweaksPanel({
             onChange={(v) => setTweaks({ theme: v })}
           />
         </TweakRow>
-        <TweakRow label="Accent">
-          <div style={{ display: "flex", gap: 6 }}>
-            {accents.map((c) => (
-              <button
-                key={c.k}
-                onClick={() => setTweaks({ accent: c.k })}
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  background: c.hex,
-                  border: tweaks.accent === c.k ? "2px solid var(--ink)" : "1px solid var(--line-2)",
-                  cursor: "pointer",
-                  padding: 0,
-                }}
-              />
-            ))}
-          </div>
-        </TweakRow>
         <TweakRow label="Density">
           <Segmented<Tweaks["density"]>
             options={[
@@ -599,9 +534,6 @@ function TweaksPanel({
               width: "100%",
             }}
           />
-        </TweakRow>
-        <TweakRow label="Monochrome">
-          <Toggle checked={tweaks.mono} onChange={(v) => setTweaks({ mono: v })} />
         </TweakRow>
       </div>
     </div>
@@ -659,10 +591,7 @@ export default function App() {
   }, []);
 
   const theme = tweaks.theme === "dark" ? DARK_THEME : LIGHT_THEME;
-  const cssVars: CSSProperties = {
-    ...(theme as CSSProperties),
-    ...({ "--accent": tweaks.mono ? theme["--ink"] : ACCENT_MAP[tweaks.accent] } as CSSProperties),
-  };
+  const cssVars: CSSProperties = { ...(theme as CSSProperties) };
 
   const mockBatch: Batch = demoState === "qi" ? BATCH_FAIL : demoState === "recall" ? BATCH_RECALL : BATCH;
   const pageDef = PAGES.find((p) => p.id === page) ?? PAGES[0];

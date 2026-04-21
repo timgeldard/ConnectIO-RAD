@@ -1031,7 +1031,9 @@ async def fetch_bottom_up(token: str, material_id: str, batch_id: str, max_level
             BASE_UNIT_OF_MEASURE AS uom,
             CHILD_MATERIAL_ID AS parent_material_id,
             CHILD_BATCH_ID AS parent_batch_id,
-            CONCAT(',', :mat, '|', :bat, ',', PARENT_MATERIAL_ID, '|', PARENT_BATCH_ID, ',') AS path
+            CHILD_PLANT_ID AS parent_plant_id,
+            CONCAT(',', :mat, '|', :bat, '@', COALESCE(CHILD_PLANT_ID, ''), ',',
+                   PARENT_MATERIAL_ID, '|', PARENT_BATCH_ID, '@', COALESCE(PARENT_PLANT_ID, ''), ',') AS path
           FROM edges
           WHERE CHILD_MATERIAL_ID = :mat AND CHILD_BATCH_ID = :bat
           UNION ALL
@@ -1045,39 +1047,43 @@ async def fetch_bottom_up(token: str, material_id: str, batch_id: str, max_level
             e.BASE_UNIT_OF_MEASURE,
             e.CHILD_MATERIAL_ID,
             e.CHILD_BATCH_ID,
-            CONCAT(w.path, e.PARENT_MATERIAL_ID, '|', e.PARENT_BATCH_ID, ',')
+            e.CHILD_PLANT_ID,
+            CONCAT(w.path, e.PARENT_MATERIAL_ID, '|', e.PARENT_BATCH_ID, '@', COALESCE(e.PARENT_PLANT_ID, ''), ',')
           FROM edges e
           JOIN walk w
             ON e.CHILD_MATERIAL_ID = w.material_id
            AND e.CHILD_BATCH_ID = w.batch_id
+           AND COALESCE(e.CHILD_PLANT_ID, '') = COALESCE(w.plant_id, '')
           WHERE w.level < :max_levels
-            AND INSTR(w.path, CONCAT(',', e.PARENT_MATERIAL_ID, '|', e.PARENT_BATCH_ID, ',')) = 0
+            AND INSTR(w.path, CONCAT(',', e.PARENT_MATERIAL_ID, '|', e.PARENT_BATCH_ID, '@', COALESCE(e.PARENT_PLANT_ID, ''), ',')) = 0
         ),
         agg AS (
-          SELECT material_id, batch_id,
+          SELECT material_id, batch_id, plant_id,
             MIN(level) AS level,
-            MIN(plant_id) AS plant_id,
             MIN(link) AS link,
             MIN(NULLIF(supplier_id, '')) AS supplier_id,
             SUM(qty) AS qty,
             MIN(uom) AS uom,
             MIN(parent_material_id) AS parent_material_id,
-            MIN(parent_batch_id) AS parent_batch_id
+            MIN(parent_batch_id) AS parent_batch_id,
+            MIN(parent_plant_id) AS parent_plant_id
           FROM walk
-          GROUP BY material_id, batch_id
+          GROUP BY material_id, batch_id, plant_id
         )
         SELECT
           a.level,
           a.material_id,
           COALESCE(m.MATERIAL_NAME, a.material_id) AS material,
           a.batch_id AS batch,
+          COALESCE(a.plant_id, '') AS plant_id,
           COALESCE(p.PLANT_NAME, a.plant_id, '') AS plant,
           COALESCE(a.qty, 0) AS qty,
           COALESCE(a.uom, 'KG') AS uom,
           COALESCE(s.SUPPLIER_NAME, a.supplier_id, '') AS supplier,
           a.link,
           a.parent_material_id,
-          a.parent_batch_id
+          a.parent_batch_id,
+          COALESCE(a.parent_plant_id, '') AS parent_plant_id
         FROM agg a
         LEFT JOIN {tbl('gold_material')} m
           ON m.MATERIAL_ID = a.material_id AND m.LANGUAGE_ID = 'E'
@@ -1127,6 +1133,7 @@ async def fetch_top_down(token: str, material_id: str, batch_id: str, max_levels
             BASE_UNIT_OF_MEASURE AS uom,
             PARENT_MATERIAL_ID AS parent_material_id,
             PARENT_BATCH_ID AS parent_batch_id,
+            PARENT_PLANT_ID AS parent_plant_id,
             CONCAT(',', PARENT_MATERIAL_ID, '|', PARENT_BATCH_ID, '@', COALESCE(PARENT_PLANT_ID, ''), ',', CHILD_MATERIAL_ID, '|', CHILD_BATCH_ID, '@', COALESCE(CHILD_PLANT_ID, ''), ',') AS path
           FROM edges
           WHERE PARENT_MATERIAL_ID = :mat AND PARENT_BATCH_ID = :bat
@@ -1141,40 +1148,44 @@ async def fetch_top_down(token: str, material_id: str, batch_id: str, max_levels
             e.BASE_UNIT_OF_MEASURE,
             e.PARENT_MATERIAL_ID,
             e.PARENT_BATCH_ID,
+            e.PARENT_PLANT_ID,
             CONCAT(w.path, e.CHILD_MATERIAL_ID, '|', e.CHILD_BATCH_ID, '@', COALESCE(e.CHILD_PLANT_ID, ''), ',')
           FROM edges e
           JOIN walk w
             ON e.PARENT_MATERIAL_ID = w.material_id
            AND e.PARENT_BATCH_ID = w.batch_id
+           AND COALESCE(e.PARENT_PLANT_ID, '') = COALESCE(w.plant_id, '')
           WHERE w.level < :max_levels
             AND INSTR(w.path, CONCAT(',', e.CHILD_MATERIAL_ID, '|', e.CHILD_BATCH_ID, '@', COALESCE(e.CHILD_PLANT_ID, ''), ',')) = 0
         ),
         agg AS (
-          SELECT material_id, batch_id,
+          SELECT material_id, batch_id, plant_id,
             MIN(level) AS level,
-            MIN(plant_id) AS plant_id,
             MIN(link) AS link,
             MIN(NULLIF(customer_id, '')) AS customer_id,
             SUM(qty) AS qty,
             MIN(uom) AS uom,
             MIN(parent_material_id) AS parent_material_id,
-            MIN(parent_batch_id) AS parent_batch_id
+            MIN(parent_batch_id) AS parent_batch_id,
+            MIN(parent_plant_id) AS parent_plant_id
           FROM walk
           WHERE material_id IS NOT NULL AND batch_id IS NOT NULL
-          GROUP BY material_id, batch_id
+          GROUP BY material_id, batch_id, plant_id
         )
         SELECT
           a.level,
           a.material_id,
           COALESCE(m.MATERIAL_NAME, a.material_id) AS material,
           a.batch_id AS batch,
+          COALESCE(a.plant_id, '') AS plant_id,
           COALESCE(p.PLANT_NAME, a.plant_id, '') AS plant,
           COALESCE(a.qty, 0) AS qty,
           COALESCE(a.uom, 'KG') AS uom,
           COALESCE(a.customer_id, '') AS customer,
           a.link,
           a.parent_material_id,
-          a.parent_batch_id
+          a.parent_batch_id,
+          COALESCE(a.parent_plant_id, '') AS parent_plant_id
         FROM agg a
         LEFT JOIN {tbl('gold_material')} m
           ON m.MATERIAL_ID = a.material_id AND m.LANGUAGE_ID = 'E'
