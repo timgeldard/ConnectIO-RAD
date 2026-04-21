@@ -30,6 +30,9 @@ build/
 .databricks/
 app.yaml
 
+# Agent tooling
+.claude/
+
 # Testing
 .pytest_cache/
 .coverage
