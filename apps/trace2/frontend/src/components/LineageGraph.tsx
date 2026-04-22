@@ -155,18 +155,20 @@ export function LineageGraph({
     const hl = isHighlighted(n.id);
     const opacity = hl ? 1 : 0.25;
     const isHover = hover === n.id;
-    const batchLabel = isFocal ? (n as PlacedFocal).batch_id : (n as PlacedLineage).batch;
-    const level = isFocal ? 0 : (n as PlacedLineage).level;
+    const lineageN = n as PlacedLineage;
+    const batchLabel = isFocal ? (n as PlacedFocal).batch_id : lineageN.batch;
+    const level = isFocal ? 0 : lineageN.level;
     const label = isFocal
       ? "THIS BATCH"
       : n.col < 0
       ? `INPUT · L${level}`
       : `OUTPUT · L${level}`;
-    const sub =
-      (!isFocal && "supplier" in n && (n as PlacedLineage).supplier) ||
-      (!isFocal && "customer" in n && (n as PlacedLineage).customer) ||
-      n.plant ||
-      "";
+    const accentColor = isFocal
+      ? "oklch(55% 0.13 40)"
+      : (LINK_STYLE[lineageN.link]?.stroke ?? "var(--ink-3)");
+    const partyName = !isFocal
+      ? (lineageN.supplier || lineageN.customer || "")
+      : "";
     return (
       <g data-node transform={`translate(${n.x - NODE_W / 2}, ${n.y})`}
         style={{ cursor: "pointer", opacity, transition: "opacity 200ms" }}
@@ -180,30 +182,57 @@ export function LineageGraph({
           strokeWidth={selected ? 2 : 1}
           rx={2}
         />
-        {isFocal && <rect x={0} y={0} width={4} height={NODE_H} fill="oklch(55% 0.13 40)" />}
-        <text x={12} y={16} style={{
+        {/* link-type / focal accent bar */}
+        <rect x={0} y={0} width={4} height={NODE_H} fill={accentColor} rx={2} />
+        <rect x={0} y={2} width={4} height={NODE_H - 4} fill={accentColor} />
+        <text x={14} y={16} style={{
           fontFamily: "'JetBrains Mono', monospace",
           fontSize: 9.5, letterSpacing: "0.12em",
           fill: isFocal ? "rgba(251,248,241,0.72)" : "var(--ink-3)",
           textTransform: "uppercase",
         }}>{label}</text>
-        <text x={12} y={36} style={{
+        {/* link type badge for non-focal nodes */}
+        {!isFocal && (
+          <>
+            <rect x={NODE_W - 60} y={5} width={54} height={14} rx={2}
+              fill={accentColor} opacity={0.15} />
+            <text x={NODE_W - 33} y={15} textAnchor="middle" style={{
+              fontFamily: "'JetBrains Mono', monospace", fontSize: 8,
+              letterSpacing: "0.1em", fill: accentColor,
+            }}>{lineageN.link}</text>
+          </>
+        )}
+        <text x={14} y={36} style={{
           fontFamily: "'Newsreader', Georgia, serif",
           fontSize: 13.5, fill: col.fg, fontWeight: 500, letterSpacing: "-0.005em",
-        }}>{truncate(n.material, 28)}</text>
-        <text x={12} y={56} style={{
-          fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5,
+        }}>{truncate(n.material, 26)}</text>
+        <text x={14} y={54} style={{
+          fontFamily: "'JetBrains Mono', monospace", fontSize: 10,
           fill: isFocal ? "rgba(251,248,241,0.78)" : "var(--ink-2)",
         }}>{batchLabel} · {n.material_id}</text>
-        <text x={NODE_W - 12} y={56} textAnchor="end" style={{
-          fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5,
+        <text x={NODE_W - 12} y={54} textAnchor="end" style={{
+          fontFamily: "'JetBrains Mono', monospace", fontSize: 10,
           fill: isFocal ? "rgba(251,248,241,0.78)" : "var(--ink-2)",
           fontVariantNumeric: "tabular-nums",
         }}>{fmtN(n.qty, 1)} {n.uom}</text>
-        <text x={12} y={70} style={{
-          fontFamily: "'Inter', sans-serif", fontSize: 9.5,
-          fill: isFocal ? "rgba(251,248,241,0.55)" : "var(--ink-3)",
-        }}>{truncate(sub as string, 36)}</text>
+        {/* plant badge */}
+        {n.plant && (
+          <>
+            <rect x={14} y={60} width={Math.min(n.plant.length * 5.8 + 8, 120)} height={13} rx={2}
+              fill={isFocal ? "oklch(32% 0.06 155)" : "var(--line)"} />
+            <text x={18} y={70} style={{
+              fontFamily: "'JetBrains Mono', monospace", fontSize: 8.5,
+              fill: isFocal ? "rgba(251,248,241,0.7)" : "var(--ink-3)",
+              letterSpacing: "0.06em",
+            }}>{truncate(n.plant, 18)}</text>
+          </>
+        )}
+        {partyName && (
+          <text x={NODE_W - 12} y={70} textAnchor="end" style={{
+            fontFamily: "'Inter', sans-serif", fontSize: 9,
+            fill: isFocal ? "rgba(251,248,241,0.55)" : "var(--ink-3)",
+          }}>{truncate(partyName, 22)}</text>
+        )}
       </g>
     );
   };
