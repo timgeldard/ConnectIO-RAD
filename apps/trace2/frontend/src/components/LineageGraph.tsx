@@ -112,6 +112,16 @@ export function LineageGraph({
     setDragging({ startX: e.clientX, startY: e.clientY, origX: view.x, origY: view.y });
   };
 
+  const fitView = () => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const fitMarginPx = 40;
+    const kx = (rect.width - 2 * fitMarginPx) * viewW / (contentW * rect.width);
+    const ky = (rect.height - 2 * fitMarginPx) * viewH / (contentH * rect.height);
+    const k = Math.max(0.3, Math.min(2.4, Math.min(kx, ky)));
+    setView({ x: -viewCX * k, y: -viewCY * k, k });
+  };
+
   useEffect(() => {
     if (!dragging) return;
     const onMove = (e: MouseEvent) => {
@@ -370,6 +380,7 @@ export function LineageGraph({
       }}>
         <button onClick={() => setView((v) => ({ ...v, k: Math.min(2.4, v.k * 1.2) }))} style={toolBtn}>＋</button>
         <button onClick={() => setView((v) => ({ ...v, k: Math.max(0.3, v.k / 1.2) }))} style={toolBtn}>−</button>
+        <button onClick={fitView} style={toolBtn}>Fit</button>
         <button onClick={() => setView({ x: 0, y: 0, k: 1 })} style={toolBtn}>Reset</button>
       </div>
       <div style={{
