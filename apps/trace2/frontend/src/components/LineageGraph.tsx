@@ -285,6 +285,27 @@ export function LineageGraph({
 
   const clampDepth = (v: number, max: number) => Math.max(1, Math.min(max, v));
 
+  // Minimap geometry
+  const MM_W = 156, MM_H = 90, mmPad = 5;
+  const mmInW = MM_W - 2 * mmPad, mmInH = MM_H - 2 * mmPad;
+  const mmScale = Math.min(mmInW / Math.max(contentW, 1), mmInH / Math.max(contentH, 1));
+  const mmOffX = mmPad + (mmInW - contentW * mmScale) / 2;
+  const mmOffY = mmPad + (mmInH - contentH * mmScale) / 2;
+  const toMM = (cx: number, cy: number) => ({
+    x: (cx - contentMinX) * mmScale + mmOffX,
+    y: (cy - contentMinY) * mmScale + mmOffY,
+  });
+  const vpMinX = (-viewW / 2 - view.x) / view.k;
+  const vpMinY = (-viewH / 2 - view.y) / view.k;
+  const vpMaxX = (viewW / 2 - view.x) / view.k;
+  const vpMaxY = (viewH / 2 - view.y) / view.k;
+  const vpMM = {
+    x: (vpMinX - contentMinX) * mmScale + mmOffX,
+    y: (vpMinY - contentMinY) * mmScale + mmOffY,
+    w: (vpMaxX - vpMinX) * mmScale,
+    h: (vpMaxY - vpMinY) * mmScale,
+  };
+
   return (
     <div>
     {(rawMaxUp > 1 || rawMaxDn > 1) && (
@@ -426,11 +447,29 @@ export function LineageGraph({
       </div>
       <div style={{
         position: "absolute", bottom: 14, left: 14,
-        background: "var(--card)", border: "1px solid var(--line-2)",
-        padding: "6px 10px", borderRadius: 2,
-        fontFamily: "'Inter', sans-serif", fontSize: 10.5, color: "var(--ink-3)",
-      }}>
-        Drag to pan · scroll to zoom · click a node
+        background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 2,
+        overflow: "hidden",
+      }} title="Drag to pan · scroll to zoom · click a node">
+        <svg width={MM_W} height={MM_H} style={{ display: "block" }}>
+          <rect width={MM_W} height={MM_H} fill="var(--paper)" />
+          {allNodes.map((n) => {
+            const isFocal = "kind" in n && n.kind === "focal";
+            const pos = toMM(n.x - NODE_W / 2, n.y);
+            const w = NODE_W * mmScale;
+            const h = NODE_H * mmScale;
+            const fill = isFocal
+              ? "oklch(38% 0.06 155)"
+              : n.col < 0 ? "oklch(68% 0.06 80)" : "oklch(68% 0.06 40)";
+            return <rect key={n.id} x={pos.x} y={pos.y} width={Math.max(w, 2)} height={Math.max(h, 2)} fill={fill} rx={1} />;
+          })}
+          {/* viewport rect */}
+          <rect
+            x={vpMM.x} y={vpMM.y} width={Math.max(vpMM.w, 2)} height={Math.max(vpMM.h, 2)}
+            fill="oklch(52% 0.12 250 / 0.12)"
+            stroke="oklch(52% 0.12 250)"
+            strokeWidth={1}
+          />
+        </svg>
       </div>
     </div>
     </div>
