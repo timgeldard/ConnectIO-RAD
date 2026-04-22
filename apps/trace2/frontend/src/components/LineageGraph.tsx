@@ -405,10 +405,11 @@ function layoutGraph(
   for (let depth = 1; depth <= maxUp; depth++) {
     const nodes = upLevels[depth - 1] ?? [];
     const col = -depth;
-    const laid =
+    const raw =
       depth === 1
         ? layoutCol(nodes, col)
         : layoutNearParents(upPlacedByLevel[depth - 2], nodes, col);
+    const laid = deoverlapCol(raw);
     upPlacedByLevel.push(laid);
     for (const n of laid) placed[n.id] = n;
   }
@@ -416,10 +417,11 @@ function layoutGraph(
   for (let depth = 1; depth <= maxDn; depth++) {
     const nodes = dnLevels[depth - 1] ?? [];
     const col = depth;
-    const laid =
+    const raw =
       depth === 1
         ? layoutCol(nodes, col)
         : layoutNearParents(dnPlacedByLevel[depth - 2], nodes, col);
+    const laid = deoverlapCol(raw);
     dnPlacedByLevel.push(laid);
     for (const n of laid) placed[n.id] = n;
   }
@@ -464,6 +466,16 @@ function groupByLevel(nodes: LineageNode[]): LineageNode[][] {
     if (idx >= 0 && idx < max) buckets[idx].push(n);
   }
   return buckets;
+}
+
+function deoverlapCol(nodes: PlacedLineage[]): PlacedLineage[] {
+  if (nodes.length <= 1) return nodes;
+  const sorted = [...nodes].sort((a, b) => a.y - b.y);
+  for (let i = 1; i < sorted.length; i++) {
+    const minY = sorted[i - 1].y + NODE_H + LEVEL_GAP;
+    if (sorted[i].y < minY) sorted[i] = { ...sorted[i], y: minY };
+  }
+  return sorted;
 }
 
 function layoutCol(nodes: LineageNode[], col: number): PlacedLineage[] {
