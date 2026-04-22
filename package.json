@@ -1,0 +1,25 @@
+{
+  "name": "connectio-rad",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*/frontend",
+    "libs/shared-ui"
+  ],
+  "scripts": {
+    "dev:spc":     "nx run spc-frontend:dev",
+    "dev:envmon":  "nx run envmon-frontend:dev",
+    "dev:trace2":  "nx run trace2-frontend:dev",
+    "build":       "nx run-many -t build",
+    "lint":        "nx run-many -t lint",
+    "test":        "nx run-many -t test",
+    "typecheck":   "nx run-many -t typecheck",
+    "graph":       "nx graph"
+  },
+  "devDependencies": {
+    "nx": "^22.0.0",
+    "@nx/vite": "^22.0.0",
+    "@nx/js": "^22.0.0",
+    "typescript": "~5.5.0"
+  }
+}

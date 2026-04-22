@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "pyFiles": [
+      "{projectRoot}/**/*.py",
+      "{projectRoot}/pyproject.toml",
+      "{workspaceRoot}/uv.lock"
+    ],
+    "tsFiles": [
+      "{projectRoot}/src/**/*.{ts,tsx}",
+      "{projectRoot}/vite.config.ts",
+      "{projectRoot}/package.json"
+    ],
+    "sharedGlobals": [
+      "{workspaceRoot}/nx.json"
+    ]
+  },
+  "targetDefaults": {
+    "sync": {
+      "cache": false
+    },
+    "lint": {
+      "cache": true,
+      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"]
+    },
+    "test": {
+      "cache": true,
+      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "dependsOn": ["^test"]
+    },
+    "build": {
+      "cache": true,
+      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "dependsOn": ["^build"]
+    },
+    "deploy": {
+      "cache": false,
+      "dependsOn": ["build"]
+    }
+  },
+  "defaultProject": "trace2-frontend"
+}

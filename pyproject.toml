@@ -1,0 +1,15 @@
+[tool.uv.workspace]
+members = [
+  "apps/spc/backend",
+  "apps/envmon/backend",
+  "apps/trace2/backend",
+  "libs/shared-auth",
+  "libs/shared-db",
+]
+
+[tool.uv]
+dev-dependencies = [
+  "pytest>=8",
+  "ruff>=0.4",
+  "mypy>=1.10",
+]
