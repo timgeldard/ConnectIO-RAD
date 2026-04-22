@@ -7,6 +7,10 @@ members = [
   "libs/shared-db",
 ]
 
+[tool.uv.sources]
+shared-db   = { workspace = true }
+shared-auth = { workspace = true }
+
 [tool.uv]
 dev-dependencies = [
   "pytest>=8",

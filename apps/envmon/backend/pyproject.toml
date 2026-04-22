@@ -12,9 +12,6 @@ dependencies = [
   "shared-db",
 ]
 
-[tool.uv.sources]
-shared-db = { workspace = true }
-
 [build-system]
 requires      = ["hatchling"]
 build-backend = "hatchling.build"
