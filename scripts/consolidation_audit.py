@@ -201,11 +201,11 @@ def report_sql_tables(app_tables: dict[str, dict[str, Counter[str]]]) -> str:
     for owner, tables in app_tables.items():
         for table in tables:
             shared[table].add(owner)
-    shared_rows = [
-        [table, ", ".join(sorted(owners))]
-        for table, owners in sorted(shared.items())
-        if len(owners) > 1 and "repo" not in owners
-    ]
+    shared_rows = []
+    for table, owners in sorted(shared.items()):
+        app_owners = owners - {"repo"}
+        if len(app_owners) > 1:
+            shared_rows.append([table, ", ".join(sorted(app_owners))])
     return "\n\n".join(
         [
             "# SQL Table Reference Map",

@@ -17,6 +17,8 @@ from .errors import (
     send_operational_alert,
 )
 from .rate_limit import limiter, RateLimitExceeded, SlowAPIMiddleware, rate_limit_handler
+from .runtime import SqlRuntime, is_read_only_statement, is_write_statement, sql_cache_key
+from .freshness import DataFreshnessRuntime
 
 __all__ = [
     "DATABRICKS_HOST", "WAREHOUSE_HTTP_PATH", "TRACE_CATALOG", "TRACE_SCHEMA",
@@ -24,4 +26,5 @@ __all__ = [
     "run_sql", "run_sql_async",
     "classify_sql_runtime_error", "increment_observability_counter", "send_operational_alert",
     "limiter", "RateLimitExceeded", "SlowAPIMiddleware", "rate_limit_handler",
+    "SqlRuntime", "DataFreshnessRuntime", "is_read_only_statement", "is_write_statement", "sql_cache_key",
 ]

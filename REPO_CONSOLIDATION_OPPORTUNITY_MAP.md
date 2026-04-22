@@ -14,7 +14,7 @@ planning update.
 | Opportunity | Status | Last update | Next action |
 | --- | --- | --- | --- |
 | Shared FastAPI app/runtime conventions | Completed | Added shared app factory, safe exception handling, health/readiness helpers, and SPA fallback registration; envmon, trace2, and SPC now use the shared runtime. | Keep app-specific debug/readiness extensions local while future shared API behavior is added. |
-| Shared Databricks SQL runtime | Baselined | SQL table references and shared view usage generated in `reports/consolidation/sql-table-map.md`. | Start Phase 3: extract read/write detection, cache behavior, freshness, and runtime errors into `shared-db`. |
+| Shared Databricks SQL runtime | Completed for envmon/trace2 | Added `SqlRuntime` and `DataFreshnessRuntime`; envmon and trace2 now use shared cache/read-write/freshness behavior while SPC remains app-owned. | Revisit SPC after its audit/exclusion behavior is protected by broader DAL tests. |
 | Shared trace backend primitives | Baselined | Route map confirms the four shared SPC/trace2 trace endpoints and their rate limits/freshness sources. | Extract schemas/tree helpers and add conformance tests before moving DAL SQL. |
 | Trace2-led deploy standardization | Completed | Added `scripts/deploy_app.py`, per-app `deploy.toml` manifests, and shared `make deploy` wiring for envmon, SPC, and trace2. | Use the shared wrapper for real Databricks profile deploy validation. |
 | Frontend API/query standardization | Baselined | `reports/consolidation/frontend-api-map.md` captures Envmon/SPC/trace2 client drift. | Extract shared `ApiError` and JSON helpers first. |
@@ -22,7 +22,7 @@ planning update.
 | Frontend build/dependency standardization | Baselined | `reports/consolidation/dependency-drift.md` captures React typings, TypeScript, Vite, FastAPI, and connector version drift. | Use dependency drift report to align versions and config. |
 | Carbon shell primitives | Deferred | Envmon/SPC share Carbon patterns; trace2 remains custom. | Revisit after backend/deploy drift stabilizes. |
 | Data contract catalog | Baselined | SQL table map identifies shared Databricks view families and app-specific references. | Promote scanner output into a maintained data catalog after shared DB work starts. |
-| Migration orchestration | Planned | Shared deploy wrapper now supports direct SQL migrations and after-bundle hooks. | Promote app migration hooks into a richer migration manifest after shared DB work. |
+| Migration orchestration | Planned | Shared deploy wrapper now supports direct SQL migrations and after-bundle hooks; shared DB primitives are available for later migration runners. | Promote app migration hooks into a richer migration manifest after frontend transport work. |
 | Test conformance | Baselined | `reports/consolidation/test-matrix.md` shows SPC has the broadest tests and envmon/trace2 lack frontend tests. | Add backend conformance tests with each shared package extraction. |
 | SPC statistical utility extraction | Deferred | Domain-specific SPC logic should remain app-owned for now. | Revisit only after core shared infrastructure is stable. |
 
@@ -471,16 +471,15 @@ real requirements.
 
 ## Recommended Next Implementation Slice
 
-Phase 0, Phase 1, and Phase 2 are complete. The next slice should be
-`shared-db.SqlRuntime`:
+Phase 0 through Phase 3 are complete. The next slice should be frontend
+transport standardization:
 
 ```text
-libs/shared-db/src/shared_db/runtime.py
-libs/shared-db/src/shared_db/freshness.py
-libs/shared-db/src/shared_db/errors.py
-libs/shared-db/src/shared_db/tables.py
+libs/shared-frontend-api/src/client.ts
+libs/shared-frontend-api/src/errors.ts
+libs/shared-frontend-api/src/queryClient.ts
 ```
 
-Start with envmon and trace2 adapters, keep SPC on its current DAL until the
-larger exclusion/audit behavior is protected, and preserve the audit/freshness
-evidence already captured in the generated reports.
+Start by extracting `ApiError` and JSON helpers, then adopt shared React Query
+defaults in envmon and SPC. Keep trace2 response mapping local until the shared
+trace contract is introduced.

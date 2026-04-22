@@ -399,6 +399,6 @@ Sprint 6:
 
 ## Immediate Next Slice
 
-Phase 0, Phase 1, and Phase 2 are complete. The next slice is Phase 3: create
-`shared-db.SqlRuntime`, migrate envmon and trace2 adapters first, and keep the
-opportunity map updated in the same change.
+Phase 0 through Phase 3 are complete. The next slice is Phase 4: standardize
+frontend transport helpers and query defaults, then keep the opportunity map
+updated in the same change.
