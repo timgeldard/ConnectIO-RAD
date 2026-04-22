@@ -14,15 +14,15 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run --package trace2-backend uvicorn backend.main:app --reload --port 8002",
-        "cwd": "apps/trace2/backend"
+        "command": "PYTHONPATH=. uv run --package trace2-backend uvicorn backend.main:app --reload --port 8002",
+        "cwd": "apps/trace2"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run --package trace2-backend pytest",
-        "cwd": "apps/trace2/backend"
+        "command": "PYTHONPATH=. uv run --package trace2-backend pytest backend/tests",
+        "cwd": "apps/trace2"
       },
       "inputs": ["pyFiles", "sharedGlobals"],
       "cache": true
@@ -30,8 +30,8 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run ruff check . && uv run mypy .",
-        "cwd": "apps/trace2/backend"
+        "command": "PYTHONPATH=. uv run ruff check backend && PYTHONPATH=. uv run mypy backend",
+        "cwd": "apps/trace2"
       },
       "inputs": ["pyFiles", "sharedGlobals"],
       "cache": true

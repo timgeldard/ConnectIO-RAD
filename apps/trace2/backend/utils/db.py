@@ -44,6 +44,29 @@ _VIEW_NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
 _sql_cache: TTLCache = TTLCache(maxsize=100, ttl=300)
 _sql_cache_lock = threading.Lock()
 _SQL_CACHE_ROW_LIMIT = 1000
+_WRITE_SQL_PREFIXES = ("INSERT", "MERGE", "UPDATE", "DELETE", "ALTER", "CREATE", "DROP", "TRUNCATE", "OPTIMIZE", "VACUUM")
+_READ_SQL_PREFIXES = ("SELECT", "WITH", "SHOW", "DESCRIBE")
+
+
+def _statement_prefix(statement: str) -> str:
+    stripped = statement.lstrip()
+    return stripped.split(None, 1)[0].upper() if stripped else ""
+
+
+def _is_read_only_statement(statement: str) -> bool:
+    return _statement_prefix(statement) in _READ_SQL_PREFIXES
+
+
+def _is_write_statement(statement: str) -> bool:
+    return _statement_prefix(statement) in _WRITE_SQL_PREFIXES
+
+
+def _clear_sql_cache() -> None:
+    with _sql_cache_lock:
+        _sql_cache.clear()
+        expires = getattr(_sql_cache, "_expires", None)
+        if isinstance(expires, dict):
+            expires.clear()
 
 
 def _sql_cache_key(token: str, statement: str, params: Optional[list[dict]] = None) -> str:
@@ -59,7 +82,14 @@ async def run_sql_async(
     statement: str,
     params: Optional[list[dict]] = None,
 ) -> list[dict]:
-    """Non-blocking SQL execution with a single TTL result cache."""
+    """Non-blocking SQL execution with a single TTL read-result cache."""
+    if not _is_read_only_statement(statement):
+        loop = asyncio.get_running_loop()
+        rows = await loop.run_in_executor(_sql_executor, lambda: run_sql(token, statement, params))
+        if _is_write_statement(statement):
+            _clear_sql_cache()
+        return rows
+
     cache_key = _sql_cache_key(token, statement, params)
     with _sql_cache_lock:
         cached_rows = _sql_cache.get(cache_key)

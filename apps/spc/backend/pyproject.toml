@@ -14,6 +14,7 @@ dependencies = [
   "scipy>=1.13",
   "databricks-sql-connector>=4.0",
   "shared-db",
+  "shared-api",
 ]
 
 [build-system]

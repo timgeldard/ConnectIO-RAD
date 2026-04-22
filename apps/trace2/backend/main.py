@@ -27,6 +27,7 @@ from backend.utils.rate_limit import (
     limiter,
     rate_limit_handler,
 )
+from shared_api.security import SameOriginMiddleware
 
 ENABLE_DEBUG_ENDPOINTS: bool = os.environ.get("APP_ENV", "").strip().lower() == "development"
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
@@ -36,6 +37,7 @@ app = FastAPI(title="Trace2 API", docs_url="/api/docs", redoc_url=None)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(SameOriginMiddleware)
 
 app.include_router(trace_router, prefix="/api", tags=["Traceability"])
 

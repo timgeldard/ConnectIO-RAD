@@ -23,6 +23,7 @@ from backend.utils.rate_limit import (
     limiter,
     rate_limit_handler,
 )
+from shared_api.security import SameOriginMiddleware
 
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 _NO_CACHE = {"Cache-Control": "no-store"}
@@ -31,6 +32,7 @@ app = FastAPI(title="EM Visualisation API", docs_url="/api/docs", redoc_url=None
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(SameOriginMiddleware)
 
 app.include_router(floors_router, prefix="/api/em", tags=["Floors"])
 app.include_router(heatmap_router, prefix="/api/em", tags=["Heatmap"])
