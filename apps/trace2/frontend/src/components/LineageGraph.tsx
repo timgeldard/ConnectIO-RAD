@@ -14,6 +14,17 @@ const NODE_H = 76;
 const LEVEL_GAP = 18;
 const PADDING_Y = 40;
 
+const LINK_STYLE: Record<string, { stroke: string; dash?: string; label: string }> = {
+  RECEIPT:     { stroke: "oklch(45% 0.13 155)", label: "RECEIPT" },
+  CONSUMPTION: { stroke: "oklch(55% 0.14 60)",  dash: "4 3", label: "CONSUMPTION" },
+  INTERNAL:    { stroke: "oklch(50% 0.02 255)", dash: "4 3", label: "INTERNAL" },
+  SALES_ORDER: { stroke: "oklch(48% 0.12 250)", label: "SALES_ORDER" },
+};
+
+function edgeStyle(linkType: string) {
+  return LINK_STYLE[linkType] ?? { stroke: "var(--ink-3)", label: linkType };
+}
+
 interface Props {
   focal: FocalNode;
   upstream: LineageNode[];
@@ -199,6 +210,7 @@ export function LineageGraph({
 
   const EdgeEl = ({ e }: { e: { from: PlacedNode; to: PlacedNode; linkType: string } }) => {
     const { from, to, linkType } = e;
+    const ls = edgeStyle(linkType);
     const x1 = from.x + NODE_W / 2;
     const y1 = from.y + NODE_H / 2;
     const x2 = to.x - NODE_W / 2;
@@ -207,12 +219,12 @@ export function LineageGraph({
     const cp = dx * 0.5;
     const path = `M${x1} ${y1} C ${x1 + cp} ${y1}, ${x2 - cp} ${y2}, ${x2} ${y2}`;
     const hl = isHighlighted(from.id) && isHighlighted(to.id);
-    const dashed = linkType === "CONSUMPTION" || linkType === "INTERNAL";
     return (
       <path d={path}
-        stroke="var(--ink-3)" strokeWidth={1} fill="none"
-        opacity={hl ? 0.55 : 0.15}
-        strokeDasharray={dashed ? "3 3" : undefined}
+        stroke={ls.stroke} strokeWidth={1.5} fill="none"
+        opacity={hl ? 0.7 : 0.15}
+        strokeDasharray={ls.dash}
+        markerEnd={`url(#arrow-${linkType})`}
       />
     );
   };
@@ -227,13 +239,33 @@ export function LineageGraph({
 
   return (
     <div style={{ position: "relative", background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 4, height: 560, overflow: "hidden" }}>
+      <div style={{
+        position: "absolute", top: 10, right: 14, zIndex: 2,
+        background: "var(--card)", border: "1px solid var(--line-2)",
+        padding: "6px 10px", borderRadius: 2,
+        fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5,
+        letterSpacing: "0.08em", color: "var(--ink-3)",
+        display: "flex", flexDirection: "column", gap: 5,
+        pointerEvents: "none",
+      }}>
+        {Object.entries(LINK_STYLE).map(([lt, { stroke, dash }]) => (
+          <div key={lt} style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <svg width={30} height={10} style={{ overflow: "visible" }}>
+              <line x1={0} y1={5} x2={26} y2={5}
+                stroke={stroke} strokeWidth={1.5} strokeDasharray={dash} />
+              <polygon points="26,2 32,5 26,8" fill={stroke} />
+            </svg>
+            <span>{lt}</span>
+          </div>
+        ))}
+      </div>
       {selfTransfers.length > 0 && (
         <div
           style={{
             position: "absolute",
             top: 10,
             left: 14,
-            right: 160,
+            right: 200,
             zIndex: 2,
             padding: "6px 10px",
             background: "oklch(97% 0.012 80 / 0.85)",
@@ -274,6 +306,12 @@ export function LineageGraph({
           <pattern id="grid" x={0} y={0} width={40} height={40} patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--line)" strokeWidth={0.5} />
           </pattern>
+          {Object.entries(LINK_STYLE).map(([lt, { stroke }]) => (
+            <marker key={lt} id={`arrow-${lt}`} viewBox="0 0 10 10" refX="9" refY="5"
+              markerWidth="9" markerHeight="9" orient="auto" markerUnits="userSpaceOnUse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill={stroke} />
+            </marker>
+          ))}
         </defs>
         <rect x={viewCX - viewW} y={viewCY - viewH} width={viewW * 2} height={viewH * 2} fill="url(#grid)" />
         <g transform={`translate(${view.x}, ${view.y}) scale(${view.k})`}>
