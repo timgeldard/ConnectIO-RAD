@@ -2,12 +2,10 @@
 
 ## Before going live
 
-- [ ] **Databricks bundle validation** — run from each app directory to confirm paths resolve after the monorepo move:
-  ```bash
-  cd apps/trace2 && databricks bundle validate --target uat
-  cd apps/spc    && databricks bundle validate --target uat
-  cd apps/envmon && databricks bundle validate --target uat
-  ```
+- [x] **Databricks bundle validation** — all three pass `databricks bundle validate --target uat`.
+  trace2 warns about missing `app.yaml` and `frontend/dist/` — both are expected (generated at deploy time).
+  All three warn about `/Workspace/Shared` being world-writable — pre-existing, not caused by the migration.
+  Move bundle root to a restricted path if tighter access control is needed.
 
 - [ ] **GitHub remote** — create ConnectIO-RAD repo on GitHub, then:
   ```bash
