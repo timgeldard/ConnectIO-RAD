@@ -1,35 +1,31 @@
-# Setup TODOs
+# Outstanding TODOs
 
-## uv (required before Python tasks work)
+## Before going live
 
-uv is installed at `C:\Users\tgeldard\.local\bin\uv.exe` but needs to be on PATH.
+- [ ] **Databricks bundle validation** — run from each app directory to confirm paths resolve after the monorepo move:
+  ```bash
+  cd apps/trace2 && databricks bundle validate --target uat
+  cd apps/spc    && databricks bundle validate --target uat
+  cd apps/envmon && databricks bundle validate --target uat
+  ```
 
-1. Add to PATH permanently (run once in PowerShell as admin):
-   ```powershell
-   [Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";$env:USERPROFILE\.local\bin", "User")
-   ```
+- [ ] **GitHub remote** — create ConnectIO-RAD repo on GitHub, then:
+  ```bash
+  git remote add origin <url>
+  git push -u origin main
+  ```
 
-2. Restart terminal, then from the repo root:
-   ```bash
-   uv sync
-   ```
-   This generates `uv.lock` and installs all workspace members.
+- [ ] **GitHub secrets** — add to the new repo settings:
+  - `DATABRICKS_HOST`
+  - `DATABRICKS_TOKEN`
 
-3. Verify per-app isolation:
-   ```bash
-   uv sync --package trace2-backend
-   uv sync --package spc-backend
-   uv sync --package envmon-backend
-   ```
+## Lower priority
 
-4. Commit the generated `uv.lock`:
-   ```bash
-   git add uv.lock && git commit -m "chore: add uv.lock"
-   ```
+- [ ] **`app.yaml` files** — `apps/trace2/app.yaml` and `apps/envmon/app.yaml` contain
+  rendered environment-specific values. Review before pushing to a public remote.
 
-## Next code steps
+- [ ] **shared-auth** — `libs/shared-auth` is a stub. Wire up real JWT/token logic
+  when you're ready to centralise auth across apps.
 
-- Replace `from backend.utils.db import ...` in each app with `from shared_db.client import ...`
-  (apps/trace2, apps/spc, apps/envmon all have their own utils/db.py — delete after migrating)
-- Push ConnectIO-RAD to GitHub and add secrets: `DATABRICKS_HOST`, `DATABRICKS_TOKEN`
-- Run `databricks bundle validate --target uat` from each `apps/<name>/` to verify bundle paths
+- [ ] **SPC tests** — `apps/spc` has a test suite (absorbed from the original repo).
+  Run `nx run spc-backend:test` to confirm it passes against the new shared_db proxy imports.
