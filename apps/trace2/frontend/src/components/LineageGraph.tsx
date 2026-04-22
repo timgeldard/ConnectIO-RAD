@@ -49,9 +49,16 @@ export function LineageGraph({
   } | null>(null);
   const [hover, setHover] = useState<string | null>(null);
 
+  const rawMaxUp = useMemo(() => upstream.reduce((m, n) => Math.max(m, n.level), 0), [upstream]);
+  const rawMaxDn = useMemo(() => downstream.reduce((m, n) => Math.max(m, n.level), 0), [downstream]);
+  const [depthUp, setDepthUp] = useState<number>(99);
+  const [depthDn, setDepthDn] = useState<number>(99);
+  // Reset depth filters when focal changes
+  useEffect(() => { setDepthUp(99); setDepthDn(99); }, [focal.id]);
+
   const { allNodes, edges, maxUp, maxDn, selfTransfers } = useMemo(() => {
-    const upFiltered = upstream.filter((n) => n.id !== focal.id);
-    const dnFiltered = downstream.filter((n) => n.id !== focal.id);
+    const upFiltered = upstream.filter((n) => n.id !== focal.id && n.level <= depthUp);
+    const dnFiltered = downstream.filter((n) => n.id !== focal.id && n.level <= depthDn);
     const selfTransfers: { direction: "up" | "down"; plant: string; qty: number; uom: string; link: string }[] = [];
     for (const n of upstream) {
       if (n.id === focal.id) {
@@ -65,7 +72,7 @@ export function LineageGraph({
     }
     const laid = layoutGraph(focal, upFiltered, dnFiltered);
     return { ...laid, selfTransfers };
-  }, [focal, upstream, downstream]);
+  }, [focal, upstream, downstream, depthUp, depthDn]);
 
   const nodeById: Record<string, PlacedNode> = useMemo(
     () => Object.fromEntries(allNodes.map((n) => [n.id, n])),
@@ -276,7 +283,41 @@ export function LineageGraph({
     columnLabels.push({ c, l: columnLabel("down", c, maxDn) });
   }
 
+  const clampDepth = (v: number, max: number) => Math.max(1, Math.min(max, v));
+
   return (
+    <div>
+    {(rawMaxUp > 1 || rawMaxDn > 1) && (
+      <div style={{
+        display: "flex", alignItems: "center", gap: 20, padding: "6px 12px",
+        background: "var(--card)", borderBottom: "1px solid var(--line)",
+        fontFamily: "'Inter', sans-serif", fontSize: 11, color: "var(--ink-2)",
+      }}>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5, letterSpacing: "0.12em", color: "var(--ink-3)" }}>DEPTH</span>
+        {rawMaxUp > 1 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span>Upstream</span>
+            <button style={depthBtn} onClick={() => setDepthUp((d) => clampDepth(d - 1, rawMaxUp))}>−</button>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", minWidth: 36, textAlign: "center" }}>
+              {Math.min(depthUp, rawMaxUp)} / {rawMaxUp}
+            </span>
+            <button style={depthBtn} onClick={() => setDepthUp((d) => clampDepth(d + 1, rawMaxUp))}>＋</button>
+            <button style={{ ...depthBtn, fontSize: 10 }} onClick={() => setDepthUp(99)}>All</button>
+          </div>
+        )}
+        {rawMaxDn > 1 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span>Downstream</span>
+            <button style={depthBtn} onClick={() => setDepthDn((d) => clampDepth(d - 1, rawMaxDn))}>−</button>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", minWidth: 36, textAlign: "center" }}>
+              {Math.min(depthDn, rawMaxDn)} / {rawMaxDn}
+            </span>
+            <button style={depthBtn} onClick={() => setDepthDn((d) => clampDepth(d + 1, rawMaxDn))}>＋</button>
+            <button style={{ ...depthBtn, fontSize: 10 }} onClick={() => setDepthDn(99)}>All</button>
+          </div>
+        )}
+      </div>
+    )}
     <div style={{ position: "relative", background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 4, height: 560, overflow: "hidden" }}>
       <div style={{
         position: "absolute", top: 10, right: 14, zIndex: 2,
@@ -391,6 +432,7 @@ export function LineageGraph({
       }}>
         Drag to pan · scroll to zoom · click a node
       </div>
+    </div>
     </div>
   );
 }
@@ -586,6 +628,17 @@ const toolBtn: React.CSSProperties = {
   padding: "4px 10px",
   background: "transparent",
   border: "1px solid transparent",
+  borderRadius: 2,
+  fontSize: 11,
+  cursor: "pointer",
+  fontFamily: "'Inter', sans-serif",
+  color: "var(--ink)",
+};
+
+const depthBtn: React.CSSProperties = {
+  padding: "2px 8px",
+  background: "var(--paper)",
+  border: "1px solid var(--line-2)",
   borderRadius: 2,
   fontSize: 11,
   cursor: "pointer",
