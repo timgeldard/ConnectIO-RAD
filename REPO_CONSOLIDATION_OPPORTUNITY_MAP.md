@@ -13,8 +13,8 @@ planning update.
 
 | Opportunity | Status | Last update | Next action |
 | --- | --- | --- | --- |
-| Shared FastAPI app/runtime conventions | In progress | `libs/shared-api` exists and same-origin middleware is shared across apps. Phase 0 route map generated in `reports/consolidation/route-map.md`. | Add shared app factory, health, readiness, and static mount helpers. |
-| Shared Databricks SQL runtime | Baselined | SQL table references and shared view usage generated in `reports/consolidation/sql-table-map.md`. | Extract read/write detection, cache behavior, freshness, and runtime errors into `shared-db`. |
+| Shared FastAPI app/runtime conventions | Completed | Added shared app factory, safe exception handling, health/readiness helpers, and SPA fallback registration; envmon, trace2, and SPC now use the shared runtime. | Keep app-specific debug/readiness extensions local while future shared API behavior is added. |
+| Shared Databricks SQL runtime | Baselined | SQL table references and shared view usage generated in `reports/consolidation/sql-table-map.md`. | Start Phase 3: extract read/write detection, cache behavior, freshness, and runtime errors into `shared-db`. |
 | Shared trace backend primitives | Baselined | Route map confirms the four shared SPC/trace2 trace endpoints and their rate limits/freshness sources. | Extract schemas/tree helpers and add conformance tests before moving DAL SQL. |
 | Trace2-led deploy standardization | Completed | Added `scripts/deploy_app.py`, per-app `deploy.toml` manifests, and shared `make deploy` wiring for envmon, SPC, and trace2. | Use the shared wrapper for real Databricks profile deploy validation. |
 | Frontend API/query standardization | Baselined | `reports/consolidation/frontend-api-map.md` captures Envmon/SPC/trace2 client drift. | Extract shared `ApiError` and JSON helpers first. |
@@ -471,15 +471,16 @@ real requirements.
 
 ## Recommended Next Implementation Slice
 
-Phase 0 and Phase 1 are complete. The next slice should be the shared API
-runtime:
+Phase 0, Phase 1, and Phase 2 are complete. The next slice should be
+`shared-db.SqlRuntime`:
 
 ```text
-libs/shared-api/src/shared_api/app_factory.py
-libs/shared-api/src/shared_api/health.py
-libs/shared-api/src/shared_api/errors.py
+libs/shared-db/src/shared_db/runtime.py
+libs/shared-db/src/shared_db/freshness.py
+libs/shared-db/src/shared_db/errors.py
+libs/shared-db/src/shared_db/tables.py
 ```
 
-Start with envmon, then trace2, then SPC. Keep routers app-owned and add
-conformance tests for health, readiness, same-origin behavior, and static
-frontend fallback before moving on to `shared-db.SqlRuntime`.
+Start with envmon and trace2 adapters, keep SPC on its current DAL until the
+larger exclusion/audit behavior is protected, and preserve the audit/freshness
+evidence already captured in the generated reports.

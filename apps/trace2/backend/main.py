@@ -1,12 +1,8 @@
-import logging
 import os
-import uuid
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import Header, HTTPException
 from starlette.requests import Request as StarletteRequest
 
 from backend.routers.trace import router as trace_router
@@ -18,7 +14,6 @@ from backend.utils.db import (
     check_warehouse_config,
     hostname,
     resolve_token,
-    run_sql,
     run_sql_async,
 )
 from backend.utils.rate_limit import (
@@ -27,88 +22,50 @@ from backend.utils.rate_limit import (
     limiter,
     rate_limit_handler,
 )
-from shared_api.security import SameOriginMiddleware
+from shared_api import (
+    create_api_app,
+    databricks_sql_ready,
+    health_payload,
+    register_spa_routes,
+    safe_global_exception_response,
+)
 
 ENABLE_DEBUG_ENDPOINTS: bool = os.environ.get("APP_ENV", "").strip().lower() == "development"
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
-_NO_CACHE = {"Cache-Control": "no-store"}
 
-app = FastAPI(title="Trace2 API", docs_url="/api/docs", redoc_url=None)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
-app.add_middleware(SlowAPIMiddleware)
-app.add_middleware(SameOriginMiddleware)
+app = create_api_app(
+    title="Trace2 API",
+    limiter=limiter,
+    rate_limit_exception=RateLimitExceeded,
+    rate_limit_handler=rate_limit_handler,
+    slowapi_middleware=SlowAPIMiddleware,
+)
 
 app.include_router(trace_router, prefix="/api", tags=["Traceability"])
 
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: StarletteRequest, exc: Exception):
-    if isinstance(exc, HTTPException):
-        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
-    error_id = str(uuid.uuid4())
-    logging.getLogger(__name__).exception(
-        "Unhandled exception error_id=%s method=%s path=%s",
-        error_id,
-        request.method,
-        request.url.path,
-    )
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error", "error_id": error_id},
-    )
+    return await safe_global_exception_response(request, exc, logger_name=__name__)
 
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok"}
+    return health_payload()
 
 
 @app.get("/api/ready")
 async def ready():
-    try:
-        check_warehouse_config()
-    except HTTPException as exc:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "not_ready",
-                "reason": "warehouse_config_missing",
-                "message": exc.detail,
-            },
-        ) from exc
-
-    readiness_token = os.environ.get("DATABRICKS_READINESS_TOKEN", "").strip()
-    if not readiness_token:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "not_ready",
-                "reason": "readiness_token_missing",
-                "message": (
-                    "DATABRICKS_READINESS_TOKEN is not configured. "
-                    "A dedicated workspace token is required for SQL warehouse readiness checks."
-                ),
-            },
-        )
-
-    try:
-        rows = await run_sql_async(readiness_token, "SELECT 1 AS ok")
-    except Exception as exc:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "not_ready",
-                "reason": "sql_warehouse_unreachable",
-                "message": "An internal error occurred while reaching the SQL warehouse.",
-            },
-        ) from exc
-
-    return {
-        "status": "ready",
-        "checks": {"config": "ok", "sql_warehouse": "ok"},
-        "sample_result": rows[0] if rows else None,
-    }
+    return await databricks_sql_ready(
+        check_warehouse_config=check_warehouse_config,
+        run_sql=run_sql_async,
+        include_sample_result=True,
+        readiness_token_message=(
+            "DATABRICKS_READINESS_TOKEN is not configured. "
+            "A dedicated workspace token is required for SQL warehouse readiness checks."
+        ),
+        sql_error_message="An internal error occurred while reaching the SQL warehouse.",
+    )
 
 
 @app.get("/api/health/debug")
@@ -131,22 +88,4 @@ async def health_debug(
     }
 
 
-if (STATIC_DIR / "assets").exists():
-    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
-
-
-@app.get("/", include_in_schema=False)
-async def serve_index():
-    if not STATIC_DIR.exists():
-        return {"status": "backend running", "frontend": "not built"}
-    return FileResponse(STATIC_DIR / "index.html", headers=_NO_CACHE)
-
-
-@app.get("/{full_path:path}", include_in_schema=False)
-async def serve_spa(full_path: str):
-    if STATIC_DIR.exists():
-        candidate = STATIC_DIR / full_path
-        if candidate.is_file():
-            return FileResponse(candidate)
-        return FileResponse(STATIC_DIR / "index.html", headers=_NO_CACHE)
-    raise HTTPException(status_code=404, detail="Frontend not built.")
+register_spa_routes(app, static_dir_getter=lambda: STATIC_DIR)

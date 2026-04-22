@@ -399,6 +399,6 @@ Sprint 6:
 
 ## Immediate Next Slice
 
-Phase 0 and Phase 1 are complete. The next slice is Phase 2: finish the shared
-API runtime in `libs/shared-api`, migrate envmon first, and keep the opportunity
-map updated in the same change.
+Phase 0, Phase 1, and Phase 2 are complete. The next slice is Phase 3: create
+`shared-db.SqlRuntime`, migrate envmon and trace2 adapters first, and keep the
+opportunity map updated in the same change.
