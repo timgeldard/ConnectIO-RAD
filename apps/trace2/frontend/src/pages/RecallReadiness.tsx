@@ -258,9 +258,10 @@ function MovementTimeline({ events }: { events: RecallEvent[] }) {
               <div style={{ position: "absolute", top: 0, left: "50%", bottom: 0, width: 1, background: "var(--line-2)" }} />
               <div style={{
                 position: "absolute", top: 0,
-                left: positive ? `${50 + pct / 2 + 1}%` : `${50 - pct / 2 - 1}%`,
-                transform: positive ? "none" : "translateX(-100%)",
+                left: positive ? `${50 + pct / 2 + 1}%` : "52%",
+                transform: "none",
                 fontFamily: "'Inter', sans-serif", fontSize: 11, color: "var(--ink-2)",
+                whiteSpace: "nowrap",
               }}>
                 {e.customer || e.plant}{e.country ? ` · ${e.country}` : ""}
               </div>
