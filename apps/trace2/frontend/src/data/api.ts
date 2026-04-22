@@ -17,6 +17,9 @@ import type {
   Risk,
   Supplier,
 } from "../types";
+import { ApiError, postJson } from "@connectio/shared-frontend-api";
+
+export { ApiError };
 
 export function focalIdFor(materialId: string, batchId: string, plantId?: string): string {
   const plantPart = plantId && plantId.trim() ? `|${plantId}` : "";
@@ -34,35 +37,6 @@ export function focalFromBatch(batch: Batch): FocalNode {
     uom: batch.uom || "KG",
     kind: "focal",
   };
-}
-
-export class ApiError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-  }
-}
-
-async function postJson<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    credentials: "include",
-  });
-  if (!res.ok) {
-    let detail: string;
-    try {
-      const json = await res.json();
-      detail =
-        typeof json.detail === "string"
-          ? json.detail
-          : JSON.stringify(json.detail ?? json);
-    } catch {
-      detail = `${res.status} ${res.statusText}`;
-    }
-    throw new ApiError(res.status, detail);
-  }
-  return res.json();
 }
 
 // ---------------------------------------------------------------------------

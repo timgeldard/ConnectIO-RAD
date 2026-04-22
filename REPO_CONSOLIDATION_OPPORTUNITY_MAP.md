@@ -17,9 +17,9 @@ planning update.
 | Shared Databricks SQL runtime | Completed for envmon/trace2 | Added `SqlRuntime` and `DataFreshnessRuntime`; envmon and trace2 now use shared cache/read-write/freshness behavior while SPC remains app-owned. | Revisit SPC after its audit/exclusion behavior is protected by broader DAL tests. |
 | Shared trace backend primitives | Baselined | Route map confirms the four shared SPC/trace2 trace endpoints and their rate limits/freshness sources. | Extract schemas/tree helpers and add conformance tests before moving DAL SQL. |
 | Trace2-led deploy standardization | Completed | Added `scripts/deploy_app.py`, per-app `deploy.toml` manifests, and shared `make deploy` wiring for envmon, SPC, and trace2. | Use the shared wrapper for real Databricks profile deploy validation. |
-| Frontend API/query standardization | Baselined | `reports/consolidation/frontend-api-map.md` captures Envmon/SPC/trace2 client drift. | Extract shared `ApiError` and JSON helpers first. |
+| Frontend API/query standardization | Completed | Added `libs/shared-frontend-api`; envmon, SPC, and trace2 use shared transport helpers, and envmon/SPC use shared React Query defaults. | Keep trace2 response mapping local until the shared trace contract is introduced. |
 | Repo consolidation scanner suite | Completed | Added `scripts/consolidation_audit.py`; reports were regenerated after Phase 1 deploy standardization. | Keep reports current with each consolidation phase. |
-| Frontend build/dependency standardization | Baselined | `reports/consolidation/dependency-drift.md` captures React typings, TypeScript, Vite, FastAPI, and connector version drift. | Use dependency drift report to align versions and config. |
+| Frontend build/dependency standardization | In progress | SPC React typings and TypeScript were aligned enough for typecheck; dependency drift report now includes shared frontend packages. | Continue remaining Vite/plugin/version alignment in a later build-standardization slice. |
 | Carbon shell primitives | Deferred | Envmon/SPC share Carbon patterns; trace2 remains custom. | Revisit after backend/deploy drift stabilizes. |
 | Data contract catalog | Baselined | SQL table map identifies shared Databricks view families and app-specific references. | Promote scanner output into a maintained data catalog after shared DB work starts. |
 | Migration orchestration | Planned | Shared deploy wrapper now supports direct SQL migrations and after-bundle hooks; shared DB primitives are available for later migration runners. | Promote app migration hooks into a richer migration manifest after frontend transport work. |
@@ -471,15 +471,15 @@ real requirements.
 
 ## Recommended Next Implementation Slice
 
-Phase 0 through Phase 3 are complete. The next slice should be frontend
-transport standardization:
+Phase 0 through Phase 4 are complete. The next slice should be the shared trace
+contract:
 
 ```text
-libs/shared-frontend-api/src/client.ts
-libs/shared-frontend-api/src/errors.ts
-libs/shared-frontend-api/src/queryClient.ts
+libs/shared-trace/src/shared_trace/schemas.py
+libs/shared-trace/src/shared_trace/tree.py
+libs/shared-trace/src/shared_trace/freshness_sources.py
 ```
 
-Start by extracting `ApiError` and JSON helpers, then adopt shared React Query
-defaults in envmon and SPC. Keep trace2 response mapping local until the shared
-trace contract is introduced.
+Start with request schemas, tree building, and conformance tests for `/trace`,
+`/summary`, `/batch-details`, and `/impact`. Move DAL SQL only after both SPC
+and trace2 pass the shared route contracts.

@@ -399,6 +399,6 @@ Sprint 6:
 
 ## Immediate Next Slice
 
-Phase 0 through Phase 3 are complete. The next slice is Phase 4: standardize
-frontend transport helpers and query defaults, then keep the opportunity map
-updated in the same change.
+Phase 0 through Phase 4 are complete. The next slice is Phase 5: add the shared
+trace contract and conformance tests before moving any DAL SQL, then keep the
+opportunity map updated in the same change.

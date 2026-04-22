@@ -5,6 +5,7 @@ import Misuse from '@carbon/icons-react/es/Misuse.js'
 import SubtractFilled from '@carbon/icons-react/es/SubtractFilled.js'
 import WarningAltFilled from '@carbon/icons-react/es/WarningAltFilled.js'
 import WarningFilled from '@carbon/icons-react/es/WarningFilled.js'
+import type { CarbonIconType } from '@carbon/icons-react'
 
 export type StatusPillStatus =
   | 'in-control'           // No SPC violations AND Cpk >= threshold
@@ -25,7 +26,7 @@ interface StatusPillProps {
 // Color is never the sole differentiator — icon + label always present (WCAG 1.4.1).
 const STATUS_CONFIG: Record<
   StatusPillStatus,
-  { type: 'green' | 'warm-gray' | 'red' | 'gray' | 'high-contrast'; defaultLabel: string; icon: React.ComponentType<{ size?: number }> }
+  { type: 'green' | 'warm-gray' | 'red' | 'gray' | 'high-contrast'; defaultLabel: string; icon: CarbonIconType }
 > = {
   'in-control':          { type: 'green',          defaultLabel: 'In Control',              icon: CheckmarkFilled    },
   'warning':             { type: 'warm-gray',       defaultLabel: 'Warning',                 icon: WarningAltFilled   },

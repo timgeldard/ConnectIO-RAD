@@ -249,6 +249,13 @@ def dependency_sections() -> dict[str, dict[str, str]]:
             name = re.split(r"[<>=!~;\[]", item, maxsplit=1)[0].strip()
             deps[name] = item
         sections[rel(lib_project).removesuffix("/pyproject.toml")] = deps
+    for package in sorted((ROOT / "libs").glob("*/package.json")):
+        data = load_json(package)
+        deps = {}
+        for key in ("dependencies", "peerDependencies", "devDependencies"):
+            for name, version in data.get(key, {}).items():
+                deps[name] = str(version)
+        sections[rel(package).removesuffix("/package.json")] = deps
     return sections
 
 

@@ -1,0 +1,14 @@
+{
+  "name": "shared-frontend-api",
+  "projectType": "library",
+  "root": "libs/shared-frontend-api",
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit --allowImportingTsExtensions --moduleResolution bundler --module ESNext --target ES2022 src/client.ts src/query.ts",
+        "cwd": "libs/shared-frontend-api"
+      }
+    }
+  }
+}
