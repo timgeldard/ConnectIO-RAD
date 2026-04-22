@@ -1,0 +1,41 @@
+bundle:
+  name: trace2
+
+sync:
+  include:
+    - app.yaml
+    - frontend/dist/**
+
+variables:
+  app_name:
+    default: trace2
+  warehouse_http_path:
+    default: /sql/1.0/warehouses/e76480b94bea6ed5
+  trace_catalog:
+    default: connected_plant_uat
+  trace_schema:
+    default: gold
+
+targets:
+  uat:
+    default: true
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+  prod:
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+
+resources:
+  apps:
+    trace2:
+      name: ${var.app_name}
+      description: Batch Traceability app powered by Databricks
+      source_code_path: .
+      # IMPORTANT: user_api_scopes (["sql"]) cannot be declared here — the DABs
+      # schema does not support this field and bundle deploy resets it to empty.
+      # The `make deploy` target runs scripts/post-deploy.sh after every deploy
+      # to re-apply the scope via `databricks apps update`. Never deploy with
+      # `databricks bundle deploy` directly or the SQL token passthrough breaks.
+      #
+      # Configure DATABRICKS_READINESS_TOKEN in each deployed environment if
+      # `/api/ready` should perform a real SQL warehouse probe before traffic.
