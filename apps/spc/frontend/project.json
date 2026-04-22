@@ -1,0 +1,30 @@
+{
+  "name": "spc-frontend",
+  "projectType": "application",
+  "tags": ["scope:spc", "type:frontend"],
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite",
+        "cwd": "apps/spc/frontend"
+      }
+    },
+    "build": {
+      "executor": "@nx/vite:build",
+      "options": {
+        "outputPath": "apps/spc/frontend/dist",
+        "configFile": "apps/spc/frontend/vite.config.ts"
+      },
+      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -b --noEmit",
+        "cwd": "apps/spc/frontend"
+      }
+    }
+  }
+}

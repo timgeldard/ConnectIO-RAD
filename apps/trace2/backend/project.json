@@ -1,0 +1,47 @@
+{
+  "name": "trace2-backend",
+  "projectType": "application",
+  "tags": ["scope:trace2", "type:backend"],
+  "implicitDependencies": ["shared-db"],
+  "targets": {
+    "sync": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync --package trace2-backend",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --package trace2-backend uvicorn backend.main:app --reload --port 8002",
+        "cwd": "apps/trace2/backend"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --package trace2-backend pytest",
+        "cwd": "apps/trace2/backend"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run ruff check . && uv run mypy .",
+        "cwd": "apps/trace2/backend"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "databricks bundle deploy --target prod",
+        "cwd": "apps/trace2"
+      }
+    }
+  }
+}

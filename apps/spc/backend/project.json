@@ -1,0 +1,47 @@
+{
+  "name": "spc-backend",
+  "projectType": "application",
+  "tags": ["scope:spc", "type:backend"],
+  "implicitDependencies": ["shared-db"],
+  "targets": {
+    "sync": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync --package spc-backend",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --package spc-backend uvicorn backend.main:app --reload --port 8000",
+        "cwd": "apps/spc/backend"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --package spc-backend pytest",
+        "cwd": "apps/spc/backend"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run ruff check . && uv run mypy .",
+        "cwd": "apps/spc/backend"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "databricks bundle deploy --target prod",
+        "cwd": "apps/spc"
+      }
+    }
+  }
+}

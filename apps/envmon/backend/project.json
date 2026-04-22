@@ -1,0 +1,47 @@
+{
+  "name": "envmon-backend",
+  "projectType": "application",
+  "tags": ["scope:envmon", "type:backend"],
+  "implicitDependencies": ["shared-db"],
+  "targets": {
+    "sync": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync --package envmon-backend",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --package envmon-backend uvicorn backend.main:app --reload --port 8001",
+        "cwd": "apps/envmon/backend"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --package envmon-backend pytest",
+        "cwd": "apps/envmon/backend"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run ruff check . && uv run mypy .",
+        "cwd": "apps/envmon/backend"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "databricks bundle deploy --target prod",
+        "cwd": "apps/envmon"
+      }
+    }
+  }
+}

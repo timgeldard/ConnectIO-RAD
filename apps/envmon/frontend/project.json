@@ -1,0 +1,30 @@
+{
+  "name": "envmon-frontend",
+  "projectType": "application",
+  "tags": ["scope:envmon", "type:frontend"],
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite",
+        "cwd": "apps/envmon/frontend"
+      }
+    },
+    "build": {
+      "executor": "@nx/vite:build",
+      "options": {
+        "outputPath": "apps/envmon/frontend/dist",
+        "configFile": "apps/envmon/frontend/vite.config.ts"
+      },
+      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -b --noEmit",
+        "cwd": "apps/envmon/frontend"
+      }
+    }
+  }
+}

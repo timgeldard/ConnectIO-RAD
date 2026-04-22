@@ -1,0 +1,30 @@
+{
+  "name": "trace2-frontend",
+  "projectType": "application",
+  "tags": ["scope:trace2", "type:frontend"],
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite",
+        "cwd": "apps/trace2/frontend"
+      }
+    },
+    "build": {
+      "executor": "@nx/vite:build",
+      "options": {
+        "outputPath": "apps/trace2/frontend/dist",
+        "configFile": "apps/trace2/frontend/vite.config.ts"
+      },
+      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -b --noEmit",
+        "cwd": "apps/trace2/frontend"
+      }
+    }
+  }
+}

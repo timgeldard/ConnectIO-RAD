@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Set NX_BASE and NX_HEAD
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "NX_BASE=origin/${{ github.base_ref }}" >> $GITHUB_ENV
+            echo "NX_HEAD=${{ github.sha }}"             >> $GITHUB_ENV
+          else
+            echo "NX_BASE=${{ github.event.before }}"   >> $GITHUB_ENV
+            echo "NX_HEAD=${{ github.sha }}"             >> $GITHUB_ENV
+          fi
+
+      - name: Sync affected Python envs
+        run: npx nx affected -t sync --base=$NX_BASE --head=$NX_HEAD --parallel=4
+
+      - name: Lint affected
+        run: npx nx affected -t lint --base=$NX_BASE --head=$NX_HEAD --parallel=4
+
+      - name: Typecheck affected frontends
+        run: npx nx affected -t typecheck --base=$NX_BASE --head=$NX_HEAD --parallel=4
+
+      - name: Test affected
+        run: npx nx affected -t test --base=$NX_BASE --head=$NX_HEAD --parallel=4
+
+      - name: Build affected frontends
+        run: npx nx affected -t build --base=$NX_BASE --head=$NX_HEAD --parallel=4
+
+  deploy:
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - uses: databricks/setup-cli@main
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Deploy affected Databricks apps
+        env:
+          DATABRICKS_HOST:  ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          npx nx affected -t deploy \
+            --base=${{ github.event.before }} \
+            --head=${{ github.sha }}

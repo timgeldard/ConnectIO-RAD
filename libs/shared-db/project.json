@@ -1,0 +1,25 @@
+{
+  "name": "shared-db",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:lib"],
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run ruff check . && uv run mypy src/",
+        "cwd": "libs/shared-db"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run pytest",
+        "cwd": "libs/shared-db"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    }
+  }
+}
