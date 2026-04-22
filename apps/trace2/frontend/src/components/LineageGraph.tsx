@@ -437,6 +437,79 @@ export function LineageGraph({
   );
 }
 
+export function NodeDetailPanel({
+  node,
+  onClose,
+}: {
+  node: LineageNode | null;
+  onClose: () => void;
+}) {
+  if (!node) return null;
+  const ls = LINK_STYLE[node.link];
+  const accentColor = ls?.stroke ?? "var(--ink-3)";
+  const dir = node.level > 0 ? (node.link === "SALES_ORDER" ? "OUTPUT" : "INPUT") : "NODE";
+  const party = node.supplier || node.customer || null;
+  return (
+    <div style={{
+      border: "1px solid var(--line)",
+      borderLeft: `4px solid ${accentColor}`,
+      borderRadius: 4,
+      background: "var(--card)",
+      padding: "14px 20px",
+      marginBottom: 20,
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr 1fr",
+      gap: "10px 24px",
+      position: "relative",
+    }}>
+      <button
+        onClick={onClose}
+        style={{
+          position: "absolute", top: 10, right: 12,
+          background: "transparent", border: "none",
+          cursor: "pointer", fontSize: 14, color: "var(--ink-3)", lineHeight: 1,
+        }}
+        aria-label="Close"
+      >✕</button>
+      <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "baseline", gap: 10, marginBottom: 2 }}>
+        <span style={{
+          fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5,
+          letterSpacing: "0.12em", color: accentColor, textTransform: "uppercase",
+        }}>
+          {dir} · L{node.level} · {node.link}
+        </span>
+      </div>
+      <div style={{ gridColumn: "1 / 3" }}>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>MATERIAL</div>
+        <div style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>{node.material}</div>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--ink-2)", marginTop: 2 }}>{node.material_id}</div>
+      </div>
+      <div>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>BATCH</div>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--ink)" }}>{node.batch}</div>
+      </div>
+      <div>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>QTY</div>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--ink)", fontVariantNumeric: "tabular-nums" }}>
+          {fmtN(node.qty, 1)} {node.uom}
+        </div>
+      </div>
+      <div>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>PLANT</div>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: "var(--ink)" }}>{node.plant || "—"}</div>
+      </div>
+      {party && (
+        <div>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>
+            {node.supplier ? "SUPPLIER" : "CUSTOMER"}
+          </div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: "var(--ink)" }}>{party}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function columnLabel(dir: "up" | "down", level: number, max: number): string {
   if (dir === "up") {
     if (level === 1) return "L1 · INPUTS";

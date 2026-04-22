@@ -3,7 +3,7 @@ import type { Batch, LineageNode } from "../types";
 import { fetchBottomUp, focalFromBatch } from "../data/api";
 import { useBatchData } from "../data/useBatchData";
 import { LoadFrame, EmptyBlock } from "../components/LoadFrame";
-import { LineageGraph } from "../components/LineageGraph";
+import { LineageGraph, NodeDetailPanel } from "../components/LineageGraph";
 import { Card, DataTable, KPI, SectionHeader, StatusPill, fmtN } from "../ui";
 
 export function PageBottomUp({ batch: headerBatch }: { batch: Batch }) {
@@ -60,6 +60,8 @@ function BottomUpBody({ batch, lineage }: { batch: Batch; lineage: LineageNode[]
           }}
         />
       </Card>
+
+      <NodeDetailPanel node={selected} onClose={() => setSelected(null)} />
 
       {level1.length > 0 && (
         <Card title="Inbound volume by direct input" subtitle={`Total received ${fmtN(totalInbound, 0)} KG across level-1 materials`} style={{ marginBottom: 20 }}>

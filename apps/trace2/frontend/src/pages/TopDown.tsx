@@ -3,7 +3,7 @@ import type { Batch, CountryRow, CustomerRow, Delivery, LineageNode } from "../t
 import { fetchTopDown, focalFromBatch } from "../data/api";
 import { useBatchData } from "../data/useBatchData";
 import { LoadFrame, EmptyBlock } from "../components/LoadFrame";
-import { LineageGraph } from "../components/LineageGraph";
+import { LineageGraph, NodeDetailPanel } from "../components/LineageGraph";
 import { BarChart, Card, DataTable, Donut, KPI, SectionHeader, StatusPill, flag, fmtN } from "../ui";
 
 export function PageTopDown({ batch: headerBatch }: { batch: Batch }) {
@@ -76,6 +76,8 @@ function TopDownBody({
           }}
         />
       </Card>
+
+      <NodeDetailPanel node={selected} onClose={() => setSelected(null)} />
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
         <Card title="Despatched by customer">
