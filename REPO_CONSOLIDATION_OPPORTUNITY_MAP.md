@@ -16,13 +16,13 @@ planning update.
 | Shared FastAPI app/runtime conventions | In progress | `libs/shared-api` exists and same-origin middleware is shared across apps. Phase 0 route map generated in `reports/consolidation/route-map.md`. | Add shared app factory, health, readiness, and static mount helpers. |
 | Shared Databricks SQL runtime | Baselined | SQL table references and shared view usage generated in `reports/consolidation/sql-table-map.md`. | Extract read/write detection, cache behavior, freshness, and runtime errors into `shared-db`. |
 | Shared trace backend primitives | Baselined | Route map confirms the four shared SPC/trace2 trace endpoints and their rate limits/freshness sources. | Extract schemas/tree helpers and add conformance tests before moving DAL SQL. |
-| Trace2-led deploy standardization | Baselined | `reports/consolidation/deploy-drift.md` marks trace2 as the reference deploy flow and shows envmon/SPC drift. | Wrap trace2 behavior in shared deploy tooling, then migrate envmon and SPC. |
+| Trace2-led deploy standardization | Completed | Added `scripts/deploy_app.py`, per-app `deploy.toml` manifests, and shared `make deploy` wiring for envmon, SPC, and trace2. | Use the shared wrapper for real Databricks profile deploy validation. |
 | Frontend API/query standardization | Baselined | `reports/consolidation/frontend-api-map.md` captures Envmon/SPC/trace2 client drift. | Extract shared `ApiError` and JSON helpers first. |
-| Repo consolidation scanner suite | Completed | Added `scripts/consolidation_audit.py` and generated Phase 0 reports under `reports/consolidation/`. | Keep reports current with each consolidation phase. |
+| Repo consolidation scanner suite | Completed | Added `scripts/consolidation_audit.py`; reports were regenerated after Phase 1 deploy standardization. | Keep reports current with each consolidation phase. |
 | Frontend build/dependency standardization | Baselined | `reports/consolidation/dependency-drift.md` captures React typings, TypeScript, Vite, FastAPI, and connector version drift. | Use dependency drift report to align versions and config. |
 | Carbon shell primitives | Deferred | Envmon/SPC share Carbon patterns; trace2 remains custom. | Revisit after backend/deploy drift stabilizes. |
 | Data contract catalog | Baselined | SQL table map identifies shared Databricks view families and app-specific references. | Promote scanner output into a maintained data catalog after shared DB work starts. |
-| Migration orchestration | Planned | Deploy drift and SQL reports provide the baseline for migration consolidation. | Follow deployment standardization and data catalog work. |
+| Migration orchestration | Planned | Shared deploy wrapper now supports direct SQL migrations and after-bundle hooks. | Promote app migration hooks into a richer migration manifest after shared DB work. |
 | Test conformance | Baselined | `reports/consolidation/test-matrix.md` shows SPC has the broadest tests and envmon/trace2 lack frontend tests. | Add backend conformance tests with each shared package extraction. |
 | SPC statistical utility extraction | Deferred | Domain-specific SPC logic should remain app-owned for now. | Revisit only after core shared infrastructure is stable. |
 
@@ -226,7 +226,7 @@ Suggested package shape:
 scripts/deploy_app.py
 scripts/render_app_config.py
 scripts/run_migrations.py
-apps/<app>/deploy.yaml
+apps/<app>/deploy.toml
 ```
 
 First ticket:
@@ -471,18 +471,15 @@ real requirements.
 
 ## Recommended Next Implementation Slice
 
-The best next code slice is the scanner suite, because it gives every later
-consolidation ticket a measurable baseline:
+Phase 0 and Phase 1 are complete. The next slice should be the shared API
+runtime:
 
 ```text
-scripts/consolidation_audit.py
-reports/consolidation/route-map.md
-reports/consolidation/sql-table-map.md
-reports/consolidation/dependency-drift.md
-reports/consolidation/deploy-drift.md
-reports/consolidation/test-matrix.md
+libs/shared-api/src/shared_api/app_factory.py
+libs/shared-api/src/shared_api/health.py
+libs/shared-api/src/shared_api/errors.py
 ```
 
-That work is low risk, read-only, and immediately useful. After that, the next
-implementation slice should be `shared-db.SqlRuntime`, because it removes real
-runtime risk and supports envmon, trace2, and eventually SPC.
+Start with envmon, then trace2, then SPC. Keep routers app-owned and add
+conformance tests for health, readiness, same-origin behavior, and static
+frontend fallback before moving on to `shared-db.SqlRuntime`.

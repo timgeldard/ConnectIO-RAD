@@ -278,20 +278,35 @@ def report_dependencies(sections: dict[str, dict[str, str]]) -> str:
 
 
 def deploy_stage_flags(app_dir: Path) -> dict[str, str]:
-    files = [app_dir / "Makefile", app_dir / "deploy.sh", app_dir / "databricks.yml", app_dir / "app.template.yaml"]
+    files = [
+        app_dir / "Makefile",
+        app_dir / "deploy.sh",
+        app_dir / "deploy.toml",
+        app_dir / "databricks.yml",
+        app_dir / "app.template.yaml",
+    ]
     scripts_dir = app_dir / "scripts"
     if scripts_dir.exists():
         files.extend(sorted(scripts_dir.rglob("*.sh")))
     combined = "\n".join(read_text(path) for path in files if path.exists())
     template = read_text(app_dir / "app.template.yaml") if (app_dir / "app.template.yaml").exists() else ""
     databricks = read_text(app_dir / "databricks.yml") if (app_dir / "databricks.yml").exists() else ""
+    manifest = read_text(app_dir / "deploy.toml") if (app_dir / "deploy.toml").exists() else ""
+    uses_shared_wrapper = "deploy_app.py" in combined and bool(manifest)
+    post_deploy_enabled = "enabled = true" in manifest and "[post_deploy]" in manifest
     return {
-        "auth check": "yes" if "current-user me" in combined else "no",
+        "shared wrapper": "yes" if uses_shared_wrapper else "no",
+        "auth check": "yes" if "current-user me" in combined or uses_shared_wrapper else "no",
         "frontend build": "yes" if "npm run build" in combined else "no",
         "render app config": "yes" if "app.template.yaml" in combined or "envsubst" in combined else "no",
-        "bundle deploy": "yes" if "bundle deploy" in combined else "no",
-        "post deploy": "yes" if "post-deploy" in combined or "apps deploy" in combined else "no",
-        "scope handling": "yes" if "user_api_scopes" in combined or "user_api_scopes" in databricks else "no",
+        "bundle deploy": "yes" if "bundle deploy" in combined or uses_shared_wrapper else "no",
+        "post deploy": "yes" if "post-deploy" in combined or "apps deploy" in combined or post_deploy_enabled else "no",
+        "scope handling": "yes"
+        if "user_api_scopes" in combined
+        or "user_api_scopes" in databricks
+        or "repair_sql_scope = true" in manifest
+        else "no",
+        "migration hooks": "yes" if "[[migrations]]" in manifest or "after_bundle" in manifest else "no",
         "cli pin": "yes" if "databricks_cli_version" in databricks else "no",
         "template syntax": "${VAR}" if "${" in template else "$VAR" if "$" in template else "-",
     }
@@ -304,12 +319,14 @@ def report_deploy_drift() -> str:
         rows.append(
             [
                 app_dir.name,
+                flags["shared wrapper"],
                 flags["auth check"],
                 flags["frontend build"],
                 flags["render app config"],
                 flags["bundle deploy"],
                 flags["post deploy"],
                 flags["scope handling"],
+                flags["migration hooks"],
                 flags["cli pin"],
                 flags["template syntax"],
             ]
@@ -322,12 +339,14 @@ def report_deploy_drift() -> str:
             markdown_table(
                 [
                     "App",
+                    "Shared wrapper",
                     "Auth check",
                     "Frontend build",
                     "Render config",
                     "Bundle deploy",
                     "Post deploy",
                     "Scope handling",
+                    "Migration hooks",
                     "CLI pin",
                     "Template syntax",
                 ],

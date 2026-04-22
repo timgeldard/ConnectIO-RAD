@@ -38,6 +38,7 @@ PLANT_MATERIAL_DIM_MV_MIGRATION ?= $(MIGRATIONS_DIR)/018_create_spc_plant_materi
 LOCKED_LIMITS_UNIFIED_KEY_MIGRATION ?= $(MIGRATIONS_DIR)/014_add_unified_mic_key_to_locked_limits.sql
 MIC_CHART_CONFIG_MIGRATION ?= $(MIGRATIONS_DIR)/019_create_spc_mic_chart_config.sql
 GENIE_METADATA ?= true
+DEPLOY_APP ?= python3 ../../scripts/deploy_app.py --app-dir .
 
 .PHONY: apply-migration build check-env check-metric-view-support deploy render-app-config setup-locked-limits setup-exclusions setup-query-audit setup-operation-id-locked-limits setup-operation-id-exclusions setup-metric-views setup-unified-mic-views setup-locked-limits-unified-key setup-mic-chart-config
 
@@ -50,24 +51,10 @@ build:
 	cd frontend && npm run build
 
 render-app-config:
-	@echo "Rendering $(APP_CONFIG_OUTPUT) from $(APP_CONFIG_TEMPLATE)..."
-	@export DATABRICKS_WAREHOUSE_HTTP_PATH="$${DATABRICKS_WAREHOUSE_HTTP_PATH:-$(WAREHOUSE_HTTP_PATH_DEFAULT)}" && \
-	 export TRACE_CATALOG="$${TRACE_CATALOG:-$(TRACE_CATALOG_DEFAULT)}" && \
-	 export TRACE_SCHEMA="$${TRACE_SCHEMA:-$(TRACE_SCHEMA_DEFAULT)}" && \
-	 MSYS_NO_PATHCONV=1 envsubst '$$DATABRICKS_WAREHOUSE_HTTP_PATH $$TRACE_CATALOG $$TRACE_SCHEMA' < $(APP_CONFIG_TEMPLATE) > $(APP_CONFIG_OUTPUT)
-	@echo "✓ $(APP_CONFIG_OUTPUT) rendered"
+	$(DEPLOY_APP) --action render --profile $(PROFILE)
 
-deploy: check-env build render-app-config
-	databricks bundle deploy --profile $(PROFILE)
-	$(MAKE) setup-locked-limits PROFILE=$(PROFILE)
-	$(MAKE) setup-exclusions PROFILE=$(PROFILE)
-	$(MAKE) setup-query-audit PROFILE=$(PROFILE)
-	$(MAKE) setup-operation-id-locked-limits PROFILE=$(PROFILE)
-	$(MAKE) setup-operation-id-exclusions PROFILE=$(PROFILE)
-	$(MAKE) setup-locked-limits-unified-key PROFILE=$(PROFILE)
-	$(MAKE) setup-metric-views PROFILE=$(PROFILE)
-	$(MAKE) setup-unified-mic-views PROFILE=$(PROFILE)
-	$(MAKE) setup-mic-chart-config PROFILE=$(PROFILE)
+deploy:
+	$(DEPLOY_APP) --profile $(PROFILE)
 
 apply-migration: check-env
 	@echo "Applying $(NAME) migration from $(FILE)..."

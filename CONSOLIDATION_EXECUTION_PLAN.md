@@ -108,7 +108,7 @@ Deliverables:
 
 - `scripts/deploy_app.py` or `scripts/deploy_app.sh`
 - `scripts/render_app_config.py` or a shared renderer module
-- `apps/<app>/deploy.yaml`
+- `apps/<app>/deploy.toml`
 - Updated `apps/envmon/Makefile`
 - Updated `apps/spc/Makefile`
 - Trace2 kept compatible with `make deploy` and `scripts/deploy.sh`
@@ -399,7 +399,6 @@ Sprint 6:
 
 ## Immediate Next Slice
 
-Build the scanner suite first, then use its deploy drift output to implement
-the trace2-led deployment wrapper. This gives the team a fast win, preserves the
-deployment path that already worked best, and prevents the other apps from
-remaining dependent on manual Makefile decomposition.
+Phase 0 and Phase 1 are complete. The next slice is Phase 2: finish the shared
+API runtime in `libs/shared-api`, migrate envmon first, and keep the opportunity
+map updated in the same change.

@@ -1,0 +1,30 @@
+[app]
+name = "envmon"
+bundle_name = "envmon"
+default_profile = "uat"
+default_target = "uat"
+template = "app.template.yaml"
+config_output = "app.yaml"
+
+[env]
+DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/e76480b94bea6ed5"
+TRACE_CATALOG = "connected_plant_uat"
+TRACE_SCHEMA = "gold"
+EM_PLANT_ID = "P225"
+
+[build]
+cwd = "frontend"
+command = "npm run build"
+
+[bundle]
+include_target = true
+
+[post_deploy]
+enabled = true
+source_target = "target"
+repair_sql_scope = true
+
+[[migrations]]
+name = "em_location_coordinates"
+file = "scripts/migrations/000_create_em_location_coordinates.sql"
+warehouse_id = "e76480b94bea6ed5"

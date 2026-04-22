@@ -17,6 +17,7 @@ APP_CONFIG_OUTPUT ?= app.yaml
 WAREHOUSE_HTTP_PATH_DEFAULT ?= /sql/1.0/warehouses/e76480b94bea6ed5
 TRACE_CATALOG_DEFAULT ?= connected_plant_uat
 TRACE_SCHEMA_DEFAULT ?= gold
+DEPLOY_APP ?= python3 ../../scripts/deploy_app.py --app-dir .
 
 .PHONY: build check-env deploy dev render-app-config
 
@@ -33,13 +34,7 @@ dev:
 	@bash scripts/dev.sh
 
 render-app-config:
-	@echo "Rendering $(APP_CONFIG_OUTPUT) from $(APP_CONFIG_TEMPLATE)..."
-	@export DATABRICKS_WAREHOUSE_HTTP_PATH="$${DATABRICKS_WAREHOUSE_HTTP_PATH:-$(WAREHOUSE_HTTP_PATH_DEFAULT)}" && \
-	 export TRACE_CATALOG="$${TRACE_CATALOG:-$(TRACE_CATALOG_DEFAULT)}" && \
-	 export TRACE_SCHEMA="$${TRACE_SCHEMA:-$(TRACE_SCHEMA_DEFAULT)}" && \
-	 envsubst '$$DATABRICKS_WAREHOUSE_HTTP_PATH $$TRACE_CATALOG $$TRACE_SCHEMA' < $(APP_CONFIG_TEMPLATE) > $(APP_CONFIG_OUTPUT)
-	@echo "✓ $(APP_CONFIG_OUTPUT) rendered"
+	$(DEPLOY_APP) --action render --profile $(PROFILE)
 
-deploy: check-env build render-app-config
-	databricks bundle deploy --profile $(PROFILE)
-	APP_NAME=$(APP_NAME) BUNDLE_NAME=$(BUNDLE_NAME) bash scripts/post-deploy.sh --profile $(PROFILE)
+deploy:
+	$(DEPLOY_APP) --profile $(PROFILE) --app-name $(APP_NAME) --bundle-name $(BUNDLE_NAME)
