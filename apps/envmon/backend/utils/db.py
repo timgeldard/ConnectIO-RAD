@@ -10,6 +10,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import re
 import threading
 import time
@@ -91,7 +92,7 @@ def _clear_sql_cache() -> None:
 
 
 def _get_sql_executor():
-    configured = os.environ.get("SQL_EXECUTOR", "rest").strip().lower() if True else "rest"
+    configured = os.environ.get("SQL_EXECUTOR", "rest").strip().lower()
     if configured == "connector":
         if databricks_sql is None:
             logger.warning("connector executor requested but databricks-sql-connector unavailable; falling back to rest")
@@ -99,8 +100,6 @@ def _get_sql_executor():
         return _CONNECTOR_EXECUTOR
     return _REST_EXECUTOR
 
-
-import os  # noqa: E402 — placed after class-level references above
 
 
 def run_sql(
