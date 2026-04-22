@@ -1,276 +1,52 @@
 """
-Shared database utilities for the SPC App backend.
+trace2 database utilities.
 
-Provides the single implementation of:
-  - run_sql()              — parameterized SQL via Databricks REST API
-  - resolve_token()        — x-forwarded-access-token / Bearer fallback
-  - check_warehouse_config() — validate DATABRICKS_WAREHOUSE_HTTP_PATH is set
-  - tbl()                  — fully-qualified backtick-quoted table reference
-  - sql_param()            — build a named STRING parameter dict
-
-Both backend/main.py and backend/routers/spc.py import from here so that
-security fixes (e.g. parameterization) only need to be applied once.
+Core SQL functions are provided by shared_db. This module adds trace2-specific
+async execution (single TTL cache), data freshness, and audit helpers.
 """
 
 import asyncio
 import hashlib
 import json
 import logging
-import os
 import re
 import threading
 import time
 import uuid
-import urllib.error
-import urllib.request
-from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from typing import Optional
 
 from fastapi import HTTPException
-try:
-    from cachetools import TTLCache
-except ImportError:  # pragma: no cover - local-dev fallback until deps are installed
-    class TTLCache(dict):
-        """Minimal TTL cache fallback matching the small API surface we use."""
 
-        def __init__(self, maxsize: int, ttl: int):
-            super().__init__()
-            self.maxsize = maxsize
-            self.ttl = ttl
-            self._expires: dict[str, float] = {}
-
-        def get(self, key, default=None):
-            expires_at = self._expires.get(key)
-            if expires_at is not None and expires_at <= time.monotonic():
-                self.pop(key, None)
-                self._expires.pop(key, None)
-                return default
-            return super().get(key, default)
-
-        def __setitem__(self, key, value):
-            if key not in self and len(self) >= self.maxsize:
-                oldest_key = min(self._expires, key=self._expires.get, default=None)
-                if oldest_key is not None:
-                    self.pop(oldest_key, None)
-                    self._expires.pop(oldest_key, None)
-            super().__setitem__(key, value)
-            self._expires[key] = time.monotonic() + self.ttl
-
-_sql_executor = ThreadPoolExecutor(max_workers=20, thread_name_prefix="sql")
-_sql_cache = TTLCache(maxsize=100, ttl=300)
-_sql_cache_lock = threading.Lock()
-_SQL_CACHE_ROW_LIMIT = 1000
+from shared_db.core import (  # noqa: F401  re-exported for existing imports
+    DATABRICKS_HOST,
+    WAREHOUSE_HTTP_PATH,
+    TRACE_CATALOG,
+    TRACE_SCHEMA,
+    hostname,
+    tbl,
+    check_warehouse_config,
+    resolve_token,
+    sql_param,
+    run_sql,
+    TTLCache,
+)
+from shared_db.errors import (  # noqa: F401
+    classify_sql_runtime_error,
+    increment_observability_counter,
+    send_operational_alert,
+)
+from shared_db.executors import _sql_executor
 
 logger = logging.getLogger(__name__)
 _VIEW_NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
 
-# ---------------------------------------------------------------------------
-# Configuration — read once at import from environment
-# ---------------------------------------------------------------------------
-DATABRICKS_HOST: str = os.environ.get("DATABRICKS_HOST", "")
-WAREHOUSE_HTTP_PATH: str = os.environ.get("DATABRICKS_WAREHOUSE_HTTP_PATH", "")
-TRACE_CATALOG: str = os.environ.get("TRACE_CATALOG", "connected_plant_uat")
-TRACE_SCHEMA: str = os.environ.get("TRACE_SCHEMA", "gold")
+_sql_cache: TTLCache = TTLCache(maxsize=100, ttl=300)
+_sql_cache_lock = threading.Lock()
+_SQL_CACHE_ROW_LIMIT = 1000
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def hostname() -> str:
-    """Return the bare Databricks workspace hostname (no scheme, no trailing slash)."""
-    return DATABRICKS_HOST.removeprefix("https://").removeprefix("http://").rstrip("/")
-
-
-def tbl(name: str) -> str:
-    """Return a fully-qualified backtick-quoted table reference."""
-    return f"`{TRACE_CATALOG}`.`{TRACE_SCHEMA}`.`{name}`"
-
-
-def check_warehouse_config() -> str:
-    """Raise HTTP 500 if DATABRICKS_WAREHOUSE_HTTP_PATH is not set."""
-    if not WAREHOUSE_HTTP_PATH:
-        raise HTTPException(
-            status_code=500,
-            detail="DATABRICKS_WAREHOUSE_HTTP_PATH environment variable is not set.",
-        )
-    return WAREHOUSE_HTTP_PATH
-
-
-def resolve_token(
-    x_forwarded_access_token: Optional[str],
-    authorization: Optional[str],
-) -> str:
-    """
-    Resolve the access token from request headers (priority order):
-      1. x-forwarded-access-token  — injected by the Databricks Apps proxy
-      2. Authorization: Bearer     — for local development / direct API calls
-    """
-    token = x_forwarded_access_token
-    if token is None and authorization and authorization.startswith("Bearer "):
-        token = authorization[len("Bearer "):]
-    if not token:
-        raise HTTPException(
-            status_code=401,
-            detail=(
-                "No access token present. Expected x-forwarded-access-token "
-                "header (set by Databricks Apps proxy) or Authorization: Bearer."
-            ),
-        )
-    return token
-
-
-def sql_param(name: str, value: Optional[object]) -> dict:
-    """
-    Build a named STRING parameter dict for the Databricks SQL Statement API.
-
-    `None` is preserved so the JSON payload carries a real null instead of the
-    string literal "None".
-
-    Usage:
-        statement = "SELECT * FROM t WHERE id = :my_id"
-        params    = [sql_param("my_id", some_value)]
-    """
-    return {"name": name, "value": str(value) if value is not None else None, "type": "STRING"}
-
-
-def classify_sql_runtime_error(
-    exc: Exception,
-    *,
-    missing_table_detail: Optional[str] = None,
-) -> Optional[HTTPException]:
-    """Map Databricks SQL runtime failures to client-facing HTTP errors."""
-    msg = str(exc).lower()
-    if "permission denied" in msg or "no access" in msg or "403" in msg:
-        return HTTPException(status_code=403, detail="Access denied by Unity Catalog policy.")
-    if "401" in msg or "unauthorized" in msg:
-        return HTTPException(status_code=401, detail="Token rejected by Databricks.")
-    if missing_table_detail and (
-        "table or view not found" in msg
-        or "does not exist" in msg
-        or "doesn't exist" in msg
-    ):
-        return HTTPException(status_code=503, detail=missing_table_detail)
-    return None
-
-
-def increment_observability_counter(name: str, *, tags: Optional[dict[str, str]] = None) -> None:
-    """Emit a structured counter event until a dedicated metrics sink is wired in."""
-    logger.info(
-        "metric.increment name=%s value=1 tags=%s",
-        name,
-        json.dumps(tags or {}, sort_keys=True, separators=(",", ":")),
-    )
-
-
-def send_operational_alert(*, subject: str, body: str, error_id: Optional[str] = None, request_path: Optional[str] = None) -> None:
-    """Stub hook for workspace-specific alerting integrations.
-
-    See GitHub issue #9 for wiring this into Databricks SQL alerts or a webhook-
-    based incident pipeline once environment-specific routing is available.
-    """
-    logger.warning(
-        "operational_alert.pending issue=#9 subject=%s error_id=%s request_path=%s body=%s",
-        subject,
-        error_id or "unknown",
-        request_path or "unknown",
-        body,
-    )
-
-
-def run_sql(
-    token: str,
-    statement: str,
-    params: Optional[list[dict]] = None,
-) -> list[dict]:
-    """
-    Execute a SQL statement via the Databricks SQL Statement Execution REST API.
-
-    Supports named parameters (:name syntax) to prevent SQL injection:
-
-        rows = run_sql(token, "SELECT * FROM t WHERE col = :val",
-                       [sql_param("val", user_input)])
-
-    Falls back to polling when the warehouse returns PENDING/RUNNING status.
-    Raises RuntimeError on SQL failures.
-    """
-    host = hostname()
-    wh_id = WAREHOUSE_HTTP_PATH.rsplit("/", 1)[-1]
-    url = f"https://{host}/api/2.0/sql/statements/"
-
-    body: dict = {
-        "warehouse_id": wh_id,
-        "statement": statement,
-        "wait_timeout": "50s",
-    }
-    if params:
-        body["parameters"] = params
-
-    payload = json.dumps(body).encode()
-    auth_headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-
-    stmt_hash = hashlib.sha256(statement.encode()).hexdigest()[:16]
-    param_count = len(params) if params else 0
-    logger.info("sql.execute hash=%s params=%d", stmt_hash, param_count)
-
-    req = urllib.request.Request(url, data=payload, headers=auth_headers, method="POST")
-    t0 = time.monotonic()
-    try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            result = json.loads(resp.read().decode())
-    except urllib.error.HTTPError as exc:
-        body_str = exc.read().decode() if exc.fp else ""
-        raise RuntimeError(f"SQL API {exc.code} {exc.reason}: {body_str[:2000]}") from exc
-
-    # Poll until terminal state
-    state = result.get("status", {}).get("state", "")
-    statement_id = result.get("statement_id", "")
-    poll_url = f"https://{host}/api/2.0/sql/statements/{statement_id}"
-
-    for _ in range(60):  # up to ~2 minutes
-        if state in ("SUCCEEDED", "FAILED", "CANCELED", "CLOSED"):
-            break
-        time.sleep(2)
-        poll_req = urllib.request.Request(poll_url, headers=auth_headers)
-        try:
-            with urllib.request.urlopen(poll_req, timeout=30) as poll_resp:
-                result = json.loads(poll_resp.read().decode())
-                state = result.get("status", {}).get("state", "")
-        except urllib.error.HTTPError as exc:
-            body_str = exc.read().decode() if exc.fp else ""
-            raise RuntimeError(f"SQL poll {exc.code}: {body_str[:1000]}") from exc
-
-    elapsed_ms = int((time.monotonic() - t0) * 1000)
-
-    if state != "SUCCEEDED":
-        error_info = result.get("status", {}).get("error", {})
-        msg = error_info.get("message", f"Query ended with state: {state}")
-        logger.warning("sql.failed hash=%s state=%s duration_ms=%d", stmt_hash, state, elapsed_ms)
-        raise RuntimeError(msg)
-
-    columns = [c["name"] for c in result["manifest"]["schema"]["columns"]]
-    rows = [
-        dict(zip(columns, row_data))
-        for row_data in result.get("result", {}).get("data_array", [])
-    ]
-    logger.info("sql.done hash=%s state=SUCCEEDED rows=%d duration_ms=%d", stmt_hash, len(rows), elapsed_ms)
-    return rows
-
-
-def _sql_cache_key(
-    token: str,
-    statement: str,
-    params: Optional[list[dict]] = None,
-) -> str:
-    """Return a user-scoped cache key for SQL result reuse.
-
-    The key includes a hash of the user token, statement text, and serialized
-    parameters so cached results remain isolated per authenticated user.
-    """
+def _sql_cache_key(token: str, statement: str, params: Optional[list[dict]] = None) -> str:
     payload = json.dumps(params or [], sort_keys=True, default=str, separators=(",", ":"))
     token_hash = hashlib.sha256(token.encode()).hexdigest()
     stmt_hash = hashlib.sha256(statement.encode()).hexdigest()
@@ -278,18 +54,12 @@ def _sql_cache_key(
     return f"{token_hash}:{stmt_hash}:{param_hash}"
 
 
-def _should_cache_rows(rows: list[dict]) -> bool:
-    """Keep the in-process cache bounded by skipping large result sets."""
-    return len(rows) <= _SQL_CACHE_ROW_LIMIT
-
-
 async def run_sql_async(
     token: str,
     statement: str,
     params: Optional[list[dict]] = None,
 ) -> list[dict]:
-    """Non-blocking wrapper — runs run_sql in a thread pool so the async event
-    loop is never blocked waiting for Databricks SQL responses."""
+    """Non-blocking SQL execution with a single TTL result cache."""
     cache_key = _sql_cache_key(token, statement, params)
     with _sql_cache_lock:
         cached_rows = _sql_cache.get(cache_key)
@@ -298,24 +68,14 @@ async def run_sql_async(
 
     loop = asyncio.get_running_loop()
     rows = await loop.run_in_executor(_sql_executor, lambda: run_sql(token, statement, params))
-    if _should_cache_rows(rows):
+    if len(rows) <= _SQL_CACHE_ROW_LIMIT:
         with _sql_cache_lock:
             _sql_cache[cache_key] = deepcopy(rows)
     return rows
 
 
 def get_data_freshness(token: str, source_views: list[str]) -> dict:
-    """
-    Return per-view freshness metadata from information_schema.tables.last_altered.
-
-    `source_views` must contain unqualified table/view names in TRACE_SCHEMA.
-    """
-    safe_views: list[str] = []
-    for view in source_views:
-        if _VIEW_NAME_RE.match(view):
-            safe_views.append(view)
-    safe_views = sorted(set(safe_views))
-
+    safe_views = sorted({v for v in source_views if _VIEW_NAME_RE.match(v)})
     if not safe_views:
         return {"generated_at_utc": int(time.time()), "sources": []}
 
@@ -357,7 +117,6 @@ async def insert_spc_audit_event(
     error_id: Optional[str] = None,
     request_path: Optional[str] = None,
 ) -> None:
-    """Persist an app audit event for operational/compliance investigations."""
     params = [
         sql_param("audit_id", str(uuid.uuid4())),
         sql_param("event_type", event_type),
@@ -368,24 +127,12 @@ async def insert_spc_audit_event(
     ]
     statement = f"""
         INSERT INTO {tbl('spc_query_audit')} (
-            audit_id,
-            event_type,
-            sql_hash,
-            error_id,
-            request_path,
-            detail_json,
-            user_id,
-            created_at
+            audit_id, event_type, sql_hash, error_id,
+            request_path, detail_json, user_id, created_at
         )
         SELECT
-            :audit_id,
-            :event_type,
-            :sql_hash,
-            :error_id,
-            :request_path,
-            :detail_json,
-            CURRENT_USER(),
-            CURRENT_TIMESTAMP()
+            :audit_id, :event_type, :sql_hash, :error_id,
+            :request_path, :detail_json, CURRENT_USER(), CURRENT_TIMESTAMP()
     """
     await run_sql_async(token, statement, params)
 
@@ -397,12 +144,6 @@ async def attach_data_freshness(
     *,
     request_path: Optional[str] = None,
 ) -> dict:
-    """Attach freshness metadata or raise an auditable failure.
-
-    Freshness is treated as an explicit contract: if it cannot be computed, the
-    caller gets a hard failure with an error id rather than a silent partial
-    success that hides the monitoring gap.
-    """
     try:
         loop = asyncio.get_running_loop()
         payload["data_freshness"] = await loop.run_in_executor(
@@ -419,9 +160,7 @@ async def attach_data_freshness(
         error_id = str(uuid.uuid4())
         logger.exception(
             "data_freshness.failed error_id=%s request_path=%s source_views=%s",
-            error_id,
-            request_path or "unknown",
-            ",".join(sorted(set(source_views))),
+            error_id, request_path or "unknown", ",".join(sorted(set(source_views))),
         )
         try:
             await insert_spc_audit_event(
@@ -429,52 +168,26 @@ async def attach_data_freshness(
                 event_type="freshness_error",
                 error_id=error_id,
                 request_path=request_path or "unknown",
-                detail={
-                    "message": str(exc)[:500],
-                    "source_views": sorted(set(source_views)),
-                },
+                detail={"message": str(exc)[:500], "source_views": sorted(set(source_views))},
             )
         except Exception:
             increment_observability_counter(
                 "data_freshness.audit_insert_failed_total",
-                tags={
-                    "error_id": error_id,
-                    "request_path": request_path or "unknown",
-                },
-            )
-            logger.exception(
-                "data_freshness.audit_insert_failed error_id=%s request_path=%s",
-                error_id,
-                request_path or "unknown",
+                tags={"error_id": error_id, "request_path": request_path or "unknown"},
             )
         send_operational_alert(
-            subject="SPC data freshness lookup failed",
-            body=(
-                "Freshness metadata could not be attached. "
-                "Check spc_query_audit and Databricks SQL connectivity."
-            ),
+            subject="trace2 data freshness lookup failed",
+            body="Freshness metadata could not be attached. Check spc_query_audit and Databricks SQL.",
             error_id=error_id,
             request_path=request_path or "unknown",
         )
         raise HTTPException(
             status_code=503,
-            detail={
-                "message": "Data freshness lookup failed",
-                "error_id": error_id,
-            },
+            detail={"message": "Data freshness lookup failed", "error_id": error_id},
         ) from exc
 
 
-async def insert_spc_exclusion_snapshot(
-    token: str,
-    payload: dict,
-) -> None:
-    """Persist an immutable exclusion snapshot event to the Delta audit table.
-
-    The target table is expected to have Change Data Feed enabled so downstream
-    audit/reporting consumers can replay the full event history without relying
-    on in-place updates.
-    """
+async def insert_spc_exclusion_snapshot(token: str, payload: dict) -> None:
     params = [
         sql_param("event_id", payload["event_id"]),
         sql_param("material_id", payload["material_id"]),
@@ -496,45 +209,17 @@ async def insert_spc_exclusion_snapshot(
     ]
     insert_sql = f"""
         INSERT INTO {tbl('spc_exclusions')} (
-            event_id,
-            material_id,
-            mic_id,
-            mic_name,
-            plant_id,
-            stratify_all,
-            stratify_by,
-            chart_type,
-            date_from,
-            date_to,
-            rule_set,
-            justification,
-            action,
-            excluded_count,
-            excluded_points_json,
-            before_limits_json,
-            after_limits_json,
-            user_id,
-            event_ts
+            event_id, material_id, mic_id, mic_name, plant_id,
+            stratify_all, stratify_by, chart_type, date_from, date_to,
+            rule_set, justification, action, excluded_count,
+            excluded_points_json, before_limits_json, after_limits_json,
+            user_id, event_ts
         )
         SELECT
-            :event_id,
-            :material_id,
-            :mic_id,
-            :mic_name,
-            :plant_id,
-            CAST(:stratify_all AS BOOLEAN),
-            :stratify_by,
-            :chart_type,
-            :date_from,
-            :date_to,
-            :rule_set,
-            :justification,
-            :action,
-            CAST(:excluded_count AS INT),
-            :excluded_points_json,
-            :before_limits_json,
-            :after_limits_json,
-            CURRENT_USER(),
-            CURRENT_TIMESTAMP()
+            :event_id, :material_id, :mic_id, :mic_name, :plant_id,
+            CAST(:stratify_all AS BOOLEAN), :stratify_by, :chart_type, :date_from, :date_to,
+            :rule_set, :justification, :action, CAST(:excluded_count AS INT),
+            :excluded_points_json, :before_limits_json, :after_limits_json,
+            CURRENT_USER(), CURRENT_TIMESTAMP()
     """
     await run_sql_async(token, insert_sql, params)
