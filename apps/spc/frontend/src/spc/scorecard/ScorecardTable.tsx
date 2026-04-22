@@ -1,0 +1,488 @@
+import { useCallback, useMemo, useState } from 'react'
+import {
+  DataTable,
+  OverflowMenuItem,
+  Pagination,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableToolbar,
+  TableToolbarContent,
+  TableToolbarMenu,
+  TableToolbarSearch,
+} from '~/lib/carbon-data-table'
+import { Button } from '~/lib/carbon-forms'
+import { Tag } from '~/lib/carbon-layout'
+import { shallowEqual, useSPCDispatch, useSPCSelector } from '../SPCContext'
+import { useExport } from '../hooks/useExport'
+import type { ScorecardRow } from '../types'
+import VirtualizedRows from './VirtualizedRows'
+
+// Row count at which Carbon DataTable's non-virtualized rendering begins to
+// cost perceptible frame budget on mid-range laptops. Above this, we offer
+// the virtualized mode as an opt-in via the overflow menu. Chosen as a safe
+// headroom number rather than a measured cutoff — actual DOM-binding cost
+// depends on column count and cell complexity.
+const VIRTUALIZATION_THRESHOLD = 250
+
+// ── Column definitions ─────────────────────────────────────────────────────
+
+const HEADERS = [
+  { key: 'mic_name',          header: 'Characteristic' },
+  { key: 'batch_count',       header: 'Batches'        },
+  { key: 'mean_value',        header: 'Mean'           },
+  { key: 'stddev_overall',    header: 'Std Dev'        },
+  { key: 'nominal_target',    header: 'Target'         },
+  { key: 'pp',                header: 'Pp'             },
+  { key: 'cpk',               header: 'Cpk'            },
+  { key: 'ppk',               header: 'Ppk'            },
+  { key: 'ooc_rate',          header: 'OOC Rate'       },
+  { key: 'capability_status', header: 'Status'         },
+] as const
+
+type HeaderKey = (typeof HEADERS)[number]['key']
+type SortDirection = 'ASC' | 'DESC' | 'NONE'
+
+// Numeric columns receive right-aligned text
+const NUMERIC_COLS = new Set<HeaderKey>([
+  'batch_count', 'mean_value', 'stddev_overall',
+  'nominal_target', 'pp', 'cpk', 'ppk', 'ooc_rate',
+])
+
+// ── CSV export (unchanged logic, no uiClasses dependency) ─────────────────
+
+interface ColumnSpec { key: string; label: string; value: (row: ScorecardRow) => string | number }
+
+const CSV_COLUMNS: ColumnSpec[] = [
+  { key: 'mic_name',          label: 'Characteristic', value: r => r.mic_name            },
+  { key: 'batch_count',       label: 'Batches',         value: r => r.batch_count         },
+  { key: 'mean_value',        label: 'Mean',            value: r => r.mean_value    ?? '' },
+  { key: 'stddev_overall',    label: 'Std Dev',         value: r => r.stddev_overall ?? '' },
+  { key: 'nominal_target',    label: 'Target',          value: r => r.nominal_target ?? '' },
+  { key: 'pp',                label: 'Pp',              value: r => r.pp            ?? '' },
+  { key: 'cpk',               label: 'Cpk',             value: r => r.cpk           ?? '' },
+  { key: 'ppk',               label: 'Ppk',             value: r => r.ppk           ?? '' },
+  { key: 'ooc_rate',          label: 'OOC Rate',        value: r => r.ooc_rate      ?? '' },
+  { key: 'capability_status', label: 'Status',          value: r => r.capability_status ?? '' },
+]
+
+function downloadCsv(filename: string, columns: ColumnSpec[], rows: ScorecardRow[]) {
+  const escapeCell = (value: string | number) => {
+    const text = String(value ?? '')
+    const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text
+    if (/[",\r\n]/.test(safe)) return `"${safe.replace(/"/g, '""')}"`
+    return safe
+  }
+  const lines = [
+    columns.map(c => escapeCell(c.label)).join(','),
+    ...rows.map(row => columns.map(c => escapeCell(c.value(row))).join(',')),
+  ]
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function fmt(value: number | null | undefined, digits: number): string {
+  return value == null ? '—' : value.toFixed(digits)
+}
+
+// ── Carbon Tag cell renderers ──────────────────────────────────────────────
+
+// Env flag mirrors the CapabilityPanel guard so ops can disable both at once.
+const STABILITY_GUARD_ENABLED = import.meta.env?.VITE_DISABLE_STABILITY_GUARD !== 'true'
+
+// Cpk / Ppk / Pp — threshold-coloured Tag with numeric label.
+// When stability guard fires (is_stable === false), the numeric value is
+// suppressed and replaced with an "Unstable" chip per AIAG SPC §V.
+function CapabilityTag({ value, unstable = false }: { value: number | null | undefined; unstable?: boolean }) {
+  if (unstable && STABILITY_GUARD_ENABLED) {
+    return <Tag type="warm-gray" size="sm" title="Process not in statistical control">Unstable</Tag>
+  }
+  if (value == null) return <span aria-label="No data">—</span>
+  const { type, title } = value >= 1.67
+    ? { type: 'green'     as const, title: 'Excellent' }
+    : value >= 1.33
+    ? { type: 'teal'      as const, title: 'Capable'   }
+    : value >= 1.0
+    ? { type: 'warm-gray' as const, title: 'Marginal'  }
+    : { type: 'red'       as const, title: 'Poor'      }
+  return <Tag type={type} size="sm" title={title}>{value.toFixed(2)}</Tag>
+}
+
+// OOC Rate — severity-coloured Tag
+function OOCTag({ value }: { value: number | null | undefined }) {
+  if (value == null) return <span aria-label="No data">—</span>
+  const pct = (value * 100).toFixed(1)
+  if (value > 0.1)  return <Tag type="red"       size="sm" title="High OOC rate">⚠ {pct}%</Tag>
+  if (value > 0.02) return <Tag type="warm-gray"  size="sm" title="Elevated OOC rate">{pct}%</Tag>
+  return               <Tag type="green"      size="sm" title="Low OOC rate">{pct}%</Tag>
+}
+
+// Capability status — named semantic Tag
+const STATUS_TAG: Record<string, { type: 'green' | 'teal' | 'warm-gray' | 'red' | 'gray'; label: string }> = {
+  excellent:        { type: 'green',     label: 'Excellent' },
+  good:             { type: 'teal',      label: 'Capable'   },
+  marginal:         { type: 'warm-gray', label: 'Marginal'  },
+  poor:             { type: 'red',       label: 'Poor'      },
+  out_of_spec_mean: { type: 'red',       label: 'Mean OOS'  },
+  grey:             { type: 'gray',      label: 'No Data'   },
+}
+
+function StatusTag({ value, unstable = false }: { value: string | null | undefined; unstable?: boolean }) {
+  if (unstable && STABILITY_GUARD_ENABLED) {
+    return <Tag type="warm-gray" size="sm" title="Process not in statistical control">Unstable</Tag>
+  }
+  const cfg = STATUS_TAG[value ?? 'grey'] ?? STATUS_TAG.grey
+  return <Tag type={cfg.type} size="sm">{cfg.label}</Tag>
+}
+
+// ── Main component ─────────────────────────────────────────────────────────
+
+interface ScorecardTableProps { rows: ScorecardRow[] }
+
+export default function ScorecardTable({ rows }: ScorecardTableProps) {
+  const dispatch = useSPCDispatch()
+  const state = useSPCSelector(
+    current => ({
+      selectedMaterial: current.selectedMaterial,
+      selectedPlant: current.selectedPlant,
+      dateFrom: current.dateFrom,
+      dateTo: current.dateTo,
+    }),
+    shallowEqual,
+  )
+  const { exportData, exporting } = useExport()
+
+  const [sortKey,       setSortKey]       = useState<HeaderKey>('cpk')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('ASC')
+  const [searchTerm,    setSearchTerm]    = useState('')
+  const [page,          setPage]          = useState(1)
+  const [pageSize,      setPageSize]      = useState(10)
+  const [virtualize,    setVirtualize]    = useState(false)
+
+  // ── Navigation ───────────────────────────────────────────────────────────
+  const openChart = useCallback((row: ScorecardRow) => {
+    dispatch({ type: 'SET_MIC',        payload: { mic_id: row.mic_id, mic_name: row.mic_name, chart_type: 'imr' } })
+    dispatch({ type: 'SET_ACTIVE_TAB', payload: 'charts' })
+  }, [dispatch])
+
+  // ── Export ───────────────────────────────────────────────────────────────
+  const exportExcel = useCallback(() => {
+    void exportData({
+      export_type:  'excel',
+      export_scope: 'scorecard',
+      material_id:  state.selectedMaterial?.material_id,
+      plant_id:     state.selectedPlant?.plant_id ?? null,
+      date_from:    state.dateFrom || null,
+      date_to:      state.dateTo  || null,
+    })
+  }, [exportData, state.dateFrom, state.dateTo, state.selectedMaterial, state.selectedPlant])
+
+  // ── External sort (applies across all pages before slicing) ──────────────
+  const handleSort = useCallback((key: HeaderKey) => {
+    if (sortKey === key) {
+      setSortDirection(d => d === 'ASC' ? 'DESC' : d === 'DESC' ? 'NONE' : 'ASC')
+    } else {
+      setSortKey(key)
+      setSortDirection('ASC')
+    }
+    setPage(1)
+  }, [sortKey])
+
+  const sortedRows = useMemo(() => {
+    if (sortDirection === 'NONE') return [...rows]
+    return [...rows].sort((a, b) => {
+      const av = a[sortKey as keyof ScorecardRow] as number | string | null | undefined
+      const bv = b[sortKey as keyof ScorecardRow] as number | string | null | undefined
+      if (av == null && bv == null) return 0
+      if (av == null) return 1
+      if (bv == null) return -1
+      const mul = sortDirection === 'ASC' ? 1 : -1
+      if (typeof av === 'string' && typeof bv === 'string') return av.localeCompare(bv) * mul
+      return ((av as number) - (bv as number)) * mul
+    })
+  }, [rows, sortKey, sortDirection])
+
+  // ── Filter by mic_name ────────────────────────────────────────────────────
+  const filteredRows = useMemo(() => {
+    if (!searchTerm.trim()) return sortedRows
+    const lower = searchTerm.toLowerCase()
+    return sortedRows.filter(r => r.mic_name.toLowerCase().includes(lower))
+  }, [sortedRows, searchTerm])
+
+  // ── Pagination slice ──────────────────────────────────────────────────────
+  const pageStart = (page - 1) * pageSize
+  const pageRows  = filteredRows.slice(pageStart, pageStart + pageSize)
+
+  // ── Transform to Carbon DataTable row format ──────────────────────────────
+  const tableRows = useMemo(() =>
+    pageRows.map(r => ({
+      id:                r.mic_id,
+      mic_name:          r.mic_name,
+      batch_count:       r.batch_count,
+      mean_value:        r.mean_value         ?? null,
+      stddev_overall:    r.stddev_overall     ?? null,
+      nominal_target:    r.nominal_target     ?? null,
+      pp:                r.pp                 ?? null,
+      cpk:               r.cpk                ?? null,
+      ppk:               r.ppk                ?? null,
+      ooc_rate:          r.ooc_rate           ?? null,
+      capability_status: r.capability_status  ?? null,
+    })),
+  [pageRows])
+
+  // Lookup original ScorecardRow by mic_id for the openChart handler
+  const rowLookup = useMemo(() => new Map(rows.map(r => [r.mic_id, r])), [rows])
+
+  const exportCSV = useCallback(() => downloadCsv('spc_scorecard.csv', CSV_COLUMNS, filteredRows), [filteredRows])
+
+  // ── Custom cell renderer ──────────────────────────────────────────────────
+  function renderCell(
+    cell: { value: unknown; info: { header: string } },
+    original: ScorecardRow | undefined,
+  ) {
+    const key = cell.info.header as HeaderKey
+    const val = cell.value
+
+    switch (key) {
+      case 'mic_name':
+        return (
+          <Button
+            kind="ghost"
+            size="sm"
+            onClick={() => original && openChart(original)}
+            style={{ padding: 0, textAlign: 'left', minHeight: 'unset', lineHeight: 'inherit' }}
+          >
+            {val as string}
+          </Button>
+        )
+      case 'cpk':
+      case 'ppk':
+      case 'pp':
+        return <CapabilityTag value={val as number | null} unstable={original?.is_stable === false} />
+      case 'ooc_rate':
+        return <OOCTag value={val as number | null} />
+      case 'capability_status':
+        return <StatusTag value={val as string | null} unstable={original?.is_stable === false} />
+      case 'mean_value':
+      case 'stddev_overall':
+      case 'nominal_target':
+        return fmt(val as number | null, 4)
+      default:
+        return val != null ? String(val) : '—'
+    }
+  }
+
+  // Virtualized-mode render: skip the Carbon DataTable chrome and use a
+  // scroll-windowed list. Visual fidelity is reduced (simpler columns, no
+  // zebra stripes) in exchange for smooth scrolling on large datasets.
+  if (virtualize) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+            <input
+              type="search"
+              placeholder="Filter by characteristic name…"
+              value={searchTerm}
+              onChange={e => { setSearchTerm(e.target.value); setPage(1) }}
+              style={{
+                flex: 1,
+                padding: '0.375rem 0.75rem',
+                fontSize: '0.875rem',
+                border: '1px solid var(--cds-border-strong-01)',
+                background: 'var(--cds-layer)',
+                color: 'var(--cds-text-primary)',
+              }}
+            />
+            <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', whiteSpace: 'nowrap' }}>
+              {filteredRows.length} characteristic{filteredRows.length !== 1 ? 's' : ''} (virtualized)
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <Button kind="ghost" size="sm" onClick={() => setVirtualize(false)}>Use paginated view</Button>
+            <Button kind="ghost" size="sm" onClick={exportCSV}>Export CSV</Button>
+            <Button kind="ghost" size="sm" onClick={exportExcel} disabled={exporting}>Export Excel</Button>
+          </div>
+        </div>
+        {/* Header row */}
+        <div
+          role="row"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
+            gap: '0.5rem',
+            padding: '0.5rem 0.75rem',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            color: 'var(--cds-text-secondary)',
+            borderBottom: '1px solid var(--cds-border-subtle-01)',
+          }}
+        >
+          <span>Characteristic</span>
+          <span style={{ textAlign: 'right' }}>Cpk</span>
+          <span style={{ textAlign: 'right' }}>Ppk</span>
+          <span style={{ textAlign: 'right' }}>OOC rate</span>
+          <span>Status</span>
+        </div>
+        <VirtualizedRows
+          rows={filteredRows}
+          rowHeightPx={40}
+          viewportHeightPx={560}
+          ariaLabel="Scorecard characteristics (virtualized)"
+          renderRow={(row) => (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
+                gap: '0.5rem',
+                width: '100%',
+                fontSize: '0.875rem',
+                alignItems: 'center',
+              }}
+            >
+              <Button
+                kind="ghost"
+                size="sm"
+                style={{ padding: 0, textAlign: 'left', minHeight: 'unset' }}
+                onClick={() => openChart(row)}
+              >
+                {row.mic_name}
+              </Button>
+              <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                <CapabilityTag value={row.cpk} unstable={row.is_stable === false} />
+              </span>
+              <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                <CapabilityTag value={row.ppk} unstable={row.is_stable === false} />
+              </span>
+              <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                <OOCTag value={row.ooc_rate} />
+              </span>
+              <span>
+                <StatusTag value={row.capability_status} unstable={row.is_stable === false} />
+              </span>
+            </div>
+          )}
+        />
+      </div>
+    )
+  }
+
+  // ── Render (paginated, Carbon DataTable) ─────────────────────────────────
+  return (
+    // DataTable manages its own internal selection/expansion state;
+    // sort is disabled (isSortable absent) — handled externally above.
+    <DataTable rows={tableRows} headers={[...HEADERS]}>
+      {({ rows: dtRows, headers, getTableProps, getRowProps, getTableContainerProps }) => (
+        <TableContainer {...getTableContainerProps()}>
+
+          <TableToolbar>
+            <TableToolbarContent>
+              {/* Characteristic-name search — drives the external filteredRows state */}
+              <TableToolbarSearch
+                placeholder="Filter by characteristic name…"
+                onChange={(_event, value) => {
+                  setSearchTerm(value ?? '')
+                  setPage(1)
+                }}
+                persistent
+              />
+
+              {/* Row count indicator */}
+              <span
+                style={{
+                  alignSelf: 'center',
+                  padding: '0 0.75rem',
+                  fontSize: '0.75rem',
+                  color: 'var(--cds-text-secondary)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {filteredRows.length} characteristic{filteredRows.length !== 1 ? 's' : ''}
+              </span>
+
+              {/* Export overflow menu */}
+              <TableToolbarMenu iconDescription="Export options">
+                <OverflowMenuItem itemText="Export CSV"   onClick={exportCSV} />
+                <OverflowMenuItem itemText="Export Excel" onClick={exportExcel} disabled={exporting} />
+                {filteredRows.length > VIRTUALIZATION_THRESHOLD && (
+                  <OverflowMenuItem
+                    itemText={`Show all ${filteredRows.length} (virtualized)`}
+                    onClick={() => setVirtualize(true)}
+                  />
+                )}
+              </TableToolbarMenu>
+            </TableToolbarContent>
+          </TableToolbar>
+
+          <Table {...getTableProps()} size="md" useZebraStyles>
+            <TableHead>
+              <TableRow>
+                {headers.map(header => (
+                  <TableHeader
+                    key={header.key}
+                    onClick={() => handleSort(header.key as HeaderKey)}
+                    isSortHeader={sortKey === header.key}
+                    sortDirection={sortKey === header.key ? sortDirection : 'NONE'}
+                    style={
+                      NUMERIC_COLS.has(header.key as HeaderKey)
+                        ? { textAlign: 'right' }
+                        : undefined
+                    }
+                  >
+                    {header.header}
+                  </TableHeader>
+                ))}
+              </TableRow>
+            </TableHead>
+
+            <TableBody>
+              {dtRows.map(row => {
+                const original = rowLookup.get(row.id)
+                const { key: _rowKey, ...rowProps } = getRowProps({ row })
+                return (
+                  <TableRow key={row.id} {...rowProps}>
+                    {row.cells.map(cell => (
+                      <TableCell
+                        key={cell.id}
+                        style={
+                          NUMERIC_COLS.has(cell.info.header as HeaderKey)
+                            ? { textAlign: 'right' }
+                            : undefined
+                        }
+                      >
+                        {renderCell(cell, original)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+
+          {/* Pagination operates on the globally sorted+filtered set */}
+          <Pagination
+            totalItems={filteredRows.length}
+            pageSize={pageSize}
+            pageSizes={[10, 25, 50, 100, 250]}
+            page={page}
+            onChange={({ page: p, pageSize: ps }) => {
+              setPage(p)
+              setPageSize(ps)
+            }}
+          />
+        </TableContainer>
+      )}
+    </DataTable>
+  )
+}

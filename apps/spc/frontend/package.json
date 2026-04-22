@@ -1,0 +1,48 @@
+{
+  "name": "traceapp-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "carbon:audit": "node ./scripts/carbon-audit.mjs",
+    "carbon:audit:strict": "node ./scripts/carbon-audit.mjs --strict",
+    "bundle:check": "node ./scripts/check-bundle-budgets.mjs",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ci": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json"
+  },
+  "dependencies": {
+    "@carbon/icons-react": "^11.78.0",
+    "@carbon/react": "^1.105.0",
+    "@carbon/styles": "^1.104.0",
+    "@tanstack/react-query": "^5.99.0",
+    "@xyflow/react": "^12.3.0",
+    "d3-array": "^3.2.4",
+    "d3-shape": "^3.2.0",
+    "echarts": "^6.0.0",
+    "echarts-for-react": "^3.0.6",
+    "framer-motion": "^12.38.0",
+    "react": "^18.3.1",
+    "react-d3-tree": "^3.6.2",
+    "react-dom": "^18.3.1",
+    "sass": "^1.99.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.0.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.3.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "jsdom": "^24.0.0",
+    "typescript": "^6.0.2",
+    "vite": "^5.4.0",
+    "vitest": "^2.0.0"
+  }
+}

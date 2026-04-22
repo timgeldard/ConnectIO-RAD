@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+
+# Node
+frontend/node_modules/
+frontend/coverage/
+
+# NOTE: frontend/dist/ is intentionally tracked in git today because the
+# Databricks CLI's bundle deploy uses .gitignore to decide what to upload,
+# and the backend serves the built frontend from this directory. Moving dist
+# out of git (Phase 3.1) requires first teaching the CLI to upload dist
+# without a tracked-in-git signal (e.g. `databricks workspace import-dir`
+# as a separate post-bundle-deploy step). Until then, leave dist tracked.
+
+# Databricks / tooling state
+.databricks/
+.claude/
+
+# OS / editor
+.DS_Store
+*.swp
