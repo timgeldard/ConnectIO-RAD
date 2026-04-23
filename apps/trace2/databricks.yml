@@ -6,6 +6,9 @@ sync:
   include:
     - app.yaml
     - frontend/dist/**
+    - shared_db/**
+    - shared_api/**
+    - shared_trace/**
 
 variables:
   app_name:

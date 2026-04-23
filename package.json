@@ -8,19 +8,23 @@
     "libs/shared-ui"
   ],
   "scripts": {
-    "dev:spc":     "nx run spc-frontend:dev",
-    "dev:envmon":  "nx run envmon-frontend:dev",
-    "dev:trace2":  "nx run trace2-frontend:dev",
-    "build":       "nx run-many -t build",
-    "lint":        "nx run-many -t lint",
-    "test":        "nx run-many -t test",
-    "typecheck":   "nx run-many -t typecheck",
-    "graph":       "nx graph"
+    "dev:spc": "nx run spc-frontend:dev",
+    "dev:envmon": "nx run envmon-frontend:dev",
+    "dev:trace2": "nx run trace2-frontend:dev",
+    "build": "nx run-many -t build",
+    "lint": "nx run-many -t lint",
+    "test": "nx run-many -t test",
+    "typecheck": "nx run-many -t typecheck",
+    "graph": "nx graph"
   },
   "devDependencies": {
-    "nx": "^22.0.0",
-    "@nx/vite": "^22.0.0",
     "@nx/js": "^22.0.0",
+    "@nx/vite": "^22.0.0",
+    "nx": "^22.0.0",
     "typescript": "~5.5.0"
+  },
+  "dependencies": {
+    "@esbuild/win32-x64": "^0.21.5",
+    "@rollup/rollup-win32-x64-msvc": "^4.60.2"
   }
 }

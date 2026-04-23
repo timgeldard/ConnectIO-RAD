@@ -15,6 +15,12 @@ node_modules/
 **/build/
 **/.nx/cache/
 
+# Shared lib copies staged for Databricks Apps bundle deploy
+apps/*/shared_api/
+apps/*/shared_auth/
+apps/*/shared_db/
+apps/*/shared_trace/
+
 # Nx
 .nx/cache
 .nx/workspace-data
