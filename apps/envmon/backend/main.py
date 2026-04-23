@@ -6,6 +6,7 @@ from backend.routers.coordinates import router as coordinates_router
 from backend.routers.floors import router as floors_router
 from backend.routers.heatmap import router as heatmap_router
 from backend.routers.lots import router as lots_router
+from backend.routers.plants import router as plants_router
 from backend.routers.trends import router as trends_router
 from backend.utils.db import (
     check_warehouse_config,
@@ -35,6 +36,7 @@ app = create_api_app(
     slowapi_middleware=SlowAPIMiddleware,
 )
 
+app.include_router(plants_router, prefix="/api/em", tags=["Plants"])
 app.include_router(floors_router, prefix="/api/em", tags=["Floors"])
 app.include_router(heatmap_router, prefix="/api/em", tags=["Heatmap"])
 app.include_router(trends_router, prefix="/api/em", tags=["Trends"])

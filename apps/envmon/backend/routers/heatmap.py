@@ -23,7 +23,6 @@ from backend.utils.em_config import (
     INSP_TYPES_SQL,
     LOT_TBL,
     MIC_DECAY_RATES,
-    PLANT_ID,
     POINT_TBL,
     RESULT_TBL,
 )
@@ -42,10 +41,6 @@ _DEFAULT_LAMBDA = _get_default_lambda()
 
 
 def _risk_score(rows: list[dict], today: date, decay_lambda: float) -> float:
-    """
-    Calculate weighted intensity risk score.
-    Now supports MIC-specific decay if available.
-    """
     score = 0.0
     for r in rows:
         val = (r.get("valuation") or "").upper()
@@ -57,7 +52,6 @@ def _risk_score(rows: list[dict], today: date, decay_lambda: float) -> float:
             created = date.fromisoformat(str(created_str)[:10])
         except ValueError:
             continue
-
         t_i = (today - created).days
         if val == "R":
             f_i = 1.0
@@ -65,31 +59,20 @@ def _risk_score(rows: list[dict], today: date, decay_lambda: float) -> float:
             f_i = 0.2
         else:
             continue
-
-        # Use MIC-specific lambda if defined, else fallback to global
         lam = MIC_DECAY_RATES.get(mic_name, decay_lambda)
         score += f_i * math.exp(-lam * t_i)
     return score
 
 
 def _check_spc_warning(rows: list[dict]) -> bool:
-    """
-    Apply lightweight SPC rules for Early Warning.
-    Nelson Rule 1 variant: 3 consecutive rising quantitative swabs.
-    Evaluated per mic_name.
-    """
-    # Group by MIC name
     mic_groups = defaultdict(list)
     for r in rows:
         if r.get("mic_name") and r.get("result_value") is not None:
             mic_groups[r["mic_name"]].append(r)
-
     for mic_name, group in mic_groups.items():
-        # Sort by date
         sorted_group = sorted(group, key=lambda x: x["lot_date"])
         if len(sorted_group) < 3:
             continue
-
         last_3 = sorted_group[-3:]
         try:
             v1 = float(last_3[0]["result_value"])
@@ -97,33 +80,28 @@ def _check_spc_warning(rows: list[dict]) -> bool:
             v3 = float(last_3[2]["result_value"])
         except (TypeError, ValueError):
             continue
-
-        # Strictly increasing?
         if v3 > v2 > v1:
-            # approaching upper limit? (if limit exists)
             raw_limit = last_3[2].get("upper_limit")
             try:
                 limit = float(raw_limit) if raw_limit is not None else None
             except (TypeError, ValueError):
                 limit = None
             if limit is not None and limit > 0:
-                if v3 >= (limit * 0.5): # flag if > 50% of limit
+                if v3 >= (limit * 0.5):
                     return True
             else:
-                # no limit, flag if rise is substantial
-                # v1 might be 0, handle division by zero
                 if v1 == 0:
-                    if v3 >= 1.0: # arbitrary threshold for 0 baseline
+                    if v3 >= 1.0:
                         return True
                 elif (v3 / v1) > 1.1:
                     return True
-
     return False
 
 
 @router.get("/heatmap", response_model=HeatmapResponse)
 async def get_heatmap(
-    floor_id: str,
+    plant_id: str = Query(..., description="SAP plant code"),
+    floor_id: str = Query(...),
     mode: Literal["deterministic", "continuous"] = Query("deterministic"),
     time_window_days: int = Query(365, ge=1, le=365),
     decay_lambda: Optional[float] = Query(None, ge=0.0, le=1.0),
@@ -137,23 +115,20 @@ async def get_heatmap(
     reference_date = as_of_date or date.today()
     date_from = (reference_date - timedelta(days=time_window_days)).isoformat()
     date_to = reference_date.isoformat()
-
     applied_lambda = decay_lambda if decay_lambda is not None else _DEFAULT_LAMBDA
 
     params = [
-        sql_param("floor_id", floor_id),
-        sql_param("plant_id", PLANT_ID),
+        sql_param("plant_id",  plant_id),
+        sql_param("floor_id",  floor_id),
         sql_param("date_from", date_from),
-        sql_param("date_to", date_to),
+        sql_param("date_to",   date_to),
     ]
 
     mic_filter = ""
     if mics:
-        # Normalise input MICs for SQL
         norm_mics = [m.upper().strip() for m in mics]
         for idx, m in enumerate(norm_mics):
-            pname = f"mic_{idx}"
-            params.append(sql_param(pname, m))
+            params.append(sql_param(f"mic_{idx}", m))
         placeholders = ", ".join(f":mic_{idx}" for idx in range(len(norm_mics)))
         mic_filter = f"AND UPPER(TRIM(r.MIC_NAME)) IN ({placeholders})"
 
@@ -175,48 +150,45 @@ async def get_heatmap(
             ON c.func_loc_id = ip.FUNCTIONAL_LOCATION
         JOIN {LOT_TBL} lot
             ON ip.INSPECTION_LOT_ID = lot.INSPECTION_LOT_ID
-           AND lot.PLANT_ID = :plant_id
+           AND lot.PLANT_ID         = :plant_id
            AND lot.INSPECTION_TYPE IN {INSP_TYPES_SQL}
-           AND lot.CREATED_DATE >= :date_from
-           AND lot.CREATED_DATE <= :date_to
+           AND lot.CREATED_DATE    >= :date_from
+           AND lot.CREATED_DATE    <= :date_to
         LEFT JOIN {RESULT_TBL} r
             ON ip.INSPECTION_LOT_ID = r.INSPECTION_LOT_ID
            AND ip.OPERATION_ID      = r.OPERATION_ID
            AND ip.SAMPLE_ID         = r.SAMPLE_ID
-        WHERE c.floor_id = :floor_id
+        WHERE c.plant_id  = :plant_id
+          AND c.floor_id  = :floor_id
           {mic_filter}
     """
     rows = await run_sql_async(token, sql, params)
 
-    # Coordinates for NO_DATA placeholders
-    coord_sql = f"SELECT func_loc_id, floor_id, x_pos, y_pos FROM {COORD_TBL} WHERE floor_id = :floor_id"
-    coord_rows = await run_sql_async(token, coord_sql, [sql_param("floor_id", floor_id)])
+    coord_sql = f"""
+        SELECT func_loc_id, floor_id, x_pos, y_pos
+        FROM {COORD_TBL}
+        WHERE plant_id = :plant_id AND floor_id = :floor_id
+    """
+    coord_rows = await run_sql_async(token, coord_sql, [
+        sql_param("plant_id", plant_id),
+        sql_param("floor_id", floor_id),
+    ])
     coord_map = {r["func_loc_id"]: r for r in coord_rows}
 
-    # Group results by func_loc_id
     loc_results = defaultdict(list)
     for r in rows:
         loc_results[r["func_loc_id"]].append(r)
 
-    markers: list[MarkerData] = []
-
-    # Valuation ranking for worst-case collapse
     VAL_RANK = {"R": 2, "W": 1, "A": 0}
+    markers: list[MarkerData] = []
 
     for func_loc_id, meta in coord_map.items():
         results = loc_results.get(func_loc_id, [])
-        
-        # Collapse results to per-lot metrics
         lots_info = {}
         for r in results:
             lid = r["lot_id"]
             if lid not in lots_info:
-                lots_info[lid] = {
-                    "valuation": None,
-                    "end_date": r.get("lot_end_date")
-                }
-            
-            # Update worst valuation for this lot
+                lots_info[lid] = {"valuation": None, "end_date": r.get("lot_end_date")}
             current_val = r.get("valuation")
             if current_val in VAL_RANK:
                 existing_val = lots_info[lid]["valuation"]
@@ -251,20 +223,18 @@ async def get_heatmap(
             else:
                 status = "PASS"
 
-        markers.append(
-            MarkerData(
-                func_loc_id=func_loc_id,
-                floor_id=meta["floor_id"],
-                x_pos=float(meta["x_pos"]),
-                y_pos=float(meta["y_pos"]),
-                status=status,
-                fail_count=fail_count,
-                pass_count=pass_count,
-                pending_count=pending_count,
-                total_count=total_lots,
-                risk_score=risk_score,
-            )
-        )
+        markers.append(MarkerData(
+            func_loc_id=func_loc_id,
+            floor_id=meta["floor_id"],
+            x_pos=float(meta["x_pos"]),
+            y_pos=float(meta["y_pos"]),
+            status=status,
+            fail_count=fail_count,
+            pass_count=pass_count,
+            pending_count=pending_count,
+            total_count=total_lots,
+            risk_score=risk_score,
+        ))
 
     return HeatmapResponse(
         floor_id=floor_id,

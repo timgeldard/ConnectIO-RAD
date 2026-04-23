@@ -130,6 +130,7 @@ class LotDetailResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 class CoordinateUpsertRequest(BaseModel):
+    plant_id: str
     func_loc_id: str
     floor_id: str
     x_pos: float = Field(ge=0.0, le=100.0)
@@ -142,3 +143,33 @@ class CoordinateUpsertResponse(BaseModel):
     x_pos: float
     y_pos: float
     saved: bool
+
+
+# ---------------------------------------------------------------------------
+# Multi-plant portfolio
+# ---------------------------------------------------------------------------
+
+class PlantKpis(BaseModel):
+    total_locs: int = 0
+    active_fails: int = 0
+    warnings: int = 0
+    pending: int = 0
+    pass_rate: float = 100.0
+    lots_tested: int = 0
+    lots_planned: int = 0
+    risk_index: float = 0.0
+    pathogen_hits: int = 0
+
+
+class PlantInfo(BaseModel):
+    plant_id: str
+    plant_name: str
+    plant_code: str
+    country: str = ""
+    region: str = "EMEA"
+    product: str = ""
+    employees: int = 0
+    lat: float = 0.0
+    lon: float = 0.0
+    floors: int = 0
+    kpis: PlantKpis = PlantKpis()
