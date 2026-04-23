@@ -30,7 +30,7 @@ export function PageRecallReadiness({
   return (
     <LoadFrame
       state={state}
-      eyebrow="10 — RECALL READINESS"
+      eyebrow="10 — ISSUE READINESS"
       loadingTitle="Loading batch exposure…"
       loadingSubtitle={`Material ${headerBatch.material_id} · Batch ${headerBatch.batch_id}`}
     >
@@ -83,7 +83,7 @@ function RecallReadinessBody({
   return (
     <div>
       <SectionHeader
-        eyebrow="10 — RECALL READINESS"
+        eyebrow="10 — ISSUE READINESS"
         title="If this batch were recalled today, where would it land?"
         subtitle="All downstream consumption, transfers and customer shipments that inherit material from this batch, with risk-tiered exposure and a reconstructable event timeline."
         action={

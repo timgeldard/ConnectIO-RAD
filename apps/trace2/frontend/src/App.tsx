@@ -1,6 +1,7 @@
 import { CSSProperties, ReactNode, useEffect, useState } from "react";
 import type { Batch, DemoState, PageId, Tweaks } from "./types";
 import { BATCH, BATCH_FAIL, BATCH_RECALL } from "./data/mock";
+import { fetchOverview } from "./data/api";
 import { HexMark, ParamField, SimBanner, StatusPill } from "./ui";
 import { PageRecallReadiness } from "./pages/RecallReadiness";
 import { PageBottomUp } from "./pages/BottomUp";
@@ -46,7 +47,7 @@ const PAGES: PageDef[] = [
   { id: "production_history",   label: "Production History",     component: PageProductionHistory as unknown as PageComponent,   num: "07", group: "Quality & production" },
   { id: "batch_comparison",     label: "Batch Comparison",       component: PageBatchCompare as unknown as PageComponent,        num: "08", group: "Quality & production" },
   { id: "supplier_risk",        label: "Suppliers",              component: PageSupplierRisk as unknown as PageComponent,        num: "09", group: "Quality & production" },
-  { id: "recall_readiness",     label: "Recall Readiness",       component: PageRecallReadiness as unknown as PageComponent,     num: "10", group: "Readiness" },
+  { id: "recall_readiness",     label: "Issue Readiness",        component: PageRecallReadiness as unknown as PageComponent,     num: "10", group: "Readiness" },
   { id: "coa",                  label: "Certificate of Analysis",component: PageCoA as unknown as PageComponent,                 num: "11", group: "Readiness" },
 ];
 
@@ -176,21 +177,13 @@ function Sidebar({ active, onNavigate }: { active: PageId; onNavigate: (id: Page
       zIndex: 20,
     }}>
       <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-          <HexMark size={20} />
-          <span style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 17, fontWeight: 600,
-            color: "#fff",
-            letterSpacing: "-0.01em",
-            lineHeight: 1,
-          }}>Kerry</span>
+        <div style={{ marginBottom: 6 }}>
+          <img src="/kerry-logo-white.png" alt="Kerry" style={{ height: 26, display: "block" }} />
         </div>
         <div style={{
           fontFamily: "var(--font-mono)",
           fontSize: 9.5, color: "rgba(255,255,255,0.5)",
           textTransform: "uppercase", letterSpacing: "0.14em",
-          marginLeft: 28,
         }}>
           Global Ops · Batch Traceability
         </div>
@@ -278,7 +271,7 @@ function TopBar({ batch }: { batch: Batch }) {
           borderRadius: 6,
           maxWidth: 860, overflow: "hidden",
         }}>
-          <HexMark size={16} />
+          <img src="/kerry-k.png" alt="" style={{ height: 20, display: "block", flexShrink: 0 }} />
           <ParamField label="Material" value={batch.material_id} />
           <div style={{ width: 1, height: 26, background: "var(--line-2)", flexShrink: 0 }} />
           <ParamField label="Description" value={batch.material_desc40} mono={false} />
@@ -497,7 +490,19 @@ export default function App() {
   const [liveBatchId, setLiveBatchId] = useState("0008898869");
   const [materialDraft, setMaterialDraft] = useState(liveMaterialId);
   const [batchDraft, setBatchDraft] = useState(liveBatchId);
-  const batch: Batch = { ...mockBatch, material_id: liveMaterialId, batch_id: liveBatchId };
+  const [liveBatch, setLiveBatch] = useState<Batch | null>(null);
+
+  useEffect(() => {
+    if (!liveMaterialId || !liveBatchId) return;
+    let cancelled = false;
+    setLiveBatch(null);
+    fetchOverview(liveMaterialId, liveBatchId)
+      .then((payload) => { if (!cancelled) setLiveBatch(payload.batch); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [liveMaterialId, liveBatchId]);
+
+  const batch: Batch = liveBatch ?? { ...mockBatch, material_id: liveMaterialId, batch_id: liveBatchId };
 
   return (
     <div style={{ ...cssVars, minHeight: "100vh", color: "var(--ink)" }}>
