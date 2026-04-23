@@ -29,3 +29,10 @@ DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/e76480b94bea6ed5"
 TRACE_CATALOG = "connected_plant_uat"
 TRACE_SCHEMA = "gold"
 EM_PLANT_ID = "P225"
+
+[targets.prod.env]
+DATABRICKS_WAREHOUSE_ID = ""
+DATABRICKS_WAREHOUSE_HTTP_PATH = ""
+TRACE_CATALOG = ""
+TRACE_SCHEMA = "gold"
+EM_PLANT_ID = ""

@@ -389,8 +389,11 @@ Sprint 4:
 
 Sprint 5:
 
-- Add shared trace schemas/tree/conformance tests.
-- Decide whether to move core trace DAL SQL.
+- Added shared trace schemas/tree/conformance tests.
+- Moved common core trace DAL SQL into `shared_trace.dal.TraceCoreDal`; kept
+  trace2-only recall/page SQL app-owned.
+- Added SPC `SqlRuntime` migration guard tests.
+- Added deploy manifest validation and fail-closed non-UAT resource sections.
 
 Sprint 6:
 
@@ -399,7 +402,7 @@ Sprint 6:
 
 ## Immediate Next Slice
 
-Phase 0 through Phase 4 are complete. Phase 5 has started with shared trace
-request schemas, tree building, freshness-source contracts, and app-level
-conformance tests. The next Sprint 5 decision is whether to move core trace DAL
-SQL after SPC and trace2 pass those shared route contracts.
+Phase 0 through Phase 5 are complete enough for the next slice. Phase 6 should
+promote scanner output into maintained data/migration catalogs, then use those
+contracts to govern freshness lists, migration execution, and any future
+trace2-only DAL movement.

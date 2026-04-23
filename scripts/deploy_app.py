@@ -141,7 +141,7 @@ def render_config(manifest: dict[str, Any], args: argparse.Namespace, env: dict[
     template_text = template_path.read_text(encoding="utf-8")
     names = set(environment_defaults(manifest, args)) | template_variables(template_text)
     values = {name: env[name] for name in names if name in env}
-    missing = sorted(name for name in names if name not in values)
+    missing = sorted(name for name in names if name not in values or values[name] == "")
     if missing:
         raise ValueError(f"Missing required render variables for {template_path.name}: {', '.join(missing)}")
     rendered = Template(template_text).substitute(values)
@@ -212,6 +212,8 @@ def run_sql_migrations(manifest: dict[str, Any], args: argparse.Namespace, env: 
         name = migration["name"]
         sql_path = app_path(args) / migration["file"]
         warehouse_id = str(migration.get("warehouse_id") or env[migration["warehouse_id_env"]])
+        if not warehouse_id:
+            raise ValueError(f"Missing warehouse id for migration {name}")
         statement = Template(sql_path.read_text(encoding="utf-8")).safe_substitute(values)
         payload = json.dumps({"warehouse_id": warehouse_id, "statement": statement, "wait_timeout": "30s"})
         print(f"-> apply migration {name} from {migration['file']}")
@@ -250,6 +252,34 @@ def run_hook_commands(manifest: dict[str, Any], args: argparse.Namespace, env: d
         run_command(format_value(str(command), ctx), cwd=app_path(args), env=env, dry_run=args.dry_run)
 
 
+def validate_config(manifest: dict[str, Any], args: argparse.Namespace, env: dict[str, str]) -> None:
+    original_dry_run = args.dry_run
+    args.dry_run = True
+    try:
+        render_config(manifest, args, env)
+    finally:
+        args.dry_run = original_dry_run
+    migrations = manifest.get("migrations", [])
+    for migration in migrations:
+        if "warehouse_id" not in migration and "warehouse_id_env" not in migration:
+            raise ValueError(f"Migration {migration['name']} must define warehouse_id or warehouse_id_env")
+        if "warehouse_id_env" in migration and not env.get(migration["warehouse_id_env"], ""):
+            raise ValueError(f"Missing {migration['warehouse_id_env']} for migration {migration['name']}")
+    post = manifest.get("post_deploy", {})
+    if post.get("enabled", False):
+        target_key = post.get("source_target", "target")
+        if target_key not in {"target", "profile"}:
+            raise ValueError("post_deploy.source_target must be 'target' or 'profile'")
+        source_target = context(manifest, args)["target"] if target_key == "target" else context(manifest, args)["profile"]
+        source_path = format_value(
+            str(post.get("workspace_files_path", DEFAULT_WORKSPACE_FILES_PATH)),
+            {**context(manifest, args), "source_target": source_target},
+        )
+        if not source_path.startswith("/Workspace/"):
+            raise ValueError("post_deploy workspace_files_path must resolve to a /Workspace path")
+    print("-> deploy manifest validation passed")
+
+
 def print_plan(manifest: dict[str, Any], args: argparse.Namespace) -> None:
     ctx = context(manifest, args)
     print(f"app_dir: {app_path(args)}")
@@ -282,7 +312,18 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--print-env", action="store_true", help="Print resolved render variables without masking")
     parser.add_argument(
         "--action",
-        choices=["plan", "check-env", "build", "render", "bundle", "post-deploy", "migrations", "hooks", "deploy"],
+        choices=[
+            "plan",
+            "check-env",
+            "build",
+            "render",
+            "bundle",
+            "post-deploy",
+            "migrations",
+            "hooks",
+            "validate",
+            "deploy",
+        ],
         default="deploy",
     )
     return parser.parse_args(argv)
@@ -309,6 +350,8 @@ def main(argv: list[str] | None = None) -> int:
         run_sql_migrations(manifest, args, env)
     elif args.action == "hooks":
         run_hook_commands(manifest, args, env)
+    elif args.action == "validate":
+        validate_config(manifest, args, env)
     else:
         deploy(manifest, args, env)
     return 0

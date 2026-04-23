@@ -14,6 +14,7 @@ from shared_trace.schemas import (
     TraceRequest,
 )
 from shared_trace.tree import build_trace_tree
+from shared_trace.dal import TraceCoreDal
 
 __all__ = [
     "BATCH_DETAILS_FRESHNESS_SOURCES",
@@ -27,5 +28,6 @@ __all__ = [
     "RecallReadinessRequest",
     "SummaryRequest",
     "TraceRequest",
+    "TraceCoreDal",
     "build_trace_tree",
 ]
