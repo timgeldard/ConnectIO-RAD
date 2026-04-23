@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useEM } from '~/context/EMContext';
 import { useMics, useHeatmap } from '~/api/client';
 import { IconDownload, IconPlay, IconPause } from '~/components/ui/Icons';

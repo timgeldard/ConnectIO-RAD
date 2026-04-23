@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useLots, useLotDetail } from '~/api/client';
 import { useEM } from '~/context/EMContext';
 import StatusPill from '~/components/ui/StatusPill';

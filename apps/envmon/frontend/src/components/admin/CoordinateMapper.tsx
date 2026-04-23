@@ -25,7 +25,6 @@ import {
   useAddFloor,
   useDeleteFloor,
 } from '~/api/client';
-import type { FloorInfo, PlantInfo } from '~/types';
 
 const MARKER_R = 10;
 const DEFAULT_WIDTH = 1000;

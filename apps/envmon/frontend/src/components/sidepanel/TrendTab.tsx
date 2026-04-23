@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTrends, useMics } from '~/api/client';
 import { useEM } from '~/context/EMContext';
 import type { TimeWindow } from '~/types';

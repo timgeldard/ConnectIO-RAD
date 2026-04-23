@@ -50,6 +50,7 @@ async def _fetch_plant_metadata(token: str, plant_ids: list[str]) -> dict[str, d
             p.PLANT_NAME,
             p.COUNTRY_ID,
             p.REGION,
+            p.CITY,
             COALESCE(g.LATITUDE,  0.0) AS lat,
             COALESCE(g.LONGITUDE, 0.0) AS lon
         FROM {PLANT_TBL} p
@@ -67,6 +68,7 @@ async def _fetch_plant_metadata(token: str, plant_ids: list[str]) -> dict[str, d
             "plant_name": r.get("PLANT_NAME") or r["PLANT_ID"],
             "country":    r.get("COUNTRY_ID") or "",
             "region":     r.get("REGION") or "EMEA",
+            "city":       r.get("CITY") or "",
             "lat":        float(r.get("lat") or 0.0),
             "lon":        float(r.get("lon") or 0.0),
         }
@@ -173,6 +175,7 @@ async def list_plants(
             plant_code=pid,
             country=meta.get("country", ""),
             region=meta.get("region", "EMEA"),
+            city=meta.get("city", ""),
             product="",
             employees=0,
             lat=meta.get("lat", 0.0),

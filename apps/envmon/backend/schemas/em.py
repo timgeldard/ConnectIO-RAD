@@ -167,6 +167,7 @@ class PlantInfo(BaseModel):
     plant_code: str
     country: str = ""
     region: str = "EMEA"
+    city: str = ""
     product: str = ""
     employees: int = 0
     lat: float = 0.0

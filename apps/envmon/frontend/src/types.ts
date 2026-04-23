@@ -122,6 +122,7 @@ export interface PlantInfo {
   plant_code: string;
   country: string;
   region: string;
+  city: string;
   product: string;
   employees: number;
   lat: number;

@@ -1,4 +1,3 @@
-import React from 'react';
 import KPI from '~/components/ui/KPI';
 import { useFloors } from '~/api/client';
 import type { PlantInfo, FloorInfo } from '~/types';
@@ -10,7 +9,7 @@ interface Props {
 }
 
 export default function SiteView({ plant, onOpenFloor, onBack }: Props) {
-  const { data: floors = [] } = useFloors();
+  const { data: floors = [] } = useFloors(plant.plant_id);
   const { kpis } = plant;
 
   return (

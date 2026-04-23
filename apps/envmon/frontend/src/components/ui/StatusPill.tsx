@@ -1,4 +1,3 @@
-import React from 'react';
 import type { HeatmapStatus } from '~/types';
 
 interface StatusPillProps {
