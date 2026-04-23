@@ -50,6 +50,14 @@ def environment_defaults(manifest: dict[str, Any], args: argparse.Namespace) -> 
     return defaults
 
 
+def allow_empty_render_variables(manifest: dict[str, Any], args: argparse.Namespace) -> set[str]:
+    ctx = context(manifest, args)
+    allowed = set(manifest.get("allow_empty_render_variables", []))
+    allowed.update(scoped_config(manifest, "profiles", ctx["profile"]).get("allow_empty_render_variables", []))
+    allowed.update(scoped_config(manifest, "targets", ctx["target"]).get("allow_empty_render_variables", []))
+    return {str(name) for name in allowed}
+
+
 def command_env(manifest: dict[str, Any], args: argparse.Namespace) -> dict[str, str]:
     env = os.environ.copy()
     for name, default in environment_defaults(manifest, args).items():
@@ -141,7 +149,8 @@ def render_config(manifest: dict[str, Any], args: argparse.Namespace, env: dict[
     template_text = template_path.read_text(encoding="utf-8")
     names = set(environment_defaults(manifest, args)) | template_variables(template_text)
     values = {name: env[name] for name in names if name in env}
-    missing = sorted(name for name in names if name not in values or values[name] == "")
+    allowed_empty = allow_empty_render_variables(manifest, args)
+    missing = sorted(name for name in names if name not in values or (values[name] == "" and name not in allowed_empty))
     if missing:
         raise ValueError(f"Missing required render variables for {template_path.name}: {', '.join(missing)}")
     rendered = Template(template_text).substitute(values)
@@ -150,6 +159,19 @@ def render_config(manifest: dict[str, Any], args: argparse.Namespace, env: dict[
         output_path.write_text(rendered, encoding="utf-8")
     for name in sorted(values):
         print(f"   {name}={display_env_value(name, values[name], print_env=args.print_env)}")
+
+
+def resolve_migration_warehouse_id(migration: dict[str, Any], env: dict[str, str]) -> str:
+    name = migration["name"]
+    raw_value = migration.get("warehouse_id")
+    if raw_value is None or str(raw_value) == "":
+        env_name = migration.get("warehouse_id_env")
+        if not env_name:
+            raise ValueError(f"Migration {name} must define warehouse_id or warehouse_id_env")
+        raw_value = env.get(str(env_name))
+    if raw_value is None or str(raw_value) == "":
+        raise ValueError(f"Missing warehouse id for migration {name}")
+    return str(raw_value)
 
 
 def bundle_deploy(manifest: dict[str, Any], args: argparse.Namespace, env: dict[str, str]) -> None:
@@ -211,9 +233,7 @@ def run_sql_migrations(manifest: dict[str, Any], args: argparse.Namespace, env: 
     for migration in migrations:
         name = migration["name"]
         sql_path = app_path(args) / migration["file"]
-        warehouse_id = str(migration.get("warehouse_id") or env[migration["warehouse_id_env"]])
-        if not warehouse_id:
-            raise ValueError(f"Missing warehouse id for migration {name}")
+        warehouse_id = resolve_migration_warehouse_id(migration, env)
         statement = Template(sql_path.read_text(encoding="utf-8")).safe_substitute(values)
         payload = json.dumps({"warehouse_id": warehouse_id, "statement": statement, "wait_timeout": "30s"})
         print(f"-> apply migration {name} from {migration['file']}")
@@ -261,10 +281,7 @@ def validate_config(manifest: dict[str, Any], args: argparse.Namespace, env: dic
         args.dry_run = original_dry_run
     migrations = manifest.get("migrations", [])
     for migration in migrations:
-        if "warehouse_id" not in migration and "warehouse_id_env" not in migration:
-            raise ValueError(f"Migration {migration['name']} must define warehouse_id or warehouse_id_env")
-        if "warehouse_id_env" in migration and not env.get(migration["warehouse_id_env"], ""):
-            raise ValueError(f"Missing {migration['warehouse_id_env']} for migration {migration['name']}")
+        resolve_migration_warehouse_id(migration, env)
     post = manifest.get("post_deploy", {})
     if post.get("enabled", False):
         target_key = post.get("source_target", "target")

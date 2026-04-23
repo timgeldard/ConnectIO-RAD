@@ -49,15 +49,15 @@ def build_trace_tree(rows: list[TraceRow]) -> dict[str, Any] | None:
         }
 
     children_of: dict[TraceKey, list[TraceKey]] = {key: [] for key in node_rows}
-    root_key: TraceKey | None = None
+    root_keys: list[TraceKey] = []
 
     for row in edge_rows:
         key = (str(row["material_id"]), str(row["batch_id"]))
         parent_material = row.get("parent_material_id")
         parent_batch = row.get("parent_batch_id")
         if parent_material is None or parent_batch is None:
-            if root_key is None or row.get("depth", 0) < node_rows[root_key].get("depth", 0):
-                root_key = key
+            if key not in root_keys:
+                root_keys.append(key)
         else:
             parent_key = (str(parent_material), str(parent_batch))
             if parent_key in node_rows and key in node_rows:
@@ -80,6 +80,23 @@ def build_trace_tree(rows: list[TraceRow]) -> dict[str, Any] | None:
             node["children"].append(build_subtree(child_key, next_ancestors))
         return node
 
-    if root_key is None:
+    if not root_keys:
         return None
-    return build_subtree(root_key, set())
+
+    root_keys.sort(key=lambda key: (node_rows[key].get("depth", 0), key[0], key[1]))
+    if len(root_keys) == 1:
+        return build_subtree(root_keys[0], set())
+
+    logger.warning("Multiple root nodes detected in build_trace_tree: %s", root_keys)
+    return {
+        "name": "Trace roots",
+        "status": "Multiple roots",
+        "riskTier": "Unknown",
+        "nodeColor": "#9ca3af",
+        "attributes": {
+            "Root Count": len(root_keys),
+            "Depth": 0,
+            "Plant": "Multiple roots",
+        },
+        "children": [build_subtree(root_key, set()) for root_key in root_keys],
+    }

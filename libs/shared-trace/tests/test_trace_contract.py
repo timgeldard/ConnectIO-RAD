@@ -59,6 +59,43 @@ def test_build_trace_tree_maps_status_and_prevents_cycles():
     assert tree["children"][0]["children"] == []
 
 
+def test_build_trace_tree_preserves_multiple_roots():
+    rows = [
+        {
+            "material_id": "ROOT-A",
+            "batch_id": "B0",
+            "parent_material_id": None,
+            "parent_batch_id": None,
+            "depth": 0,
+            "release_status": "Released",
+        },
+        {
+            "material_id": "ROOT-B",
+            "batch_id": "B1",
+            "parent_material_id": None,
+            "parent_batch_id": None,
+            "depth": 0,
+            "release_status": "Blocked",
+        },
+        {
+            "material_id": "CHILD-B",
+            "batch_id": "B2",
+            "parent_material_id": "ROOT-B",
+            "parent_batch_id": "B1",
+            "depth": 1,
+            "release_status": "QI Hold",
+        },
+    ]
+
+    tree = build_trace_tree(rows)
+
+    assert tree is not None
+    assert tree["name"] == "Trace roots"
+    assert tree["attributes"]["Root Count"] == 2
+    assert [child["name"] for child in tree["children"]] == ["ROOT-A", "ROOT-B"]
+    assert tree["children"][1]["children"][0]["name"] == "CHILD-B"
+
+
 def test_core_trace_freshness_sources_are_contract_tuples():
     assert CORE_TRACE_FRESHNESS_SOURCES["trace"][0] == "gold_batch_lineage"
     assert "gold_batch_mass_balance_v" in CORE_TRACE_FRESHNESS_SOURCES["summary"]
