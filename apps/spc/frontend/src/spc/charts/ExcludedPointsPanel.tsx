@@ -1,5 +1,3 @@
-import { Button } from '~/lib/carbon-forms'
-import { Stack, Tile } from '~/lib/carbon-layout'
 import type { ExcludedPoint, ExclusionAuditSnapshot } from '../types'
 
 function formatLimit(value: number | null | undefined) {
@@ -17,16 +15,16 @@ interface ExcludedPointsPanelProps {
 const S = {
   panel: { display: 'flex', flexDirection: 'column' as const, gap: '0.75rem' },
   header: { display: 'flex', flexWrap: 'wrap' as const, alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' },
-  title: { margin: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--cds-text-primary)' },
-  subtitle: { margin: '0.125rem 0 0', fontSize: '0.75rem', color: 'var(--cds-text-secondary)' },
-  meta: { display: 'flex', flexWrap: 'wrap' as const, gap: '0.75rem', fontSize: '0.75rem', color: 'var(--cds-text-secondary)' },
+  title: { margin: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-1)' },
+  subtitle: { margin: '0.125rem 0 0', fontSize: '0.75rem', color: 'var(--text-3)' },
+  meta: { display: 'flex', flexWrap: 'wrap' as const, gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-3)' },
   diffGrid: { display: 'grid', gap: '0.5rem', gridTemplateColumns: '1fr 1fr' },
-  diffCard: { display: 'flex', flexDirection: 'column' as const, gap: '0.25rem', padding: '0.75rem', fontSize: '0.875rem', background: 'var(--cds-layer-accent-01)', border: '1px solid var(--cds-border-subtle-01)', color: 'var(--cds-text-primary)' },
-  diffCardActive: { background: 'var(--cds-notification-background-info)', borderColor: 'var(--cds-support-info)' },
-  diffLabel: { fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.04em', color: 'var(--cds-text-secondary)' },
-  empty: { padding: '0.75rem', fontSize: '0.875rem', background: 'var(--cds-layer-accent-01)', color: 'var(--cds-text-secondary)' },
-  listItem: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', padding: '0.5rem 0.75rem', border: '1px solid var(--cds-border-subtle-01)' },
-  listItemMain: { display: 'flex', flexWrap: 'wrap' as const, alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: 'var(--cds-text-primary)' },
+  diffCard: { display: 'flex', flexDirection: 'column' as const, gap: '0.25rem', padding: '0.75rem', fontSize: '0.875rem', background: 'var(--surface-2)', border: '1px solid var(--line-1)', borderRadius: 6, color: 'var(--text-1)' },
+  diffCardActive: { background: 'var(--status-info-bg)', borderColor: 'var(--status-info)' },
+  diffLabel: { fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.04em', color: 'var(--text-3)' },
+  empty: { padding: '0.75rem', fontSize: '0.875rem', background: 'var(--surface-2)', borderRadius: 6, color: 'var(--text-3)' },
+  listItem: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', padding: '0.5rem 0.75rem', border: '1px solid var(--line-1)', borderRadius: 6 },
+  listItemMain: { display: 'flex', flexWrap: 'wrap' as const, alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: 'var(--text-1)' },
 }
 
 export default function ExcludedPointsPanel({
@@ -42,7 +40,7 @@ export default function ExcludedPointsPanel({
   const after = snapshot?.after_limits ?? null
 
   return (
-    <Tile>
+    <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 10, padding: '1rem' }}>
       <section style={S.panel}>
         <div style={S.header}>
           <div>
@@ -51,14 +49,13 @@ export default function ExcludedPointsPanel({
               {pointCount} active exclusion{pointCount === 1 ? '' : 's'} for this chart scope
             </p>
           </div>
-          <Button
-            kind="secondary"
-            size="sm"
+          <button
+            className="btn btn-ghost btn-sm"
             onClick={onRestoreAll}
             disabled={saving || pointCount === 0}
           >
             Restore All
-          </Button>
+          </button>
         </div>
 
         {(snapshot?.user_id || snapshot?.event_ts) && (
@@ -88,7 +85,7 @@ export default function ExcludedPointsPanel({
             No persisted exclusions for this chart yet. Excluded points will appear here with their audit trail.
           </div>
         ) : (
-          <Stack gap={2}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {points.map((point, index) => {
               const pointKey = `${point.batch_id}-${point.sample_seq}-${point.plant_id ?? ''}-${point.stratify_value ?? ''}-${point.original_index ?? `saved-${index}`}`
               return (
@@ -99,20 +96,19 @@ export default function ExcludedPointsPanel({
                     {point.batch_date && <span>{String(point.batch_date).slice(0, 10)}</span>}
                     {point.value != null && <span>Value {Number(point.value).toFixed(4)}</span>}
                   </div>
-                  <Button
-                    kind="ghost"
-                    size="sm"
+                  <button
+                    className="btn btn-ghost btn-sm"
                     onClick={() => onRestorePoint?.(point)}
                     disabled={saving}
                   >
                     Restore
-                  </Button>
+                  </button>
                 </div>
               )
             })}
-          </Stack>
+          </div>
         )}
       </section>
-    </Tile>
+    </div>
   )
 }

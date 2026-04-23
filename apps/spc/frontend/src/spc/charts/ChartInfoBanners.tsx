@@ -1,4 +1,4 @@
-import { InlineNotification } from '~/lib/carbon-feedback'
+import InfoBanner from '../components/InfoBanner'
 import type { AutocorrelationResult, ExclusionAuditSnapshot, SpecDriftWarning } from '../types'
 
 interface ChartInfoBannersProps {
@@ -32,95 +32,48 @@ export default function ChartInfoBanners({
   autocorrelation,
 }: ChartInfoBannersProps) {
   return (
-    <>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {autocorrelation?.suspected && (
-        <InlineNotification
-          kind="warning"
-          title="Autocorrelation suspected."
-          subtitle={formatAutocorrelationSubtitle(autocorrelation)}
-          hideCloseButton
-          lowContrast
-        />
+        <InfoBanner variant="warn">{'Autocorrelation suspected. ' + formatAutocorrelationSubtitle(autocorrelation)}</InfoBanner>
       )}
       {specDrift?.detected && (
-        <InlineNotification
-          kind="warning"
-          title="Specification drift detected."
-          subtitle={
+        <InfoBanner variant="warn">{
+          'Specification drift detected. ' + (
             specDrift.change_references && specDrift.change_references.length > 0
               ? `${specDrift.message} Change orders: ${specDrift.change_references.join(', ')}.`
               : specDrift.message
-          }
-          hideCloseButton
-          lowContrast
-        />
+          )
+        }</InfoBanner>
       )}
       {lockedLimitsError && (
-        <InlineNotification
-          kind="error"
-          title="Locked limits error:"
-          subtitle={lockedLimitsError}
-          hideCloseButton
-          lowContrast
-        />
+        <InfoBanner variant="error">{'Locked limits error: ' + lockedLimitsError}</InfoBanner>
       )}
       {lockedLimitsWarning && (
-        <InlineNotification
-          kind="warning"
-          title="Locked limits warning:"
-          subtitle={lockedLimitsWarning}
-          hideCloseButton
-          lowContrast
-        />
+        <InfoBanner variant="warn">{'Locked limits warning: ' + lockedLimitsWarning}</InfoBanner>
       )}
       {limitsSourceDetail && limitsSourceTone && (
-        <InlineNotification
-          kind={limitsSourceTone}
-          title={limitsSourceTone === 'warning' ? 'Using derived limits.' : 'Limits source'}
-          subtitle={limitsSourceDetail}
-          hideCloseButton
-          lowContrast
-        />
+        <InfoBanner variant={limitsSourceTone === 'warning' ? 'warn' : 'info'}>{
+          (limitsSourceTone === 'warning' ? 'Using derived limits. ' : 'Limits source: ') + limitsSourceDetail
+        }</InfoBanner>
       )}
       {exclusionsError && (
-        <InlineNotification
-          kind="error"
-          title="Exclusions audit error:"
-          subtitle={exclusionsError}
-          hideCloseButton
-          lowContrast
-        />
+        <InfoBanner variant="error">{'Exclusions audit error: ' + exclusionsError}</InfoBanner>
       )}
       {exclusionsLoading && (
-        <InlineNotification
-          kind="info"
-          title="Loading persisted exclusions…"
-          hideCloseButton
-          lowContrast
-        />
+        <InfoBanner variant="info">{'Loading persisted exclusions…'}</InfoBanner>
       )}
       {dataTruncated && (
-        <InlineNotification
-          kind="warning"
-          title="Data limit reached."
-          subtitle="Only the first 10,000 points are displayed. Please narrow your Date Range for a complete analysis."
-          hideCloseButton
-          lowContrast
-        />
+        <InfoBanner variant="warn">{'Data limit reached. Only the first 10,000 points are displayed. Please narrow your Date Range for a complete analysis.'}</InfoBanner>
       )}
       {exclusionAudit && (
-        <InlineNotification
-          kind="info"
-          title={`${exclusionAudit.excluded_count ?? 0} point${(exclusionAudit.excluded_count ?? 0) !== 1 ? 's' : ''} excluded`}
-          subtitle={[
-            exclusionAudit.user_id ? `by ${exclusionAudit.user_id}` : '',
-            exclusionAudit.event_ts ? `on ${new Date(String(exclusionAudit.event_ts)).toISOString().replace('T', ' ')}` : '',
-            exclusionAudit.justification ? `— ${exclusionAudit.justification}` : '',
-          ].filter(Boolean).join(' ')}
-          hideCloseButton
-          lowContrast
-        />
+        <InfoBanner variant="info">{
+          `${exclusionAudit.excluded_count ?? 0} point${(exclusionAudit.excluded_count ?? 0) !== 1 ? 's' : ''} excluded` + [
+            exclusionAudit.user_id ? ` by ${exclusionAudit.user_id}` : '',
+            exclusionAudit.event_ts ? ` on ${new Date(String(exclusionAudit.event_ts)).toISOString().replace('T', ' ')}` : '',
+            exclusionAudit.justification ? ` — ${exclusionAudit.justification}` : '',
+          ].join('')
+        }</InfoBanner>
       )}
-    </>
+    </div>
   )
 }

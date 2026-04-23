@@ -1,4 +1,3 @@
-import { Tile } from '~/lib/carbon-layout'
 import type { HTMLAttributes, ReactNode } from 'react'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
@@ -6,21 +5,23 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
 }
 
-export function Card({ className, variant = 'default', children, ...props }: CardProps) {
+export function Card({ className, variant = 'default', children, style, ...props }: CardProps) {
   return (
-    <Tile
+    <div
       className={className}
       style={{
         overflow: 'hidden',
         transition: 'box-shadow 160ms ease',
-        background: 'var(--cds-layer)',
-        border: `1px solid ${variant === 'dark' ? 'var(--cds-border-strong-01)' : 'var(--cds-border-subtle-01)'}`,
-        color: variant === 'dark' ? 'var(--cds-text-primary)' : undefined,
+        background: variant === 'dark' ? 'var(--surface-inverse)' : 'var(--surface-1)',
+        border: `1px solid ${variant === 'dark' ? 'var(--line-2)' : 'var(--line-1)'}`,
+        color: variant === 'dark' ? '#F4F4E8' : undefined,
+        borderRadius: 10,
+        ...style,
       }}
       {...props}
     >
       {children}
-    </Tile>
+    </div>
   )
 }
 
@@ -30,7 +31,7 @@ export function CardHeader({ className, children }: { className?: string; childr
       className={className}
       style={{
         padding: '1.25rem 1.5rem',
-        borderBottom: '1px solid var(--cds-border-subtle-01)',
+        borderBottom: '1px solid var(--line-1)',
       }}
     >
       {children}
@@ -52,7 +53,7 @@ export function CardTitle({ className, children }: { className?: string; childre
       className={className}
       style={{
         margin: 0,
-        color: 'var(--cds-text-primary)',
+        color: 'var(--text-1)',
         fontSize: '1.25rem',
         fontWeight: 600,
         letterSpacing: '-0.01em',

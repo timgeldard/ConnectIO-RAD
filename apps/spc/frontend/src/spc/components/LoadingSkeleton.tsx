@@ -1,12 +1,16 @@
-import { InlineLoading, SkeletonPlaceholder } from '~/lib/carbon-feedback'
-import { Stack } from '~/lib/carbon-layout'
-
 interface LoadingSkeletonProps {
   variant?: 'spinner' | 'lines'
   message?: string
   lines?: number
   minHeight?: string
 }
+
+const shimmer: React.CSSProperties = {
+  background: 'var(--surface-sunken)',
+  borderRadius: 4,
+}
+
+import type React from 'react'
 
 export default function LoadingSkeleton({
   variant = 'spinner',
@@ -16,31 +20,19 @@ export default function LoadingSkeleton({
 }: LoadingSkeletonProps) {
   if (variant === 'lines') {
     return (
-      <div style={minHeight ? { minHeight } : undefined}>
-        <Stack gap={3} style={{ padding: '1.5rem 0' }}>
-          {Array.from({ length: lines }, (_, i) => (
-            <SkeletonPlaceholder
-              key={i}
-              style={{ width: i % 3 === 0 ? '100%' : i % 3 === 1 ? `${83 + (i % 2) * 4}%` : '66%', height: '2.5rem' }}
-              aria-hidden="true"
-            />
-          ))}
-          <span
+      <div style={{ ...(minHeight ? { minHeight } : {}), padding: '1.5rem 0', display: 'grid', gap: 8 }}>
+        {Array.from({ length: lines }, (_, i) => (
+          <div
+            key={i}
+            aria-hidden="true"
             style={{
-              position: 'absolute',
-              width: '1px',
-              height: '1px',
-              padding: 0,
-              margin: '-1px',
-              overflow: 'hidden',
-              clip: 'rect(0, 0, 0, 0)',
-              whiteSpace: 'nowrap',
-              border: 0,
+              ...shimmer,
+              width: i % 3 === 0 ? '100%' : i % 3 === 1 ? `${83 + (i % 2) * 4}%` : '66%',
+              height: '2.5rem',
             }}
-          >
-            {message}
-          </span>
-        </Stack>
+          />
+        ))}
+        <span className="sr-only">{message}</span>
       </div>
     )
   }
@@ -55,12 +47,24 @@ export default function LoadingSkeleton({
         justifyContent: 'center',
         gap: '1rem',
         padding: '1.5rem',
-        color: 'var(--cds-text-secondary)',
+        color: 'var(--text-3)',
       }}
       aria-live="polite"
       aria-label={message}
     >
-      <InlineLoading description={message} status="active" />
+      <span
+        style={{
+          width: 24,
+          height: 24,
+          borderRadius: '50%',
+          border: '2px solid var(--line-1)',
+          borderTopColor: 'var(--valentia-slate)',
+          animation: 'spc-spin 0.7s linear infinite',
+          display: 'block',
+        }}
+        aria-hidden="true"
+      />
+      <span style={{ fontSize: '0.875rem' }}>{message}</span>
     </div>
   )
 }

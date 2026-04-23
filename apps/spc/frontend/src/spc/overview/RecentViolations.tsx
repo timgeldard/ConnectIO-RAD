@@ -1,8 +1,4 @@
-import { Button } from '~/lib/carbon-forms'
-import { Tile } from '~/lib/carbon-layout'
-import ArrowRight from '@carbon/icons-react/es/ArrowRight.js'
-import WarningFilled from '@carbon/icons-react/es/WarningFilled.js'
-import EmptyState from '../../components/EmptyState'
+import { Icon } from '../../components/ui/Icon'
 import { useSPCDispatch } from '../SPCContext'
 import type { RecentViolationItem } from '../types'
 
@@ -15,97 +11,79 @@ export default function RecentViolations({ hasMaterial, violations }: RecentViol
   const dispatch = useSPCDispatch()
 
   return (
-    <Tile style={{ height: '100%', padding: '1.5rem' }}>
-      {/* Tile header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '1.25rem',
-        }}
-      >
-        <h3
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            margin: 0,
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            color: 'var(--cds-text-primary)',
-          }}
-        >
-          <WarningFilled size={20} style={{ color: 'var(--cds-support-warning)' }} />
-          Recent Violations
-        </h3>
-
-        <Button
-          kind="ghost"
-          size="sm"
-          renderIcon={ArrowRight}
-          iconDescription="View all violations"
+    <div className="card" style={{ overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid var(--line-1)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: 7,
+          background: 'var(--status-risk-bg)', color: 'var(--status-risk)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="alert-triangle" size={15} />
+        </div>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-1)' }}>Priority signals</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Sorted by severity × recency</div>
+        </div>
+        <button
+          className="btn-link"
+          style={{ marginLeft: 'auto', fontSize: 12 }}
           onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: 'charts' })}
         >
-          View All
-        </Button>
+          View all →
+        </button>
       </div>
 
-      {/* Violation list */}
-      {hasMaterial && violations.length > 0 ? (
-        <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
-          {violations.map((violation, index) => (
-            <li
-              key={violation.id}
+      {/* Signal rows */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {hasMaterial && violations.length > 0 ? (
+          violations.map((v, i) => (
+            <button
+              key={v.id}
+              type="button"
+              onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: 'charts' })}
               style={{
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: 'auto 1fr auto auto',
+                gap: 14,
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0.75rem 0',
-                borderBottom:
-                  index < violations.length - 1
-                    ? '1px solid var(--cds-border-subtle-01)'
-                    : 'none',
+                padding: '12px 18px',
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                borderTop: i > 0 ? '1px solid var(--line-1)' : 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontFamily: 'var(--font-sans)',
+                transition: 'background 120ms',
               }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-2)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
             >
-              <div>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    color: 'var(--cds-text-primary)',
-                  }}
-                >
-                  {violation.rule}
-                </p>
-                <p
-                  style={{
-                    margin: '0.125rem 0 0',
-                    fontSize: '0.75rem',
-                    color: 'var(--cds-text-secondary)',
-                  }}
-                >
-                  {violation.chart} · {violation.value}
-                </p>
+              <div className="dot dot-risk" style={{ width: 10, height: 10, flexShrink: 0 }} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {v.chart}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                  <span className="chip" style={{ background: 'var(--surface-2)', border: 'none', fontSize: 10.5, marginRight: 6 }}>{v.rule}</span>
+                  {v.value}
+                </div>
               </div>
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  color: 'var(--cds-text-secondary)',
-                  textAlign: 'right',
-                  flexShrink: 0,
-                  marginLeft: '0.5rem',
-                }}
-              >
-                {violation.time}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyState message="Recent SPC violations will appear here once signals are available for the selected scope." />
-      )}
-    </Tile>
+              <div style={{ textAlign: 'right', fontSize: 11.5, flexShrink: 0 }}>
+                <div className="mono" style={{ color: 'var(--valentia-slate)' }}>{v.time}</div>
+              </div>
+              <Icon name="chevron-right" size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+            </button>
+          ))
+        ) : (
+          <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
+            {hasMaterial
+              ? 'No active signals for this scope.'
+              : 'Select a material to see priority signals.'}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

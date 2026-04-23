@@ -1,19 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { KeyboardEvent as ReactKeyboardEvent, ChangeEvent } from 'react'
-import {
-  Button,
-  Checkbox,
-  DatePicker,
-  DatePickerInput,
-  Search,
-  Select,
-  SelectItem,
-  TextInput,
-} from '~/lib/carbon-forms'
-import { Stack, Tag, Tile } from '~/lib/carbon-layout'
-import Edit from '@carbon/icons-react/es/Edit.js'
-import Filter from '@carbon/icons-react/es/Filter.js'
+import type { CSSProperties, ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from './SPCContext'
+import { Icon } from '../components/ui/Icon'
 import FieldHelp from './components/FieldHelp'
 import { useValidateMaterial } from './hooks/useMaterials'
 import { usePlants } from './hooks/usePlants'
@@ -85,10 +73,6 @@ function chartTypeLabel(chartType: string | null | undefined): string {
   if (chartType === 'xbar_s')  return 'X̄-S chart'
   if (chartType === 'p_chart') return 'Attribute chart'
   return 'I-MR chart'
-}
-
-function chartTypeTagType(chartType: string | null | undefined): 'blue' | 'warm-gray' {
-  return chartType === 'p_chart' ? 'warm-gray' : 'blue'
 }
 
 function formatMicLabel(mic: Pick<MicRef, 'mic_id' | 'mic_name' | 'operation_id' | 'chart_type' | 'batch_count'> | null | undefined): string {
@@ -353,6 +337,21 @@ export default function SPCFilterBar({ embedded = false }: SPCFilterBarProps) {
   const timeReady        = Boolean(pendingDateFrom || pendingDateTo)
   const canCollapse      = Boolean(state.selectedMaterial && state.selectedMIC)
 
+  // ── Shared styles ──────────────────────────────────────────────────────────
+
+  const tile: CSSProperties = { background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 10, padding: '1rem' }
+  const labelStyle: CSSProperties = { fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-3)' }
+  const helpStyle: CSSProperties = { fontSize: '0.75rem', color: 'var(--text-3)' }
+
+  const sectionLabelStyle: CSSProperties = {
+    margin: '0 0 0.5rem',
+    fontSize: '0.6875rem',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    color: 'var(--text-3)',
+  }
+
   // ── Collapsed summary bar ──────────────────────────────────────────────────
 
   if (canCollapse && collapsed) {
@@ -369,100 +368,110 @@ export default function SPCFilterBar({ embedded = false }: SPCFilterBarProps) {
     return (
       <div
         style={embedded ? undefined : {
-          borderBottom: '1px solid var(--cds-border-subtle-01)',
-          background:   'var(--cds-layer)',
+          borderBottom: '1px solid var(--line-1)',
+          background:   'var(--surface-1)',
           padding:      '0.5rem 1.5rem',
         }}
         aria-label="SPC analysis filters (collapsed)"
       >
-        <Button
-          kind="ghost"
-          size="sm"
-          renderIcon={Filter}
+        <button
+          className="btn btn-ghost btn-sm"
+          type="button"
           onClick={() => setCollapsed(false)}
           aria-label="Edit analysis filters"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
         >
-          <span style={{ fontWeight: 600, color: 'var(--cds-text-primary)' }}>{matLabel}</span>
-          <span style={{ margin: '0 0.375rem', color: 'var(--cds-border-subtle-02)' }}>·</span>
+          <Icon name="filter" size={14} />
+          <span style={{ fontWeight: 600, color: 'var(--text-1)' }}>{matLabel}</span>
+          <span style={{ margin: '0 0.375rem', color: 'var(--line-2)' }}>·</span>
           <span>{micLabel}</span>
-          {plantPart && <span style={{ color: 'var(--cds-text-secondary)' }}>{plantPart}</span>}
-          <span style={{ color: 'var(--cds-text-secondary)' }}>{depthPart}</span>
-          {datePart  && <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginLeft: '0.25rem' }}>{datePart}</span>}
+          {plantPart && <span style={{ color: 'var(--text-3)' }}>{plantPart}</span>}
+          <span style={{ color: 'var(--text-3)' }}>{depthPart}</span>
+          {datePart  && <span style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginLeft: '0.25rem' }}>{datePart}</span>}
           <span
             style={{
-              marginLeft:    '0.75rem',
-              padding:       '0 0.5rem',
-              border:        '1px solid var(--cds-border-subtle-01)',
-              borderRadius:  '2px',
-              fontSize:      '0.6875rem',
-              color:         'var(--cds-text-secondary)',
+              marginLeft:   '0.75rem',
+              padding:      '0 0.5rem',
+              border:       '1px solid var(--line-1)',
+              borderRadius: '2px',
+              fontSize:     '0.6875rem',
+              color:        'var(--text-3)',
             }}
           >
             Edit
           </span>
-        </Button>
+        </button>
       </div>
     )
   }
 
   // ── Expanded layout ────────────────────────────────────────────────────────
 
-  const outerStyle: React.CSSProperties = embedded
+  const outerStyle: CSSProperties = embedded
     ? { display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(22rem, 1fr))' }
     : {
-        display:         'grid',
-        gap:             '1rem',
+        display:             'grid',
+        gap:                 '1rem',
         gridTemplateColumns: 'repeat(auto-fit, minmax(22rem, 1fr))',
-        padding:         '1.25rem 1.5rem',
-        borderBottom:    '1px solid var(--cds-border-subtle-01)',
-        background:      'var(--cds-layer)',
+        padding:             '1.25rem 1.5rem',
+        borderBottom:        '1px solid var(--line-1)',
+        background:          'var(--surface-1)',
       }
 
-  const sectionLabelStyle: React.CSSProperties = {
-    margin:        '0 0 0.5rem',
-    fontSize:      '0.6875rem',
-    fontWeight:    600,
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-    color:         'var(--cds-text-secondary)',
-  }
+  // Computed helper text for MIC select
+  const micHelperText = scopeReady && allCharacteristics.length === 0 && !charsLoading
+    ? 'No characteristics found — try a different plant.'
+    : micSearch.trim() && filteredCharacteristics.length === 0
+      ? 'No characteristics match this search. Try a broader term or clear the filter.'
+      : filteredCharacteristics.length > MAX_VISIBLE_MIC_OPTIONS
+        ? `Showing first ${MAX_VISIBLE_MIC_OPTIONS} of ${filteredCharacteristics.length} matches. Refine the search to narrow the list.`
+        : state.selectedMIC?.inspection_method
+          ? `Method: ${state.selectedMIC.inspection_method}`
+          : 'Select a characteristic to load control chart and capability data.'
 
   return (
     <div style={outerStyle} aria-label="SPC analysis filters">
 
       {/* ── Left: filter steps (Material, Plant, MIC, Stratify) ─────────── */}
-      <div
-        style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(10rem, 1fr))' }}
-      >
+      <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(10rem, 1fr))' }}>
 
         {/* Material */}
-        <Tile style={{ padding: '1rem' }}>
+        <div style={tile}>
           <p style={sectionLabelStyle}>Material</p>
-          <Stack gap={3}>
-            <TextInput
-              id="spc-material"
-              labelText="Material ID"
-              placeholder="Enter material ID"
-              value={inputValue}
-              onChange={e => { setInputValue(e.target.value); setNotFound(false); clearError() }}
-              onKeyDown={handleKeyDown}
-              disabled={validating}
-              invalid={hasMaterialError}
-              invalidText={validateError || 'Material not found — check the ID and try again.'}
-              helperText={
-                state.selectedMaterial && !hasMaterialError
-                  ? `Validated: ${state.selectedMaterial.material_name || state.selectedMaterial.material_id}`
-                  : 'Press Enter or Validate to confirm.'
-              }
-            />
-            <Button
-              kind="primary"
-              size="md"
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label htmlFor="spc-material" style={labelStyle}>Material ID</label>
+              <input
+                id="spc-material"
+                className="field"
+                placeholder="Enter material ID"
+                value={inputValue}
+                onChange={e => { setInputValue(e.target.value); setNotFound(false); clearError() }}
+                onKeyDown={handleKeyDown}
+                disabled={validating}
+                aria-invalid={hasMaterialError}
+                style={hasMaterialError ? { borderColor: 'var(--status-risk)' } : undefined}
+              />
+              {hasMaterialError ? (
+                <span style={{ fontSize: '0.75rem', color: 'var(--status-risk)' }}>
+                  {validateError || 'Material not found — check the ID and try again.'}
+                </span>
+              ) : (
+                <span style={helpStyle}>
+                  {state.selectedMaterial && !hasMaterialError
+                    ? `Validated: ${state.selectedMaterial.material_name || state.selectedMaterial.material_id}`
+                    : 'Press Enter or Validate to confirm.'}
+                </span>
+              )}
+            </div>
+            <button
+              className="btn btn-primary"
+              type="button"
               onClick={() => void handleValidate()}
               disabled={validating || !inputValue.trim()}
             >
               {validating ? 'Validating…' : 'Validate'}
-            </Button>
+            </button>
 
             {/* Recent material chips */}
             {!state.selectedMaterial && recents.length > 0 && (
@@ -470,133 +479,122 @@ export default function SPCFilterBar({ embedded = false }: SPCFilterBarProps) {
                 {recents.map(material => (
                   <button
                     key={material.material_id}
+                    type="button"
                     onClick={() => selectRecent(material)}
                     style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                     aria-label={`Use recent material ${material.material_name || material.material_id}`}
                   >
-                    <Tag type="gray" size="sm">
-                      {material.material_name || material.material_id}
-                    </Tag>
+                    <span className="chip">{material.material_name || material.material_id}</span>
                   </button>
                 ))}
               </div>
             )}
-          </Stack>
-        </Tile>
+          </div>
+        </div>
 
         {/* Plant */}
-        <Tile style={{ padding: '1rem' }}>
+        <div style={tile}>
           <p style={sectionLabelStyle}>Plant</p>
-          <Select
-            id="spc-plant"
-            labelText="Plant"
-            value={pendingPlantId}
-            onChange={handlePlantChange}
-            disabled={!scopeReady || plantsLoading}
-            helperText={
-              scopeReady && plants.length === 0 && !plantsLoading
-                ? 'No plant data found for this material — scorecard and charts will be empty.'
-                : 'Leave broad for portfolio review; narrow to a specific plant for local diagnosis.'
-            }
-          >
-            <SelectItem
-              value=""
-              text={
-                !scopeReady      ? '— Validate material first —'
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label htmlFor="spc-plant" style={labelStyle}>Plant</label>
+            <select
+              id="spc-plant"
+              className="field"
+              value={pendingPlantId}
+              onChange={handlePlantChange}
+              disabled={!scopeReady || plantsLoading}
+            >
+              <option value="">
+                {!scopeReady     ? '— Validate material first —'
                 : plantsLoading  ? 'Loading…'
                 : plants.length > 1 ? '— All plants —'
                 : plants.length === 1 ? '— Select plant —'
-                : 'No plant data'
-              }
-            />
-            {plants.map(plant => (
-              <SelectItem
-                key={plant.plant_id}
-                value={plant.plant_id}
-                text={plant.plant_name || plant.plant_id}
-              />
-            ))}
-          </Select>
-        </Tile>
+                : 'No plant data'}
+              </option>
+              {plants.map(plant => (
+                <option key={plant.plant_id} value={plant.plant_id}>{plant.plant_name || plant.plant_id}</option>
+              ))}
+            </select>
+            <span style={helpStyle}>
+              {scopeReady && plants.length === 0 && !plantsLoading
+                ? 'No plant data found for this material — scorecard and charts will be empty.'
+                : 'Leave broad for portfolio review; narrow to a specific plant for local diagnosis.'}
+            </span>
+          </div>
+        </div>
 
         {/* Characteristic (MIC) */}
-        <Tile style={{ padding: '1rem' }}>
+        <div style={tile}>
           <p style={sectionLabelStyle}>Characteristic</p>
-          <Stack gap={3}>
-            <Search
-              id="spc-mic-search"
-              labelText="Filter characteristics"
-              placeholder="Search MIC name or code"
-              value={micSearch}
-              onChange={event => setMicSearch(event.target.value)}
-              size="md"
-            />
-            <Select
-              id="spc-mic"
-              labelText="Characteristic (MIC)"
-              value={selectedMicValue}
-              onChange={handleMICChange}
-              disabled={!scopeReady || charsLoading}
-              helperText={
-                scopeReady && allCharacteristics.length === 0 && !charsLoading
-                  ? 'No characteristics found — try a different plant.'
-                  : micSearch.trim() && filteredCharacteristics.length === 0
-                    ? 'No characteristics match this search. Try a broader term or clear the filter.'
-                  : filteredCharacteristics.length > MAX_VISIBLE_MIC_OPTIONS
-                    ? `Showing first ${MAX_VISIBLE_MIC_OPTIONS} of ${filteredCharacteristics.length} matches. Refine the search to narrow the list.`
-                    : state.selectedMIC?.inspection_method
-                      ? `Method: ${state.selectedMIC.inspection_method}`
-                      : 'Select a characteristic to load control chart and capability data.'
-              }
-            >
-              <SelectItem
-                value=""
-                text={
-                  !scopeReady         ? '— Validate material first —'
-                  : charsLoading      ? 'Loading…'
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label htmlFor="spc-mic-search" style={labelStyle}>Filter characteristics</label>
+              <input
+                type="search"
+                id="spc-mic-search"
+                className="field"
+                placeholder="Search MIC name or code"
+                value={micSearch}
+                onChange={event => setMicSearch(event.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label htmlFor="spc-mic" style={labelStyle}>Characteristic (MIC)</label>
+              <select
+                id="spc-mic"
+                className="field"
+                value={selectedMicValue}
+                onChange={handleMICChange}
+                disabled={!scopeReady || charsLoading}
+              >
+                <option value="">
+                  {!scopeReady          ? '— Validate material first —'
+                  : charsLoading        ? 'Loading…'
                   : allCharacteristics.length === 0 ? 'No characteristics found'
                   : micSearch.trim() && filteredCharacteristics.length === 0 ? 'No matching characteristics'
-                  : '— Select a characteristic —'
-                }
-              />
-              {visibleCharacteristics.map(c => (
-                <SelectItem
-                  key={`${c.operation_id ?? ''}|${c.mic_id}`}
-                  value={serializeMicKey(c)}
-                  text={formatMicLabel(c)}
-                />
-              ))}
-            </Select>
-          </Stack>
-        </Tile>
+                  : '— Select a characteristic —'}
+                </option>
+                {visibleCharacteristics.map(c => (
+                  <option key={`${c.operation_id ?? ''}|${c.mic_id}`} value={serializeMicKey(c)}>
+                    {formatMicLabel(c)}
+                  </option>
+                ))}
+              </select>
+              <span style={helpStyle}>{micHelperText}</span>
+            </div>
+          </div>
+        </div>
 
         {/* Stratify By (conditional) */}
         {state.selectedMaterial && (
-          <Tile style={{ padding: '1rem' }}>
+          <div style={tile}>
             <p style={sectionLabelStyle}>Stratification</p>
-            <Select
-              id="spc-stratify-by"
-              labelText="Stratify By"
-              value={state.stratifyBy ?? ''}
-              onChange={handleStratifyChange}
-              helperText="Splits the chart into separate series to expose hidden between-group variation."
-            >
-              <SelectItem value="" text="— None —" />
-              {STRATIFY_OPTIONS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value} text={opt.label} />
-              ))}
-            </Select>
-          </Tile>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label htmlFor="spc-stratify-by" style={labelStyle}>Stratify By</label>
+              <select
+                id="spc-stratify-by"
+                className="field"
+                value={state.stratifyBy ?? ''}
+                onChange={handleStratifyChange}
+              >
+                <option value="">— None —</option>
+                {STRATIFY_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <span style={helpStyle}>Splits the chart into separate series to expose hidden between-group variation.</span>
+            </div>
+          </div>
         )}
       </div>
 
       {/* ── Right: Date window + Analysis posture ───────────────────────── */}
-      <Stack gap={3}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
 
         {/* Date window */}
-        <Tile style={{ padding: '1rem' }}>
+        <div style={tile}>
           <p style={sectionLabelStyle}>Date window</p>
-          <Stack gap={4}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
             {/* Preset quick-select buttons */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
@@ -604,10 +602,10 @@ export default function SPCFilterBar({ embedded = false }: SPCFilterBarProps) {
                 const range    = resolvePresetRange(preset)
                 const isActive = pendingDateFrom === range.from && pendingDateTo === range.to
                 return (
-                  <Button
+                  <button
                     key={preset.label}
-                    kind={isActive ? 'primary' : 'ghost'}
-                    size="sm"
+                    type="button"
+                    className={isActive ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}
                     onClick={() => {
                       setPendingDateFrom(range.from)
                       setPendingDateTo(range.to)
@@ -615,129 +613,123 @@ export default function SPCFilterBar({ embedded = false }: SPCFilterBarProps) {
                     aria-pressed={isActive}
                   >
                     {preset.label}
-                  </Button>
+                  </button>
                 )
               })}
             </div>
 
-            {/* From / To date pickers */}
+            {/* From / To date inputs */}
             <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: '1fr 1fr' }}>
-              <DatePicker
-                datePickerType="single"
-                value={pendingDateFrom || undefined}
-                dateFormat="Y-m-d"
-                onChange={(dates: Date[]) => setPendingDateFrom(dates[0] ? toLocalDateString(dates[0]) : '')}
-              >
-                <DatePickerInput
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label htmlFor="spc-date-from" style={labelStyle}>From</label>
+                <input
+                  type="date"
                   id="spc-date-from"
-                  labelText="From"
-                  placeholder="YYYY-MM-DD"
-                  size="md"
+                  className="field"
+                  value={pendingDateFrom}
+                  onChange={(e) => setPendingDateFrom(e.target.value)}
                 />
-              </DatePicker>
-
-              <DatePicker
-                datePickerType="single"
-                value={pendingDateTo || undefined}
-                dateFormat="Y-m-d"
-                onChange={(dates: Date[]) => setPendingDateTo(dates[0] ? toLocalDateString(dates[0]) : '')}
-              >
-                <DatePickerInput
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label htmlFor="spc-date-to" style={labelStyle}>To</label>
+                <input
+                  type="date"
                   id="spc-date-to"
-                  labelText="To"
-                  placeholder="YYYY-MM-DD"
-                  size="md"
+                  className="field"
+                  value={pendingDateTo}
+                  onChange={(e) => setPendingDateTo(e.target.value)}
                 />
-              </DatePicker>
+              </div>
             </div>
 
-            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-3)' }}>
               {!timeReady
                 ? `Default: last 12 months (${defaults.from} to ${defaults.to}). Narrow the window to isolate a specific investigation period.`
                 : 'Custom date window active — capability and rule calculations apply to this period only.'}
             </p>
-          </Stack>
-        </Tile>
+          </div>
+        </div>
 
         {/* Analysis posture (conditional on material selection) */}
         {state.selectedMaterial && (
-          <Tile style={{ padding: '1rem' }}>
+          <div style={tile}>
             <p style={sectionLabelStyle}>Analysis posture</p>
-            <p
-              style={{ margin: '0 0 0.75rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}
-              aria-live="polite"
-            >
+            <p style={{ margin: '0 0 0.75rem', fontSize: '0.875rem', color: 'var(--text-3)' }} aria-live="polite">
               Choose the scope first, then interpret capability and rule signals in the chart workspace.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
               {state.selectedMIC && (
-                <Tag type={chartTypeTagType(state.selectedMIC.chart_type)} size="md">
+                <span className={state.selectedMIC.chart_type === 'p_chart' ? 'chip' : 'chip chip-info'}>
                   {chartTypeLabel(state.selectedMIC.chart_type)}
-                </Tag>
+                </span>
               )}
               {state.stratifyBy && (
-                <Tag type="teal" size="md">
+                <span className="chip chip-info">
                   Stratified by{' '}
                   {STRATIFY_OPTIONS.find(o => o.value === state.stratifyBy)?.label ?? state.stratifyBy}
-                </Tag>
+                </span>
               )}
               {!state.selectedMIC && !state.stratifyBy && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-placeholder)' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-4)' }}>
                   Select a characteristic above to see posture.
                 </span>
               )}
             </div>
-          </Tile>
+          </div>
         )}
 
         {state.selectedMaterial && (
-          <Tile style={{ padding: '1rem' }}>
+          <div style={tile}>
             <p style={sectionLabelStyle}>Lineage depth</p>
-            <Stack gap={4}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: '1fr 1fr' }}>
-                <Select
-                  id="spc-flow-upstream-depth"
-                  labelText="Upstream search"
-                  value={String(state.processFlowUpstreamDepth)}
-                  onChange={event =>
-                    dispatch({ type: 'SET_PROCESS_FLOW_UPSTREAM_DEPTH', payload: Number(event.target.value) })
-                  }
-                  helperText="Use a higher depth to inspect more parent generations when tracing likely root causes."
-                >
-                  {FLOW_DEPTH_OPTIONS.map(option => (
-                    <SelectItem key={`up-${option.value}`} value={String(option.value)} text={option.label} />
-                  ))}
-                </Select>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label htmlFor="spc-flow-upstream-depth" style={labelStyle}>Upstream search</label>
+                  <select
+                    id="spc-flow-upstream-depth"
+                    className="field"
+                    value={String(state.processFlowUpstreamDepth)}
+                    onChange={event =>
+                      dispatch({ type: 'SET_PROCESS_FLOW_UPSTREAM_DEPTH', payload: Number(event.target.value) })
+                    }
+                  >
+                    {FLOW_DEPTH_OPTIONS.map(option => (
+                      <option key={`up-${option.value}`} value={String(option.value)}>{option.label}</option>
+                    ))}
+                  </select>
+                  <span style={helpStyle}>Use a higher depth to inspect more parent generations when tracing likely root causes.</span>
+                </div>
 
-                <Select
-                  id="spc-flow-downstream-depth"
-                  labelText="Downstream search"
-                  value={String(state.processFlowDownstreamDepth)}
-                  onChange={event =>
-                    dispatch({ type: 'SET_PROCESS_FLOW_DOWNSTREAM_DEPTH', payload: Number(event.target.value) })
-                  }
-                  helperText="Use a higher depth to inspect more downstream consumption generations when assessing impact."
-                >
-                  {FLOW_DEPTH_OPTIONS.map(option => (
-                    <SelectItem key={`down-${option.value}`} value={String(option.value)} text={option.label} />
-                  ))}
-                </Select>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label htmlFor="spc-flow-downstream-depth" style={labelStyle}>Downstream search</label>
+                  <select
+                    id="spc-flow-downstream-depth"
+                    className="field"
+                    value={String(state.processFlowDownstreamDepth)}
+                    onChange={event =>
+                      dispatch({ type: 'SET_PROCESS_FLOW_DOWNSTREAM_DEPTH', payload: Number(event.target.value) })
+                    }
+                  >
+                    {FLOW_DEPTH_OPTIONS.map(option => (
+                      <option key={`down-${option.value}`} value={String(option.value)}>{option.label}</option>
+                    ))}
+                  </select>
+                  <span style={helpStyle}>Use a higher depth to inspect more downstream consumption generations when assessing impact.</span>
+                </div>
               </div>
 
               <FieldHelp>
                 Use deeper searches for complex formulations or aerospace-style nested assemblies. Larger scopes can increase lineage-query cost, so keep the default unless the investigation warrants it.
               </FieldHelp>
-            </Stack>
-          </Tile>
+            </div>
+          </div>
         )}
 
         {state.selectedMaterial && (
-          <Tile style={{ padding: '1rem' }}>
+          <div style={tile}>
             <p style={sectionLabelStyle}>Multivariate variables</p>
-            <Stack gap={3}>
-              <p
-                style={{ margin: 0, fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}
-              >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-3)' }}>
                 Choose 2 to 8 quantitative characteristics to run Hotelling&apos;s T², correlation heatmaps, and root-cause contribution analysis.
               </p>
 
@@ -746,9 +738,9 @@ export default function SPCFilterBar({ embedded = false }: SPCFilterBarProps) {
                   {quantitativeCharacteristics
                     .filter(characteristic => selectedMultivariateSet.has(multivariateSelectionKey(characteristic)))
                     .map(characteristic => (
-                      <Tag key={multivariateSelectionKey(characteristic)} type="blue" size="sm">
+                      <span key={multivariateSelectionKey(characteristic)} className="chip chip-info">
                         {formatMicLabel(characteristic)}
-                      </Tag>
+                      </span>
                     ))}
                 </div>
               )}
@@ -767,7 +759,7 @@ export default function SPCFilterBar({ embedded = false }: SPCFilterBarProps) {
                 }}
               >
                 {quantitativeCharacteristics.length === 0 && !charsLoading && (
-                  <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-placeholder)' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-4)' }}>
                     No quantitative characteristics are available for multivariate analysis in this scope.
                   </span>
                 )}
@@ -776,37 +768,50 @@ export default function SPCFilterBar({ embedded = false }: SPCFilterBarProps) {
                   const checked = selectedMultivariateSet.has(selectionKey)
                   const disableUnchecked =
                     !checked && state.selectedMultivariateMicIds.length >= 8
+                  const disabled = charsLoading || disableUnchecked
                   return (
-                    <Checkbox
+                    <label
                       key={selectionKey}
-                      id={`spc-multivariate-${selectionKey}`}
-                      labelText={formatMicLabel(characteristic)}
-                      checked={checked}
-                      disabled={charsLoading || disableUnchecked}
-                      onChange={(_, { checked: nextChecked }: { checked: boolean }) =>
-                        handleMultivariateToggle(selectionKey, nextChecked)
-                      }
-                    />
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        fontSize: '0.875rem',
+                        color: 'var(--text-1)',
+                        cursor: disabled ? 'not-allowed' : 'pointer',
+                        opacity: disabled ? 0.5 : 1,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        id={`spc-multivariate-${selectionKey}`}
+                        checked={checked}
+                        disabled={disabled}
+                        onChange={(e) => handleMultivariateToggle(selectionKey, e.target.checked)}
+                        style={{ width: 14, height: 14, accentColor: 'var(--valentia-slate)', flexShrink: 0 }}
+                      />
+                      {formatMicLabel(characteristic)}
+                    </label>
                   )
                 })}
               </div>
-            </Stack>
-          </Tile>
+            </div>
+          </div>
         )}
 
         {/* Expand/collapse control — only shown when collapsible */}
         {canCollapse && (
-          <Button
-            kind="ghost"
-            size="sm"
-            renderIcon={Edit}
+          <button
+            className="btn btn-ghost btn-sm"
+            type="button"
             onClick={() => setCollapsed(true)}
-            style={{ alignSelf: 'flex-start' }}
+            style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
           >
+            <Icon name="sliders" size={14} />
             Collapse filters
-          </Button>
+          </button>
         )}
-      </Stack>
+      </div>
 
     </div>
   )

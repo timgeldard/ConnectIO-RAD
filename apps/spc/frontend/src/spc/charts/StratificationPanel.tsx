@@ -1,4 +1,3 @@
-import { Column, Grid, Stack, Tile } from '~/lib/carbon-layout'
 import type { ReactNode } from 'react'
 
 import type { SPCComputationResult } from '../types'
@@ -44,18 +43,24 @@ export default function StratificationPanel({
         const stratumCapabilityHeadline = getCapabilityHeadline(section.spc)
 
         return (
-          <Tile
+          <div
             key={section.label}
             role="region"
             aria-label={`Stratum analysis for ${section.label}`}
+            style={{
+              background: 'var(--surface-1)',
+              border: '1px solid var(--line-1)',
+              borderRadius: 10,
+              padding: '1.25rem',
+            }}
           >
-            <Stack gap={5}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap', paddingBottom: '0.75rem', borderBottom: '1px solid var(--cds-border-subtle-01)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap', paddingBottom: '0.75rem', borderBottom: '1px solid var(--line-1)' }}>
                 <div>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--cds-text-primary)' }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-1)' }}>
                     {micLabel} · {section.label}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>
                     Stratified by {stratifyBy.replace(/_/g, ' ')} · {section.pointCount} point{section.pointCount !== 1 ? 's' : ''}
                   </div>
                 </div>
@@ -71,44 +76,38 @@ export default function StratificationPanel({
                 </div>
               </div>
 
-              <Grid condensed>
-                <Column sm={4} md={3} lg={5}>
-                  <SummaryMetric
-                    label="Points"
-                    value={String(section.pointCount)}
-                    meta="Data included after the current exclusion and outlier rules"
-                    tone="slate"
-                  />
-                </Column>
-                <Column sm={4} md={3} lg={5}>
-                  <SummaryMetric
-                    label="Signals"
-                    value={String(stratumSignalCount)}
-                    meta={stratumSignalCount > 0 ? 'Assignable-cause review still required' : 'No active rule breaches'}
-                    tone={stratumSignalCount > 0 ? 'amber' : 'green'}
-                  />
-                </Column>
-                <Column sm={4} md={2} lg={6}>
-                  <SummaryMetric
-                    label="Capability"
-                    value={stratumCapabilityHeadline != null ? stratumCapabilityHeadline.value.toFixed(2) : '—'}
-                    meta={section.spc?.capability?.capabilityMethod === 'non_parametric' ? 'Empirical percentile method active' : 'Short-term and long-term evidence available'}
-                    tone={stratumCapabilityHeadline == null ? 'slate' : stratumCapabilityHeadline.value >= 1.33 ? 'green' : stratumCapabilityHeadline.value >= 1.0 ? 'amber' : 'red'}
-                  />
-                </Column>
-              </Grid>
+              <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+                <SummaryMetric
+                  label="Points"
+                  value={String(section.pointCount)}
+                  meta="Data included after the current exclusion and outlier rules"
+                  tone="slate"
+                />
+                <SummaryMetric
+                  label="Signals"
+                  value={String(stratumSignalCount)}
+                  meta={stratumSignalCount > 0 ? 'Assignable-cause review still required' : 'No active rule breaches'}
+                  tone={stratumSignalCount > 0 ? 'amber' : 'green'}
+                />
+                <SummaryMetric
+                  label="Capability"
+                  value={stratumCapabilityHeadline != null ? stratumCapabilityHeadline.value.toFixed(2) : '—'}
+                  meta={section.spc?.capability?.capabilityMethod === 'non_parametric' ? 'Empirical percentile method active' : 'Short-term and long-term evidence available'}
+                  tone={stratumCapabilityHeadline == null ? 'slate' : stratumCapabilityHeadline.value >= 1.33 ? 'green' : stratumCapabilityHeadline.value >= 1.0 ? 'amber' : 'red'}
+                />
+              </div>
 
               {section.spc && (
                 <>
-                  <div style={{ border: '1px solid var(--cds-border-subtle-01)', background: 'var(--cds-layer)', padding: '1rem' }}>{renderChart(section.spc)}</div>
+                  <div style={{ border: '1px solid var(--line-1)', background: 'var(--surface-1)', borderRadius: 8, padding: '1rem' }}>{renderChart(section.spc)}</div>
                   <div style={{ marginTop: '1.25rem', display: 'grid', gap: '1rem' }}>
                     {renderSignals(section.spc)}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>{renderCapability(section.spc)}</div>
                   </div>
                 </>
               )}
-            </Stack>
-          </Tile>
+            </div>
+          </div>
         )
       })}
     </div>

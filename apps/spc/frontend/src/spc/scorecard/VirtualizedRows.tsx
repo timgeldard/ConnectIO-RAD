@@ -62,9 +62,9 @@ export default function VirtualizedRows<T>({
       style={{
         height: viewportHeightPx,
         overflowY: 'auto',
-        border: '1px solid var(--cds-border-subtle-01)',
+        border: '1px solid var(--line-1)',
         borderRadius: 2,
-        background: 'var(--cds-layer)',
+        background: 'var(--surface-1)',
       }}
     >
       <div style={{ height: topPad }} aria-hidden="true" />
@@ -76,7 +76,7 @@ export default function VirtualizedRows<T>({
             height: rowHeightPx,
             display: 'flex',
             alignItems: 'center',
-            borderBottom: '1px solid var(--cds-border-subtle-01)',
+            borderBottom: '1px solid var(--line-1)',
             padding: '0 0.75rem',
           }}
         >

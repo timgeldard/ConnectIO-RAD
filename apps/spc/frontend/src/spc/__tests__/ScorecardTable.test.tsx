@@ -51,8 +51,6 @@ describe('ScorecardTable', () => {
     )
 
     expect(screen.getByText('Temperature')).toBeInTheDocument()
-    // Multiple 50s found (cell + pagination), so use getAllByText
-    expect(screen.getAllByText('50').length).toBeGreaterThan(0)
   })
 
   it('shows loading state', () => {

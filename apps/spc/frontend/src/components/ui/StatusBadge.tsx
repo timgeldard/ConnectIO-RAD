@@ -1,15 +1,11 @@
-import CheckmarkFilled from '@carbon/icons-react/es/CheckmarkFilled.js'
-import Misuse from '@carbon/icons-react/es/Misuse.js'
-import WarningAltFilled from '@carbon/icons-react/es/WarningAltFilled.js'
-import type { CarbonIconType } from '@carbon/icons-react'
-import { Tag } from '~/lib/carbon-layout'
+import { Icon } from './Icon'
 
 type Status = 'healthy' | 'warning' | 'critical'
 
-const statusConfig: Record<Status, { type: 'green' | 'warm-gray' | 'red'; icon: CarbonIconType }> = {
-  healthy: { type: 'green', icon: CheckmarkFilled },
-  warning: { type: 'warm-gray', icon: WarningAltFilled },
-  critical: { type: 'red', icon: Misuse },
+const STATUS_CONFIG: Record<Status, { chipClass: string; iconName: string }> = {
+  healthy:  { chipClass: 'chip chip-ok',   iconName: 'check-circle' },
+  warning:  { chipClass: 'chip chip-warn', iconName: 'alert-triangle' },
+  critical: { chipClass: 'chip chip-risk', iconName: 'x-circle' },
 }
 
 interface StatusBadgeProps {
@@ -19,11 +15,12 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, label, className }: StatusBadgeProps) {
-  const { type, icon: Icon } = statusConfig[status]
+  const { chipClass, iconName } = STATUS_CONFIG[status]
 
   return (
-    <Tag type={type} size="sm" className={className} renderIcon={() => <Icon size={14} />}>
+    <span className={`${chipClass}${className ? ` ${className}` : ''}`} title={label}>
+      <Icon name={iconName} size={12} />
       {label}
-    </Tag>
+    </span>
   )
 }

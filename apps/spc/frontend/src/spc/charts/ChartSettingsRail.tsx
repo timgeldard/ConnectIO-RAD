@@ -1,13 +1,4 @@
 import { useState, type ReactNode } from 'react'
-import {
-  Button,
-  Checkbox,
-  RadioButton,
-  RadioButtonGroup,
-  TextInput,
-} from '~/lib/carbon-forms'
-import { Accordion, AccordionItem } from '~/lib/carbon-feedback'
-import { Stack, Tag, Tile } from '~/lib/carbon-layout'
 import type { ChartDataPoint, LockedLimits } from '../types'
 
 export type AttributeChartType = 'p_chart' | 'np_chart' | 'c_chart' | 'u_chart'
@@ -23,69 +14,46 @@ function ChartTypeToggle({
   onOverride: (value: QuantChartType | null) => void
 }) {
   const effectiveType = override ?? chartType ?? 'imr'
+  const options: Array<{ value: QuantChartType; label: string }> = [
+    { value: 'imr',    label: 'I-MR'  },
+    { value: 'xbar_r', label: 'X̄-R'  },
+    { value: 'xbar_s', label: 'X̄-S'  },
+    { value: 'ewma',   label: 'EWMA'  },
+    { value: 'cusum',  label: 'CUSUM' },
+  ]
 
   return (
-    <Stack gap={3}>
-      <RadioButtonGroup
-        legendText="Chart type"
-        name="spc-quant-chart-type"
-        orientation="vertical"
-        valueSelected={effectiveType}
-        onChange={(value) => onOverride(value === chartType ? null : (value as QuantChartType))}
-      >
-        <RadioButton
-          id="spc-quant-chart-imr"
-          value="imr"
-          labelText="I-MR"
-        />
-        <RadioButton
-          id="spc-quant-chart-xbar-r"
-          value="xbar_r"
-          labelText="X̄-R"
-        />
-        <RadioButton
-          id="spc-quant-chart-xbar-s"
-          value="xbar_s"
-          labelText="X̄-S"
-        />
-        <RadioButton
-          id="spc-quant-chart-ewma"
-          value="ewma"
-          labelText="EWMA"
-        />
-        <RadioButton
-          id="spc-quant-chart-cusum"
-          value="cusum"
-          labelText="CUSUM"
-        />
-      </RadioButtonGroup>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="eyebrow">Chart type</div>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {options.map(opt => (
+          <button
+            key={opt.value}
+            className={`btn btn-sm ${effectiveType === opt.value ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => onOverride(opt.value === chartType ? null : opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
         {override && (
-          <Button kind="ghost" size="sm" onClick={() => onOverride(null)}>
+          <button className="btn btn-ghost btn-sm" onClick={() => onOverride(null)}>
             Reset to auto
-          </Button>
+          </button>
         )}
         {chartType && !override && (
-          <Tag type="cool-gray" size="sm">
-            auto-detected
-          </Tag>
+          <span className="chip" style={{ fontSize: 11 }}>auto-detected</span>
         )}
       </div>
-    </Stack>
+    </div>
   )
 }
 
 function TimeWeightedControls({
   chartType,
-  ewmaLambda,
-  ewmaL,
-  cusumK,
-  cusumH,
-  onEwmaLambdaChange,
-  onEwmaLChange,
-  onCusumKChange,
-  onCusumHChange,
+  ewmaLambda, ewmaL, cusumK, cusumH,
+  onEwmaLambdaChange, onEwmaLChange, onCusumKChange, onCusumHChange,
 }: {
   chartType: QuantChartType | null
   ewmaLambda: number
@@ -100,44 +68,50 @@ function TimeWeightedControls({
   if (chartType !== 'ewma' && chartType !== 'cusum') return null
 
   return (
-    <Stack gap={3}>
-      <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--cds-text-secondary)' }}>
-        Time-weighted settings
-      </p>
-      <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(9rem, 1fr))' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="eyebrow">Time-weighted settings</div>
+      <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(9rem, 1fr))' }}>
         {chartType === 'ewma' ? (
           <>
-            <TextInput
-              id="spc-ewma-lambda"
-              labelText="λ"
-              value={String(ewmaLambda)}
-              onChange={(event) => onEwmaLambdaChange(Number(event.currentTarget.value))}
-            />
-            <TextInput
-              id="spc-ewma-l"
-              labelText="L"
-              value={String(ewmaL)}
-              onChange={(event) => onEwmaLChange(Number(event.currentTarget.value))}
-            />
+            <div>
+              <label className="field-label" htmlFor="spc-ewma-lambda">λ</label>
+              <input
+                id="spc-ewma-lambda" className="field" type="number"
+                value={ewmaLambda}
+                onChange={e => onEwmaLambdaChange(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="field-label" htmlFor="spc-ewma-l">L</label>
+              <input
+                id="spc-ewma-l" className="field" type="number"
+                value={ewmaL}
+                onChange={e => onEwmaLChange(Number(e.target.value))}
+              />
+            </div>
           </>
         ) : (
           <>
-            <TextInput
-              id="spc-cusum-k"
-              labelText="k"
-              value={String(cusumK)}
-              onChange={(event) => onCusumKChange(Number(event.currentTarget.value))}
-            />
-            <TextInput
-              id="spc-cusum-h"
-              labelText="h"
-              value={String(cusumH)}
-              onChange={(event) => onCusumHChange(Number(event.currentTarget.value))}
-            />
+            <div>
+              <label className="field-label" htmlFor="spc-cusum-k">k</label>
+              <input
+                id="spc-cusum-k" className="field" type="number"
+                value={cusumK}
+                onChange={e => onCusumKChange(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="field-label" htmlFor="spc-cusum-h">h</label>
+              <input
+                id="spc-cusum-h" className="field" type="number"
+                value={cusumH}
+                onChange={e => onCusumHChange(Number(e.target.value))}
+              />
+            </div>
           </>
         )}
       </div>
-    </Stack>
+    </div>
   )
 }
 
@@ -149,30 +123,28 @@ function AttributeChartTypeToggle({
   onSet: (value: AttributeChartType) => void
 }) {
   const options: Array<{ type: AttributeChartType; label: string; title: string }> = [
-    { type: 'p_chart', label: 'P', title: 'Proportion nonconforming (variable sample size)' },
-    { type: 'np_chart', label: 'NP', title: 'Number nonconforming (constant sample size)' },
-    { type: 'c_chart', label: 'C', title: 'Count of defects per unit (constant area of opportunity)' },
-    { type: 'u_chart', label: 'U', title: 'Defects per unit (variable area of opportunity)' },
+    { type: 'p_chart',  label: 'P',  title: 'Proportion nonconforming (variable sample size)' },
+    { type: 'np_chart', label: 'NP', title: 'Number nonconforming (constant sample size)'     },
+    { type: 'c_chart',  label: 'C',  title: 'Count of defects per unit (constant area of opportunity)' },
+    { type: 'u_chart',  label: 'U',  title: 'Defects per unit (variable area of opportunity)' },
   ]
 
   return (
-    <RadioButtonGroup
-      legendText="Chart type"
-      name="spc-attribute-chart-type"
-      orientation="vertical"
-      valueSelected={attrChartType}
-      onChange={(value) => onSet(value as AttributeChartType)}
-    >
-      {options.map(({ type, label, title }) => (
-        <RadioButton
-          key={type}
-          id={`spc-attribute-chart-${type}`}
-          value={type}
-          labelText={label}
-          title={title}
-        />
-      ))}
-    </RadioButtonGroup>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="eyebrow">Chart type</div>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {options.map(({ type, label, title }) => (
+          <button
+            key={type}
+            className={`btn btn-sm ${attrChartType === type ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => onSet(type)}
+            title={title}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -184,26 +156,25 @@ function RuleSetToggle({
   onSet: (value: 'weco' | 'nelson') => void
 }) {
   return (
-    <RadioButtonGroup
-      legendText="Rule set"
-      name="spc-rule-set"
-      orientation="vertical"
-      valueSelected={ruleSet}
-      onChange={(value) => onSet(value as 'weco' | 'nelson')}
-    >
-      <RadioButton
-        id="spc-rule-set-weco"
-        value="weco"
-        labelText="WECO"
-        title="Western Electric rules (4 tests)"
-      />
-      <RadioButton
-        id="spc-rule-set-nelson"
-        value="nelson"
-        labelText="Nelson"
-        title="Nelson rules (8 tests)"
-      />
-    </RadioButtonGroup>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="eyebrow">Rule set</div>
+      <div style={{ display: 'flex', gap: 4 }}>
+        <button
+          className={`btn btn-sm ${ruleSet === 'weco' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => onSet('weco')}
+          title="Western Electric rules (4 tests)"
+        >
+          WECO
+        </button>
+        <button
+          className={`btn btn-sm ${ruleSet === 'nelson' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => onSet('nelson')}
+          title="Nelson rules (8 tests)"
+        >
+          Nelson
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -251,29 +222,20 @@ export default function ChartSettingsRail({
   attrChartType,
   onAttrChartTypeChange,
   effectiveChartType,
-  ewmaLambda,
-  onEwmaLambdaChange,
-  ewmaL,
-  onEwmaLChange,
-  cusumK,
-  onCusumKChange,
-  cusumH,
-  onCusumHChange,
+  ewmaLambda, onEwmaLambdaChange,
+  ewmaL, onEwmaLChange,
+  cusumK, onCusumKChange,
+  cusumH, onCusumHChange,
   isAttributeChart,
   lockedLimits,
-  limitsMode,
-  onLimitsMode,
+  limitsMode, onLimitsMode,
   canLockLimits,
-  onLockLimits,
-  onDeleteLock,
+  onLockLimits, onDeleteLock,
   quantPoints,
-  excludeOutliers,
-  onToggleExcludeOutliers,
-  exclusionCount,
-  exclusionsSaving,
+  excludeOutliers, onToggleExcludeOutliers,
+  exclusionCount, exclusionsSaving,
   onRestoreAll,
-  canAutoClean,
-  onAutoClean,
+  canAutoClean, onAutoClean,
   extraContent,
 }: ChartSettingsRailProps) {
   const outlierCount = quantPoints.filter(point => point.is_outlier).length
@@ -284,129 +246,116 @@ export default function ChartSettingsRail({
   )
 
   return (
-    <Tile>
-      <Stack gap={5}>
-        <p
-          style={{
-            margin: 0,
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: 'var(--cds-text-secondary)',
-          }}
+    <div className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="eyebrow">Analysis controls</div>
+
+      {isAttributeChart ? (
+        <AttributeChartTypeToggle attrChartType={attrChartType} onSet={onAttrChartTypeChange} />
+      ) : (
+        <ChartTypeToggle
+          chartType={selectedMicChartType}
+          override={chartTypeOverride}
+          onOverride={onChartTypeOverride}
+        />
+      )}
+
+      {!isAttributeChart && (exclusionCount > 0 || canAutoClean) && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {exclusionCount > 0 && (
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={exclusionsSaving}
+              onClick={onRestoreAll}
+            >
+              Clear {exclusionCount} exclusion{exclusionCount !== 1 ? 's' : ''}
+            </button>
+          )}
+          {canAutoClean && (
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={exclusionsSaving}
+              onClick={onAutoClean}
+              title="Iteratively remove Rule 1 OOC points to establish Phase I baseline limits"
+            >
+              Auto-clean Phase I
+            </button>
+          )}
+        </div>
+      )}
+
+      {!isAttributeChart && (
+        <TimeWeightedControls
+          chartType={effectiveChartType}
+          ewmaLambda={ewmaLambda} onEwmaLambdaChange={onEwmaLambdaChange}
+          ewmaL={ewmaL} onEwmaLChange={onEwmaLChange}
+          cusumK={cusumK} onCusumKChange={onCusumKChange}
+          cusumH={cusumH} onCusumHChange={onCusumHChange}
+        />
+      )}
+
+      {/* Advanced settings toggle */}
+      <div>
+        <button
+          className="btn btn-ghost btn-sm"
+          style={{ width: '100%', justifyContent: 'space-between' }}
+          onClick={() => setAdvancedOpen(v => !v)}
         >
-          Analysis controls
-        </p>
+          <span>{hasAdvancedContent ? 'Advanced settings' : 'Advanced settings (limited)'}</span>
+          <span style={{ fontSize: 10 }}>{advancedOpen ? '▲' : '▼'}</span>
+        </button>
 
-        {isAttributeChart ? (
-          <AttributeChartTypeToggle attrChartType={attrChartType} onSet={onAttrChartTypeChange} />
-        ) : (
-          <ChartTypeToggle
-            chartType={selectedMicChartType}
-            override={chartTypeOverride}
-            onOverride={onChartTypeOverride}
-          />
-        )}
+        {advancedOpen && (
+          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <RuleSetToggle ruleSet={ruleSet} onSet={onRuleSetChange} />
 
-        {!isAttributeChart && (exclusionCount > 0 || canAutoClean) && (
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {exclusionCount > 0 && (
-              <Button
-                kind="secondary"
-                size="sm"
-                disabled={exclusionsSaving}
-                onClick={onRestoreAll}
-              >
-                Clear {exclusionCount} exclusion{exclusionCount !== 1 ? 's' : ''}
-              </Button>
+            {!isAttributeChart && outlierCount > 0 && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text-1)' }}>
+                <input
+                  type="checkbox"
+                  checked={excludeOutliers}
+                  onChange={onToggleExcludeOutliers}
+                  style={{ accentColor: 'var(--valentia-slate)', width: 14, height: 14, cursor: 'pointer' }}
+                />
+                Exclude outliers ({outlierCount})
+              </label>
             )}
-            {canAutoClean && (
-              <Button
-                kind="secondary"
-                size="sm"
-                disabled={exclusionsSaving}
-                onClick={onAutoClean}
-                title="Iteratively remove Rule 1 OOC points to establish Phase I baseline limits"
-              >
-                Auto-clean Phase I
-              </Button>
+
+            {!isAttributeChart && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {lockedLimits && (
+                  <button
+                    className={`btn btn-sm ${limitsMode === 'locked' ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => onLimitsMode(limitsMode === 'locked' ? 'live' : 'locked')}
+                    title={`Locked ${lockedLimits.locked_at?.substring(0, 10) ?? ''} by ${lockedLimits.locked_by ?? 'unknown'}`}
+                  >
+                    {limitsMode === 'locked' ? 'Locked Limits' : 'Use Locked Limits'}
+                  </button>
+                )}
+                {canLockLimits && limitsMode === 'live' && (
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={onLockLimits}
+                    title="Lock current control limits for Phase II monitoring"
+                  >
+                    Lock Limits
+                  </button>
+                )}
+                {lockedLimits && limitsMode === 'locked' && (
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={onDeleteLock}
+                    title="Remove locked limits"
+                  >
+                    Delete Lock
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
+      </div>
 
-        {!isAttributeChart && (
-          <TimeWeightedControls
-            chartType={effectiveChartType}
-            ewmaLambda={ewmaLambda}
-            ewmaL={ewmaL}
-            cusumK={cusumK}
-            cusumH={cusumH}
-            onEwmaLambdaChange={onEwmaLambdaChange}
-            onEwmaLChange={onEwmaLChange}
-            onCusumKChange={onCusumKChange}
-            onCusumHChange={onCusumHChange}
-          />
-        )}
-
-        <Accordion align="start">
-          <AccordionItem
-            open={advancedOpen}
-            onHeadingClick={() => setAdvancedOpen((value) => !value)}
-            title={hasAdvancedContent ? 'Advanced settings' : 'Advanced settings (limited)'}
-          >
-            <Stack gap={5}>
-              <RuleSetToggle ruleSet={ruleSet} onSet={onRuleSetChange} />
-
-              {!isAttributeChart && outlierCount > 0 && (
-                <Checkbox
-                  id="spc-exclude-outliers"
-                  labelText={`Exclude outliers (${outlierCount})`}
-                  checked={excludeOutliers}
-                  onChange={onToggleExcludeOutliers}
-                />
-              )}
-
-              {!isAttributeChart && (
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  {lockedLimits && (
-                    <Button
-                      kind={limitsMode === 'locked' ? 'primary' : 'secondary'}
-                      size="sm"
-                      onClick={() => onLimitsMode(limitsMode === 'locked' ? 'live' : 'locked')}
-                      title={`Locked ${lockedLimits.locked_at?.substring(0, 10) ?? ''} by ${lockedLimits.locked_by ?? 'unknown'}`}
-                    >
-                      {limitsMode === 'locked' ? 'Locked Limits' : 'Use Locked Limits'}
-                    </Button>
-                  )}
-                  {canLockLimits && limitsMode === 'live' && (
-                    <Button
-                      kind="secondary"
-                      size="sm"
-                      onClick={onLockLimits}
-                      title="Lock current control limits for Phase II monitoring"
-                    >
-                      Lock Limits
-                    </Button>
-                  )}
-                  {lockedLimits && limitsMode === 'locked' && (
-                    <Button
-                      kind="danger"
-                      size="sm"
-                      onClick={onDeleteLock}
-                      title="Remove locked limits"
-                    >
-                      Delete Lock
-                    </Button>
-                  )}
-                </div>
-              )}
-            </Stack>
-          </AccordionItem>
-        </Accordion>
-
-        {extraContent}
-      </Stack>
-    </Tile>
+      {extraContent}
+    </div>
   )
 }

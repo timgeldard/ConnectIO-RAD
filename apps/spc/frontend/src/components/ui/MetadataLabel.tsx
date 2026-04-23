@@ -14,7 +14,7 @@ export function MetadataLabel({ children, className }: MetadataLabelProps) {
         fontWeight: 700,
         letterSpacing: '0.12em',
         textTransform: 'uppercase',
-        color: 'var(--cds-text-secondary)',
+        color: 'var(--text-3)',
       }}
     >
       {children}

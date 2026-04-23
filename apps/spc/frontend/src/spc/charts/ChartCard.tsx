@@ -1,11 +1,5 @@
-import { useState, type ReactNode } from 'react'
-import { Button } from '~/lib/carbon-forms'
-import { DefinitionTooltip } from '~/lib/carbon-feedback'
-import { Tag, Tile } from '~/lib/carbon-layout'
-import Download from '@carbon/icons-react/es/Download.js'
-import Edit from '@carbon/icons-react/es/Edit.js'
-import Flag from '@carbon/icons-react/es/Flag.js'
-import PointExclusionModal from '../../components/Modals/PointExclusionModal'
+import { type ReactNode } from 'react'
+import { Icon } from '../../components/ui/Icon'
 
 interface ChartCardProps {
   title: string
@@ -19,11 +13,10 @@ interface ChartCardProps {
   exportLabel?: string
 }
 
-// Cpk thresholds → Carbon Tag type
-function cpkTagType(cpk: number): 'green' | 'warm-gray' | 'red' {
-  if (cpk >= 1.33) return 'green'
-  if (cpk >= 1.0)  return 'warm-gray'
-  return 'red'
+function cpkChipClass(cpk: number): string {
+  if (cpk >= 1.33) return 'chip chip-ok'
+  if (cpk >= 1.0)  return 'chip chip-warn'
+  return 'chip chip-risk'
 }
 
 export default function ChartCard({
@@ -37,151 +30,54 @@ export default function ChartCard({
   onAnnotate,
   exportLabel = 'Export',
 }: ChartCardProps) {
-  const [showExclusionModal, setShowExclusionModal] = useState(false)
-
   return (
-    <>
-      <Tile style={{ padding: 0, overflow: 'hidden' }}>
-
-        {/* Card header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: '1rem',
-            padding: '1.25rem 1.5rem 1rem',
-            borderBottom: '1px solid var(--cds-border-subtle-01)',
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <h3
-              style={{
-                margin: 0,
-                fontSize: '1rem',
-                fontWeight: 600,
-                color: 'var(--cds-text-primary)',
-              }}
-            >
-              {title}
-            </h3>
-            {subtitle && (
-              <p
-                style={{
-                  margin: '0.125rem 0 0',
-                  fontSize: '0.75rem',
-                  color: 'var(--cds-text-secondary)',
-                }}
-              >
-                {subtitle}
-              </p>
-            )}
-          </div>
-
-          {/* Cpk badge with definition tooltip */}
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+        gap: 12, padding: '14px 18px 12px', borderBottom: '1px solid var(--line-1)',
+      }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)' }}>{title}</div>
+          {subtitle && <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>{subtitle}</div>}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           {cpk != null && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-              <Tag type={cpkTagType(cpk)} size="md">
-                Cpk {cpk.toFixed(2)}
-              </Tag>
-              <DefinitionTooltip
-                definition="Cpk ≥ 1.33 is generally healthy, 1.00–1.32 needs attention, below 1.00 is high risk."
-                openOnHover
-                align="bottom-end"
-              >
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '1.25rem',
-                    height: '1.25rem',
-                    borderRadius: '50%',
-                    border: '1px solid var(--cds-border-subtle-01)',
-                    fontSize: '0.6875rem',
-                    fontWeight: 600,
-                    color: 'var(--cds-text-secondary)',
-                    cursor: 'default',
-                  }}
-                  aria-label="About capability index"
-                >
-                  ?
-                </span>
-              </DefinitionTooltip>
-            </div>
+            <span className={cpkChipClass(cpk)} style={{ fontSize: 11 }}>
+              Cpk {cpk.toFixed(2)}
+            </span>
           )}
         </div>
+      </div>
 
-        {/* Chart body — ECharts canvas renders here, untouched */}
-        <div style={{ padding: '1rem' }}>{children}</div>
+      {/* Body */}
+      <div style={{ padding: '12px 16px' }}>{children}</div>
 
-        {/* Optional action note */}
-        {note && (
-          <div
-            style={{
-              padding: '0.625rem 1.5rem',
-              fontSize: '0.875rem',
-              color: 'var(--cds-text-secondary)',
-              borderTop: '1px solid var(--cds-border-subtle-01)',
-            }}
-          >
-            {note}
-          </div>
-        )}
-
-        {/* Action footer */}
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '0.5rem',
-            padding: '0.75rem 1rem',
-            borderTop: '1px solid var(--cds-border-subtle-01)',
-          }}
-        >
-          <Button
-            kind="tertiary"
-            size="sm"
-            renderIcon={Edit}
-            iconDescription="Exclude a data point"
-            onClick={() => setShowExclusionModal(true)}
-          >
-            Exclude Point
-          </Button>
-
-          <Button
-            kind="tertiary"
-            size="sm"
-            renderIcon={Download}
-            iconDescription={exportLabel}
-            disabled={!onExport}
-            onClick={onExport}
-          >
-            {exportLabel}
-          </Button>
-
-          <Button
-            kind="ghost"
-            size="sm"
-            renderIcon={Flag}
-            iconDescription="Add annotation"
-            hasIconOnly
-            disabled={!onAnnotate}
-            onClick={onAnnotate}
-            aria-label="Add annotation"
-          />
+      {/* Action note */}
+      {note && (
+        <div style={{ padding: '8px 18px', fontSize: 12, color: 'var(--text-3)', borderTop: '1px solid var(--line-1)' }}>
+          {note}
         </div>
-      </Tile>
+      )}
 
-      <PointExclusionModal
-        isOpen={showExclusionModal}
-        onClose={() => setShowExclusionModal(false)}
-        chartTitle={title}
-        onConfirm={() => {
-          setShowExclusionModal(false)
-          onExcludePoint?.()
-        }}
-      />
-    </>
+      {/* Footer */}
+      <div style={{ display: 'flex', gap: 6, padding: '10px 14px', borderTop: '1px solid var(--line-1)' }}>
+        {onExcludePoint && (
+          <button className="btn btn-ghost btn-sm" onClick={onExcludePoint}>
+            <Icon name="flag" size={12} /> Exclude Point
+          </button>
+        )}
+        {onExport && (
+          <button className="btn btn-ghost btn-sm" onClick={onExport}>
+            <Icon name="download" size={12} /> {exportLabel}
+          </button>
+        )}
+        {onAnnotate && (
+          <button className="btn btn-ghost btn-sm" onClick={onAnnotate}>
+            <Icon name="edit" size={12} /> Annotate
+          </button>
+        )}
+      </div>
+    </div>
   )
 }

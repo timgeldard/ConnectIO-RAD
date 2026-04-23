@@ -1,6 +1,4 @@
-import Activity from '@carbon/icons-react/es/Activity.js'
-import Building from '@carbon/icons-react/es/Building.js'
-import WarningAlt from '@carbon/icons-react/es/WarningAlt.js'
+import { Icon } from '../../components/ui/Icon'
 
 interface NodeTooltipProps {
   label: string
@@ -12,21 +10,6 @@ interface NodeTooltipProps {
   lastOoc?: string | null
   hasSignal?: boolean | null
   visible?: boolean
-}
-
-const statLabel: React.CSSProperties = {
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.08em',
-  fontSize: '0.7rem',
-  color: 'var(--cds-text-secondary)',
-}
-
-const statValue: React.CSSProperties = {
-  marginTop: 4,
-  fontSize: '0.875rem',
-  fontWeight: 500,
-  color: 'var(--cds-text-primary)',
 }
 
 export default function NodeTooltip({
@@ -50,67 +33,49 @@ export default function NodeTooltip({
       left: '50%',
       transform: 'translateX(-50%)',
       zIndex: 30,
-      marginBottom: '0.75rem',
+      marginBottom: 12,
       width: 256,
-      borderRadius: '0.75rem',
-      border: '1px solid var(--cds-border-subtle-01)',
-      background: 'var(--cds-layer)',
-      padding: '1rem',
+      borderRadius: 12,
+      border: '1px solid var(--line-1)',
+      background: 'var(--surface-1)',
+      padding: 14,
       textAlign: 'left',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+      boxShadow: 'var(--shadow-pop)',
     }}>
-      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--cds-text-primary)' }}>{label}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{label}</div>
       {plantName && (
         <div style={{
           marginTop: 4,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4,
-          borderRadius: 999,
-          background: 'var(--cds-layer-accent-01)',
-          padding: '2px 10px',
-          fontSize: '0.75rem',
-          fontWeight: 500,
-          color: 'var(--cds-text-secondary)',
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          borderRadius: 999, background: 'var(--surface-2)',
+          padding: '2px 8px', fontSize: 12, fontWeight: 500, color: 'var(--text-3)',
         }}>
-          <Building size={14} />
           {plantName}
         </div>
       )}
 
-      <div style={{ marginTop: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-        <div>
-          <div style={statLabel}>Rejection</div>
-          <div style={statValue}>{rejectionRate != null ? `${rejectionRate.toFixed(1)}%` : 'Unavailable'}</div>
-        </div>
-        <div>
-          <div style={statLabel}>Cpk</div>
-          <div style={statValue}>{cpk != null ? cpk.toFixed(2) : 'Unavailable'}</div>
-        </div>
-        <div>
-          <div style={statLabel}>Batches</div>
-          <div style={statValue}>{totalBatches ?? 0}</div>
-        </div>
-        <div>
-          <div style={statLabel}>Rejected</div>
-          <div style={statValue}>{rejectedBatches ?? 0}</div>
-        </div>
+      <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {[
+          { label: 'Rejection', value: rejectionRate != null ? `${rejectionRate.toFixed(1)}%` : 'Unavailable' },
+          { label: 'Cpk',       value: cpk != null ? cpk.toFixed(2) : 'Unavailable' },
+          { label: 'Batches',   value: String(totalBatches ?? 0) },
+          { label: 'Rejected',  value: String(rejectedBatches ?? 0) },
+        ].map(({ label: l, value }) => (
+          <div key={l}>
+            <div style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 11, color: 'var(--text-3)' }}>{l}</div>
+            <div style={{ marginTop: 3, fontSize: 13, fontWeight: 500, color: 'var(--text-1)' }}>{value}</div>
+          </div>
+        ))}
       </div>
 
       {(hasSignal || lastOoc) && (
         <div style={{
-          marginTop: '0.75rem',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4,
-          borderRadius: 999,
-          padding: '2px 10px',
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          background: 'var(--cds-notification-background-error)',
-          color: 'var(--cds-support-error)',
+          marginTop: 10,
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          borderRadius: 999, padding: '2px 8px', fontSize: 12, fontWeight: 600,
+          background: 'var(--status-risk-bg)', color: 'var(--status-risk)',
         }}>
-          {lastOoc ? <WarningAlt size={14} /> : <Activity size={14} />}
+          <Icon name={lastOoc ? 'alert-triangle' : 'activity'} size={13} />
           {lastOoc ? `Latest OOC ${lastOoc}` : 'OOC attention signal inferred'}
         </div>
       )}

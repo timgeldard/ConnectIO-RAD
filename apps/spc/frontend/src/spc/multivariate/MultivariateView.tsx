@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button } from '~/lib/carbon-forms'
-import { Column, Grid, Stack, Tag, Tile } from '~/lib/carbon-layout'
 import '../charts/ensureEChartsTheme'
 import { shallowEqual, useSPCSelector } from '../SPCContext'
 import CorrelationMatrix from '../charts/CorrelationMatrix'
@@ -17,6 +15,9 @@ function formatSelectionKey(selectionKey: string): string {
 }
 import { useMultivariate } from '../hooks/useMultivariate'
 import type { EventParamLike, MultivariateContribution, MultivariatePoint } from '../types'
+
+const TILE: React.CSSProperties = { background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 10, padding: '1.25rem' }
+const EYEBROW: React.CSSProperties = { fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-3)' }
 
 function formatBatchLabel(point: Pick<MultivariatePoint, 'batch_date' | 'batch_id'>): string {
   return point.batch_date || point.batch_id || 'Batch'
@@ -157,8 +158,8 @@ function ContributionSummary({ contributors }: { contributors: MultivariateContr
         const sharePct = Math.round((contributor.share_abs ?? 0) * 100)
         return (
           <div key={contributor.mic_id} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', fontSize: '0.875rem' }}>
-            <span style={{ color: 'var(--cds-text-primary)' }}>{contributor.mic_name}</span>
-            <span style={{ color: 'var(--cds-text-secondary)' }}>
+            <span style={{ color: 'var(--text-1)' }}>{contributor.mic_name}</span>
+            <span style={{ color: 'var(--text-3)' }}>
               {direction} · {(contributor.contribution ?? 0).toFixed(3)} · {sharePct}%
             </span>
           </div>
@@ -235,38 +236,34 @@ export default function MultivariateView() {
   }
 
   return (
-    <Stack gap={5}>
-      <Tile>
-        <Stack gap={3}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cds-text-secondary)' }}>
-            Multivariate anomaly detection
-          </div>
-          <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600, color: 'var(--cds-text-primary)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={TILE}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={EYEBROW}>Multivariate anomaly detection</div>
+          <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-1)' }}>
             Hotelling&apos;s T² Explorer
           </h3>
-          <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+          <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-3)' }}>
             Detects coordinated drift across multiple characteristics, surfaces the batches that break multivariate control, and highlights which variables contributed most strongly.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
             {state.selectedMultivariateMicIds.map(micId => (
-              <Tag key={micId} type="blue" size="sm">{formatSelectionKey(micId)}</Tag>
+              <span key={micId} className="chip chip-info">{formatSelectionKey(micId)}</span>
             ))}
           </div>
-        </Stack>
-      </Tile>
+        </div>
+      </div>
 
-      <Tile>
-        <Stack gap={3}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem' }}>
-            <Button kind="primary" onClick={handleRun} disabled={loading}>
-              {loading ? 'Computing…' : 'Run Multivariate SPC'}
-            </Button>
-            <FieldHelp>
-              Run against the current material, plant, and date scope. The engine only retains shared batches with complete observations across the selected variables.
-            </FieldHelp>
-          </div>
-        </Stack>
-      </Tile>
+      <div style={TILE}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem' }}>
+          <button className="btn btn-primary" type="button" onClick={handleRun} disabled={loading}>
+            {loading ? 'Computing…' : 'Run Multivariate SPC'}
+          </button>
+          <FieldHelp>
+            Run against the current material, plant, and date scope. The engine only retains shared batches with complete observations across the selected variables.
+          </FieldHelp>
+        </div>
+      </div>
 
       {loading && <LoadingSkeleton message="Computing multivariate covariance, T² signals, and contributor breakdown…" />}
       {error && <InfoBanner variant="error">{error}</InfoBanner>}
@@ -274,11 +271,11 @@ export default function MultivariateView() {
       {result && (
         <>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <Tag type="cool-gray" size="sm">{result.n_observations} shared batches</Tag>
-            <Tag type="cool-gray" size="sm">{result.n_variables} variables</Tag>
-            <Tag type="cool-gray" size="sm">UCL {result.ucl?.toFixed(3) ?? '—'}</Tag>
+            <span className="chip">{result.n_observations} shared batches</span>
+            <span className="chip">{result.n_variables} variables</span>
+            <span className="chip">UCL {result.ucl?.toFixed(3) ?? '—'}</span>
             {result.excluded_incomplete_batches ? (
-              <Tag type="warm-gray" size="sm">{result.excluded_incomplete_batches} incomplete batches dropped</Tag>
+              <span className="chip">{result.excluded_incomplete_batches} incomplete batches dropped</span>
             ) : null}
           </div>
 
@@ -288,130 +285,109 @@ export default function MultivariateView() {
             </InfoBanner>
           ) : null}
 
-          <Grid condensed>
-            <Column sm={4} md={8} lg={10}>
-              <Tile>
-                <Stack gap={3}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cds-text-secondary)' }}>
-                    T² control chart
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-                    Shows the combined multivariate distance of each batch from the process center. Click a point to inspect which variables drove that signal.
-                  </p>
-                  <T2Chart
-                    points={result.points}
-                    ucl={result.ucl ?? 0}
-                    selectedIndex={selectedPointIndex}
-                    onPointSelect={setSelectedPointIndex}
-                  />
-                </Stack>
-              </Tile>
-            </Column>
-
-            <Column sm={4} md={8} lg={6}>
-              <Tile>
-                <Stack gap={3}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cds-text-secondary)' }}>
-                    Root-cause suggestions
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-                    Ranked anomaly summaries for the strongest multivariate excursions in the current scope.
-                  </p>
-                  {result.anomalies.length === 0 ? (
-                    <FieldHelp>No multivariate anomalies exceeded the control limit in this window.</FieldHelp>
-                  ) : (
-                    <div style={{ display: 'grid', gap: '0.75rem' }}>
-                      {result.anomalies.map(anomaly => (
-                        <button
-                          key={`${anomaly.batch_id}-${anomaly.index}`}
-                          type="button"
-                          onClick={() => setSelectedPointIndex(anomaly.index)}
-                          style={{
-                            textAlign: 'left',
-                            border: anomaly.index === selectedPointIndex ? '1px solid var(--cds-border-interactive)' : '1px solid var(--cds-border-subtle-01)',
-                            background: 'var(--cds-layer)',
-                            padding: '0.75rem',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
-                            <strong>{formatBatchLabel(anomaly)}</strong>
-                            <span style={{ color: 'var(--cds-support-error)', fontFamily: 'var(--cds-code-02-font-family, monospace)' }}>
-                              T² {anomaly.t2?.toFixed(3) ?? '—'}
-                            </span>
-                          </div>
-                          <p style={{ margin: '0.5rem 0 0', fontSize: '0.8125rem', color: 'var(--cds-text-secondary)' }}>
-                            {anomaly.summary}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </Stack>
-              </Tile>
-            </Column>
-          </Grid>
-
-          <Grid condensed>
-            <Column sm={4} md={8} lg={8}>
-              <Tile>
-                <Stack gap={3}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cds-text-secondary)' }}>
-                    Contribution decomposition
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-                    Breaks the selected batch&apos;s multivariate excursion into individual variable pushes. Positive bars push the batch further from center; negative bars pull in the opposite direction.
-                  </p>
-                  <ContributionChart point={selectedPoint} />
-                </Stack>
-              </Tile>
-            </Column>
-
-            <Column sm={4} md={8} lg={8}>
-              <Tile>
-                <Stack gap={3}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cds-text-secondary)' }}>
-                    Selected batch detail
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-                    Explains why the selected point matters operationally and which variables were most responsible.
-                  </p>
-                  {selectedPoint ? (
-                    <>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                        <Tag type={selectedPoint.is_anomaly ? 'red' : 'green'} size="sm">
-                          {selectedPoint.is_anomaly ? 'Above multivariate limit' : 'Within multivariate control'}
-                        </Tag>
-                        <Tag type="cool-gray" size="sm">
-                          {formatBatchLabel(selectedPoint)}
-                        </Tag>
-                        <Tag type="cool-gray" size="sm">
-                          T² {selectedPoint.t2?.toFixed(3) ?? '—'}
-                        </Tag>
-                      </div>
-                      <ContributionSummary contributors={selectedPoint.top_contributors} />
-                    </>
-                  ) : (
-                    <FieldHelp>Select a point or anomaly summary to inspect detailed contributors.</FieldHelp>
-                  )}
-                </Stack>
-              </Tile>
-            </Column>
-          </Grid>
-
-          <Tile>
-            <Stack gap={3}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cds-text-secondary)' }}>
-                Correlation heatmap
+          <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'minmax(0, 10fr) minmax(0, 6fr)' }}>
+            <div style={TILE}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={EYEBROW}>T² control chart</div>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-3)' }}>
+                  Shows the combined multivariate distance of each batch from the process center. Click a point to inspect which variables drove that signal.
+                </p>
+                <T2Chart
+                  points={result.points}
+                  ucl={result.ucl ?? 0}
+                  selectedIndex={selectedPointIndex}
+                  onPointSelect={setSelectedPointIndex}
+                />
               </div>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+            </div>
+
+            <div style={TILE}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={EYEBROW}>Root-cause suggestions</div>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-3)' }}>
+                  Ranked anomaly summaries for the strongest multivariate excursions in the current scope.
+                </p>
+                {result.anomalies.length === 0 ? (
+                  <FieldHelp>No multivariate anomalies exceeded the control limit in this window.</FieldHelp>
+                ) : (
+                  <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    {result.anomalies.map(anomaly => (
+                      <button
+                        key={`${anomaly.batch_id}-${anomaly.index}`}
+                        type="button"
+                        onClick={() => setSelectedPointIndex(anomaly.index)}
+                        style={{
+                          textAlign: 'left',
+                          border: `1px solid ${anomaly.index === selectedPointIndex ? 'var(--valentia-slate)' : 'var(--line-1)'}`,
+                          background: 'var(--surface-1)',
+                          padding: '0.75rem',
+                          borderRadius: 6,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
+                          <strong>{formatBatchLabel(anomaly)}</strong>
+                          <span style={{ color: 'var(--status-risk)', fontFamily: 'var(--font-mono)' }}>
+                            T² {anomaly.t2?.toFixed(3) ?? '—'}
+                          </span>
+                        </div>
+                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.8125rem', color: 'var(--text-3)' }}>
+                          {anomaly.summary}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '1fr 1fr' }}>
+            <div style={TILE}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={EYEBROW}>Contribution decomposition</div>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-3)' }}>
+                  Breaks the selected batch&apos;s multivariate excursion into individual variable pushes. Positive bars push the batch further from center; negative bars pull in the opposite direction.
+                </p>
+                <ContributionChart point={selectedPoint} />
+              </div>
+            </div>
+
+            <div style={TILE}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={EYEBROW}>Selected batch detail</div>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-3)' }}>
+                  Explains why the selected point matters operationally and which variables were most responsible.
+                </p>
+                {selectedPoint ? (
+                  <>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <span className={selectedPoint.is_anomaly ? 'chip chip-risk' : 'chip chip-ok'}>
+                        {selectedPoint.is_anomaly ? 'Above multivariate limit' : 'Within multivariate control'}
+                      </span>
+                      <span className="chip">{formatBatchLabel(selectedPoint)}</span>
+                      <span className="chip">T² {selectedPoint.t2?.toFixed(3) ?? '—'}</span>
+                    </div>
+                    <ContributionSummary contributors={selectedPoint.top_contributors} />
+                  </>
+                ) : (
+                  <FieldHelp>Select a point or anomaly summary to inspect detailed contributors.</FieldHelp>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div style={TILE}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={EYEBROW}>Correlation heatmap</div>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-3)' }}>
                 Shows pairwise correlation across the same shared-batch population used for T². Strong coupling helps explain why variables move together during a multivariate excursion.
               </p>
               <CorrelationMatrix pairs={result.correlation.pairs} mics={result.correlation.mics} />
-            </Stack>
-          </Tile>
+            </div>
+          </div>
         </>
       )}
-    </Stack>
+    </div>
   )
 }

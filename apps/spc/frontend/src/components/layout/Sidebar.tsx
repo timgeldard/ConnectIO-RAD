@@ -1,81 +1,220 @@
-import type { ElementType } from 'react'
-import Analytics from '@carbon/icons-react/es/Analytics.js'
-import Dashboard from '@carbon/icons-react/es/Dashboard.js'
-import DataTable from '@carbon/icons-react/es/DataTable.js'
-import Settings from '@carbon/icons-react/es/Settings.js'
-import TreeView from '@carbon/icons-react/es/TreeView.js'
+import { Icon } from '../ui/Icon'
+import { shallowEqual, useSPCDispatch, useSPCSelector } from '../../spc/SPCContext'
+import type { SPCTabId } from '../../spc/types'
 
-interface SidebarItem {
-  icon: ElementType
-  label: string
+interface NavItem {
   id: string
+  label: string
+  icon: string
+  accent?: boolean
 }
 
-interface SidebarProps {
-  items?: SidebarItem[]
-  activeItem?: string
-  onSelectItem?: (id: string) => void
-  isSideNavExpanded?: boolean
-}
-
-const defaultNavItems: SidebarItem[] = [
-  { icon: Dashboard,  label: 'Dashboard',      id: 'dashboard'    },
-  { icon: Analytics,  label: 'Control Charts', id: 'charts'       },
-  { icon: DataTable,  label: 'Scorecard',       id: 'scorecard'    },
-  { icon: TreeView,   label: 'Traceability',    id: 'traceability' },
-  { icon: Settings,   label: 'Settings',        id: 'settings'     },
+const PRIMARY_NAV: NavItem[] = [
+  { id: 'overview',  label: 'Overview',        icon: 'home'       },
+  { id: 'flow',      label: 'Process Flow',     icon: 'git-branch' },
+  { id: 'charts',    label: 'Control Charts',   icon: 'activity'   },
+  { id: 'scorecard', label: 'Scorecard',        icon: 'layout'     },
 ]
 
-export function Sidebar({
-  items = defaultNavItems,
-  activeItem,
-  onSelectItem,
-  isSideNavExpanded = false,
-}: SidebarProps) {
-  if (!items.length) {
-    return null
-  }
+const ADVANCED_NAV: NavItem[] = [
+  { id: 'compare',      label: 'Compare',          icon: 'bar-chart' },
+  { id: 'msa',          label: 'MSA',              icon: 'target'    },
+  { id: 'correlation',  label: 'Correlation',      icon: 'grid'      },
+  { id: 'multivariate', label: 'Multivariate',     icon: 'layers'    },
+  { id: 'genie',        label: 'Ask Genie',        icon: 'sparkles', accent: true },
+]
 
-  const resolvedActive = activeItem ?? items[0]?.id
+interface SidebarProps {
+  dark?: boolean
+}
+
+export function Sidebar({ dark = false }: SidebarProps) {
+  const dispatch = useSPCDispatch()
+  const { activeTab, roleMode } = useSPCSelector(
+    s => ({ activeTab: s.activeTab, roleMode: s.roleMode }),
+    shallowEqual,
+  )
 
   return (
     <aside
-      aria-label="Side navigation"
+      aria-label="Primary navigation"
       style={{
-        width: isSideNavExpanded ? '15rem' : '3.5rem',
-        borderRight: '1px solid var(--cds-border-subtle-01)',
-        background: 'var(--cds-layer)',
-        padding: '0.5rem 0',
-        transition: 'width 160ms ease',
-        overflow: 'hidden',
+        width: 'var(--sidebar-w)',
+        flexShrink: 0,
+        background: 'var(--surface-1)',
+        borderRight: '1px solid var(--line-1)',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
       }}
     >
-      <nav style={{ display: 'grid', gap: '0.125rem' }}>
-        {items.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onSelectItem?.(item.id)}
-            aria-current={resolvedActive === item.id ? 'page' : undefined}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              width: '100%',
-              minHeight: '2.75rem',
-              padding: isSideNavExpanded ? '0 1rem' : '0 0.75rem',
-              border: 'none',
-              background: resolvedActive === item.id ? 'var(--cds-layer-selected)' : 'transparent',
-              color: 'var(--cds-text-primary)',
-              cursor: 'pointer',
-              textAlign: 'left',
-            }}
-          >
-            <item.icon />
-            {isSideNavExpanded ? <span>{item.label}</span> : null}
-          </button>
-        ))}
-      </nav>
+      {/* Brand */}
+      <div style={{
+        padding: '0 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        borderBottom: '1px solid var(--line-1)',
+        height: 'var(--header-h)',
+        flexShrink: 0,
+      }}>
+        <span style={{
+          fontFamily: 'var(--font-serif)',
+          fontWeight: 700,
+          fontSize: 16,
+          color: 'var(--valentia-slate)',
+          letterSpacing: '-0.02em',
+        }}>Kerry</span>
+        <span style={{
+          marginLeft: 'auto',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 10,
+          letterSpacing: '0.14em',
+          color: 'var(--text-3)',
+          textTransform: 'uppercase',
+        }}>SPC</span>
+      </div>
+
+      {/* Role indicator */}
+      <div style={{
+        padding: '8px 12px',
+        borderBottom: '1px solid var(--line-1)',
+        flexShrink: 0,
+      }}>
+        <div className="eyebrow" style={{ fontSize: 9, marginBottom: 3 }}>Role</div>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="dot dot-ok" />
+          {roleMode === 'operator' ? 'Plant Operator' : 'Quality Analyst'}
+        </div>
+      </div>
+
+      {/* Nav */}
+      <div style={{ padding: '10px 8px', flex: 1, overflowY: 'auto' }} className="scroll">
+        <div className="eyebrow" style={{ padding: '4px 10px 6px' }}>Primary</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 4px' }}>
+          {PRIMARY_NAV.map(item => (
+            <NavButton
+              key={item.id}
+              item={item}
+              active={activeTab === item.id}
+              onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: item.id as SPCTabId })}
+            />
+          ))}
+        </div>
+
+        {roleMode !== 'operator' && (
+          <>
+            <div className="eyebrow" style={{ padding: '16px 10px 6px' }}>Advanced</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 4px' }}>
+              {ADVANCED_NAV.map(item => (
+                <NavButton
+                  key={item.id}
+                  item={item}
+                  active={activeTab === item.id}
+                  onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: item.id as Parameters<typeof dispatch>[0] extends { type: 'SET_ACTIVE_TAB'; payload: infer P } ? P : never })}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* User footer */}
+      <div style={{
+        padding: '10px 14px',
+        borderTop: '1px solid var(--line-1)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        flexShrink: 0,
+      }}>
+        <div style={{
+          width: 28,
+          height: 28,
+          borderRadius: 999,
+          background: 'var(--sage)',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 700,
+          fontSize: 11,
+          flexShrink: 0,
+        }}>
+          QA
+        </div>
+        <div style={{ fontSize: 11.5, lineHeight: 1.3, minWidth: 0, flex: 1 }}>
+          <div style={{ fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            SPC Workspace
+          </div>
+          <div style={{ color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {roleMode === 'operator' ? 'Operator view' : 'Analyst view'}
+          </div>
+        </div>
+        <button
+          className="icon-btn"
+          aria-label="Switch role"
+          onClick={() => dispatch({ type: 'SET_ROLE_MODE', payload: roleMode === 'engineer' ? 'operator' : 'engineer' })}
+          style={{ marginLeft: 'auto' }}
+        >
+          <Icon name="users" size={14} />
+        </button>
+      </div>
     </aside>
+  )
+}
+
+function NavButton({ item, active, onClick }: { item: NavItem; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '8px 10px',
+        background: active ? 'var(--surface-2)' : 'transparent',
+        color: active ? 'var(--text-1)' : 'var(--text-2)',
+        border: 'none',
+        borderRadius: 7,
+        cursor: 'pointer',
+        width: '100%',
+        fontSize: 13,
+        fontWeight: active ? 600 : 500,
+        textAlign: 'left',
+        position: 'relative',
+        fontFamily: 'var(--font-sans)',
+        transition: 'background 140ms, color 140ms',
+      }}
+      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-2)' }}
+      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+    >
+      {active && (
+        <div style={{
+          position: 'absolute',
+          left: -12,
+          top: 6,
+          bottom: 6,
+          width: 3,
+          background: 'var(--valentia-slate)',
+          borderRadius: 2,
+        }} />
+      )}
+      <Icon name={item.icon} size={16} />
+      <span style={{ flex: 1 }}>{item.label}</span>
+      {item.accent && (
+        <span style={{
+          fontSize: 9,
+          padding: '1px 5px',
+          background: 'var(--innovation)',
+          color: 'var(--forest)',
+          borderRadius: 3,
+          fontWeight: 700,
+          letterSpacing: '0.05em',
+        }}>AI</span>
+      )}
+    </button>
   )
 }

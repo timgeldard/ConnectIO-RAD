@@ -1,5 +1,3 @@
-import { Button, TextInput } from '~/lib/carbon-forms'
-import { Grid, Column, Stack, Tag, Tile } from '~/lib/carbon-layout'
 import { useState } from 'react'
 import '../charts/ensureEChartsTheme'
 import { shallowEqual, useSPCSelector } from '../SPCContext'
@@ -20,6 +18,9 @@ interface SelectedCorrelationPair {
   micBName: string
 }
 
+const TILE: React.CSSProperties = { background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 10, padding: '1.25rem' }
+const EYEBROW: React.CSSProperties = { fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-3)' }
+
 function DriverRanking({ pairs, n = 5 }: { pairs: CorrelationPair[]; n?: number }) {
   type RankedPair = CorrelationPair & { _r: number }
   const top: RankedPair[] = pairs
@@ -31,12 +32,10 @@ function DriverRanking({ pairs, n = 5 }: { pairs: CorrelationPair[]; n?: number 
   if (!top.length) return null
 
   return (
-    <Tile>
-      <Stack gap={3}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cds-text-secondary)' }}>
-          Strongest relationships (top {top.length})
-        </div>
-        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
+    <div style={TILE}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div style={EYEBROW}>Strongest relationships (top {top.length})</div>
+        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-3)' }}>
           High |r| values indicate a linear relationship. Click the corresponding cell in the matrix to validate with a scatter plot.
         </p>
         <ol aria-label="Top correlated characteristic pairs" style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: '0.25rem' }}>
@@ -48,11 +47,11 @@ function DriverRanking({ pairs, n = 5 }: { pairs: CorrelationPair[]; n?: number 
             const color = absR >= 0.7 ? '#d9480f' : absR >= 0.4 ? '#00539a' : '#697077'
             return (
               <li key={`${p.mic_a_id}-${p.mic_b_id}`} style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', fontSize: '0.875rem' }}>
-                <span style={{ width: '1rem', flexShrink: 0, textAlign: 'right', fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>{i + 1}.</span>
-                <span style={{ flex: 1, minWidth: 0, color: 'var(--cds-text-primary)' }}>
-                  {p.mic_a_name ?? p.mic_a_id} <span style={{ color: 'var(--cds-text-secondary)' }}>↔</span> {p.mic_b_name ?? p.mic_b_id}
+                <span style={{ width: '1rem', flexShrink: 0, textAlign: 'right', fontSize: '0.75rem', color: 'var(--text-3)' }}>{i + 1}.</span>
+                <span style={{ flex: 1, minWidth: 0, color: 'var(--text-1)' }}>
+                  {p.mic_a_name ?? p.mic_a_id} <span style={{ color: 'var(--text-3)' }}>↔</span> {p.mic_b_name ?? p.mic_b_id}
                 </span>
-                <span style={{ flexShrink: 0, fontFamily: 'var(--cds-code-02-font-family, monospace)', fontSize: '0.75rem', fontWeight: 600, color }}>
+                <span style={{ position: 'relative', flexShrink: 0, fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 600, color }}>
                   r = {r.toFixed(3)}
                   <span
                     style={{
@@ -74,8 +73,8 @@ function DriverRanking({ pairs, n = 5 }: { pairs: CorrelationPair[]; n?: number 
             )
           })}
         </ol>
-      </Stack>
-    </Tile>
+      </div>
+    </div>
   )
 }
 
@@ -130,81 +129,73 @@ export default function CorrelationView() {
   }
 
   return (
-    <Stack gap={5}>
-      <Tile>
-        <Stack gap={3}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cds-text-secondary)' }}>
-            Relationship analysis
-          </div>
-          <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600, color: 'var(--cds-text-primary)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={TILE}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={EYEBROW}>Relationship analysis</div>
+          <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-1)' }}>
             Correlation Explorer
           </h3>
-          <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+          <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-3)' }}>
             Pairwise Pearson correlation between all characteristics for{' '}
             <strong>{state.selectedMaterial.material_name ?? state.selectedMaterial.material_id}</strong>.
             Click a matrix cell to validate whether a relationship is operationally meaningful.
           </p>
-        </Stack>
-      </Tile>
+        </div>
+      </div>
 
-      <Grid condensed>
-        <Column sm={4} md={8} lg={11}>
-          <Tile>
-            <Stack gap={4}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cds-text-secondary)' }}>
-                Analysis controls
+      <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'minmax(0, 11fr) minmax(0, 5fr)' }}>
+        <div style={TILE}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={EYEBROW}>Analysis controls</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', width: '8rem' }}>
+                <label htmlFor="corr-min-batches" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-3)' }}>Min batches</label>
+                <input
+                  id="corr-min-batches"
+                  className="field"
+                  type="number"
+                  value={String(minBatches)}
+                  onChange={(e) => setMinBatches(Math.max(5, Math.min(100, Number(e.target.value) || 5)))}
+                />
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '0.75rem' }}>
-                <div style={{ width: '8rem' }}>
-                  <TextInput
-                    id="corr-min-batches"
-                    type="number"
-                    labelText="Min batches"
-                    value={String(minBatches)}
-                    onChange={(e) => setMinBatches(Math.max(5, Math.min(100, Number(e.target.value) || 5)))}
-                  />
-                </div>
-                <Button
-                  kind="primary"
-                  onClick={handleRun}
-                  disabled={loading}
-                  aria-label={`Run correlation analysis for ${state.selectedMaterial.material_name ?? state.selectedMaterial.material_id}`}
-                >
-                  {loading ? 'Computing…' : 'Run Correlation'}
-                </Button>
-              </div>
-              <FieldHelp id="corr-min-batches-help">
-                Minimum number of shared batch observations required to include a pair. Higher values improve
-                statistical reliability but reduce the number of pairs shown.
-              </FieldHelp>
-              {(state.dateFrom || state.dateTo) && (
-                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-                  Window: {state.dateFrom || '—'} → {state.dateTo || 'today'}
-                </p>
-              )}
-            </Stack>
-          </Tile>
-        </Column>
-
-        <Column sm={4} md={8} lg={5}>
-          <Tile>
-            <Stack gap={3}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cds-text-secondary)' }}>
-                Interpretation guardrails
-              </div>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-                Correlation is a directional clue, not proof of causation. A strong r value may reflect a common
-                trend, a confounding variable, or true process coupling. Use the scatter plot to distinguish.
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={handleRun}
+                disabled={loading}
+                aria-label={`Run correlation analysis for ${state.selectedMaterial.material_name ?? state.selectedMaterial.material_id}`}
+              >
+                {loading ? 'Computing…' : 'Run Correlation'}
+              </button>
+            </div>
+            <FieldHelp id="corr-min-batches-help">
+              Minimum number of shared batch observations required to include a pair. Higher values improve
+              statistical reliability but reduce the number of pairs shown.
+            </FieldHelp>
+            {(state.dateFrom || state.dateTo) && (
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-3)' }}>
+                Window: {state.dateFrom || '—'} → {state.dateTo || 'today'}
               </p>
-              <div style={{ display: 'grid', gap: '0.375rem', fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-                <p style={{ margin: 0 }}><span style={{ fontWeight: 600, color: '#d9480f' }}>|r| ≥ 0.70</span> — strong, worth investigating</p>
-                <p style={{ margin: 0 }}><span style={{ fontWeight: 600, color: '#00539a' }}>0.40 ≤ |r| &lt; 0.70</span> — moderate signal</p>
-                <p style={{ margin: 0 }}><span style={{ fontWeight: 600, color: '#697077' }}>|r| &lt; 0.40</span> — weak, usually noise</p>
-              </div>
-            </Stack>
-          </Tile>
-        </Column>
-      </Grid>
+            )}
+          </div>
+        </div>
+
+        <div style={TILE}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={EYEBROW}>Interpretation guardrails</div>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-3)' }}>
+              Correlation is a directional clue, not proof of causation. A strong r value may reflect a common
+              trend, a confounding variable, or true process coupling. Use the scatter plot to distinguish.
+            </p>
+            <div style={{ display: 'grid', gap: '0.375rem', fontSize: '0.75rem', color: 'var(--text-3)' }}>
+              <p style={{ margin: 0 }}><span style={{ fontWeight: 600, color: '#d9480f' }}>|r| ≥ 0.70</span> — strong, worth investigating</p>
+              <p style={{ margin: 0 }}><span style={{ fontWeight: 600, color: '#00539a' }}>0.40 ≤ |r| &lt; 0.70</span> — moderate signal</p>
+              <p style={{ margin: 0 }}><span style={{ fontWeight: 600, color: '#697077' }}>|r| &lt; 0.40</span> — weak, usually noise</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {loading && <LoadingSkeleton message="Computing correlations…" />}
 
@@ -213,16 +204,10 @@ export default function CorrelationView() {
       {result && (
         <>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <Tag type="cool-gray" size="sm">
-              {result.pair_count} pairs
-            </Tag>
-            <Tag type="cool-gray" size="sm">
-              {result.mics.length} characteristics
-            </Tag>
-            <Tag type="cool-gray" size="sm">
-              min {minBatches} batches
-            </Tag>
-            {result.pair_count >= 500 && <Tag type="warm-gray" size="sm">showing top 500 by |r|</Tag>}
+            <span className="chip">{result.pair_count} pairs</span>
+            <span className="chip">{result.mics.length} characteristics</span>
+            <span className="chip">min {minBatches} batches</span>
+            {result.pair_count >= 500 && <span className="chip">showing top 500 by |r|</span>}
           </div>
 
           {result.mics.length > 30 && (
@@ -247,10 +232,10 @@ export default function CorrelationView() {
           {selectedPair && (
             <>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cds-text-secondary)' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-3)' }}>
                   Scatter: {selectedPair.micAName} ↔ {selectedPair.micBName}
                 </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>
                   does the relationship hold across the batch range?
                 </span>
               </div>
@@ -270,6 +255,6 @@ export default function CorrelationView() {
           description="Adjust the min-batches threshold if needed, then press Run Correlation."
         />
       )}
-    </Stack>
+    </div>
   )
 }

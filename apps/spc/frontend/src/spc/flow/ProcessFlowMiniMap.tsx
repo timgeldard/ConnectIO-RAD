@@ -1,165 +1,72 @@
-import { memo, useMemo } from 'react'
-import { ReactFlow, Handle, Position, type Edge, type Node, type NodeProps } from '@xyflow/react'
+import { useMemo } from 'react'
 import { layoutFlowGraph } from './layoutFlowGraph'
 import type { ProcessFlowResult } from '../types'
 
-// ── Status tokens ─────────────────────────────────────────────────────────────
-
 const STATUS_STYLE = {
-  green: { dot: 'var(--cds-support-success)',  bg: 'var(--cds-notification-background-success)', border: 'var(--cds-support-success)'  },
-  amber: { dot: 'var(--cds-support-warning)',  bg: 'var(--cds-notification-background-warning)', border: 'var(--cds-support-warning)'  },
-  red:   { dot: 'var(--cds-support-error)',    bg: 'var(--cds-notification-background-error)',   border: 'var(--cds-support-error)'    },
-  grey:  { dot: 'var(--cds-text-placeholder)', bg: 'var(--cds-layer)',                           border: 'var(--cds-border-subtle-01)' },
+  green: { fill: 'var(--status-ok-bg)',   stroke: 'var(--status-ok)',   dot: 'var(--status-ok)'   },
+  amber: { fill: 'var(--status-warn-bg)', stroke: 'var(--status-warn)', dot: 'var(--status-warn)' },
+  red:   { fill: 'var(--status-risk-bg)', stroke: 'var(--status-risk)', dot: 'var(--status-risk)' },
+  grey:  { fill: 'var(--surface-2)',      stroke: 'var(--line-1)',      dot: 'var(--text-4)'      },
 } as const
 
 type StatusKey = keyof typeof STATUS_STYLE
 
-// ── Mini node ─────────────────────────────────────────────────────────────────
+const MINI_W = 60
+const MINI_H = 20
+const MINI_EDGE_Y = 10
+const PAD = 10
 
-interface MiniNodeData extends Record<string, unknown> {
-  label: string
-  status: StatusKey
-  hasSignal: boolean
-  cpk: number | null
-}
-
-type MiniFlowNode = Node<MiniNodeData, 'miniNode'>
-type MiniFlowEdge = Edge<Record<string, never>, 'smoothstep'>
-
-const MiniNode = memo(function MiniNode({ data }: NodeProps<MiniFlowNode>) {
-  const s = STATUS_STYLE[data.status] ?? STATUS_STYLE.grey
-
-  return (
-    <div
-      style={{
-        background: s.bg,
-        border: `1.5px solid ${s.border}`,
-        borderRadius: 6,
-        width: 140,
-        padding: '7px 10px 6px',
-      }}
-    >
-      <Handle
-        type="target"
-        position={Position.Left}
-        style={{ background: s.dot, width: 6, height: 6 }}
-      />
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        {/* Status dot */}
-        <div style={{ width: 7, height: 7, borderRadius: '50%', background: s.dot, flexShrink: 0 }} />
-
-        {/* Node name */}
-        <span
-          style={{
-            fontSize: '0.72rem',
-            fontWeight: 600,
-            color: 'var(--cds-text-primary)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            flex: 1,
-            minWidth: 0,
-          }}
-        >
-          {data.label}
-        </span>
-
-        {/* OOC badge */}
-        {data.hasSignal && (
-          <span
-            style={{
-              fontSize: '0.55rem',
-              fontWeight: 700,
-              color: 'var(--cds-support-error)',
-              background: 'var(--cds-notification-background-error)',
-              border: '1px solid var(--cds-support-error)',
-              borderRadius: 3,
-              padding: '0 3px',
-              flexShrink: 0,
-              lineHeight: '1.4',
-            }}
-          >
-            OOC
-          </span>
-        )}
-      </div>
-
-      {/* Cpk sub-label */}
-      {data.cpk != null && (
-        <div
-          style={{
-            fontSize: '0.625rem',
-            color: 'var(--cds-text-secondary)',
-            marginTop: 3,
-            marginLeft: 12,
-          }}
-        >
-          Cpk {data.cpk.toFixed(2)}
-        </div>
-      )}
-
-      <Handle
-        type="source"
-        position={Position.Right}
-        style={{ background: s.dot, width: 6, height: 6 }}
-      />
-    </div>
-  )
-})
-
-// nodeTypes MUST be stable (defined outside the component) to prevent remounting
-const NODE_TYPES = { miniNode: MiniNode }
-
-// ── Graph builder ─────────────────────────────────────────────────────────────
-
-function buildMiniElements(flowData: ProcessFlowResult | null): {
-  nodes: MiniFlowNode[]
-  edges: MiniFlowEdge[]
-} {
-  if (!flowData?.nodes?.length) return { nodes: [], edges: [] }
+function buildMiniLayout(flowData: ProcessFlowResult | null) {
+  if (!flowData?.nodes?.length) return null
 
   const positioned = layoutFlowGraph(flowData.nodes, flowData.edges ?? [])
+  const posMap = new Map(positioned.map(n => [n.id, n.position]))
 
-  const nodes: MiniFlowNode[] = positioned.map(n => {
+  const xs = positioned.map(n => n.position.x)
+  const ys = positioned.map(n => n.position.y)
+  const minX = Math.min(...xs) - PAD
+  const minY = Math.min(...ys) - PAD
+  const maxX = Math.max(...xs) + MINI_W + PAD
+  const maxY = Math.max(...ys) + MINI_H + PAD
+
+  const nodes = positioned.map(n => {
+    const status: StatusKey = (n.status ?? 'grey') in STATUS_STYLE
+      ? (n.status as StatusKey)
+      : 'grey'
+    const s = STATUS_STYLE[status]
     const rawName = n.material_name || n.material_id || n.id
-    const label = rawName.length > 18 ? rawName.substring(0, 17) + '…' : rawName
-
+    const label = rawName.length > 10 ? rawName.substring(0, 9) + '…' : rawName
     return {
       id: n.id,
-      type: 'miniNode' as const,
-      position: n.position,
-      selectable: false,
-      draggable: false,
-      data: {
-        label,
-        status: ((n.status ?? 'grey') in STATUS_STYLE ? n.status : 'grey') as StatusKey,
-        hasSignal: Boolean(n.has_ooc_signal || n.last_ooc),
-        cpk: typeof n.estimated_cpk === 'number' ? n.estimated_cpk : null,
-      },
+      x: n.position.x,
+      y: n.position.y,
+      label,
+      fill: s.fill,
+      stroke: s.stroke,
+      dot: s.dot,
+      hasSignal: Boolean(n.has_ooc_signal || n.last_ooc),
     }
   })
 
-  const edges: MiniFlowEdge[] = (flowData.edges ?? []).map((e, i) => {
-    const sourceNode = flowData.nodes.find(n => n.id === e.source)
-    const isRed = sourceNode?.status === 'red'
+  const edges = (flowData.edges ?? []).map((e, i) => {
+    const sp = posMap.get(e.source)
+    const tp = posMap.get(e.target)
+    if (!sp || !tp) return null
+    const sx = sp.x + MINI_W
+    const sy = sp.y + MINI_EDGE_Y
+    const tx = tp.x
+    const ty = tp.y + MINI_EDGE_Y
+    const mx = sx + (tx - sx) * 0.5
+    const isRed = flowData.nodes.find(n => n.id === e.source)?.status === 'red'
     return {
       id: `mini-${e.source}-${e.target}-${i}`,
-      source: e.source,
-      target: e.target,
-      type: 'smoothstep',
-      animated: isRed,
-      style: {
-        stroke: isRed ? 'var(--cds-support-error)' : 'var(--cds-border-subtle-01)',
-        strokeWidth: isRed ? 2 : 1.5,
-      },
+      d:  `M${sx},${sy} C${mx},${sy} ${mx},${ty} ${tx},${ty}`,
+      isRed,
     }
-  })
+  }).filter((e): e is { id: string; d: string; isRed: boolean } => e != null)
 
-  return { nodes, edges }
+  return { nodes, edges, viewBox: `${minX} ${minY} ${maxX - minX} ${maxY - minY}` }
 }
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 interface ProcessFlowMiniMapProps {
   flowData: ProcessFlowResult | null
@@ -167,43 +74,62 @@ interface ProcessFlowMiniMapProps {
 }
 
 export default function ProcessFlowMiniMap({ flowData, loading }: ProcessFlowMiniMapProps) {
-  const { nodes, edges } = useMemo(() => buildMiniElements(flowData), [flowData])
+  const layout = useMemo(() => buildMiniLayout(flowData), [flowData])
 
   if (loading) {
     return (
       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-          Loading process flow…
-        </span>
+        <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Loading process flow…</span>
       </div>
     )
   }
 
-  if (!nodes.length) {
+  if (!layout) {
     return (
       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-placeholder)' }}>
-          No flow data for selected scope
-        </span>
+        <span style={{ fontSize: 12, color: 'var(--text-4)' }}>No flow data for selected scope</span>
       </div>
     )
   }
 
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      nodeTypes={NODE_TYPES}
-      fitView
-      fitViewOptions={{ padding: 0.18 }}
-      panOnDrag={false}
-      zoomOnScroll={false}
-      zoomOnPinch={false}
-      zoomOnDoubleClick={false}
-      nodesDraggable={false}
-      nodesConnectable={false}
-      elementsSelectable={false}
-      proOptions={{ hideAttribution: true }}
-    />
+    <svg
+      width="100%"
+      height="100%"
+      viewBox={layout.viewBox}
+      preserveAspectRatio="xMidYMid meet"
+    >
+      {/* Edges */}
+      {layout.edges.map(e => (
+        <path
+          key={e.id}
+          d={e.d}
+          style={{ fill: 'none', stroke: e.isRed ? 'var(--status-risk)' : 'var(--line-2)', strokeWidth: e.isRed ? 2 : 1.5 }}
+        />
+      ))}
+
+      {/* Nodes */}
+      {layout.nodes.map(n => (
+        <g key={n.id}>
+          <rect
+            x={n.x} y={n.y}
+            width={MINI_W} height={MINI_H}
+            rx={3}
+            style={{ fill: n.fill, stroke: n.stroke, strokeWidth: 1 }}
+          />
+          <circle cx={n.x + 7} cy={n.y + MINI_H / 2} r={3} style={{ fill: n.dot }} />
+          {n.hasSignal && (
+            <circle cx={n.x + MINI_W - 4} cy={n.y + 4} r={3} style={{ fill: 'var(--status-risk)' }} />
+          )}
+          <text
+            x={n.x + 14} y={n.y + MINI_H / 2}
+            style={{ fill: 'var(--text-1)', fontSize: 7, fontWeight: 600 }}
+            dominantBaseline="middle"
+          >
+            {n.label}
+          </text>
+        </g>
+      ))}
+    </svg>
   )
 }

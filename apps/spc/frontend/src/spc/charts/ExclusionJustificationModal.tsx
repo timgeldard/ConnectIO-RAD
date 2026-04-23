@@ -1,14 +1,5 @@
-import { useEffect, useState } from 'react'
-import {
-  Select,
-  SelectItem,
-  TextArea,
-} from '~/lib/carbon-forms'
-import { Modal } from '~/lib/carbon-feedback'
-import { Stack } from '~/lib/carbon-layout'
+import { useEffect, useRef, useState } from 'react'
 import type { ExclusionDialogState } from '../types'
-
-// ── Reasons ──────────────────────────────────────────────────────────────────
 
 const REASONS = [
   'Special-cause investigation',
@@ -17,8 +8,6 @@ const REASONS = [
   'Phase I stabilization',
   'Manual review override',
 ]
-
-// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface ExclusionSubmitPayload {
   reason: string
@@ -32,8 +21,6 @@ interface ExclusionJustificationModalProps {
   onCancel: () => void
   onSubmit: (payload: ExclusionSubmitPayload) => void
 }
-
-// ── Action-driven content map ─────────────────────────────────────────────────
 
 function resolveContent(action: string) {
   switch (action) {
@@ -61,7 +48,7 @@ function resolveContent(action: string) {
         danger:            false,
         defaultReason:     'Phase I stabilization',
       }
-    default: // 'manual_exclude'
+    default:
       return {
         heading:           'Exclude Point from Control Limits',
         description:       'Excluding a point changes the active control limits and capability results. Provide a justification before continuing.',
@@ -72,18 +59,34 @@ function resolveContent(action: string) {
   }
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export default function ExclusionJustificationModal({
   dialog,
   saving,
   onCancel,
   onSubmit,
 }: ExclusionJustificationModalProps) {
-  const [reason,  setReason]  = useState(REASONS[0])
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const [reason, setReason]   = useState(REASONS[0])
   const [comment, setComment] = useState('')
 
-  // Reset state and pre-fill reason whenever a new dialog opens
+  useEffect(() => {
+    const d = dialogRef.current
+    if (!d) return
+    if (dialog) {
+      if (!d.open) d.showModal()
+    } else {
+      if (d.open) d.close()
+    }
+  }, [!!dialog]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const d = dialogRef.current
+    if (!d) return
+    const onClose = () => onCancel()
+    d.addEventListener('close', onClose)
+    return () => d.removeEventListener('close', onClose)
+  }, [onCancel])
+
   useEffect(() => {
     if (!dialog) return
     const { defaultReason } = resolveContent(dialog.action)
@@ -98,9 +101,12 @@ export default function ExclusionJustificationModal({
     onSubmit({ reason, comment: comment.trim(), justification })
   }
 
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
+    if (e.target === dialogRef.current) onCancel()
+  }
+
   const content = dialog ? resolveContent(dialog.action) : null
 
-  // Build the target label shown in the info box
   const targetLabel = dialog?.point
     ? `${dialog.point.batch_id ?? 'Point'} · sample ${dialog.point.sample_seq ?? '—'}`
     : `${dialog?.excludedCount ?? 0} point${dialog?.excludedCount === 1 ? '' : 's'}`
@@ -109,88 +115,101 @@ export default function ExclusionJustificationModal({
     dialog?.action === 'manual_exclude' || dialog?.action === 'manual_restore'
 
   return (
-    // Carbon Modal natively handles portal, backdrop, focus-trap, Escape key, and inert.
-    // No createPortal, no manual keydown listener, no inert setAttribute needed.
-    <Modal
-      open={!!dialog}
-      onRequestClose={onCancel}
-      onRequestSubmit={handleSubmit}
-      modalHeading={content?.heading ?? ''}
-      primaryButtonText={saving ? 'Saving…' : (content?.primaryButtonText ?? 'Confirm')}
-      primaryButtonDisabled={saving}
-      secondaryButtonText="Cancel"
-      danger={content?.danger}
-      size="sm"
-    >
-      <Stack gap={5}>
+    <dialog ref={dialogRef} onClick={handleBackdropClick}>
+      {/* Header */}
+      <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--line-1)' }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)' }}>
+          {content?.heading ?? ''}
+        </div>
+      </div>
 
-        {/* Contextual description */}
-        <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+      {/* Body */}
+      <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--text-3)' }}>
           {content?.description}
         </p>
 
-        {/* Target info box */}
+        {/* Target info */}
         <div
           style={{
-            padding: '0.75rem 1rem',
-            background: 'var(--cds-layer-01)',
-            borderLeft: '3px solid var(--cds-border-interactive)',
+            padding: '10px 14px',
+            background: 'var(--surface-2)',
+            borderLeft: '3px solid var(--valentia-slate)',
+            borderRadius: '0 6px 6px 0',
           }}
         >
           <span
             style={{
-              display: 'block',
-              marginBottom: '0.25rem',
-              fontSize: '0.6875rem',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: 'var(--cds-text-secondary)',
+              display: 'block', marginBottom: 3,
+              fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
+              letterSpacing: '0.06em', color: 'var(--text-3)',
             }}
           >
             Target
           </span>
-          <strong style={{ fontSize: '0.875rem', color: 'var(--cds-text-primary)' }}>
-            {targetLabel}
-          </strong>
+          <strong style={{ fontSize: 13, color: 'var(--text-1)' }}>{targetLabel}</strong>
           {dialog?.point?.value != null && (
-            <span style={{ marginLeft: '0.75rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+            <span style={{ marginLeft: 10, fontSize: 13, color: 'var(--text-3)' }}>
               Value {Number(dialog.point.value).toFixed(4)}
             </span>
           )}
           {dialog?.point?.batch_date && (
-            <span style={{ marginLeft: '0.75rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+            <span style={{ marginLeft: 10, fontSize: 13, color: 'var(--text-3)' }}>
               {String(dialog.point.batch_date).slice(0, 10)}
             </span>
           )}
         </div>
 
-        {/* Reason select */}
-        <Select
-          id="exclusion-reason"
-          labelText="Reason"
-          value={reason}
-          onChange={e => setReason(e.target.value)}
+        {/* Reason */}
+        <div>
+          <label className="field-label" htmlFor="exclusion-reason">Reason</label>
+          <select
+            id="exclusion-reason"
+            className="field"
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            disabled={saving}
+          >
+            {REASONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+        </div>
+
+        {/* Comment */}
+        <div>
+          <label className="field-label" htmlFor="exclusion-comment">
+            {isOptionalComment ? 'Comment (optional)' : 'Comment'}
+          </label>
+          <textarea
+            id="exclusion-comment"
+            className="field"
+            style={{ height: 'auto', padding: '8px 10px', resize: 'vertical' }}
+            rows={4}
+            placeholder="Additional context for the audit trail"
+            value={comment}
+            onChange={e => setComment(e.target.value)}
+            disabled={saving}
+          />
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div
+        style={{
+          padding: '12px 24px', borderTop: '1px solid var(--line-1)',
+          display: 'flex', justifyContent: 'flex-end', gap: 8,
+        }}
+      >
+        <button className="btn btn-ghost" onClick={onCancel} disabled={saving}>
+          Cancel
+        </button>
+        <button
+          className={`btn ${content?.danger ? 'btn-danger' : 'btn-primary'}`}
+          onClick={handleSubmit}
           disabled={saving}
         >
-          {REASONS.map(option => (
-            <SelectItem key={option} value={option} text={option} />
-          ))}
-        </Select>
-
-        {/* Comment textarea */}
-        <TextArea
-          id="exclusion-comment"
-          labelText={isOptionalComment ? 'Comment (optional)' : 'Comment'}
-          helperText="Additional context for the audit trail."
-          placeholder="Optional context for the audit trail"
-          value={comment}
-          onChange={e => setComment(e.target.value)}
-          disabled={saving}
-          rows={4}
-        />
-
-      </Stack>
-    </Modal>
+          {saving ? 'Saving…' : (content?.primaryButtonText ?? 'Confirm')}
+        </button>
+      </div>
+    </dialog>
   )
 }

@@ -1,35 +1,35 @@
-import { InlineNotification } from '~/lib/carbon-feedback'
+import React from 'react'
 
 type Variant = 'error' | 'warn' | 'info' | 'neutral'
 
-const KIND_MAP: Record<Variant, 'error' | 'warning' | 'info' | 'info-square'> = {
-  error:   'error',
-  warn:    'warning',
-  info:    'info',
-  neutral: 'info-square',
+const VARIANT_STYLE: Record<Variant, { background: string; color: string; border: string }> = {
+  error:   { background: 'var(--status-risk-bg)',  color: 'var(--status-risk)',  border: 'var(--status-risk)'  },
+  warn:    { background: 'var(--status-warn-bg)',  color: 'var(--status-warn)',  border: 'var(--status-warn)'  },
+  info:    { background: 'var(--status-info-bg)',  color: 'var(--status-info)',  border: 'var(--status-info)'  },
+  neutral: { background: 'var(--status-neutral-bg)', color: 'var(--text-2)', border: 'var(--line-1)' },
 }
 
 interface InfoBannerProps {
   variant?: Variant
-  children: string
+  children: React.ReactNode
 }
 
-/**
- * Inline info/warning/error banner backed by Carbon InlineNotification.
- *
- * Usage:
- *   <InfoBanner variant="error">Failed to load data: {error}</InfoBanner>
- *   <InfoBanner variant="warn">More than 30 characteristics detected.</InfoBanner>
- */
 export default function InfoBanner({ variant = 'neutral', children }: InfoBannerProps) {
+  const s = VARIANT_STYLE[variant]
   return (
-    <InlineNotification
-      kind={KIND_MAP[variant]}
-      title=""
-      subtitle={children}
-      hideCloseButton
-      lowContrast
+    <div
       role={variant === 'error' ? 'alert' : 'status'}
-    />
+      style={{
+        padding: '8px 12px',
+        borderRadius: 8,
+        border: `1px solid ${s.border}`,
+        background: s.background,
+        color: s.color,
+        fontSize: '0.8125rem',
+        lineHeight: 1.5,
+      }}
+    >
+      {children}
+    </div>
   )
 }

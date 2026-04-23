@@ -41,19 +41,19 @@ describe('grrStatusClass', () => {
   it('returns unknown for null/undefined', () => {
     expect(grrStatusClass(null).verdict).toBe('Unknown')
     expect(grrStatusClass(undefined).verdict).toBe('Unknown')
-    expect(grrStatusClass(null).colorStyle).toContain('secondary')
+    expect(grrStatusClass(null).colorStyle).toContain('text-3')
   })
 
   it('returns Acceptable for GRR < 10%', () => {
     const result = grrStatusClass(5)
     expect(result.verdict).toBe('Acceptable')
-    expect(result.colorStyle).toContain('success')
+    expect(result.colorStyle).toContain('status-ok')
   })
 
   it('returns Conditionally Acceptable for 10 ≤ GRR < 30%', () => {
     const result10 = grrStatusClass(10)
     expect(result10.verdict).toBe('Conditionally Acceptable')
-    expect(result10.colorStyle).toContain('warning')
+    expect(result10.colorStyle).toContain('status-warn')
 
     const result29 = grrStatusClass(29.9)
     expect(result29.verdict).toBe('Conditionally Acceptable')
@@ -62,7 +62,7 @@ describe('grrStatusClass', () => {
   it('returns Not Acceptable for GRR ≥ 30%', () => {
     const result = grrStatusClass(30)
     expect(result.verdict).toBe('Not Acceptable')
-    expect(result.colorStyle).toContain('error')
+    expect(result.colorStyle).toContain('status-risk')
 
     expect(grrStatusClass(100).verdict).toBe('Not Acceptable')
   })

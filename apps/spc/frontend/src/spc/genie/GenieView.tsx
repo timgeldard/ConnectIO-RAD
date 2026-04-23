@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, TextArea } from '~/lib/carbon-forms'
-import { InlineLoading, InlineNotification } from '~/lib/carbon-feedback'
-import { Stack, Tile } from '~/lib/carbon-layout'
 import { shallowEqual, useSPCSelector } from '../SPCContext'
+import InfoBanner from '../components/InfoBanner'
 import type { SPCState } from '../types'
 
 const GENIE_SPACE_ID = (import.meta as { env: Record<string, string> }).env?.VITE_GENIE_SPACE_ID ?? ''
@@ -218,8 +216,11 @@ export default function GenieView() {
         </div>
       )}
 
-      <Tile className="spc-genie-shell">
-        <Stack gap={5} style={{ height: '100%' }}>
+      <div
+        className="spc-genie-shell"
+        style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 10, padding: '1.25rem' }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%' }}>
           <div className="spc-genie-header">
             <div>
               <p className="spc-genie-eyebrow">Databricks Genie</p>
@@ -228,9 +229,9 @@ export default function GenieView() {
                 Ask about capability, drift, OOC signals, or recent batches in the current SPC scope.
               </p>
             </div>
-            <Button
-              kind="ghost"
-              size="sm"
+            <button
+              className="btn btn-ghost btn-sm"
+              type="button"
               disabled={messages.length === 0 && !sending}
               onClick={() => {
                 requestControllerRef.current?.abort()
@@ -242,7 +243,7 @@ export default function GenieView() {
               }}
             >
               New conversation
-            </Button>
+            </button>
           </div>
 
           {scopeSummary.length > 0 ? (
@@ -254,12 +255,7 @@ export default function GenieView() {
           ) : null}
 
           {composerError ? (
-            <InlineNotification
-              kind="error"
-              title="Genie request failed"
-              subtitle={composerError}
-              hideCloseButton
-            />
+            <InfoBanner variant="error">Genie request failed: {composerError}</InfoBanner>
           ) : null}
 
           <div className="spc-genie-chat">
@@ -271,17 +267,15 @@ export default function GenieView() {
                 </p>
                 <div className="spc-genie-starters">
                   {STARTER_PROMPTS.map(prompt => (
-                    <Button
+                    <button
                       key={prompt}
-                      kind="tertiary"
-                      size="sm"
-                      onClick={() => {
-                        void submitPrompt(prompt)
-                      }}
+                      className="btn btn-ghost btn-sm"
+                      type="button"
+                      onClick={() => { void submitPrompt(prompt) }}
                       disabled={sending}
                     >
                       {prompt}
-                    </Button>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -304,7 +298,10 @@ export default function GenieView() {
                   <div className="spc-genie-message spc-genie-message--assistant">
                     <div className="spc-genie-message-meta">Genie</div>
                     <div className="spc-genie-message-body">
-                      <InlineLoading description="Thinking through the current SPC scope..." status="active" />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-3)' }}>
+                        <span style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--line-1)', borderTopColor: 'var(--valentia-slate)', animation: 'spc-spin 0.7s linear infinite', display: 'inline-block', flexShrink: 0 }} />
+                        Thinking through the current SPC scope...
+                      </div>
                     </div>
                   </div>
                 ) : null}
@@ -314,28 +311,44 @@ export default function GenieView() {
           </div>
 
           <div className="spc-genie-composer">
-            <TextArea
-              id="spc-genie-composer"
-              labelText="Ask Genie about the current SPC scope"
-              placeholder="Ask about capability, signals, drift, or recent batches…"
-              rows={3}
-              value={draft}
-              onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(event.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={sending}
-              helperText="Press Cmd/Ctrl + Enter to send."
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label htmlFor="spc-genie-composer" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-3)' }}>
+                Ask Genie about the current SPC scope
+              </label>
+              <textarea
+                id="spc-genie-composer"
+                className="field"
+                placeholder="Ask about capability, signals, drift, or recent batches…"
+                rows={3}
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={sending}
+                style={{ height: 'auto', padding: '8px 10px', resize: 'vertical' }}
+              />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-4)' }}>Press Cmd/Ctrl + Enter to send.</span>
+            </div>
             <div className="spc-genie-actions">
-              <Button kind="secondary" size="sm" onClick={() => setDraft('')} disabled={sending || draft.trim().length === 0}>
+              <button
+                className="btn btn-ghost btn-sm"
+                type="button"
+                onClick={() => setDraft('')}
+                disabled={sending || draft.trim().length === 0}
+              >
                 Clear
-              </Button>
-              <Button kind="primary" size="sm" onClick={handleSubmit} disabled={sending || draft.trim().length === 0}>
+              </button>
+              <button
+                className="btn btn-primary btn-sm"
+                type="button"
+                onClick={handleSubmit}
+                disabled={sending || draft.trim().length === 0}
+              >
                 Send to Genie
-              </Button>
+              </button>
             </div>
           </div>
-        </Stack>
-      </Tile>
+        </div>
+      </div>
     </div>
   )
 }

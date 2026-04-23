@@ -1,7 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Button } from '~/lib/carbon-forms'
-import { Pagination } from '~/lib/carbon-data-table'
-import { Stack, Tag, Tile } from '~/lib/carbon-layout'
 import { useSPCDispatch } from '../SPCContext'
 import type { IndexedChartPoint, SPCSignal } from '../types'
 
@@ -33,9 +30,9 @@ const NELSON_RULES = {
 } as const
 
 const SEVERITY_STYLE = {
-  critical: { dot: '#da1e28', label: '#a2191f', bg: '#fff1f1', border: '#fa4d56' },
-  warning: { dot: '#f1c21b', label: '#8e6a00', bg: '#fcf4d6', border: '#f1c21b' },
-  info: { dot: '#0f62fe', label: '#0043ce', bg: '#edf5ff', border: '#78a9ff' },
+  critical: { dot: 'var(--status-risk)', label: 'var(--status-risk)', bg: 'var(--status-risk-bg)', border: 'var(--status-risk)' },
+  warning:  { dot: 'var(--status-warn)', label: 'var(--status-warn)', bg: 'var(--status-warn-bg)', border: 'var(--status-warn)' },
+  info:     { dot: 'var(--status-info)', label: 'var(--status-info)', bg: 'var(--status-info-bg)', border: 'var(--status-info)' },
 } as const
 
 type SeverityKey = keyof typeof SEVERITY_STYLE
@@ -65,93 +62,95 @@ export default function SignalsPanel({
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
   const allSignals: TimelineSignal[] = [
-    ...signals.map(signal => ({ ...signal, chart: 'X' as const })),
-    ...mrSignals.map(signal => ({ ...signal, chart: 'MR' as const })),
+    ...signals.map(s => ({ ...s, chart: 'X' as const })),
+    ...mrSignals.map(s => ({ ...s, chart: 'MR' as const })),
   ]
 
-  // Reset to page 1 when signals change (new material/MIC/ruleSet)
   useEffect(() => {
     setPage(1)
   }, [allSignals.length, ruleSet])
 
+  const totalPages = Math.ceil(allSignals.length / pageSize)
   const pageSignals = allSignals.slice((page - 1) * pageSize, page * pageSize)
 
   if (allSignals.length === 0) {
     return (
-      <Tile role="status" aria-live="polite" style={{ border: '1px solid var(--cds-support-success)', background: 'color-mix(in srgb, var(--cds-support-success) 10%, var(--cds-layer) 90%)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: 'var(--cds-text-primary)' }}>
-          <span aria-hidden="true">OK</span>
+      <div
+        role="status"
+        aria-live="polite"
+        className="card"
+        style={{
+          padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8,
+          background: 'var(--status-ok-bg)', borderColor: 'var(--status-ok)',
+        }}
+      >
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--status-ok)' }}>
           No {label} rule violations detected
-        </div>
-      </Tile>
+        </span>
+      </div>
     )
   }
 
   return (
-    <Tile aria-label={`${label} signal queue`}>
-      <Stack gap={5}>
+    <div className="card" style={{ padding: '14px 16px' }} aria-label={`${label} signal queue`}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* Header */}
         <div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--cds-text-secondary)' }}>Signal queue</div>
-          <div style={{ marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 700, color: 'var(--cds-text-primary)' }}>
+          <div className="eyebrow">Signal queue</div>
+          <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--text-1)' }}>
             {label} Signals
-            <Tag type="warm-gray" size="sm">
+            <span className="chip" style={{ fontSize: 11 }}>
               {allSignals.length} signal{allSignals.length !== 1 ? 's' : ''}
-            </Tag>
+            </span>
           </div>
-          <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-3)' }}>
             Signals are ordered evidence of instability. Resolve assignable causes before trusting capability.
           </p>
         </div>
 
-        <div style={{ position: 'relative', marginLeft: '0.5rem', marginTop: '0.5rem' }}>
-          <div style={{ position: 'absolute', top: 0, bottom: 0, left: '7px', width: '1px', background: 'var(--cds-border-subtle-01)' }} />
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {/* Timeline */}
+        <div style={{ position: 'relative', marginLeft: 8 }}>
+          <div style={{ position: 'absolute', top: 0, bottom: 0, left: 7, width: 1, background: 'var(--line-1)' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {pageSignals.map((signal, index) => {
-              const index_ = (page - 1) * pageSize + index
+              const absIndex = (page - 1) * pageSize + index
               const severity = (rules.severity[signal.rule as keyof typeof rules.severity] ?? 'info') as SeverityKey
               const style = SEVERITY_STYLE[severity] ?? SEVERITY_STYLE.info
               const batchIds = signal.indices
                 .map(idx => indexedPoints[idx]?.batch_id)
-                .filter((value): value is string => Boolean(value))
-                .filter((value, valueIndex, all) => all.indexOf(value) === valueIndex)
+                .filter((v): v is string => Boolean(v))
+                .filter((v, i, all) => all.indexOf(v) === i)
                 .slice(0, 3)
 
               return (
-                <div key={`${signal.chart}-${signal.rule}-${index_}`} style={{ position: 'relative', paddingLeft: '1.5rem' }}>
+                <div key={`${signal.chart}-${signal.rule}-${absIndex}`} style={{ position: 'relative', paddingLeft: 24 }}>
                   <div
                     style={{
-                      position: 'absolute',
-                      left: 0,
-                      top: '0.375rem',
-                      height: '0.875rem',
-                      width: '0.875rem',
-                      borderRadius: '999px',
-                      border: '2px solid var(--cds-layer)',
+                      position: 'absolute', left: 0, top: 6,
+                      height: 14, width: 14, borderRadius: '999px',
+                      border: '2px solid var(--surface-1)',
                       background: style.dot,
                       boxShadow: `0 0 0 2px ${style.dot}40`,
                     }}
                   />
                   <div
                     style={{
-                      borderRadius: '0.25rem',
-                      padding: '0.75rem',
-                      fontSize: '0.875rem',
-                      background: style.bg,
-                      border: `1px solid ${style.border}`,
+                      borderRadius: 6, padding: '8px 12px', fontSize: 12,
+                      background: style.bg, border: `1px solid ${style.border}`,
                     }}
                   >
-                    <div style={{ marginBottom: '0.125rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: style.label }}>Rule {signal.rule}</span>
-                      <span style={{ borderRadius: '0.25rem', padding: '0.125rem 0.375rem', fontSize: '0.75rem', fontWeight: 500, background: 'rgba(0,0,0,0.06)', color: style.label }}>
+                    <div style={{ marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: style.label }}>Rule {signal.rule}</span>
+                      <span style={{ borderRadius: 4, padding: '1px 5px', fontSize: 11, fontWeight: 500, background: 'rgba(0,0,0,0.06)', color: style.label }}>
                         {signal.chart} chart
                       </span>
                     </div>
-                    <p style={{ margin: 0, fontSize: '0.75rem', lineHeight: 1.4, color: 'var(--cds-text-secondary)' }}>
+                    <p style={{ margin: 0, fontSize: 11, lineHeight: 1.4, color: 'var(--text-2)' }}>
                       {rules.desc[signal.rule as keyof typeof rules.desc] ?? signal.description}
                     </p>
                     {batchIds.length > 0 && (
-                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--cds-text-helper)' }}>
+                      <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--text-3)' }}>
                         Batches: {batchIds.join(', ')}
                         {signal.indices.length > 3 ? ` +${signal.indices.length - 3} more` : ''}
                       </p>
@@ -163,30 +162,35 @@ export default function SignalsPanel({
           </div>
         </div>
 
-        {allSignals.length > DEFAULT_PAGE_SIZE && (
-          <Pagination
-            totalItems={allSignals.length}
-            pageSize={pageSize}
-            pageSizes={PAGE_SIZES}
-            page={page}
-            onChange={({ page: p, pageSize: ps }: { page: number; pageSize: number }) => {
-              setPage(p)
-              setPageSize(ps)
-            }}
-            size="sm"
-          />
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button className="btn btn-ghost btn-sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
+              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{page} / {totalPages}</span>
+              <button className="btn btn-ghost btn-sm" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
+            </div>
+            <select
+              className="field"
+              style={{ width: 'auto', height: 26, fontSize: 12, padding: '0 6px' }}
+              value={pageSize}
+              onChange={e => { setPageSize(Number(e.target.value)); setPage(1) }}
+            >
+              {PAGE_SIZES.map(s => <option key={s} value={s}>{s} / page</option>)}
+            </select>
+          </div>
         )}
 
-        <Button
-          kind="secondary"
-          size="sm"
+        {/* Investigate */}
+        <button
+          className="btn btn-ghost btn-sm"
           onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: 'correlation' })}
           title="Investigate whether correlated characteristics may share assignable causes"
-          aria-label="Open correlation analysis for signal investigation"
         >
           Investigate Correlations
-        </Button>
-      </Stack>
-    </Tile>
+        </button>
+
+      </div>
+    </div>
   )
 }

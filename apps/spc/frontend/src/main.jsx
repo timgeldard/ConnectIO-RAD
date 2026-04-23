@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { QueryClientProvider } from '@tanstack/react-query'
 import './styles/carbon.scss'
 import './index.css'
+import './styles/kerry-tokens.css'
+import './styles/kerry-app.css'
 import App from './App'
 import { queryClient } from './queryClient'
 

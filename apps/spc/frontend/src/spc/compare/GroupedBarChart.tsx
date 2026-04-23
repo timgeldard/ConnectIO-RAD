@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import EChart from '../charts/EChart'
-import { Tile } from '~/lib/carbon-layout'
 import type { CompareScorecardMaterial, EventParamLike } from '../types'
 
 const PALETTE = ['#0f62fe', '#42be65', '#a56eff']
@@ -96,9 +95,17 @@ export default function GroupedBarChart({ materials, commonMics }: GroupedBarCha
   }, [materials, commonMics])
 
   if (!option) return (
-    <Tile style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '180px', borderStyle: 'dashed', color: 'var(--cds-text-secondary)' }}>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '180px',
+      border: '1px dashed var(--line-2)',
+      borderRadius: 8,
+      color: 'var(--text-3)',
+    }}>
       <p style={{ margin: 0 }}>No common characteristics to compare.</p>
-    </Tile>
+    </div>
   )
 
   return <EChart option={option} style={{ height: 380, width: '100%' }} theme="spc" notMerge ariaLabel="Grouped comparison bar chart — capability across materials" />

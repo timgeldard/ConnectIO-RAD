@@ -1,4 +1,3 @@
-import { Stack } from '~/lib/carbon-layout'
 import { Card, CardContent, MetadataLabel, StatusBadge } from '../ui'
 
 export const CAPABILITY_TIERS = [
@@ -40,10 +39,10 @@ function CapabilityMetric({
     <div
       style={{
         borderRadius: '0.75rem',
-        border: `1px solid ${emphasis ? 'var(--cds-border-inverse)' : 'var(--cds-border-subtle-01)'}`,
+        border: `1px solid ${emphasis ? 'var(--line-2)' : 'var(--line-1)'}`,
         padding: '1rem',
-        background: emphasis ? 'var(--cds-layer-inverse)' : 'var(--cds-layer)',
-        color: emphasis ? 'var(--cds-text-inverse)' : 'var(--cds-text-primary)',
+        background: emphasis ? 'var(--surface-inverse)' : 'var(--surface-1)',
+        color: emphasis ? '#F4F4E8' : 'var(--text-1)',
         boxShadow: emphasis ? '0 12px 24px rgb(0 0 0 / 0.18)' : '0 1px 2px rgb(0 0 0 / 0.08)',
       }}
     >
@@ -54,7 +53,7 @@ function CapabilityMetric({
           fontSize: '2.25rem',
           fontWeight: 600,
           fontVariantNumeric: 'tabular-nums',
-          color: emphasis ? 'var(--cds-text-inverse)' : 'var(--cds-text-primary)',
+          color: emphasis ? '#F4F4E8' : 'var(--text-1)',
         }}
       >
         {value == null ? '—' : value.toFixed(2)}
@@ -63,7 +62,7 @@ function CapabilityMetric({
         {tier ? (
           <StatusBadge status={tier.status} label={numericLabel} />
         ) : (
-          <span style={{ fontSize: '0.75rem', color: emphasis ? 'var(--cds-text-inverse)' : 'var(--cds-text-secondary)' }}>
+          <span style={{ fontSize: '0.75rem', color: emphasis ? '#F4F4E8' : 'var(--text-3)' }}>
             {numericLabel}
           </span>
         )}
@@ -76,14 +75,12 @@ export function CapabilityPanel({ cp, cpk, pp, ppk }: CapabilityPanelProps) {
   return (
     <Card>
       <CardContent>
-        <Stack gap={4}>
-          <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))' }}>
-            <CapabilityMetric label="Cp" value={cp} />
-            <CapabilityMetric label="Cpk" value={cpk} emphasis />
-            <CapabilityMetric label="Pp" value={pp} />
-            <CapabilityMetric label="Ppk" value={ppk} />
-          </div>
-        </Stack>
+        <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))' }}>
+          <CapabilityMetric label="Cp" value={cp} />
+          <CapabilityMetric label="Cpk" value={cpk} emphasis />
+          <CapabilityMetric label="Pp" value={pp} />
+          <CapabilityMetric label="Ppk" value={ppk} />
+        </div>
       </CardContent>
     </Card>
   )

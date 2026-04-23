@@ -10,6 +10,9 @@ describe('ExclusionJustificationModal', () => {
       unobserve() {}
       disconnect() {}
     }
+    // jsdom does not implement native <dialog> APIs
+    HTMLDialogElement.prototype.showModal = vi.fn()
+    HTMLDialogElement.prototype.close = vi.fn()
   })
 
   const mockOnSubmit = vi.fn()
@@ -39,7 +42,7 @@ describe('ExclusionJustificationModal', () => {
   it('calls onSubmit with correct payload', () => {
     render(<ExclusionJustificationModal {...defaultProps} />)
     
-    const textArea = screen.getByPlaceholderText('Optional context for the audit trail')
+    const textArea = screen.getByPlaceholderText('Additional context for the audit trail')
     fireEvent.change(textArea, { target: { value: 'Bad data' } })
     
     fireEvent.click(screen.getByText('Confirm'))

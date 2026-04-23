@@ -1,7 +1,5 @@
 import { useMemo } from 'react'
 import EChart from './EChart'
-import { InlineLoading } from '~/lib/carbon-feedback'
-import { Tile } from '~/lib/carbon-layout'
 import InfoBanner from '../components/InfoBanner'
 import type { CorrelationScatterPoint, CorrelationScatterProps, EventParamLike } from '../types'
 
@@ -30,7 +28,6 @@ export default function CorrelationScatter({ result, loading, error }: Correlati
 
     const { points, mic_a_name, mic_b_name, pearson_r, n } = result
     const xs = points.map(p => p.x)
-    const ys = points.map(p => p.y)
     const xMin = Math.min(...xs)
     const xMax = Math.max(...xs)
 
@@ -104,8 +101,18 @@ export default function CorrelationScatter({ result, loading, error }: Correlati
 
   if (loading) {
     return (
-      <div style={{ minHeight: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-        <InlineLoading description="Loading scatter data…" status="active" />
+      <div style={{ minHeight: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '1.5rem', color: 'var(--text-3)' }}>
+        <span
+          style={{
+            width: 20, height: 20, borderRadius: '50%',
+            border: '2px solid var(--line-1)',
+            borderTopColor: 'var(--valentia-slate)',
+            animation: 'spc-spin 0.7s linear infinite',
+            display: 'block', flexShrink: 0,
+          }}
+          aria-hidden="true"
+        />
+        <span style={{ fontSize: '0.875rem' }}>Loading scatter data…</span>
       </div>
     )
   }
@@ -117,8 +124,8 @@ export default function CorrelationScatter({ result, loading, error }: Correlati
   if (!option) return null
 
   return (
-    <Tile>
+    <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 10, padding: '1rem' }}>
       <EChart option={option} style={{ height: 380, width: '100%' }} theme="spc" notMerge ariaLabel="Scatter plot for selected characteristic pair" />
-    </Tile>
+    </div>
   )
 }

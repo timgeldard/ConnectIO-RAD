@@ -1,11 +1,5 @@
 import type { ReactNode } from 'react'
-import { Tag } from '~/lib/carbon-layout'
-import CheckmarkFilled from '@carbon/icons-react/es/CheckmarkFilled.js'
-import Misuse from '@carbon/icons-react/es/Misuse.js'
-import SubtractFilled from '@carbon/icons-react/es/SubtractFilled.js'
-import WarningAltFilled from '@carbon/icons-react/es/WarningAltFilled.js'
-import WarningFilled from '@carbon/icons-react/es/WarningFilled.js'
-import type { CarbonIconType } from '@carbon/icons-react'
+import { Icon } from '../../components/ui/Icon'
 
 export type StatusPillStatus =
   | 'in-control'           // No SPC violations AND Cpk >= threshold
@@ -16,67 +10,48 @@ export type StatusPillStatus =
 
 interface StatusPillProps {
   status: StatusPillStatus
-  /** Override the default label */
   label?: string
-  /** Show a compact (sm) tag — label remains in aria-label */
   compact?: boolean
 }
 
-// Carbon Tag type mapping for SPC statuses.
-// Color is never the sole differentiator — icon + label always present (WCAG 1.4.1).
-const STATUS_CONFIG: Record<
-  StatusPillStatus,
-  { type: 'green' | 'warm-gray' | 'red' | 'gray' | 'high-contrast'; defaultLabel: string; icon: CarbonIconType }
-> = {
-  'in-control':          { type: 'green',          defaultLabel: 'In Control',              icon: CheckmarkFilled    },
-  'warning':             { type: 'warm-gray',       defaultLabel: 'Warning',                 icon: WarningAltFilled   },
-  'out-of-control':      { type: 'red',             defaultLabel: 'Out of Control',          icon: WarningFilled      },
-  'out-of-control-high': { type: 'high-contrast',   defaultLabel: 'Critical — Out of Control', icon: Misuse           },
-  'unknown':             { type: 'gray',            defaultLabel: 'Unknown',                 icon: SubtractFilled     },
+const STATUS_CONFIG: Record<StatusPillStatus, { chipClass: string; iconName: string; defaultLabel: string }> = {
+  'in-control':          { chipClass: 'chip chip-ok',   iconName: 'check-circle',   defaultLabel: 'In Control'                },
+  'warning':             { chipClass: 'chip chip-warn', iconName: 'alert-triangle', defaultLabel: 'Warning'                   },
+  'out-of-control':      { chipClass: 'chip chip-risk', iconName: 'zap',            defaultLabel: 'Out of Control'            },
+  'out-of-control-high': { chipClass: 'chip chip-risk', iconName: 'x-circle',       defaultLabel: 'Critical — Out of Control' },
+  'unknown':             { chipClass: 'chip',           iconName: 'minus',          defaultLabel: 'Unknown'                   },
 }
 
 export default function StatusPill({ status, label, compact = false }: StatusPillProps) {
-  const { type, defaultLabel, icon: Icon } = STATUS_CONFIG[status]
+  const { chipClass, iconName, defaultLabel } = STATUS_CONFIG[status]
   const displayLabel = label ?? defaultLabel
+  const iconSize = compact ? 11 : 13
 
   if (compact) {
     return (
-      <Tag
-        type={type}
-        size="sm"
-        renderIcon={() => <Icon size={12} />}
+      <span
+        className={chipClass}
         title={displayLabel}
         aria-label={displayLabel}
-        style={{ paddingInline: '0.25rem' }}
+        style={{ padding: '1px 5px' }}
       >
-        <span
-          style={{
-            position: 'absolute',
-            width: '1px',
-            height: '1px',
-            padding: 0,
-            margin: '-1px',
-            overflow: 'hidden',
-            clip: 'rect(0, 0, 0, 0)',
-            whiteSpace: 'nowrap',
-            border: 0,
-          }}
-        >
+        <Icon name={iconName} size={iconSize} />
+        <span style={{
+          position: 'absolute', width: '1px', height: '1px',
+          padding: 0, margin: '-1px', overflow: 'hidden',
+          clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0,
+        }}>
           {displayLabel}
         </span>
-      </Tag>
+      </span>
     )
   }
 
   return (
-    <Tag
-      type={type}
-      size="md"
-      renderIcon={() => <Icon size={14} />}
-      title={displayLabel}
-    >
+    <span className={chipClass} title={displayLabel}>
+      <Icon name={iconName} size={iconSize} />
       {displayLabel}
-    </Tag>
+    </span>
   )
 }
 
@@ -94,13 +69,12 @@ export function deriveStatus(
   return 'in-control'
 }
 
-/** Helper: derive a text-color class from GRR percentage for MSA verdicts.
- *  NOTE: This returns Carbon CSS custom property values, not Tailwind classes. */
+/** Helper: derive a text-color style from GRR percentage for MSA verdicts. */
 export function grrStatusClass(grrPct: number | null | undefined): { colorStyle: string; verdict: string } {
-  if (grrPct == null) return { colorStyle: 'var(--cds-text-secondary)', verdict: 'Unknown'                  }
-  if (grrPct < 10)    return { colorStyle: 'var(--cds-support-success)', verdict: 'Acceptable'              }
-  if (grrPct < 30)    return { colorStyle: 'var(--cds-support-warning)', verdict: 'Conditionally Acceptable' }
-  return                     { colorStyle: 'var(--cds-support-error)',   verdict: 'Not Acceptable'           }
+  if (grrPct == null) return { colorStyle: 'var(--text-3)',      verdict: 'Unknown'                  }
+  if (grrPct < 10)    return { colorStyle: 'var(--status-ok)',   verdict: 'Acceptable'               }
+  if (grrPct < 30)    return { colorStyle: 'var(--status-warn)', verdict: 'Conditionally Acceptable' }
+  return                     { colorStyle: 'var(--status-risk)', verdict: 'Not Acceptable'           }
 }
 
 /** Shared composition — StatusPill alongside explanatory children */
@@ -115,9 +89,7 @@ export function StatusPillWithReason({
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem' }}>
       <StatusPill status={status} />
       {children && (
-        <span style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-          {children}
-        </span>
+        <span style={{ fontSize: '0.875rem', color: 'var(--text-3)' }}>{children}</span>
       )}
     </div>
   )

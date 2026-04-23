@@ -5,9 +5,16 @@ interface GlobalFilterBarProps {
 }
 
 export function GlobalFilterBar({ children }: GlobalFilterBarProps) {
+  if (!children) return null
   return (
-    <div className="spc-global-filter-bar">
-      <div className="spc-global-filter-bar__inner">{children}</div>
+    <div
+      style={{
+        borderBottom: '1px solid var(--line-1)',
+        background: 'var(--surface-1)',
+        flexShrink: 0,
+      }}
+    >
+      {children}
     </div>
   )
 }

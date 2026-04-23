@@ -1,156 +1,172 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Background,
-  Controls,
-  MiniMap,
-  ReactFlow,
-  type BackgroundVariant,
-  type Edge,
-  type Node,
-  useNodesState,
-  useEdgesState,
-} from '@xyflow/react'
-import ArrowRight from '@carbon/icons-react/es/ArrowRight.js'
-import Branch from '@carbon/icons-react/es/Branch.js'
-import Close from '@carbon/icons-react/es/Close.js'
-import Network_1 from '@carbon/icons-react/es/Network_1.js'
-import SearchAdvanced from '@carbon/icons-react/es/SearchAdvanced.js'
-import ZoomFit from '@carbon/icons-react/es/ZoomFit.js'
-import { Button } from '~/lib/carbon-forms'
-import { Stack, Tile } from '~/lib/carbon-layout'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Icon } from '../../components/ui/Icon'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from '../SPCContext'
 import { useSPCFlow } from '../hooks/useSPCFlow'
 import { layoutFlowGraph } from './layoutFlowGraph'
 import ProcessNode from './ProcessNode'
 import ProcessFlowLegend from './ProcessFlowLegend'
 import type { ProcessFlowEdgeData, ProcessFlowNodeData, ProcessFlowNodeRecord } from '../types'
-import InfoBanner from '../components/InfoBanner'
-import LoadingSkeleton from '../components/LoadingSkeleton'
-import ModuleEmptyState from '../components/ModuleEmptyState'
 
-type FlowNode = Node<ProcessFlowNodeData, 'processNode'>
-type FlowEdge = Edge
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const NODE_W      = 184   // ProcessNode visual width
+const NODE_HEIGHT = 145   // ProcessNode visual height (generous for rejection rate row)
+const EDGE_Y      = 68    // Approximate vertical center for edge attachment
+
+// ── Types ──────────────────────────────────────────────────────────────────
+
 type TraceDirection = 'upstream' | 'downstream' | null
-const nodeTypes = { processNode: ProcessNode }
 
-// Status colours aligned to Carbon support tokens
-const STATUS_COLOR = {
-  green: 'var(--cds-support-success)',
-  amber: 'var(--cds-support-warning)',
-  red:   'var(--cds-support-error)',
-  grey:  'var(--cds-icon-secondary)',
+interface ViewportState { x: number; y: number; scale: number }
+
+interface SvgNode {
+  id: string
+  position: { x: number; y: number }
+  data: ProcessFlowNodeData
 }
 
-// Concrete hex fallbacks for MiniMap (cannot resolve CSS vars)
-const STATUS_MINIMAP_COLOR: Record<string, string> = {
-  green: '#24a148',   // IBM Green 50
-  amber: '#f1c21b',   // IBM Yellow 30
-  red:   '#da1e28',   // IBM Red 60
-  grey:  '#697077',   // IBM Gray 50
+interface SvgEdge {
+  id: string
+  source: string
+  target: string
+  isAnimated: boolean
+  d: string
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function cubicEdge(
+  srcPos: { x: number; y: number },
+  tgtPos: { x: number; y: number },
+): string {
+  const sx = srcPos.x + NODE_W
+  const sy = srcPos.y + EDGE_Y
+  const tx = tgtPos.x
+  const ty = tgtPos.y + EDGE_Y
+  const mx = sx + (tx - sx) * 0.5
+  return `M${sx},${sy} C${mx},${sy} ${mx},${ty} ${tx},${ty}`
 }
 
 function buildFlowElements(
   rawNodes?: ProcessFlowNodeRecord[] | null,
   rawEdges?: ProcessFlowEdgeData[] | null,
-): { nodes: FlowNode[]; edges: FlowEdge[] } {
+): { nodes: SvgNode[]; edges: SvgEdge[] } {
   if (!rawNodes?.length) return { nodes: [], edges: [] }
 
-  // Layout positions
   const positioned = layoutFlowGraph(rawNodes, rawEdges ?? [])
+  const posMap = new Map(positioned.map(n => [n.id, n.position]))
 
-  const nodes: FlowNode[] = positioned.map(n => {
-    const totalBatches = n.total_batches ?? 0
+  const nodes: SvgNode[] = positioned.map(n => {
+    const totalBatches    = n.total_batches ?? 0
     const rejectedBatches = n.rejected_batches ?? 0
-    const rejectionRate = totalBatches > 0 ? Number(((rejectedBatches / totalBatches) * 100).toFixed(1)) : null
-    const inferredSignal = Boolean(
-      n.last_ooc
-      || n.has_ooc_signal
-      || n.status === 'red'
-      || (typeof n.estimated_cpk === 'number' && n.estimated_cpk < 1),
+    const rejectionRate   = totalBatches > 0 ? Number(((rejectedBatches / totalBatches) * 100).toFixed(1)) : null
+    const inferredSignal  = Boolean(
+      n.last_ooc || n.has_ooc_signal || n.status === 'red'
+        || (typeof n.estimated_cpk === 'number' && n.estimated_cpk < 1),
     )
-
     return {
       id: n.id,
-      type: 'processNode',
       position: n.position,
       data: {
-        material_id: n.material_id,
-        material_name: n.material_name,
-        plant_name: n.plant_name,
-        total_batches: totalBatches,
-        rejected_batches: rejectedBatches,
+        material_id:        n.material_id,
+        material_name:      n.material_name,
+        plant_name:         n.plant_name,
+        total_batches:      totalBatches,
+        rejected_batches:   rejectedBatches,
         rejection_rate_pct: rejectionRate,
-        mic_count: n.mic_count,
-        mean_value: n.mean_value,
-        stddev_value: n.stddev_value,
-        estimated_cpk: n.estimated_cpk,
-        has_ooc_signal: inferredSignal,
-        last_ooc: typeof n.last_ooc === 'string' ? n.last_ooc : null,
-        status: n.status,
-        is_root: n.is_root,
-        sparkline_values: n.sparkline_values ?? [],
+        mic_count:          n.mic_count,
+        mean_value:         n.mean_value,
+        stddev_value:       n.stddev_value,
+        estimated_cpk:      n.estimated_cpk,
+        has_ooc_signal:     inferredSignal,
+        last_ooc:           typeof n.last_ooc === 'string' ? n.last_ooc : null,
+        status:             n.status,
+        is_root:            n.is_root,
+        sparkline_values:   n.sparkline_values ?? [],
       },
-      selectable: true,
-      draggable: true,
     }
   })
 
-  const edges: FlowEdge[] = (rawEdges ?? []).map((e, i) => {
-    // Animate edges that originate from red nodes
+  const edges: SvgEdge[] = (rawEdges ?? []).map((e, i) => {
+    const sp = posMap.get(e.source)
+    const tp = posMap.get(e.target)
+    if (!sp || !tp) return null
     const sourceNode = rawNodes.find(n => n.id === e.source)
-    const animated = sourceNode?.status === 'red'
     return {
       id: `e-${e.source}-${e.target}-${i}`,
       source: e.source,
       target: e.target,
-      type: 'smoothstep',
-      animated,
-      style: {
-        stroke: animated ? 'var(--cds-support-error)' : 'var(--cds-border-subtle-01)',
-        strokeWidth: animated ? 2 : 1.5,
-      },
+      isAnimated: sourceNode?.status === 'red',
+      d: cubicEdge(sp, tp),
     }
-  })
+  }).filter((e): e is SvgEdge => e != null)
 
   return { nodes, edges }
 }
 
+function computeBounds(nodes: SvgNode[]) {
+  const xs = nodes.map(n => n.position.x)
+  const ys = nodes.map(n => n.position.y)
+  return {
+    minX: Math.min(...xs),
+    minY: Math.min(...ys),
+    maxX: Math.max(...xs) + NODE_W,
+    maxY: Math.max(...ys) + NODE_HEIGHT,
+  }
+}
+
+function fitTransform(
+  bounds: { minX: number; minY: number; maxX: number; maxY: number },
+  containerW: number,
+  containerH: number,
+  padding = 48,
+): ViewportState {
+  const contentW = bounds.maxX - bounds.minX
+  const contentH = bounds.maxY - bounds.minY
+  const scale = Math.min(1.4, Math.min(
+    (containerW - padding * 2) / contentW,
+    (containerH - padding * 2) / contentH,
+  ))
+  const x = (containerW - contentW * scale) / 2 - bounds.minX * scale
+  const y = (containerH - contentH * scale) / 2 - bounds.minY * scale
+  return { x, y, scale }
+}
+
 function collectLinkedNodeIds(
   startId: string,
-  direction: Exclude<TraceDirection, null>,
-  edges: FlowEdge[],
+  direction: 'upstream' | 'downstream',
+  edges: SvgEdge[],
 ): Set<string> {
   const visited = new Set<string>([startId])
-  const queue = [startId]
+  const queue   = [startId]
 
   while (queue.length > 0) {
     const current = queue.shift()
     if (!current) continue
-
     edges.forEach(edge => {
       const nextId = direction === 'upstream'
         ? (edge.target === current ? edge.source : null)
         : (edge.source === current ? edge.target : null)
-
       if (nextId && !visited.has(nextId)) {
         visited.add(nextId)
         queue.push(nextId)
       }
     })
   }
-
   return visited
 }
+
+// ── Main view ──────────────────────────────────────────────────────────────
 
 export default function ProcessFlowView() {
   const dispatch = useSPCDispatch()
   const state = useSPCSelector(
     current => ({
-      selectedMaterial: current.selectedMaterial,
-      dateFrom: current.dateFrom,
-      dateTo: current.dateTo,
-      processFlowUpstreamDepth: current.processFlowUpstreamDepth,
-      processFlowDownstreamDepth: current.processFlowDownstreamDepth,
+      selectedMaterial:            current.selectedMaterial,
+      dateFrom:                    current.dateFrom,
+      dateTo:                      current.dateTo,
+      processFlowUpstreamDepth:    current.processFlowUpstreamDepth,
+      processFlowDownstreamDepth:  current.processFlowDownstreamDepth,
     }),
     shallowEqual,
   )
@@ -162,247 +178,396 @@ export default function ProcessFlowView() {
     state.processFlowDownstreamDepth,
   )
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>([])
+  const [svgNodes, setSvgNodes]         = useState<SvgNode[]>([])
+  const [svgEdges, setSvgEdges]         = useState<SvgEdge[]>([])
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [traceDirection, setTraceDirection] = useState<TraceDirection>(null)
+  const [viewport, setViewport]         = useState<ViewportState>({ x: 40, y: 40, scale: 1 })
 
-  // Sync when flow data changes
+  const containerRef    = useRef<HTMLDivElement>(null)
+  const isDragging      = useRef(false)
+  const didDrag         = useRef(false)
+  const mouseDownPos    = useRef({ x: 0, y: 0 })
+  const lastMouse       = useRef({ x: 0, y: 0 })
+
+  // Sync nodes/edges when flow data changes
   useEffect(() => {
     const { nodes: n, edges: e } = buildFlowElements(flowData?.nodes, flowData?.edges)
-    setNodes(n)
-    setEdges(e)
-    setSelectedNodeId(current => (current && n.some(node => node.id === current) ? current : null))
+    setSvgNodes(n)
+    setSvgEdges(e)
+    setSelectedNodeId(cur => (cur && n.some(nd => nd.id === cur) ? cur : null))
     setTraceDirection(null)
-  }, [flowData, setEdges, setNodes])
+  }, [flowData])
+
+  // Fit view when node count changes (new material selection)
+  useEffect(() => {
+    if (!svgNodes.length) return
+    const doFit = () => {
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (rect && rect.width > 0) {
+        setViewport(fitTransform(computeBounds(svgNodes), rect.width, rect.height))
+      }
+    }
+    doFit()
+    // Retry next frame in case the container hasn't laid out yet
+    const id = requestAnimationFrame(doFit)
+    return () => cancelAnimationFrame(id)
+  }, [svgNodes.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Pan handlers ─────────────────────────────────────────────────────────
+
+  const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target instanceof HTMLElement) return  // clicking HTML inside foreignObject
+    isDragging.current   = true
+    didDrag.current      = false
+    mouseDownPos.current = { x: e.clientX, y: e.clientY }
+    lastMouse.current    = { x: e.clientX, y: e.clientY }
+    if (containerRef.current) containerRef.current.style.cursor = 'grabbing'
+    e.preventDefault()
+  }
+
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging.current) return
+    const dx = e.clientX - lastMouse.current.x
+    const dy = e.clientY - lastMouse.current.y
+    lastMouse.current = { x: e.clientX, y: e.clientY }
+    if (Math.abs(e.clientX - mouseDownPos.current.x) > 3
+     || Math.abs(e.clientY - mouseDownPos.current.y) > 3) {
+      didDrag.current = true
+    }
+    setViewport(v => ({ ...v, x: v.x + dx, y: v.y + dy }))
+  }
+
+  const onMouseUp = () => {
+    isDragging.current = false
+    if (containerRef.current) containerRef.current.style.cursor = 'grab'
+  }
+
+  const onWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const factor = e.deltaY < 0 ? 1.1 : 0.9
+    const rect = e.currentTarget.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    setViewport(v => {
+      const newScale = Math.min(2.5, Math.max(0.15, v.scale * factor))
+      const sf = newScale / v.scale
+      return { x: mx - (mx - v.x) * sf, y: my - (my - v.y) * sf, scale: newScale }
+    })
+  }
+
+  const onCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target instanceof HTMLElement) return  // node click handled by node
+    if (didDrag.current) return
+    setSelectedNodeId(null)
+    setTraceDirection(null)
+  }
+
+  const handleFitView = () => {
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect || !svgNodes.length) return
+    setViewport(fitTransform(computeBounds(svgNodes), rect.width, rect.height))
+  }
+
+  const zoomIn  = () => setViewport(v => ({ ...v, scale: Math.min(2.5, v.scale * 1.2) }))
+  const zoomOut = () => setViewport(v => ({ ...v, scale: Math.max(0.15, v.scale / 1.2) }))
+
+  // ── Derived state ─────────────────────────────────────────────────────────
 
   const activateNode = useCallback((nodeData: ProcessFlowNodeData) => {
     dispatch({
       type: 'SELECT_MATERIAL_AND_CHARTS',
       payload: {
-        material_id: String(nodeData.material_id),
+        material_id:   String(nodeData.material_id),
         material_name: typeof nodeData.material_name === 'string' ? nodeData.material_name : undefined,
       },
     })
   }, [dispatch])
 
-  const onNodeClick = useCallback((_event: React.MouseEvent, node: FlowNode) => {
-    setSelectedNodeId(node.id)
-    setTraceDirection(null)
-  }, [])
-
-  const onKeyDown = useCallback((event: React.KeyboardEvent) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return
-    const focused = nodes.find(n => n.selected)
-    if (focused) {
-      setSelectedNodeId(focused.id)
-      setTraceDirection(null)
-    }
-  }, [nodes])
-
   const selectedNode = useMemo(
-    () => nodes.find(node => node.id === selectedNodeId) ?? null,
-    [nodes, selectedNodeId],
+    () => svgNodes.find(n => n.id === selectedNodeId) ?? null,
+    [svgNodes, selectedNodeId],
   )
 
   const highlightedIds = useMemo(() => {
     if (!selectedNodeId) return new Set<string>()
     if (!traceDirection) return new Set<string>([selectedNodeId])
-    return collectLinkedNodeIds(selectedNodeId, traceDirection, edges)
-  }, [edges, selectedNodeId, traceDirection])
+    return collectLinkedNodeIds(selectedNodeId, traceDirection, svgEdges)
+  }, [svgEdges, selectedNodeId, traceDirection])
 
   const renderedNodes = useMemo(
-    () => nodes.map(node => {
-      const isSelected = node.id === selectedNodeId
-      const hasSelection = Boolean(selectedNodeId)
-      const isHighlighted = highlightedIds.has(node.id)
-
-      return {
-        ...node,
-        selected: isSelected,
-        draggable: true,
-        style: {
-          ...node.style,
-          opacity: hasSelection && !isHighlighted ? 0.35 : 1,
-        },
-      }
-    }),
-    [highlightedIds, nodes, selectedNodeId],
+    () => svgNodes.map(node => ({
+      ...node,
+      highlighted: highlightedIds.has(node.id),
+    })),
+    [svgNodes, highlightedIds],
   )
 
   const renderedEdges = useMemo(
-    () => edges.map(edge => {
-      const hasSelection = Boolean(selectedNodeId)
+    () => svgEdges.map(edge => {
+      const hasSelection  = Boolean(selectedNodeId)
       const isHighlighted = highlightedIds.has(edge.source) && highlightedIds.has(edge.target)
-      const isIncident = edge.source === selectedNodeId || edge.target === selectedNodeId
-
+      const isIncident    = edge.source === selectedNodeId || edge.target === selectedNodeId
       return {
         ...edge,
-        animated: isHighlighted || isIncident,
-        style: {
-          ...edge.style,
-          opacity: hasSelection && !isHighlighted && !isIncident ? 0.18 : 1,
-          stroke: isHighlighted ? '#289BA2' : isIncident ? '#005776' : (edge.style?.stroke ?? '#CCDDE4'),  // Sage / Slate / Slate 20
-          strokeWidth: isHighlighted ? 3 : isIncident ? 2.4 : (edge.style?.strokeWidth ?? 1.5),
-        },
+        isHighlighted,
+        isIncident,
+        opacity: hasSelection && !isHighlighted && !isIncident ? 0.18 : 1,
       }
     }),
-    [edges, highlightedIds, selectedNodeId],
+    [svgEdges, highlightedIds, selectedNodeId],
   )
+
+  // ── Guards ────────────────────────────────────────────────────────────────
 
   if (!state.selectedMaterial) {
     return (
-      <ModuleEmptyState
-        icon="⬡"
-        title="Select a material to view its process flow"
-        description="Each node shows batch rejection rate across the material network. Click or navigate to a node to drill into control charts."
-      />
+      <div style={{ padding: '64px 20px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>⬡</div>
+        <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-2)', marginBottom: 6 }}>Select a material to view its process flow</div>
+        <div>Each node shows batch rejection rate across the material network. Click a node to drill into control charts.</div>
+      </div>
     )
   }
 
   if (loading) {
-    return <LoadingSkeleton message="Loading process flow…" />
-  }
-
-  if (error) {
-    return <InfoBanner variant="error">{`Failed to load process flow: ${error}`}</InfoBanner>
-  }
-
-  if (!nodes.length) {
     return (
-      <ModuleEmptyState
-        title="No process flow data found"
-        description={`${state.selectedMaterial.material_name ?? state.selectedMaterial.material_id} may not have lineage data in the selected date range.`}
-      />
+      <div style={{ padding: 20 }}>
+        <div style={{ height: 500, borderRadius: 10, background: 'var(--surface-2)', animation: 'fadeIn 400ms ease' }} />
+      </div>
     )
   }
 
+  if (error) {
+    return (
+      <div style={{
+        margin: 20, padding: '14px 18px', borderRadius: 10,
+        background: 'var(--status-risk-bg)', border: '1px solid var(--status-risk)',
+        color: 'var(--status-risk)', fontSize: 13,
+      }}>
+        <strong>Failed to load process flow</strong> — {String(error)}
+      </div>
+    )
+  }
+
+  if (!svgNodes.length) {
+    return (
+      <div style={{ padding: '64px 20px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
+        <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-2)', marginBottom: 6 }}>No process flow data found</div>
+        <div>{state.selectedMaterial.material_name ?? state.selectedMaterial.material_id} may not have lineage data in the selected date range.</div>
+      </div>
+    )
+  }
+
+  // ── Main layout ───────────────────────────────────────────────────────────
+
   return (
-    <Stack gap={4}>
-      <Tile>
-        <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--cds-text-secondary)', marginBottom: '0.25rem' }}>
-          Material lineage review
-        </div>
-        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--cds-text-primary)' }}>Process Flow</h3>
-        <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 20 }} className="fade-in">
+
+      {/* Header */}
+      <div className="card" style={{ padding: '14px 18px' }}>
+        <div className="eyebrow">Material lineage review</div>
+        <h3 style={{ margin: '4px 0 0', fontSize: 18, fontWeight: 700, color: 'var(--text-1)' }}>Process Flow</h3>
+        <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-3)' }}>
           Review upstream and downstream lineage around {state.selectedMaterial.material_name}. Use this to trace where quality risk may propagate across the network.
         </p>
-      </Tile>
+      </div>
 
-      <div style={{ display: 'grid', gap: '1.25rem', gridTemplateColumns: 'minmax(0, 1.5fr) 320px', alignItems: 'start' }}>
-        <div style={{ position: 'relative', minHeight: '500px', height: 'calc(100vh - 280px)', overflow: 'hidden', border: '1px solid var(--cds-border-subtle-01)', background: 'var(--cds-background)' }}>
-          <div style={{ position: 'absolute', left: '0.75rem', top: '0.75rem', zIndex: 10, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--cds-border-subtle-01)', background: 'var(--cds-layer)', padding: '0.5rem 0.75rem', fontSize: '0.75rem' }}>
-            <span style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--cds-text-secondary)' }}>
-              Flow Controls
-            </span>
-            <span style={{ background: 'var(--cds-layer-accent-01)', padding: '0.25rem 0.625rem', color: 'var(--cds-text-secondary)' }}>
-              Drag to pan
-            </span>
-            <span style={{ background: 'var(--cds-layer-accent-01)', padding: '0.25rem 0.625rem', color: 'var(--cds-text-secondary)' }}>
-              Scroll to zoom
-            </span>
-            <span style={{ background: 'var(--cds-layer-accent-01)', padding: '0.25rem 0.625rem', color: 'var(--cds-text-secondary)' }}>
-              Click node to inspect
-            </span>
+      {/* Canvas + inspector */}
+      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(0, 1.5fr) 320px', alignItems: 'start' }}>
+
+        {/* SVG canvas */}
+        <div
+          ref={containerRef}
+          style={{
+            position: 'relative',
+            minHeight: 500,
+            height: 'max(500px, calc(100vh - var(--header-h) - var(--filter-h) - 200px))',
+            overflow: 'hidden',
+            border: '1px solid var(--line-1)',
+            background: 'var(--surface-0)',
+            borderRadius: 10,
+            cursor: 'grab',
+            userSelect: 'none',
+          }}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
+          onClick={onCanvasClick}
+          onWheel={onWheel}
+        >
+          {/* Dot grid background */}
+          <svg
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+            aria-hidden="true"
+          >
+            <defs>
+              <pattern id="pfv-dot-grid" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+                <circle cx="1" cy="1" r="1" style={{ fill: 'var(--chart-grid)' }} />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#pfv-dot-grid)" />
+          </svg>
+
+          {/* Main interactive SVG */}
+          <svg
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}
+          >
+            <g transform={`translate(${viewport.x},${viewport.y}) scale(${viewport.scale})`}>
+
+              {/* Background click trap (deselect) */}
+              <rect
+                x="-100000" y="-100000"
+                width="200000" height="200000"
+                fill="transparent"
+                style={{ cursor: 'grab' }}
+              />
+
+              {/* Edges */}
+              {renderedEdges.map(edge => (
+                <path
+                  key={edge.id}
+                  d={edge.d}
+                  style={{
+                    fill: 'none',
+                    stroke: edge.isHighlighted
+                      ? 'var(--sage)'
+                      : edge.isIncident
+                        ? 'var(--valentia-slate)'
+                        : 'var(--line-2)',
+                    strokeWidth: edge.isHighlighted ? 3 : edge.isIncident ? 2.4 : 1.5,
+                    opacity: edge.opacity,
+                  }}
+                  className={edge.isAnimated ? 'flow-anim' : undefined}
+                  strokeDasharray={edge.isAnimated ? '4 4' : undefined}
+                />
+              ))}
+
+              {/* Nodes via foreignObject */}
+              {renderedNodes.map(node => (
+                <foreignObject
+                  key={node.id}
+                  x={node.position.x}
+                  y={node.position.y}
+                  width={NODE_W + 24}
+                  height={NODE_HEIGHT + 24}
+                  style={{ overflow: 'visible' }}
+                >
+                  <ProcessNode
+                    data={node.data}
+                    selected={node.id === selectedNodeId}
+                    highlighted={node.highlighted}
+                    hasSelection={Boolean(selectedNodeId)}
+                    onClick={() => {
+                      setSelectedNodeId(node.id)
+                      setTraceDirection(null)
+                    }}
+                  />
+                </foreignObject>
+              ))}
+            </g>
+          </svg>
+
+          {/* Hint bar */}
+          <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, display: 'flex', gap: 4, pointerEvents: 'none' }}>
+            {['Drag to pan', 'Scroll to zoom', 'Click node to inspect'].map(hint => (
+              <span key={hint} className="eyebrow" style={{
+                background: 'var(--surface-1)', border: '1px solid var(--line-1)',
+                padding: '3px 8px', borderRadius: 5, color: 'var(--text-3)',
+              }}>
+                {hint}
+              </span>
+            ))}
           </div>
 
-          <ReactFlow
-            nodes={renderedNodes}
-            edges={renderedEdges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeClick={onNodeClick}
-            onPaneClick={() => {
-              setSelectedNodeId(null)
-              setTraceDirection(null)
-            }}
-            onKeyDown={onKeyDown}
-            nodeTypes={nodeTypes}
-            fitView
-            fitViewOptions={{ padding: 0.25 }}
-            minZoom={0.2}
-            maxZoom={2.5}
-            panOnScroll
-            selectionOnDrag
-            nodesConnectable={false}
-            proOptions={{ hideAttribution: true }}
-          >
-            <Background variant={'dots' as BackgroundVariant} gap={24} color="var(--cds-border-subtle-01)" />
-            <Controls />
-            <MiniMap
-              nodeColor={n => STATUS_MINIMAP_COLOR[(n.data?.status ?? 'grey') as string] ?? '#697077'}
-              maskColor="rgba(0,0,0,0.05)"
-              pannable
-              zoomable
-            />
-            <ProcessFlowLegend />
-          </ReactFlow>
+          {/* Zoom controls */}
+          <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <button className="icon-btn" title="Zoom in"  onClick={zoomIn}  style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)' }}>
+              <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
+            </button>
+            <button className="icon-btn" title="Zoom out" onClick={zoomOut} style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)' }}>
+              <span style={{ fontSize: 14, lineHeight: 1 }}>−</span>
+            </button>
+            <button className="icon-btn" title="Fit to view" onClick={handleFitView} style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)' }}>
+              <Icon name="maximize" size={13} />
+            </button>
+          </div>
+
+          <ProcessFlowLegend />
         </div>
-        <Tile>
-          <Stack gap={4}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
+
+        {/* Node inspector panel */}
+        <div className="card" style={{ padding: '14px 16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+            {/* Panel header */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
               <div>
-                <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--cds-text-secondary)' }}>
-                  Node Inspector
-                </div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)', marginTop: '0.25rem' }}>
+                <div className="eyebrow">Node Inspector</div>
+                <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3 }}>
                   Select a node to inspect its quality posture, then trace the surrounding lineage.
                 </div>
               </div>
               {selectedNode && (
-                <Button
-                  kind="ghost"
-                  size="sm"
-                  hasIconOnly
-                  renderIcon={() => <Close size={16} />}
-                  iconDescription="Clear node selection"
-                  onClick={() => {
-                    setSelectedNodeId(null)
-                    setTraceDirection(null)
-                  }}
-                />
+                <button
+                  className="icon-btn"
+                  title="Clear node selection"
+                  onClick={() => { setSelectedNodeId(null); setTraceDirection(null) }}
+                >
+                  <Icon name="x" size={14} />
+                </button>
               )}
             </div>
 
+            {/* Empty state */}
             {!selectedNode && (
-              <Stack gap={3}>
-                <div style={{ border: '1px dashed var(--cds-border-subtle-01)', background: 'var(--cds-layer-accent-01)', padding: '1.25rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{
+                  border: '1px dashed var(--line-2)', background: 'var(--surface-2)',
+                  padding: '14px 16px', borderRadius: 8, fontSize: 13, color: 'var(--text-3)',
+                }}>
                   Click any process node to inspect rejection rate, capability, and path tracing controls.
                 </div>
-                <Stack gap={2} style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-                  <p style={{ margin: 0 }}><strong style={{ color: 'var(--cds-support-success)' }}>Green</strong> nodes are operationally healthy.</p>
-                  <p style={{ margin: 0 }}><strong style={{ color: 'var(--cds-support-warning)' }}>Amber</strong> nodes should be monitored for drift.</p>
-                  <p style={{ margin: 0 }}><strong style={{ color: 'var(--cds-support-error)' }}>Red</strong> nodes are likely risk hotspots.</p>
-                </Stack>
-              </Stack>
+                <div style={{ fontSize: 12, color: 'var(--text-3)', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <p style={{ margin: 0 }}><strong style={{ color: 'var(--status-ok)' }}>Green</strong> nodes are operationally healthy.</p>
+                  <p style={{ margin: 0 }}><strong style={{ color: 'var(--status-warn)' }}>Amber</strong> nodes should be monitored for drift.</p>
+                  <p style={{ margin: 0 }}><strong style={{ color: 'var(--status-risk)' }}>Red</strong> nodes are likely risk hotspots.</p>
+                </div>
+              </div>
             )}
 
+            {/* Node details */}
             {selectedNode && (
-              <Stack gap={4}>
-                <div style={{ border: '1px solid var(--cds-border-subtle-01)', padding: '1rem', background: 'var(--cds-layer)' }}>
-                  <div style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--cds-text-primary)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ border: '1px solid var(--line-1)', padding: '12px 14px', borderRadius: 8, background: 'var(--surface-2)' }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-1)' }}>
                     {selectedNode.data.material_name ?? selectedNode.data.material_id}
                   </div>
-                  <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
+                  <div style={{ marginTop: 2, fontSize: 12, color: 'var(--text-3)' }}>
                     {selectedNode.data.plant_name ?? 'Plant not specified'}
                   </div>
 
-                  <div style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.875rem' }}>
+                  <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 13 }}>
                     {[
-                      { label: 'Rejection', value: selectedNode.data.rejection_rate_pct != null ? `${selectedNode.data.rejection_rate_pct.toFixed(1)}%` : 'Unavailable' },
+                      { label: 'Rejection',     value: selectedNode.data.rejection_rate_pct != null ? `${selectedNode.data.rejection_rate_pct.toFixed(1)}%` : 'Unavailable' },
                       { label: 'Estimated Cpk', value: selectedNode.data.estimated_cpk != null ? selectedNode.data.estimated_cpk.toFixed(2) : 'Unavailable' },
-                      { label: 'Batches', value: String(selectedNode.data.total_batches ?? 0) },
-                      { label: 'Rejected', value: String(selectedNode.data.rejected_batches ?? 0) },
+                      { label: 'Batches',       value: String(selectedNode.data.total_batches ?? 0) },
+                      { label: 'Rejected',      value: String(selectedNode.data.rejected_batches ?? 0) },
                     ].map(({ label, value }) => (
                       <div key={label}>
-                        <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--cds-text-secondary)' }}>{label}</div>
-                        <div style={{ marginTop: '0.25rem', fontWeight: 500, color: 'var(--cds-text-primary)' }}>{value}</div>
+                        <div className="eyebrow" style={{ marginBottom: 2 }}>{label}</div>
+                        <div style={{ fontWeight: 500, color: 'var(--text-1)' }}>{value}</div>
                       </div>
                     ))}
                   </div>
 
                   {selectedNode.data.has_ooc_signal && (
-                    <div style={{ marginTop: '1rem', padding: '0.5rem 0.75rem', fontSize: '0.875rem', fontWeight: 500, background: 'var(--cds-notification-background-error)', color: 'var(--cds-support-error)', border: '1px solid var(--cds-support-error)' }}>
+                    <div style={{
+                      marginTop: 10, padding: '6px 10px', fontSize: 12, fontWeight: 500, borderRadius: 6,
+                      background: 'var(--status-risk-bg)', color: 'var(--status-risk)',
+                      border: '1px solid var(--status-risk)',
+                    }}>
                       {selectedNode.data.last_ooc
                         ? `Latest OOC signal ${selectedNode.data.last_ooc}`
                         : 'OOC attention inferred from current rejection or capability posture.'}
@@ -410,47 +575,48 @@ export default function ProcessFlowView() {
                   )}
                 </div>
 
-                <div style={{ display: 'grid', gap: '0.5rem', gridTemplateColumns: '1fr 1fr' }}>
-                  <Button
-                    kind="primary"
-                    size="md"
-                    renderIcon={() => <Branch size={16} />}
-                    onClick={() => setTraceDirection(current => current === 'upstream' ? null : 'upstream')}
+                {/* Trace buttons */}
+                <div style={{ display: 'grid', gap: 6, gridTemplateColumns: '1fr 1fr' }}>
+                  <button
+                    className={`btn ${traceDirection === 'upstream' ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setTraceDirection(c => c === 'upstream' ? null : 'upstream')}
                   >
-                    Trace Upstream
-                  </Button>
-                  <Button
-                    kind="secondary"
-                    size="md"
-                    renderIcon={() => <Network_1 size={16} />}
-                    onClick={() => setTraceDirection(current => current === 'downstream' ? null : 'downstream')}
+                    <Icon name="git-branch" size={14} />
+                    Upstream
+                  </button>
+                  <button
+                    className={`btn ${traceDirection === 'downstream' ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setTraceDirection(c => c === 'downstream' ? null : 'downstream')}
                   >
-                    Trace Downstream
-                  </Button>
+                    <Icon name="route" size={14} />
+                    Downstream
+                  </button>
                 </div>
 
-                <Button
-                  kind="tertiary"
-                  size="md"
-                  renderIcon={() => <ArrowRight size={16} />}
-                  style={{ width: '100%' }}
+                <button
+                  className="btn btn-ghost"
+                  style={{ width: '100%', justifyContent: 'center' }}
                   onClick={() => activateNode(selectedNode.data)}
                 >
-                  <SearchAdvanced size={16} style={{ marginRight: '0.5rem' }} />
+                  <Icon name="arrow-right" size={14} />
                   Open In Control Charts
-                </Button>
+                </button>
 
                 {traceDirection && (
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.25rem 0.75rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--cds-text-secondary)', background: 'var(--cds-layer-accent-01)' }}>
-                    <ZoomFit size={14} />
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px',
+                    fontSize: 12, fontWeight: 500, color: 'var(--text-3)',
+                    background: 'var(--surface-2)', borderRadius: 6,
+                  }}>
+                    <Icon name="maximize" size={12} />
                     {traceDirection === 'upstream' ? 'Upstream path highlighted' : 'Downstream path highlighted'}
                   </div>
                 )}
-              </Stack>
+              </div>
             )}
-          </Stack>
-        </Tile>
+          </div>
+        </div>
       </div>
-    </Stack>
+    </div>
   )
 }

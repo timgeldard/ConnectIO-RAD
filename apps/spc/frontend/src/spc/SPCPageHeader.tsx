@@ -1,8 +1,5 @@
 import type { ReactNode } from 'react'
-import Activity from '@carbon/icons-react/es/Activity.js'
-import Chemistry from '@carbon/icons-react/es/Chemistry.js'
-import Security from '@carbon/icons-react/es/Security.js'
-import { Tag } from '~/lib/carbon-layout'
+import { Icon } from '../components/ui/Icon'
 import { shallowEqual, useSPCSelector } from './SPCContext'
 import type { StratifyByKey } from './types'
 
@@ -24,11 +21,11 @@ const STRATIFY_LABELS: Record<StratifyByKey, string> = {
   operation_id: 'Operation',
 }
 
-const TONE_TYPE = {
-  slate: 'cool-gray',
-  blue: 'blue',
-  green: 'green',
-  amber: 'warm-gray',
+const TONE_CLASS = {
+  slate: 'chip',
+  blue:  'chip chip-info',
+  green: 'chip chip-ok',
+  amber: 'chip chip-warn',
 } as const
 
 function StatusChip({
@@ -41,10 +38,10 @@ function StatusChip({
   icon?: ReactNode
 }) {
   return (
-    <Tag type={TONE_TYPE[tone]} size="sm">
+    <span className={TONE_CLASS[tone]}>
       {icon}
       {children}
-    </Tag>
+    </span>
   )
 }
 
@@ -82,16 +79,16 @@ export default function SPCPageHeader() {
   }
 
   return (
-    <div style={{ borderBottom: '1px solid var(--cds-border-subtle-01)', background: 'var(--cds-layer)' }}>
+    <div style={{ borderBottom: '1px solid var(--line-1)', background: 'var(--surface-1)' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', padding: '1.25rem 1.5rem' }}>
         <div>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--cds-text-secondary)' }}>
+          <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-3)' }}>
             Operational quality workspace
           </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--cds-text-primary)', marginTop: '0.125rem' }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-1)', marginTop: '0.125rem' }}>
             {tabLabel}
           </div>
-          <p style={{ marginTop: '0.25rem', maxWidth: '48rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+          <p style={{ marginTop: '0.25rem', maxWidth: '48rem', fontSize: '0.875rem', color: 'var(--text-3)' }}>
             {subtitleParts.length > 0
               ? subtitleParts.join(' • ')
               : 'Select a material and analysis scope to begin SPC review.'}
@@ -101,7 +98,7 @@ export default function SPCPageHeader() {
               <StatusChip tone="slate">Material {material.material_id}</StatusChip>
             )}
             {mic && (
-              <StatusChip tone="blue" icon={<Activity size={12} style={{ marginRight: '0.25rem' }} />}>
+              <StatusChip tone="blue" icon={<Icon name="activity" size={12} style={{ marginRight: '0.25rem' }} />}>
                 {mic.chart_type === 'p_chart' ? 'Attribute analysis' : 'Variable analysis'}
               </StatusChip>
             )}
@@ -111,12 +108,12 @@ export default function SPCPageHeader() {
               </StatusChip>
             )}
             {exclusions > 0 && (
-              <StatusChip tone="amber" icon={<Security size={12} style={{ marginRight: '0.25rem' }} />}>
+              <StatusChip tone="amber" icon={<Icon name="flag" size={12} style={{ marginRight: '0.25rem' }} />}>
                 {exclusions} exclusion{exclusions === 1 ? '' : 's'} active
               </StatusChip>
             )}
             {state.activeTab === 'charts' && (
-              <StatusChip tone="green" icon={<Chemistry size={12} style={{ marginRight: '0.25rem' }} />}>
+              <StatusChip tone="green" icon={<Icon name="beaker" size={12} style={{ marginRight: '0.25rem' }} />}>
                 {state.ruleSet === 'nelson' ? 'Nelson 8 rules' : 'WECO rules'}
               </StatusChip>
             )}

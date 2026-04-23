@@ -1,8 +1,4 @@
 import type { ReactNode } from 'react'
-import { Tile } from '~/lib/carbon-layout'
-
-// Migration note: 'colorClass' (Tailwind string) is replaced by the typed 'tone' prop.
-// Update all call sites: colorClass="border-red-200 bg-red-50 text-red-700" → tone="error"
 
 type Tone = 'error' | 'warning' | 'success' | 'neutral'
 
@@ -14,21 +10,24 @@ interface MetricCardProps {
 }
 
 const toneToken: Record<Tone, string> = {
-  success: 'var(--cds-support-success)',
-  warning: 'var(--cds-support-warning)',
-  error:   'var(--cds-support-error)',
-  neutral: 'var(--cds-border-subtle-01)',
+  success: 'var(--status-ok)',
+  warning: 'var(--status-warn)',
+  error:   'var(--status-risk)',
+  neutral: 'var(--line-1)',
 }
 
 export default function MetricCard({ label, value, meta, tone = 'neutral' }: MetricCardProps) {
   const accentColor = toneToken[tone]
 
   return (
-    <Tile
+    <div
       style={{
         borderLeft: `4px solid ${accentColor}`,
         padding: '1rem',
         height: '100%',
+        background: 'var(--surface-1)',
+        border: '1px solid var(--line-1)',
+        borderRadius: 8,
       }}
     >
       <span
@@ -37,8 +36,8 @@ export default function MetricCard({ label, value, meta, tone = 'neutral' }: Met
           fontSize: '1.75rem',
           fontWeight: 700,
           lineHeight: 1,
-          color: 'var(--cds-text-primary)',
-          fontFamily: 'var(--cds-code-02-font-family, "IBM Plex Mono", monospace)',
+          color: 'var(--text-1)',
+          fontFamily: 'var(--font-mono, "IBM Plex Mono", monospace)',
         }}
       >
         {value}
@@ -51,23 +50,16 @@ export default function MetricCard({ label, value, meta, tone = 'neutral' }: Met
           fontWeight: 600,
           letterSpacing: '0.05em',
           textTransform: 'uppercase',
-          color: 'var(--cds-text-secondary)',
+          color: 'var(--text-3)',
         }}
       >
         {label}
       </span>
       {meta && (
-        <span
-          style={{
-            display: 'block',
-            marginTop: '0.375rem',
-            fontSize: '0.75rem',
-            color: 'var(--cds-text-secondary)',
-          }}
-        >
+        <span style={{ display: 'block', marginTop: '0.375rem', fontSize: '0.75rem', color: 'var(--text-3)' }}>
           {meta}
         </span>
       )}
-    </Tile>
+    </div>
   )
 }

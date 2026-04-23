@@ -1,7 +1,4 @@
 import { useState } from 'react'
-import { Button, TextArea } from '~/lib/carbon-forms'
-import { InlineNotification } from '~/lib/carbon-feedback'
-import { Stack, Tile } from '~/lib/carbon-layout'
 import { shallowEqual, useSPCSelector } from '../SPCContext'
 import { useMSACalculate } from '../hooks/useMSACalculate'
 import { useMSASave } from '../hooks/useMSASave'
@@ -67,9 +64,9 @@ function GRRResult({ result, onSave, saving, isPersistable }: GRRResultProps) {
   const { colorStyle, verdict } = grrStatusClass(grrPct)
 
   return (
-    <Tile>
-      <Stack gap={4}>
-        <p style={{ margin: 0, fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--cds-text-secondary)' }}>
+    <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 10, padding: '1.25rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <p style={{ margin: 0, fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--text-3)' }}>
           Method: <strong>{method === 'anova' ? 'ANOVA Gauge R&R' : 'Average & Range'}</strong>
           {method === 'anova' && interactionPValue != null && ` · interaction p = ${interactionPValue.toFixed(4)}`}
         </p>
@@ -84,13 +81,13 @@ function GRRResult({ result, onSave, saving, isPersistable }: GRRResultProps) {
 
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--cds-border-subtle-01)' }}>
-              <th style={{ textAlign: 'left', padding: '0.375rem 0', color: 'var(--cds-text-secondary)', fontWeight: 600 }}>Source</th>
-              <th style={{ textAlign: 'right', padding: '0.375rem 0', color: 'var(--cds-text-secondary)', fontWeight: 600 }}>σ</th>
-              <th style={{ textAlign: 'right', padding: '0.375rem 0', color: 'var(--cds-text-secondary)', fontWeight: 600 }}>% Contribution</th>
+            <tr style={{ borderBottom: '1px solid var(--line-1)' }}>
+              <th style={{ textAlign: 'left', padding: '0.375rem 0', color: 'var(--text-3)', fontWeight: 600 }}>Source</th>
+              <th style={{ textAlign: 'right', padding: '0.375rem 0', color: 'var(--text-3)', fontWeight: 600 }}>σ</th>
+              <th style={{ textAlign: 'right', padding: '0.375rem 0', color: 'var(--text-3)', fontWeight: 600 }}>% Contribution</th>
             </tr>
           </thead>
-          <tbody style={{ color: 'var(--cds-text-primary)' }}>
+          <tbody style={{ color: 'var(--text-1)' }}>
             {[
               { label: 'Repeatability (EV)', sigma: ev, pct: tv && tv > 0 && ev != null ? ((ev / tv) * 100).toFixed(1) : '—' },
               { label: 'Reproducibility (AV)', sigma: av, pct: tv && tv > 0 && av != null ? ((av / tv) * 100).toFixed(1) : '—' },
@@ -99,7 +96,7 @@ function GRRResult({ result, onSave, saving, isPersistable }: GRRResultProps) {
               { label: 'Part Variation (PV)', sigma: pv, pct: tv && tv > 0 && pv != null ? ((pv / tv) * 100).toFixed(1) : '—' },
               { label: 'Total Variation (TV)', sigma: tv, pct: '100', bold: true },
             ].map(row => (
-              <tr key={row.label} style={{ borderBottom: '1px solid var(--cds-border-subtle-01)' }}>
+              <tr key={row.label} style={{ borderBottom: '1px solid var(--line-1)' }}>
                 <td style={{ padding: '0.375rem 0' }}>{row.bold ? <strong>{row.label}</strong> : row.label}</td>
                 <td style={{ textAlign: 'right', padding: '0.375rem 0', fontVariantNumeric: 'tabular-nums' }}>{row.bold ? <strong>{row.sigma?.toFixed(4)}</strong> : row.sigma?.toFixed(4)}</td>
                 <td style={{ textAlign: 'right', padding: '0.375rem 0' }}>{row.pct}%</td>
@@ -108,18 +105,24 @@ function GRRResult({ result, onSave, saving, isPersistable }: GRRResultProps) {
           </tbody>
         </table>
 
-        <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-          NDC (Number of Distinct Categories): <strong style={{ color: 'var(--cds-text-primary)' }}>{ndc ?? '—'}</strong>
+        <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-3)' }}>
+          NDC (Number of Distinct Categories): <strong style={{ color: 'var(--text-1)' }}>{ndc ?? '—'}</strong>
           {ndc != null && ndc < 5 && (
-            <span style={{ color: 'var(--cds-support-warning)' }}> ⚠ NDC &lt; 5 — gauge cannot discriminate between parts</span>
+            <span style={{ color: 'var(--status-warn)' }}> ⚠ NDC &lt; 5 — gauge cannot discriminate between parts</span>
           )}
         </p>
 
-        <Button kind="primary" onClick={() => { void onSave() }} disabled={saving || !isPersistable}>
+        <button
+          className="btn btn-primary"
+          type="button"
+          onClick={() => { void onSave() }}
+          disabled={saving || !isPersistable}
+          style={{ width: 'fit-content' }}
+        >
           {saving ? 'Saving…' : 'Save Session'}
-        </Button>
-      </Stack>
-    </Tile>
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -144,8 +147,8 @@ function generateSampleData(nOp: number, nPt: number, nRep: number): string {
 }
 
 const STEP_STYLE = {
-  num: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '1.25rem', height: '1.25rem', borderRadius: '50%', background: 'var(--cds-link-primary)', color: 'var(--cds-text-inverse)', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 } as const,
-  li: { display: 'flex', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' } as const,
+  num: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '1.25rem', height: '1.25rem', borderRadius: '50%', background: 'var(--valentia-slate)', color: '#fff', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 } as const,
+  li: { display: 'flex', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-3)' } as const,
 }
 
 export default function MSAView() {
@@ -195,28 +198,26 @@ export default function MSAView() {
     })
   }
 
-  const inputStyle = { height: '2rem', width: '6rem', border: '1px solid var(--cds-border-strong-01)', background: 'var(--cds-field)', color: 'var(--cds-text-primary)', padding: '0 0.75rem', fontSize: '0.875rem' }
+  const inputStyle: React.CSSProperties = { height: '2rem', width: '6rem', border: '1px solid var(--line-2)', background: 'var(--surface-1)', color: 'var(--text-1)', padding: '0 0.75rem', fontSize: '0.875rem', borderRadius: 6, outline: 'none' }
+  const tile: React.CSSProperties = { background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 10, padding: '1.25rem' }
+  const eyebrow: React.CSSProperties = { fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)' }
 
   return (
-    <Stack gap={4}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {/* Header */}
-      <Tile>
-        <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--cds-text-secondary)', marginBottom: '0.25rem' }}>
-          Measurement system validation
-        </div>
-        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--cds-text-primary)' }}>Gauge R&amp;R</h3>
-        <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+      <div style={tile}>
+        <div style={{ marginBottom: '0.25rem', ...eyebrow }}>Measurement system validation</div>
+        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-1)' }}>Gauge R&amp;R</h3>
+        <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--text-3)' }}>
           Assess whether the measurement system can reliably distinguish part-to-part variation from
           gauge noise (repeatability and reproducibility).
         </p>
-      </Tile>
+      </div>
 
       {/* Getting started guidance */}
-      <Tile>
-        <Stack gap={3}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--cds-text-secondary)' }}>
-            Getting started
-          </div>
+      <div style={tile}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={eyebrow}>Getting started</div>
           <ol style={{ display: 'grid', gap: '0.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', listStyle: 'none', padding: 0, margin: 0 }}>
             {[
               <>Select a characteristic in the <strong>Charts</strong> tab to associate the study with a specific MIC.</>,
@@ -230,46 +231,42 @@ export default function MSAView() {
               </li>
             ))}
           </ol>
-        </Stack>
-      </Tile>
+        </div>
+      </div>
 
       {/* MIC association warning */}
       {!state.selectedMIC && (
-        <InlineNotification
-          kind="warning"
-          title="No characteristic selected."
-          subtitle="Go to the Charts tab, select a MIC, then return here to associate this study with that characteristic. Results can still be calculated without this link, but cannot be saved to the audit trail."
-          hideCloseButton
-          lowContrast
-        />
+        <InfoBanner variant="warn">
+          No characteristic selected. Go to the Charts tab, select a MIC, then return here to associate this study with that characteristic. Results can still be calculated without this link, but cannot be saved to the audit trail.
+        </InfoBanner>
       )}
 
       <div style={{ display: 'grid', gap: '1.25rem', gridTemplateColumns: 'minmax(0, 1.5fr) 320px', alignItems: 'start' }}>
-        <Stack gap={4}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Study setup */}
-          <Tile>
+          <div style={tile}>
             <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
               <legend style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}>Study parameters</legend>
-              <Stack gap={3}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
-                  <label style={{ fontSize: '0.875rem', color: 'var(--cds-text-primary)' }}>Method:</label>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-1)' }}>Method:</label>
                   <div style={{ display: 'flex', gap: '0.5rem' }} role="group" aria-label="GRR calculation method">
-                    <Button
-                      kind={method === 'average_range' ? 'primary' : 'secondary'}
-                      size="sm"
+                    <button
+                      className={method === 'average_range' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}
+                      type="button"
                       onClick={() => setMethod('average_range')}
                       aria-pressed={method === 'average_range'}
                     >
                       Average &amp; Range
-                    </Button>
-                    <Button
-                      kind={method === 'anova' ? 'primary' : 'secondary'}
-                      size="sm"
+                    </button>
+                    <button
+                      className={method === 'anova' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}
+                      type="button"
                       onClick={() => setMethod('anova')}
                       aria-pressed={method === 'anova'}
                     >
                       ANOVA
-                    </Button>
+                    </button>
                   </div>
                 </div>
                 <FieldHelp>
@@ -282,9 +279,9 @@ export default function MSAView() {
                   { id: 'msa-parts', label: 'Parts:', value: nParts, min: 2, max: 10, helpId: 'msa-parts-help', help: '2–10. Use 10 parts spanning the expected production range (not just good parts).', onChange: (v: number) => setNParts(Math.max(2, Math.min(10, v))) },
                   { id: 'msa-replicates', label: 'Replicates:', value: nReplicates, min: 2, max: 5, helpId: 'msa-replicates-help', help: '2–5. Each operator measures each part this many times (blind, random order).', onChange: (v: number) => setNReplicates(Math.max(2, Math.min(5, v))) },
                 ].map(({ id, label, value, min, max, helpId, help, onChange }) => (
-                  <Stack gap={1} key={id}>
+                  <div key={id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
-                      <label htmlFor={id} style={{ fontSize: '0.875rem', color: 'var(--cds-text-primary)' }}>{label}</label>
+                      <label htmlFor={id} style={{ fontSize: '0.875rem', color: 'var(--text-1)' }}>{label}</label>
                       <input
                         id={id}
                         type="number"
@@ -297,12 +294,12 @@ export default function MSAView() {
                       />
                     </div>
                     <FieldHelp id={helpId}>{help}</FieldHelp>
-                  </Stack>
+                  </div>
                 ))}
 
-                <Stack gap={1}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
-                    <label htmlFor="msa-tolerance" style={{ fontSize: '0.875rem', color: 'var(--cds-text-primary)' }}>Tolerance (USL−LSL):</label>
+                    <label htmlFor="msa-tolerance" style={{ fontSize: '0.875rem', color: 'var(--text-1)' }}>Tolerance (USL−LSL):</label>
                     <input
                       id="msa-tolerance"
                       type="number"
@@ -317,81 +314,86 @@ export default function MSAView() {
                   <FieldHelp id="msa-tolerance-help">
                     Optional. If provided, % GRR of tolerance is calculated in addition to % of total variation.
                   </FieldHelp>
-                </Stack>
-              </Stack>
+                </div>
+              </div>
             </fieldset>
-          </Tile>
+          </div>
 
           {/* Data entry */}
-          <Tile>
-            <Stack gap={3}>
+          <div style={tile}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '1rem' }}>
-                <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--cds-text-primary)' }} htmlFor="msa-data">
+                <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-1)' }} htmlFor="msa-data">
                   Measurement data
                 </label>
-                <Button
-                  kind="secondary"
-                  size="sm"
+                <button
+                  className="btn btn-ghost btn-sm"
+                  type="button"
                   onClick={() => setCsvText(generateSampleData(nOperators, nParts, nReplicates))}
                 >
                   Fill sample data
-                </Button>
+                </button>
               </div>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-                One measurement per line. Columns: <code style={{ background: 'var(--cds-layer-accent-01)', padding: '0 0.25rem', fontFamily: 'var(--cds-code-02-font-family, monospace)', fontSize: '0.7rem' }}>operator, part, replicate, value</code>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-3)' }}>
+                One measurement per line. Columns: <code style={{ background: 'var(--surface-sunken)', padding: '0 0.25rem', fontFamily: 'var(--font-mono)', fontSize: '0.7rem' }}>operator, part, replicate, value</code>
               </p>
-              <pre style={{ margin: 0, overflowX: 'auto', border: '1px solid var(--cds-border-subtle-01)', background: 'var(--cds-layer-accent-01)', padding: '0.5rem 0.75rem', fontSize: '0.7rem', lineHeight: 1.6, color: 'var(--cds-text-secondary)', fontFamily: 'var(--cds-code-02-font-family, monospace)' }}>{`1,1,1,10.25\n1,1,2,10.30\n1,2,1,10.52\n1,2,2,10.48\n2,1,1,10.21  ← operator 2, part 1, replicate 1\n2,1,2,10.27\n…`}</pre>
-              <TextArea
+              <pre style={{ margin: 0, overflowX: 'auto', border: '1px solid var(--line-1)', background: 'var(--surface-sunken)', padding: '0.5rem 0.75rem', fontSize: '0.7rem', lineHeight: 1.6, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', borderRadius: 4 }}>{`1,1,1,10.25\n1,1,2,10.30\n1,2,1,10.52\n1,2,2,10.48\n2,1,1,10.21  ← operator 2, part 1, replicate 1\n2,1,2,10.27\n…`}</pre>
+              <textarea
                 id="msa-data"
-                labelText=""
+                className="field"
                 rows={10}
                 value={csvText}
                 aria-label="Measurement data in CSV format: operator, part, replicate, value"
                 onChange={e => setCsvText(e.target.value)}
+                style={{ height: 'auto', padding: '8px 10px', resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: '0.8125rem' }}
               />
-            </Stack>
-          </Tile>
+            </div>
+          </div>
 
-          <Button kind="primary" onClick={() => { void handleCalculate() }} disabled={calculating}>
+          <button
+            className="btn btn-primary"
+            type="button"
+            onClick={() => { void handleCalculate() }}
+            disabled={calculating}
+            style={{ width: 'fit-content' }}
+          >
             {calculating ? 'Calculating…' : 'Calculate GRR'}
-          </Button>
-        </Stack>
+          </button>
+        </div>
 
         {/* Interpretation guide */}
-        <Tile>
-          <Stack gap={4}>
-            <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--cds-text-secondary)' }}>
-              Interpretation guide
-            </div>
-            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+        <div style={tile}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={eyebrow}>Interpretation guide</div>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-3)' }}>
               GRR tells you what fraction of your observed variation comes from the measurement system itself
               rather than genuine part-to-part differences.
             </p>
-            <Stack gap={2}>
-              <div style={{ border: '1px solid var(--cds-support-success)', background: 'var(--cds-notification-background-success)', padding: '0.625rem' }}>
-                <p style={{ margin: 0, fontWeight: 600, color: 'var(--cds-text-primary)' }}>✓ &lt; 10% GRR</p>
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>Acceptable. Gauge is suitable for production use.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ border: '1px solid var(--status-ok)', background: 'var(--status-ok-bg)', padding: '0.625rem', borderRadius: 6 }}>
+                <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-1)' }}>✓ &lt; 10% GRR</p>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--text-3)' }}>Acceptable. Gauge is suitable for production use.</p>
               </div>
-              <div style={{ border: '1px solid var(--cds-support-warning)', background: 'var(--cds-notification-background-warning)', padding: '0.625rem' }}>
-                <p style={{ margin: 0, fontWeight: 600, color: 'var(--cds-text-primary)' }}>⚠ 10–30% GRR</p>
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>Conditionally acceptable. May be OK depending on process risk and context.</p>
+              <div style={{ border: '1px solid var(--status-warn)', background: 'var(--status-warn-bg)', padding: '0.625rem', borderRadius: 6 }}>
+                <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-1)' }}>⚠ 10–30% GRR</p>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--text-3)' }}>Conditionally acceptable. May be OK depending on process risk and context.</p>
               </div>
-              <div style={{ border: '1px solid var(--cds-support-error)', background: 'var(--cds-notification-background-error)', padding: '0.625rem' }}>
-                <p style={{ margin: 0, fontWeight: 600, color: 'var(--cds-text-primary)' }}>✕ &gt; 30% GRR</p>
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>Not acceptable. The measurement system is a major source of variability.</p>
+              <div style={{ border: '1px solid var(--status-risk)', background: 'var(--status-risk-bg)', padding: '0.625rem', borderRadius: 6 }}>
+                <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-1)' }}>✕ &gt; 30% GRR</p>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--text-3)' }}>Not acceptable. The measurement system is a major source of variability.</p>
               </div>
-            </Stack>
-            <div style={{ borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.75rem', fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-              <p style={{ margin: 0, fontWeight: 600, color: 'var(--cds-text-primary)' }}>NDC (Number of Distinct Categories)</p>
+            </div>
+            <div style={{ borderTop: '1px solid var(--line-1)', paddingTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-3)' }}>
+              <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-1)' }}>NDC (Number of Distinct Categories)</p>
               <p style={{ margin: '0.25rem 0 0' }}>NDC ≥ 5 means the gauge can resolve at least 5 distinct levels of part quality. If NDC &lt; 5, the system cannot reliably classify parts.</p>
             </div>
-          </Stack>
-        </Tile>
+          </div>
+        </div>
       </div>
 
       {calculationError && <InfoBanner variant="warn">{calculationError}</InfoBanner>}
       {saveError && <InfoBanner variant="error">{saveError}</InfoBanner>}
       <GRRResult result={result} onSave={handleSave} saving={saving} isPersistable={isPersistable} />
-    </Stack>
+    </div>
   )
 }
