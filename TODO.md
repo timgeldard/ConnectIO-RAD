@@ -59,6 +59,7 @@
 - [ ] **Frontend build/dependency normalization** — continue reducing drift across the consolidated apps.
   - Audit remaining Vite/plugin/version differences across envmon, SPC, and trace2.
   - Decide which differences are intentional versus legacy carry-over.
+  - Do not attempt to converge or redesign the trace2 UI at this time; its custom workbench implementation is distinct from the Carbon-based apps.
   - Normalize package scripts and shared frontend tooling where behavior is equivalent.
   - Re-run build/typecheck slices after each normalization step rather than bundling a large frontend migration.
 
