@@ -1,26 +1,61 @@
 import { useState } from "react";
-import type { Batch, LineageNode } from "../types";
+import type { Batch, LineageNode, PageId } from "../types";
 import { fetchBottomUp, focalFromBatch } from "../data/api";
 import { useBatchData } from "../data/useBatchData";
 import { LoadFrame, EmptyBlock } from "../components/LoadFrame";
 import { LineageGraph, NodeDetailPanel } from "../components/LineageGraph";
-import { Card, DataTable, KPI, SectionHeader, StatusPill, fmtN } from "../ui";
+import { Card, DataTable, DepthControl, KPI, SectionHeader, StatusPill, fmtN } from "../ui";
 
-export function PageBottomUp({ batch: headerBatch }: { batch: Batch }) {
+export function PageBottomUp({
+  batch: headerBatch,
+  sim = false,
+  maxLevels = 3,
+  setMaxLevels,
+  maxInputDepth = 3,
+  setMaxInputDepth,
+}: {
+  batch: Batch;
+  navigate: (id: PageId) => void;
+  sim?: boolean;
+  maxLevels?: number;
+  setMaxLevels?: (v: number) => void;
+  maxInputDepth?: number;
+  setMaxInputDepth?: (v: number) => void;
+}) {
   const state = useBatchData(fetchBottomUp, headerBatch.material_id, headerBatch.batch_id);
   return (
     <LoadFrame
       state={state}
-      eyebrow="02 — BOTTOM-UP TRACEABILITY"
+      eyebrow="03 — BOTTOM-UP TRACEABILITY"
       loadingTitle="Loading upstream lineage…"
       loadingSubtitle={`Material ${headerBatch.material_id} · Batch ${headerBatch.batch_id}`}
     >
-      {({ batch, lineage }) => <BottomUpBody batch={batch} lineage={lineage} />}
+      {({ batch, lineage }) => (
+        <BottomUpBody
+          batch={batch}
+          lineage={lineage}
+          sim={sim}
+          maxLevels={maxLevels}
+          setMaxLevels={setMaxLevels}
+          maxInputDepth={maxInputDepth}
+          setMaxInputDepth={setMaxInputDepth}
+        />
+      )}
     </LoadFrame>
   );
 }
 
-function BottomUpBody({ batch, lineage }: { batch: Batch; lineage: LineageNode[] }) {
+function BottomUpBody({
+  batch, lineage, sim, maxLevels, setMaxLevels, maxInputDepth, setMaxInputDepth,
+}: {
+  batch: Batch;
+  lineage: LineageNode[];
+  sim: boolean;
+  maxLevels: number;
+  setMaxLevels?: (v: number) => void;
+  maxInputDepth: number;
+  setMaxInputDepth?: (v: number) => void;
+}) {
   const [selected, setSelected] = useState<LineageNode | null>(null);
   const focal = focalFromBatch(batch);
   const level1 = lineage.filter((n) => n.level === 1);
@@ -29,20 +64,34 @@ function BottomUpBody({ batch, lineage }: { batch: Batch; lineage: LineageNode[]
   ).size;
   const totalInbound = level1.reduce((s, n) => s + n.qty, 0);
   const maxLevel = lineage.reduce((m, n) => Math.max(m, n.level), 0);
+
   return (
     <div>
       <SectionHeader
-        eyebrow="02 — BOTTOM-UP TRACEABILITY"
+        eyebrow="03 — BOTTOM-UP TRACEABILITY"
         title="What went into this batch?"
         subtitle={`Upstream materials and supplier lots for this batch. Walks the lineage graph up to ${Math.max(maxLevel, 1)} level${maxLevel === 1 ? "" : "s"}.`}
       />
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
-        <KPI label="Days to expiry" value={batch.days_to_expiry} unit="days" />
+        <KPI label="Days to expiry" value={batch.days_to_expiry} unit="days" tone="brand" />
         <KPI label="Shelf-life status" value={<StatusPill status={batch.shelf_life_status} />} />
         <KPI label="Batch status" value={<StatusPill status={batch.batch_status} />} />
-        <KPI label="Direct inputs" value={level1.length} sub="Level 1 materials" />
+        <KPI label="Direct inputs" value={level1.length} sub="Level 1 materials" tone="brand" />
         <KPI label="Distinct suppliers" value={distinctSuppliers} />
       </div>
+
+      {/* Depth toolbar */}
+      {(setMaxLevels || setMaxInputDepth) && (
+        <div style={{ display: "flex", gap: 20, marginBottom: 12, alignItems: "flex-end" }}>
+          {setMaxInputDepth && (
+            <DepthControl label="Input depth ↑" value={maxInputDepth} onChange={setMaxInputDepth} />
+          )}
+          {setMaxLevels && (
+            <DepthControl label="Trace depth ↓" value={maxLevels} onChange={setMaxLevels} />
+          )}
+        </div>
+      )}
 
       <Card title="Material lineage — inputs" subtitle="Drag to pan · scroll to zoom · click any node" noPad style={{ marginBottom: 20 }}>
         <LineageGraph
@@ -51,6 +100,7 @@ function BottomUpBody({ batch, lineage }: { batch: Batch; lineage: LineageNode[]
           downstream={[]}
           highlightMode="upstream"
           selectedId={selected?.id}
+          sim={sim}
           onNodeClick={(n) => {
             if ("kind" in n && n.kind === "focal") {
               setSelected(null);
@@ -64,7 +114,7 @@ function BottomUpBody({ batch, lineage }: { batch: Batch; lineage: LineageNode[]
       <NodeDetailPanel node={selected} onClose={() => setSelected(null)} />
 
       {level1.length > 0 && (
-        <Card title="Inbound volume by direct input" subtitle={`Total received ${fmtN(totalInbound, 0)} KG across level-1 materials`} style={{ marginBottom: 20 }}>
+        <Card title="Inbound volume by direct input" subtitle={`Total received ${fmtN(totalInbound, 0)} ${batch.uom} across level-1 materials`} style={{ marginBottom: 20 }}>
           <FlowSummary nodes={level1} />
         </Card>
       )}
@@ -86,7 +136,7 @@ function BottomUpBody({ batch, lineage }: { batch: Batch; lineage: LineageNode[]
               {
                 header: "Link type",
                 render: (r) => (
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, color: "var(--ink-3)", letterSpacing: "0.08em" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--ink-3)", letterSpacing: "0.08em" }}>
                     {r.link}
                   </span>
                 ),
@@ -104,16 +154,16 @@ function BottomUpBody({ batch, lineage }: { batch: Batch; lineage: LineageNode[]
 function FlowSummary({ nodes }: { nodes: LineageNode[] }) {
   const total = Math.max(1, nodes.reduce((s, n) => s + n.qty, 0));
   const palette = [
-    "oklch(48% 0.09 155)",
-    "oklch(55% 0.08 250)",
-    "oklch(65% 0.1 45)",
-    "oklch(55% 0.05 180)",
-    "oklch(38% 0.06 155)",
-    "oklch(55% 0.13 40)",
+    "var(--valentia-slate)",
+    "var(--sage)",
+    "var(--jade)",
+    "var(--sunrise)",
+    "var(--brand-deep)",
+    "var(--sunset)",
   ];
   return (
     <div>
-      <div style={{ display: "flex", height: 44, borderRadius: 2, overflow: "hidden", marginBottom: 14 }}>
+      <div style={{ display: "flex", height: 44, borderRadius: 4, overflow: "hidden", marginBottom: 14 }}>
         {nodes.map((n, i) => (
           <div
             key={n.id}
@@ -123,9 +173,10 @@ function FlowSummary({ nodes }: { nodes: LineageNode[] }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "var(--paper)",
-              fontFamily: "'Newsreader', Georgia, serif",
-              fontSize: 14,
+              color: "#fff",
+              fontFamily: "var(--font-sans)",
+              fontSize: 13,
+              fontWeight: 600,
             }}
           >
             {((n.qty / total) * 100).toFixed(1)}%
@@ -136,15 +187,15 @@ function FlowSummary({ nodes }: { nodes: LineageNode[] }) {
         {nodes.map((n, i) => (
           <div key={n.id}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-              <span style={{ width: 10, height: 10, background: palette[i % palette.length] }} />
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: "var(--ink)" }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: palette[i % palette.length] }} />
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink)" }}>
                 {n.material}
               </span>
             </div>
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--ink)", fontVariantNumeric: "tabular-nums" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink)", fontVariantNumeric: "tabular-nums" }}>
               {fmtN(n.qty, 0)} {n.uom}
             </div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10.5, color: "var(--ink-3)" }}>
+            <div style={{ fontFamily: "var(--font-sans)", fontSize: 10.5, color: "var(--ink-3)" }}>
               {n.supplier || n.plant || "—"}
             </div>
           </div>

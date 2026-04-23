@@ -26,14 +26,14 @@ function MBChart({ data }: { data: MassBalanceEvent[] }) {
               y={positive ? midY - h : midY}
               width={barW}
               height={Math.max(h, 1)}
-              fill={positive ? "oklch(48% 0.09 155)" : "oklch(55% 0.13 40 / 0.8)"}
+              fill={positive ? "var(--jade)" : "color-mix(in srgb, var(--sunset) 80%, transparent)"}
             />
             {i % Math.max(1, Math.floor(data.length / 15)) === 0 && (
               <text
                 x={x + barW / 2}
                 y={height - pad.b + 14}
                 textAnchor="middle"
-                style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, fill: "var(--ink-3)" }}
+                style={{ fontFamily: "var(--font-mono)", fontSize: 9, fill: "var(--ink-3)" }}
               >
                 {d.date.slice(0, 6)}
               </text>
@@ -41,9 +41,9 @@ function MBChart({ data }: { data: MassBalanceEvent[] }) {
           </g>
         );
       })}
-      <text x={pad.l - 8} y={midY} textAnchor="end" dy="0.35em" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fill: "var(--ink-3)" }}>0</text>
-      <text x={pad.l - 8} y={pad.t + 6} textAnchor="end" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fill: "var(--ink-3)" }}>+{fmtN(maxAbs, 0)}</text>
-      <text x={pad.l - 8} y={height - pad.b} textAnchor="end" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fill: "var(--ink-3)" }}>−{fmtN(maxAbs, 0)}</text>
+      <text x={pad.l - 8} y={midY} textAnchor="end" dy="0.35em" style={{ fontFamily: "var(--font-mono)", fontSize: 10, fill: "var(--ink-3)" }}>0</text>
+      <text x={pad.l - 8} y={pad.t + 6} textAnchor="end" style={{ fontFamily: "var(--font-mono)", fontSize: 10, fill: "var(--ink-3)" }}>+{fmtN(maxAbs, 0)}</text>
+      <text x={pad.l - 8} y={height - pad.b} textAnchor="end" style={{ fontFamily: "var(--font-mono)", fontSize: 10, fill: "var(--ink-3)" }}>−{fmtN(maxAbs, 0)}</text>
     </svg>
   );
 }
@@ -67,16 +67,16 @@ function InventoryChart({ data }: { data: MassBalanceEvent[] }) {
         return (
           <g key={f}>
             <line x1={pad.l} x2={width - pad.r} y1={y} y2={y} stroke="var(--line)" strokeWidth={0.5} />
-            <text x={pad.l - 8} y={y} textAnchor="end" dy="0.35em" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fill: "var(--ink-3)" }}>
+            <text x={pad.l - 8} y={y} textAnchor="end" dy="0.35em" style={{ fontFamily: "var(--font-mono)", fontSize: 10, fill: "var(--ink-3)" }}>
               {fmtN(max * f, 0)}
             </text>
           </g>
         );
       })}
-      <path d={areaD} fill="oklch(48% 0.09 155 / 0.12)" />
-      <path d={pathD} fill="none" stroke="oklch(38% 0.06 155)" strokeWidth={1.5} />
+      <path d={areaD} fill="color-mix(in srgb, var(--valentia-slate) 12%, transparent)" />
+      <path d={pathD} fill="none" stroke="var(--valentia-slate)" strokeWidth={1.5} />
       {points.map((p, i) => (
-        <circle key={i} cx={p[0]} cy={p[1]} r={2.5} fill="oklch(38% 0.06 155)" />
+        <circle key={i} cx={p[0]} cy={p[1]} r={2.5} fill="var(--valentia-slate)" />
       ))}
       {data.map((d, i) =>
         i % Math.max(1, Math.floor(data.length / 10)) === 0 ? (
@@ -85,7 +85,7 @@ function InventoryChart({ data }: { data: MassBalanceEvent[] }) {
             x={pad.l + i * xStep}
             y={height - pad.b + 14}
             textAnchor="middle"
-            style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, fill: "var(--ink-3)" }}
+            style={{ fontFamily: "var(--font-mono)", fontSize: 9, fill: "var(--ink-3)" }}
           >
             {d.date.slice(0, 6)}
           </text>
@@ -100,7 +100,7 @@ export function PageMassBalance({ batch: headerBatch }: { batch: Batch }) {
   return (
     <LoadFrame
       state={state}
-      eyebrow="04 — MASS BALANCE"
+      eyebrow="02 — MASS BALANCE"
       loadingTitle="Loading mass balance…"
       loadingSubtitle={`Material ${headerBatch.material_id} · Batch ${headerBatch.batch_id}`}
     >
@@ -109,7 +109,7 @@ export function PageMassBalance({ batch: headerBatch }: { batch: Batch }) {
         return (
           <div>
             <SectionHeader
-              eyebrow="04 — MASS BALANCE"
+              eyebrow="02 — MASS BALANCE"
               title="Does production reconcile with movements?"
               subtitle="Every kilogram accounted for: produced, consumed, shipped, adjusted. Variance should be zero."
             />

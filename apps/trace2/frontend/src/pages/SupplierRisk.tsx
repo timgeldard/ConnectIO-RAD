@@ -9,7 +9,7 @@ export function PageSupplierRisk({ batch: headerBatch }: { batch: Batch }) {
   return (
     <LoadFrame
       state={state}
-      eyebrow="08 — SUPPLIER RISK"
+      eyebrow="09 — SUPPLIER RISK"
       loadingTitle="Loading supplier network…"
       loadingSubtitle={`Material ${headerBatch.material_id} · Batch ${headerBatch.batch_id}`}
     >
@@ -21,7 +21,7 @@ export function PageSupplierRisk({ batch: headerBatch }: { batch: Batch }) {
         return (
           <div>
             <SectionHeader
-              eyebrow="08 — SUPPLIER RISK"
+              eyebrow="09 — SUPPLIER RISK"
               title="Who supplies inputs that feed this material?"
               subtitle="All suppliers recorded in material lineage. Volume, batch counts, and failure rates aggregated from upstream quality results across the lineage graph."
             />
@@ -47,7 +47,7 @@ export function PageSupplierRisk({ batch: headerBatch }: { batch: Batch }) {
                       valueKey="received"
                       labelKey="name"
                       height={320}
-                      color="oklch(48% 0.09 155)"
+                      color="var(--valentia-slate)"
                       format={(v) => fmtN(v, 0) + " KG"}
                     />
                   </Card>
@@ -67,7 +67,7 @@ export function PageSupplierRisk({ batch: headerBatch }: { batch: Batch }) {
                         valueKey="failure_rate"
                         labelKey="name"
                         height={320}
-                        color="oklch(55% 0.13 40)"
+                        color="var(--sunset)"
                         format={(v) => (v * 100).toFixed(1) + "%"}
                         max={Math.max(0.5, ...withFailures.map((s) => s.failure_rate))}
                       />

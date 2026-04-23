@@ -1,0 +1,37 @@
+# Validation Configuration
+#
+# Used by validate.py and CI/CD validation jobs.
+
+targets:
+  dev:
+    catalog: connected_plant_dev
+    schema: gold
+    host_env: DATABRICKS_HOST_DEV
+    token_env: DATABRICKS_TOKEN_DEV
+
+  uat:
+    catalog: connected_plant_uat
+    schema: gold
+    host_env: DATABRICKS_HOST_UAT
+    token_env: DATABRICKS_TOKEN_UAT
+
+  prod:
+    catalog: connected_plant_prod
+    schema: gold
+    host_env: DATABRICKS_HOST_PROD
+    token_env: DATABRICKS_TOKEN_PROD
+
+default_target: uat
+
+# Entities to skip during validation (e.g., not yet deployed)
+skip_entities: []
+
+# Severity levels that should fail CI
+fail_on:
+  - ERROR
+  - CRITICAL
+
+# Do not fail on
+allow:
+  - WARNING
+  - INFO

@@ -1,0 +1,91 @@
+# =============================================================================
+# ENUMERATIONS AND CODE LOOKUPS
+# =============================================================================
+#
+# PURPOSE:  Defines all coded values and their business meanings.
+#           Agents MUST use these translations rather than guessing.
+#
+# =============================================================================
+
+# Environment-specific catalog resolution
+catalogs:
+  dev:  connected_plant_dev
+  uat:  connected_plant_uat
+  prod: connected_plant_prod
+
+default_catalog: connected_plant_uat
+default_schema: gold
+
+# ---------------------------------------------------------------------------
+# SAP Movement Types (BWART)
+# ---------------------------------------------------------------------------
+movement_types:
+  "101": { meaning: "Goods Receipt from Production", category: "Production", sign: "+" }
+  "102": { meaning: "GR Production Reversal", category: "Production", sign: "-" }
+  "201": { meaning: "Goods Issue for Cost Center", category: "Consumption", sign: "-" }
+  "202": { meaning: "GI Cost Center Reversal", category: "Consumption", sign: "+" }
+  "261": { meaning: "Goods Issue for Process Order", category: "Consumption", sign: "-" }
+  "262": { meaning: "GI Process Order Reversal", category: "Consumption", sign: "+" }
+  "301": { meaning: "Transfer Posting Plant-to-Plant", category: "Transfer", sign: "-/+" }
+  "302": { meaning: "Transfer Posting Reversal", category: "Transfer", sign: "+/-" }
+  "311": { meaning: "Transfer to QI Stock", category: "Transfer", sign: "neutral" }
+  "312": { meaning: "Transfer from QI Stock", category: "Transfer", sign: "neutral" }
+  "321": { meaning: "Transfer to Blocked Stock", category: "Transfer", sign: "neutral" }
+  "322": { meaning: "Transfer from Blocked Stock", category: "Transfer", sign: "neutral" }
+  "531": { meaning: "Scrapping", category: "Adjustment", sign: "-" }
+  "532": { meaning: "Scrapping Reversal", category: "Adjustment", sign: "+" }
+  "601": { meaning: "Goods Issue for Delivery", category: "Shipment", sign: "-" }
+  "602": { meaning: "GI Delivery Reversal", category: "Shipment", sign: "+" }
+  "641": { meaning: "Goods Issue for STO Delivery", category: "STO_Transfer", sign: "-" }
+  "642": { meaning: "GI STO Delivery Reversal", category: "STO_Transfer", sign: "+" }
+  "701": { meaning: "Physical Inventory Surplus", category: "Adjustment", sign: "+" }
+  "702": { meaning: "Physical Inventory Deficit", category: "Adjustment", sign: "-" }
+  "711": { meaning: "Inventory Adjustment Gain", category: "Adjustment", sign: "+" }
+  "712": { meaning: "Inventory Adjustment Loss", category: "Adjustment", sign: "-" }
+
+# ---------------------------------------------------------------------------
+# Movement Categories (derived)
+# ---------------------------------------------------------------------------
+movement_categories:
+  Production: "Goods receipt from manufacturing (101/102)"
+  Consumption: "Goods issue for production or cost center (201/202/261/262)"
+  Shipment: "Customer delivery goods issue (601/602)"
+  Transfer: "Inter-plant or stock-type transfer (301/302/311/312/321/322)"
+  STO_Transfer: "Stock Transport Order movements (641/642)"
+  Adjustment: "Physical inventory, scrapping, corrections (531/532/701/702/711/712)"
+
+# ---------------------------------------------------------------------------
+# Lineage Link Types
+# ---------------------------------------------------------------------------
+link_types:
+  PRODUCTION: "Parent batch was consumed to produce child batch via process order"
+  BATCH_TRANSFER: "Same material, batch transferred between plants or storage locations"
+  STO_TRANSFER: "Inter-plant transfer via Stock Transport Order"
+
+# ---------------------------------------------------------------------------
+# Quality Result Valuations
+# ---------------------------------------------------------------------------
+result_valuations:
+  A: { meaning: "Accepted", description: "Result within specification" }
+  R: { meaning: "Rejected", description: "Result outside specification" }
+  F: { meaning: "Failed", description: "Inspection could not be completed" }
+
+# ---------------------------------------------------------------------------
+# Batch Status (derived — not stored in SAP)
+# ---------------------------------------------------------------------------
+batch_status_derived:
+  Released: "All stock unrestricted, quality accepted"
+  Blocked: "Any blocked stock or rejected quality results"
+  QI_Hold: "Stock in quality inspection or failed MICs pending review"
+  Restricted: "Stock restricted but not fully blocked"
+  Unknown: "No stock or quality data available"
+
+# ---------------------------------------------------------------------------
+# Stock Categories
+# ---------------------------------------------------------------------------
+stock_categories:
+  UNRESTRICTED: "Freely available for consumption or shipment"
+  BLOCKED: "Held — cannot be used without release"
+  QUALITY_INSPECTION: "Pending quality decision (QI hold)"
+  RESTRICTED: "Available under controlled conditions only"
+  TRANSIT: "In transit between plants"

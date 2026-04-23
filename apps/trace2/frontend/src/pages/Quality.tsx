@@ -9,7 +9,7 @@ const selectStyle: CSSProperties = {
   padding: "4px 8px",
   border: "1px solid var(--line-2)",
   background: "var(--card)",
-  fontFamily: "'JetBrains Mono', monospace",
+  fontFamily: "var(--font-mono)",
   fontSize: 11,
   color: "var(--ink)",
   borderRadius: 2,
@@ -20,7 +20,7 @@ export function PageQuality({ batch: headerBatch }: { batch: Batch }) {
   return (
     <LoadFrame
       state={state}
-      eyebrow="05 — QUALITY"
+      eyebrow="06 — QUALITY"
       loadingTitle="Loading quality results…"
       loadingSubtitle={`Material ${headerBatch.material_id} · Batch ${headerBatch.batch_id}`}
     >
@@ -55,7 +55,7 @@ function QualityBody({
   return (
     <div>
       <SectionHeader
-        eyebrow="05 — QUALITY"
+        eyebrow="06 — QUALITY"
         title="Inspection lots and characteristic results"
         subtitle="All quality checkpoints for this batch. Failed MICs block release automatically; critical failures escalate to QA."
       />
@@ -121,7 +121,7 @@ function QualityBody({
               {
                 header: "Result",
                 render: (r) => (
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums", color: "var(--ink)", fontWeight: 500 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink)", fontWeight: 500 }}>
                     {r.value || r.qual || "—"}
                   </span>
                 ),
@@ -176,7 +176,7 @@ function MicPassFailChart({ results }: { results: QualityResult[] }) {
               display: "flex",
               alignItems: "center",
               gap: 12,
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-sans)",
               fontSize: 12,
             }}
           >
@@ -190,28 +190,28 @@ function MicPassFailChart({ results }: { results: QualityResult[] }) {
               }}
               title={r.name}
             >
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, color: "var(--ink-3)", marginRight: 8 }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--ink-3)", marginRight: 8 }}>
                 {r.id}
               </span>
               {r.name}
             </div>
             <div style={{ flex: 1, height: 10, background: "var(--line)", position: "relative", display: "flex" }}>
-              <div style={{ width: `${passPct}%`, height: "100%", background: "oklch(48% 0.09 155)" }} />
-              <div style={{ width: `${failPct}%`, height: "100%", background: "oklch(55% 0.13 40)" }} />
+              <div style={{ width: `${passPct}%`, height: "100%", background: "var(--jade)" }} />
+              <div style={{ width: `${failPct}%`, height: "100%", background: "var(--sunset)" }} />
             </div>
             <div
               style={{
                 width: 120,
                 textAlign: "right",
-                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: 11,
                 color: "var(--ink)",
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              <span style={{ color: "oklch(38% 0.07 155)" }}>{fmtN(r.pass, 0)} pass</span>
+              <span style={{ color: "var(--jade)" }}>{fmtN(r.pass, 0)} pass</span>
               {r.fail > 0 && (
-                <span style={{ color: "oklch(42% 0.14 35)", marginLeft: 8 }}>
+                <span style={{ color: "var(--sunset)", marginLeft: 8 }}>
                   {fmtN(r.fail, 0)} fail
                 </span>
               )}

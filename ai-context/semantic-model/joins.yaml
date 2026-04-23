@@ -1,0 +1,192 @@
+# =============================================================================
+# APPROVED JOIN PATHS
+# =============================================================================
+# If a join is not listed here, agents MUST NOT use it.
+# =============================================================================
+
+approved_joins:
+
+  # ── Material dimension lookups ───────────────────────────────────────────
+
+  - name: movement_to_material
+    from_entity: gold_inventory_movement
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on: ["gold_material.MATERIAL_ID = gold_inventory_movement.MATERIAL_ID"]
+    required_filters: ["gold_material.LANGUAGE_ID = 'E'"]
+    purpose: Resolve material description for inventory movements
+
+  - name: process_order_to_material
+    from_entity: gold_process_order
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on: ["gold_material.MATERIAL_ID = gold_process_order.MATERIAL_ID"]
+    required_filters: ["gold_material.LANGUAGE_ID = 'E'"]
+    purpose: Resolve material description for process orders
+
+  - name: lineage_child_to_material
+    from_entity: gold_batch_lineage
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on: ["gold_material.MATERIAL_ID = gold_batch_lineage.CHILD_MATERIAL_ID"]
+    required_filters: ["gold_material.LANGUAGE_ID = 'E'"]
+    purpose: Resolve output material description in lineage
+
+  - name: lineage_parent_to_material
+    from_entity: gold_batch_lineage
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on: ["gold_material.MATERIAL_ID = gold_batch_lineage.PARENT_MATERIAL_ID"]
+    required_filters: ["gold_material.LANGUAGE_ID = 'E'"]
+    purpose: Resolve input material description in lineage
+
+  - name: quality_yield_to_material
+    from_entity: metric_quality_yield
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on: ["gold_material.MATERIAL_ID = metric_quality_yield.MATERIAL_ID"]
+    required_filters: ["gold_material.LANGUAGE_ID = 'E'"]
+    purpose: Resolve material description for quality yield reporting
+
+  # ── Plant dimension lookups ──────────────────────────────────────────────
+
+  - name: movement_to_plant
+    from_entity: gold_inventory_movement
+    to_entity: gold_plant
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on: ["gold_plant.PLANT_ID = gold_inventory_movement.PLANT_ID"]
+    purpose: Resolve plant name for movements
+
+  - name: process_order_to_plant
+    from_entity: gold_process_order
+    to_entity: gold_plant
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on: ["gold_plant.PLANT_ID = gold_process_order.PLANT_ID"]
+    purpose: Resolve plant name for orders
+
+  - name: oee_to_plant
+    from_entity: metric_oee_daily
+    to_entity: gold_plant
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on: ["gold_plant.PLANT_ID = metric_oee_daily.PLANT_ID"]
+    purpose: Resolve plant name for OEE reporting
+
+  - name: adherence_to_plant
+    from_entity: metric_schedule_adherence
+    to_entity: gold_plant
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on: ["gold_plant.PLANT_ID = metric_schedule_adherence.PLANT_ID"]
+    purpose: Resolve plant name for schedule adherence
+
+  - name: yield_to_plant
+    from_entity: metric_quality_yield
+    to_entity: gold_plant
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on: ["gold_plant.PLANT_ID = metric_quality_yield.PLANT_ID"]
+    purpose: Resolve plant name for yield reporting
+
+  # ── Fact-to-fact joins ───────────────────────────────────────────────────
+
+  - name: lineage_to_process_order
+    from_entity: gold_batch_lineage
+    to_entity: gold_process_order
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on: ["gold_process_order.ORDER_ID = gold_batch_lineage.PROCESS_ORDER_ID"]
+    purpose: Get order details for a lineage edge
+    notes: PROCESS_ORDER_ID is NULL for transfer edges — LEFT JOIN mandatory
+
+  - name: adherence_to_process_order
+    from_entity: metric_schedule_adherence
+    to_entity: gold_process_order
+    cardinality: one-to-one
+    join_type: INNER JOIN
+    on: ["gold_process_order.ORDER_ID = metric_schedule_adherence.ORDER_ID"]
+    purpose: Enrich schedule adherence with full order details
+
+  - name: lineage_to_movement_aggregated
+    from_entity: gold_batch_lineage
+    to_entity: gold_inventory_movement
+    cardinality: many-to-many
+    join_type: LEFT JOIN
+    pattern: aggregated_subquery
+    purpose: Attach movement totals to lineage trace nodes
+    example: |
+      LEFT JOIN (
+        SELECT MATERIAL_ID, BATCH_ID,
+          SUM(CASE WHEN MOVEMENT_CATEGORY = 'Production' THEN ABS_QTY ELSE 0 END) AS produced,
+          SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment'   THEN ABS_QTY ELSE 0 END) AS shipped
+        FROM {{CATALOG}}.gold.gold_inventory_movement
+        WHERE MOVEMENT_CATEGORY NOT LIKE 'STO%'
+        GROUP BY MATERIAL_ID, BATCH_ID
+      ) mv ON mv.MATERIAL_ID = trace.material_id AND mv.BATCH_ID = trace.batch_id
+    notes: NEVER join directly — always pre-aggregate by MATERIAL_ID + BATCH_ID
+
+# =============================================================================
+# FORBIDDEN JOINS
+# =============================================================================
+
+forbidden_joins:
+
+  - name: direct_movement_to_lineage
+    from_entity: gold_inventory_movement
+    to_entity: gold_batch_lineage
+    reason: >
+      Direct join without aggregation causes massive fan-out.  Movements have
+      many rows per batch; lineage has multiple edges per batch.
+    severity: HIGH
+    correct_approach: Use lineage_to_movement_aggregated pattern above
+
+  - name: oee_to_process_order
+    from_entity: metric_oee_daily
+    to_entity: gold_process_order
+    reason: >
+      OEE is at production-line-day grain; process orders are at order grain.
+      Multiple orders run on the same line on the same day.  No clean FK.
+    severity: HIGH
+    correct_approach: Correlate via PLANT_ID + PRODUCTION_LINE + date range
+
+  - name: cross_metric_direct
+    from_entity: metric_oee_daily
+    to_entity: metric_quality_yield
+    reason: >
+      Different grains (line-day vs order-batch).  Direct join produces
+      incorrect cross-products.
+    severity: MEDIUM
+    correct_approach: Aggregate both to a common grain (plant-week) before combining
+
+# =============================================================================
+# COMMON JOIN TRAPS
+# =============================================================================
+
+common_traps:
+
+  - trap: Missing LANGUAGE_ID filter on gold_material
+    impact: Row multiplication — one extra row per language
+    fix: Always include gold_material.LANGUAGE_ID = 'E'
+
+  - trap: Joining movements to lineage without pre-aggregation
+    impact: Massive fan-out, inflated quantities
+    fix: Pre-aggregate movements by MATERIAL_ID + BATCH_ID in a subquery
+
+  - trap: Averaging percentages without weighting
+    impact: Small-volume lines skew the average
+    fix: "Weighted average: SUM(pct * weight) / SUM(weight)"
+
+  - trap: Including DELETED orders in schedule adherence
+    impact: Denominator inflation
+    fix: "Filter ORDER_STATUS NOT IN ('DELETED', 'CREATED')"
+
+  - trap: Not filtering CHILD_BATCH_ID IS NOT NULL in lineage
+    impact: Scrap/waste rows pollute trace results
+    fix: Add WHERE CHILD_BATCH_ID IS NOT NULL to recursive anchor

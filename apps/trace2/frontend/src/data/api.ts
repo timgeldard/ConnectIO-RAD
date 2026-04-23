@@ -781,3 +781,8 @@ export async function fetchSupplierRisk(material_id: string, batch_id: string): 
     suppliers: (raw.suppliers ?? []).map(mapSupplier),
   };
 }
+
+// Overview reuses the recall-readiness endpoint — same payload, different page framing.
+export async function fetchOverview(material_id: string, batch_id: string): Promise<RecallReadinessPayload> {
+  return fetchRecallReadiness(material_id, batch_id);
+}

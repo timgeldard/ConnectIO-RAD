@@ -9,7 +9,7 @@ export function PageBatchCompare({ batch: headerBatch }: { batch: Batch }) {
   return (
     <LoadFrame
       state={state}
-      eyebrow="07 — BATCH COMPARISON"
+      eyebrow="08 — BATCH COMPARISON"
       loadingTitle="Loading batch comparison…"
       loadingSubtitle={`Material ${headerBatch.material_id}`}
     >
@@ -20,7 +20,7 @@ export function PageBatchCompare({ batch: headerBatch }: { batch: Batch }) {
         return (
           <div>
             <SectionHeader
-              eyebrow="07 — BATCH COMPARISON"
+              eyebrow="08 — BATCH COMPARISON"
               title="How does this batch compare to its siblings?"
               subtitle="Batch size relative to material average, pass/fail ratios, and quality metrics across all batches of this material."
             />
@@ -47,7 +47,7 @@ export function PageBatchCompare({ batch: headerBatch }: { batch: Batch }) {
                       valueKey="yield_pct"
                       labelKey="batch"
                       height={340}
-                      color="oklch(48% 0.09 155)"
+                      color="var(--valentia-slate)"
                       format={(v) => v.toFixed(1) + "%"}
                       sort={false}
                     />
@@ -58,7 +58,7 @@ export function PageBatchCompare({ batch: headerBatch }: { batch: Batch }) {
                       valueKey="failed_mics"
                       labelKey="batch"
                       height={340}
-                      color="oklch(55% 0.13 40)"
+                      color="var(--sunset)"
                       format={(v) => String(v)}
                       sort={false}
                     />

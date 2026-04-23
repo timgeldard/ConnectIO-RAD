@@ -15,10 +15,10 @@ const LEVEL_GAP = 18;
 const PADDING_Y = 40;
 
 const LINK_STYLE: Record<string, { stroke: string; dash?: string; label: string }> = {
-  RECEIPT:     { stroke: "oklch(45% 0.13 155)", label: "RECEIPT" },
-  CONSUMPTION: { stroke: "oklch(55% 0.14 60)",  dash: "4 3", label: "CONSUMPTION" },
-  INTERNAL:    { stroke: "oklch(50% 0.02 255)", dash: "4 3", label: "INTERNAL" },
-  SALES_ORDER: { stroke: "oklch(48% 0.12 250)", label: "SALES_ORDER" },
+  RECEIPT:     { stroke: "#289BA2", label: "RECEIPT" },
+  CONSUMPTION: { stroke: "#F9C20A", dash: "4 3", label: "CONSUMPTION" },
+  INTERNAL:    { stroke: "#8A9E6A", dash: "4 3", label: "INTERNAL" },
+  SALES_ORDER: { stroke: "#005776", label: "SALES_ORDER" },
 };
 
 function edgeStyle(linkType: string) {
@@ -32,6 +32,7 @@ interface Props {
   highlightMode?: HighlightMode;
   selectedId?: string;
   onNodeClick?: (n: PlacedNode) => void;
+  sim?: boolean;
 }
 
 export function LineageGraph({
@@ -41,6 +42,7 @@ export function LineageGraph({
   highlightMode = "none",
   selectedId,
   onNodeClick,
+  sim = false,
 }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [view, setView] = useState({ x: 0, y: 0, k: 1 });
@@ -149,7 +151,7 @@ export function LineageGraph({
       <div style={{
         background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 4,
         padding: "48px 16px", textAlign: "center",
-        fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: "var(--ink-3)",
+        fontFamily: "var(--font-sans)", fontSize: 12.5, color: "var(--ink-3)",
       }}>
         No lineage edges recorded for this batch.
       </div>
@@ -167,7 +169,7 @@ export function LineageGraph({
 
   const NodeEl = ({ n }: { n: PlacedNode }) => {
     const isFocal = "kind" in n && n.kind === "focal";
-    const col = nodeColor(n);
+    const col = nodeColor(n, sim);
     const selected = n.id === selectedId;
     const hl = isHighlighted(n.id);
     const opacity = hl ? 1 : 0.25;
@@ -181,7 +183,7 @@ export function LineageGraph({
       ? `INPUT · L${level}`
       : `OUTPUT · L${level}`;
     const accentColor = isFocal
-      ? "oklch(55% 0.13 40)"
+      ? "#DFFF11"
       : (LINK_STYLE[lineageN.link]?.stroke ?? "var(--ink-3)");
     const partyName = !isFocal
       ? (lineageN.supplier || lineageN.customer || "")
@@ -195,7 +197,7 @@ export function LineageGraph({
       >
         <rect width={NODE_W} height={NODE_H}
           fill={col.bg}
-          stroke={selected ? "oklch(42% 0.14 35)" : (isHover ? "var(--ink)" : col.border)}
+          stroke={selected ? "#F24A00" : (isHover ? "var(--ink)" : col.border)}
           strokeWidth={selected ? 2 : 1}
           rx={2}
         />
@@ -203,7 +205,7 @@ export function LineageGraph({
         <rect x={0} y={0} width={4} height={NODE_H} fill={accentColor} rx={2} />
         <rect x={0} y={2} width={4} height={NODE_H - 4} fill={accentColor} />
         <text x={14} y={16} style={{
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: "var(--font-mono)",
           fontSize: 9.5, letterSpacing: "0.12em",
           fill: isFocal ? "rgba(251,248,241,0.72)" : "var(--ink-3)",
           textTransform: "uppercase",
@@ -214,21 +216,21 @@ export function LineageGraph({
             <rect x={NODE_W - 60} y={5} width={54} height={14} rx={2}
               fill={accentColor} opacity={0.15} />
             <text x={NODE_W - 33} y={15} textAnchor="middle" style={{
-              fontFamily: "'JetBrains Mono', monospace", fontSize: 8,
+              fontFamily: "var(--font-mono)", fontSize: 8,
               letterSpacing: "0.1em", fill: accentColor,
             }}>{lineageN.link}</text>
           </>
         )}
         <text x={14} y={36} style={{
-          fontFamily: "'Newsreader', Georgia, serif",
+          fontFamily: "var(--font-sans)",
           fontSize: 13.5, fill: col.fg, fontWeight: 500, letterSpacing: "-0.005em",
         }}>{truncate(n.material, 26)}</text>
         <text x={14} y={54} style={{
-          fontFamily: "'JetBrains Mono', monospace", fontSize: 10,
+          fontFamily: "var(--font-mono)", fontSize: 10,
           fill: isFocal ? "rgba(251,248,241,0.78)" : "var(--ink-2)",
         }}>{batchLabel} · {n.material_id}</text>
         <text x={NODE_W - 12} y={54} textAnchor="end" style={{
-          fontFamily: "'JetBrains Mono', monospace", fontSize: 10,
+          fontFamily: "var(--font-mono)", fontSize: 10,
           fill: isFocal ? "rgba(251,248,241,0.78)" : "var(--ink-2)",
           fontVariantNumeric: "tabular-nums",
         }}>{fmtN(n.qty, 1)} {n.uom}</text>
@@ -236,9 +238,9 @@ export function LineageGraph({
         {n.plant && (
           <>
             <rect x={14} y={60} width={Math.min(n.plant.length * 5.8 + 8, 120)} height={13} rx={2}
-              fill={isFocal ? "oklch(32% 0.06 155)" : "var(--line)"} />
+              fill={isFocal ? "#002A3A" : "var(--line)"} />
             <text x={18} y={70} style={{
-              fontFamily: "'JetBrains Mono', monospace", fontSize: 8.5,
+              fontFamily: "var(--font-mono)", fontSize: 8.5,
               fill: isFocal ? "rgba(251,248,241,0.7)" : "var(--ink-3)",
               letterSpacing: "0.06em",
             }}>{truncate(n.plant, 18)}</text>
@@ -246,7 +248,7 @@ export function LineageGraph({
         )}
         {partyName && (
           <text x={NODE_W - 12} y={70} textAnchor="end" style={{
-            fontFamily: "'Inter', sans-serif", fontSize: 9,
+            fontFamily: "var(--font-sans)", fontSize: 9,
             fill: isFocal ? "rgba(251,248,241,0.55)" : "var(--ink-3)",
           }}>{truncate(partyName, 22)}</text>
         )}
@@ -312,14 +314,14 @@ export function LineageGraph({
       <div style={{
         display: "flex", alignItems: "center", gap: 20, padding: "6px 12px",
         background: "var(--card)", borderBottom: "1px solid var(--line)",
-        fontFamily: "'Inter', sans-serif", fontSize: 11, color: "var(--ink-2)",
+        fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--ink-2)",
       }}>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5, letterSpacing: "0.12em", color: "var(--ink-3)" }}>DEPTH</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.12em", color: "var(--ink-3)" }}>DEPTH</span>
         {rawMaxUp > 1 && (
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span>Upstream</span>
             <button style={depthBtn} onClick={() => setDepthUp((d) => clampDepth(d - 1, rawMaxUp))}>−</button>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", minWidth: 36, textAlign: "center" }}>
+            <span style={{ fontFamily: "var(--font-mono)", minWidth: 36, textAlign: "center" }}>
               {Math.min(depthUp, rawMaxUp)} / {rawMaxUp}
             </span>
             <button style={depthBtn} onClick={() => setDepthUp((d) => clampDepth(d + 1, rawMaxUp))}>＋</button>
@@ -330,7 +332,7 @@ export function LineageGraph({
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span>Downstream</span>
             <button style={depthBtn} onClick={() => setDepthDn((d) => clampDepth(d - 1, rawMaxDn))}>−</button>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", minWidth: 36, textAlign: "center" }}>
+            <span style={{ fontFamily: "var(--font-mono)", minWidth: 36, textAlign: "center" }}>
               {Math.min(depthDn, rawMaxDn)} / {rawMaxDn}
             </span>
             <button style={depthBtn} onClick={() => setDepthDn((d) => clampDepth(d + 1, rawMaxDn))}>＋</button>
@@ -344,7 +346,7 @@ export function LineageGraph({
         position: "absolute", top: 10, right: 14, zIndex: 2,
         background: "var(--card)", border: "1px solid var(--line-2)",
         padding: "6px 10px", borderRadius: 2,
-        fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5,
+        fontFamily: "var(--font-mono)", fontSize: 9.5,
         letterSpacing: "0.08em", color: "var(--ink-3)",
         display: "flex", flexDirection: "column", gap: 5,
         pointerEvents: "none",
@@ -369,10 +371,10 @@ export function LineageGraph({
             right: 200,
             zIndex: 2,
             padding: "6px 10px",
-            background: "oklch(97% 0.012 80 / 0.85)",
+            background: "rgba(250,250,242,0.92)",
             border: "1px solid var(--line-2)",
             borderRadius: 2,
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-sans)",
             fontSize: 11,
             color: "var(--ink-2)",
             display: "flex",
@@ -383,7 +385,7 @@ export function LineageGraph({
         >
           <span
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "var(--font-mono)",
               fontSize: 10,
               letterSpacing: "0.12em",
               color: "var(--ink-3)",
@@ -419,16 +421,16 @@ export function LineageGraph({
           {columnLabels.map(({ c }) => (
             <rect key={c} x={c * COL_W - NODE_W / 2 - 20} y={viewCY - spanY + PADDING_Y}
               width={NODE_W + 40} height={spanY * 2 - PADDING_Y * 2}
-              fill={c < 0 ? "oklch(96% 0.012 85 / 0.35)" : "oklch(97% 0.012 45 / 0.35)"}
+              fill={c < 0 ? "rgba(227,238,243,0.35)" : "rgba(241,241,229,0.35)"}
             />
           ))}
           {columnLabels.map(({ c, l }) => (
             <text key={c} x={c * COL_W} y={viewCY - spanY + PADDING_Y - 10} textAnchor="middle"
-              style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5, letterSpacing: "0.14em", fill: "var(--ink-3)" }}
+              style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.14em", fill: "var(--ink-3)" }}
             >{l}</text>
           ))}
           <text x={0} y={viewCY - spanY + PADDING_Y - 10} textAnchor="middle"
-            style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5, letterSpacing: "0.14em", fill: "oklch(38% 0.06 155)" }}
+            style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.14em", fill: "#005776" }}
           >FOCAL BATCH</text>
           {edges.map((e, i) => <EdgeEl key={i} e={e} />)}
           {allNodes.map((n) => <NodeEl key={n.id} n={n} />)}
@@ -438,7 +440,7 @@ export function LineageGraph({
         position: "absolute", bottom: 14, right: 14,
         display: "flex", gap: 6,
         background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 2,
-        padding: 4, fontFamily: "'Inter', sans-serif", fontSize: 11,
+        padding: 4, fontFamily: "var(--font-sans)", fontSize: 11,
       }}>
         <button onClick={() => setView((v) => ({ ...v, k: Math.min(2.4, v.k * 1.2) }))} style={toolBtn}>＋</button>
         <button onClick={() => setView((v) => ({ ...v, k: Math.max(0.3, v.k / 1.2) }))} style={toolBtn}>−</button>
@@ -458,15 +460,15 @@ export function LineageGraph({
             const w = NODE_W * mmScale;
             const h = NODE_H * mmScale;
             const fill = isFocal
-              ? "oklch(38% 0.06 155)"
-              : n.col < 0 ? "oklch(68% 0.06 80)" : "oklch(68% 0.06 40)";
+              ? "#003C52"
+              : n.col < 0 ? "#A4CFD8" : "#C8D8C0";
             return <rect key={n.id} x={pos.x} y={pos.y} width={Math.max(w, 2)} height={Math.max(h, 2)} fill={fill} rx={1} />;
           })}
           {/* viewport rect */}
           <rect
             x={vpMM.x} y={vpMM.y} width={Math.max(vpMM.w, 2)} height={Math.max(vpMM.h, 2)}
-            fill="oklch(52% 0.12 250 / 0.12)"
-            stroke="oklch(52% 0.12 250)"
+            fill="rgba(0,87,118,0.12)"
+            stroke="#005776"
             strokeWidth={1}
           />
         </svg>
@@ -512,37 +514,37 @@ export function NodeDetailPanel({
       >✕</button>
       <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "baseline", gap: 10, marginBottom: 2 }}>
         <span style={{
-          fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5,
+          fontFamily: "var(--font-mono)", fontSize: 9.5,
           letterSpacing: "0.12em", color: accentColor, textTransform: "uppercase",
         }}>
           {dir} · L{node.level} · {node.link}
         </span>
       </div>
       <div style={{ gridColumn: "1 / 3" }}>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>MATERIAL</div>
-        <div style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>{node.material}</div>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--ink-2)", marginTop: 2 }}>{node.material_id}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>MATERIAL</div>
+        <div style={{ fontFamily: "var(--font-sans)", fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>{node.material}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--ink-2)", marginTop: 2 }}>{node.material_id}</div>
       </div>
       <div>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>BATCH</div>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--ink)" }}>{node.batch}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>BATCH</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink)" }}>{node.batch}</div>
       </div>
       <div>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>QTY</div>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--ink)", fontVariantNumeric: "tabular-nums" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>QTY</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink)", fontVariantNumeric: "tabular-nums" }}>
           {fmtN(node.qty, 1)} {node.uom}
         </div>
       </div>
       <div>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>PLANT</div>
-        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: "var(--ink)" }}>{node.plant || "—"}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>PLANT</div>
+        <div style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink)" }}>{node.plant || "—"}</div>
       </div>
       {party && (
         <div>
-          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>
             {node.supplier ? "SUPPLIER" : "CUSTOMER"}
           </div>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: "var(--ink)" }}>{party}</div>
+          <div style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink)" }}>{party}</div>
         </div>
       )}
     </div>
@@ -560,14 +562,17 @@ function columnLabel(dir: "up" | "down", level: number, max: number): string {
   return `L${level} · DOWNSTREAM`;
 }
 
-function nodeColor(n: PlacedNode): { fg: string; bg: string; border: string } {
+function nodeColor(n: PlacedNode, sim = false): { fg: string; bg: string; border: string } {
   if ("kind" in n && n.kind === "focal") {
-    return { fg: "#fbf8f1", bg: "oklch(38% 0.06 155)", border: "oklch(30% 0.06 155)" };
+    return { fg: "#fff", bg: "#003C52", border: "#002A3A" };
   }
   if (n.col < 0) {
-    return { fg: "var(--ink)", bg: "oklch(96% 0.015 80)", border: "oklch(82% 0.03 80)" };
+    return { fg: "var(--ink)", bg: "#E3EEF3", border: "#A4CFD8" };
   }
-  return { fg: "var(--ink)", bg: "oklch(97% 0.015 40)", border: "oklch(82% 0.04 40)" };
+  if (sim) {
+    return { fg: "var(--ink)", bg: "#FDE5D9", border: "#F24A00" };
+  }
+  return { fg: "var(--ink)", bg: "#F1F1E5", border: "#C8D8C0" };
 }
 
 function truncate(s: string, n: number): string {
@@ -743,7 +748,7 @@ const toolBtn: React.CSSProperties = {
   borderRadius: 2,
   fontSize: 11,
   cursor: "pointer",
-  fontFamily: "'Inter', sans-serif",
+  fontFamily: "var(--font-sans)",
   color: "var(--ink)",
 };
 
@@ -754,6 +759,6 @@ const depthBtn: React.CSSProperties = {
   borderRadius: 2,
   fontSize: 11,
   cursor: "pointer",
-  fontFamily: "'Inter', sans-serif",
+  fontFamily: "var(--font-sans)",
   color: "var(--ink)",
 };

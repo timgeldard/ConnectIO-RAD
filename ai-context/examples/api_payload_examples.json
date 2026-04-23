@@ -1,0 +1,218 @@
+{
+  "_description": "API response contracts for Databricks app endpoints. Agents generating frontend code MUST match these shapes. Agents generating backend code MUST produce these shapes.",
+  "_conventions": {
+    "numeric_fields": "All numeric values arrive as STRINGS from the SQL Statement API. Frontend must parseFloat/parseInt.",
+    "null_handling": "Any field can be null. Frontend must handle gracefully.",
+    "date_format": "Dates arrive as 'YYYY-MM-DD' strings from SQL. Backend may reformat.",
+    "freshness": "Most responses include a data_freshness block with source view timestamps."
+  },
+  "POST /api/recall-readiness": {
+    "request": {
+      "material_id": "20582002",
+      "batch_id": "0008898869"
+    },
+    "response": {
+      "header": {
+        "material_id": "20582002",
+        "batch_id": "0008898869",
+        "material_name": "PRT1519 PRE-COOK NUGGET 25KG",
+        "material_desc40": "PRT1519 PRE-COOK NUGGET 25KG",
+        "process_order": "007006276688",
+        "plant_id": "C351",
+        "plant_name": "Olesnica [MFG]",
+        "manufacture_date": "2024-10-25",
+        "uom": "KG",
+        "qty_produced": "23975.000",
+        "qty_shipped": "23975.000",
+        "qty_consumed": "0.000",
+        "qty_adjusted": "0.000",
+        "current_stock": "0.000",
+        "unrestricted": "0.000",
+        "blocked": "0.000",
+        "qi": "0.000",
+        "restricted": "0.000",
+        "transit": "0.000",
+        "customers_affected": "1",
+        "countries_affected": "1",
+        "total_shipped_kg": "23975.000",
+        "total_deliveries": "3",
+        "consuming_pos": "0",
+        "batch_status": "UNRESTRICTED"
+      },
+      "countries": [
+        {
+          "code": "DE",
+          "name": "Germany",
+          "qty": "23975.000",
+          "deliveries": "3"
+        }
+      ],
+      "customers": [
+        {
+          "id": "0001234567",
+          "name": "Example Customer GmbH",
+          "country": "DE",
+          "qty": "23975.000",
+          "deliveries": "3",
+          "share": "1.0"
+        }
+      ],
+      "deliveries": [
+        {
+          "delivery": "0080012345",
+          "customer": "Example Customer GmbH",
+          "destination": "Berlin",
+          "country": "DE",
+          "date": "2024-11-01",
+          "qty": "8000.000",
+          "doc": "0040056789",
+          "status": "DELIVERED"
+        }
+      ],
+      "exposure": [
+        {
+          "material_id": "30001234",
+          "material": "FINISHED PRODUCT A",
+          "batch": "0009900001",
+          "plant": "C351",
+          "qty": "5000.000",
+          "stock": "0.000",
+          "shipped": "5000.000",
+          "status": "UNRESTRICTED",
+          "path_depth": "1",
+          "risk": "CRITICAL"
+        }
+      ],
+      "events": [
+        {
+          "date": "2024-10-25",
+          "category": "PRODUCTION",
+          "type": "101",
+          "plant": "C351",
+          "qty": "23975.000",
+          "uom": "KG",
+          "customer": null,
+          "country": null,
+          "doc": "007006276688"
+        }
+      ],
+      "data_freshness": {
+        "generated_at_utc": 1745352000,
+        "catalog": "connected_plant_uat",
+        "schema": "gold",
+        "sources": [
+          {
+            "source_view": "gold_batch_delivery_v",
+            "last_altered_utc": "2026-04-22 08:00:00"
+          },
+          {
+            "source_view": "gold_batch_lineage",
+            "last_altered_utc": "2026-04-22 08:00:00"
+          }
+        ]
+      }
+    }
+  },
+  "POST /api/trace": {
+    "request": {
+      "material_id": "20582002",
+      "batch_id": "0008898869"
+    },
+    "response": {
+      "tree": {
+        "name": "20582002",
+        "status": "Released",
+        "riskTier": "Pass",
+        "nodeColor": "#10b981",
+        "attributes": {
+          "Batch": "0008898869",
+          "Depth": 0,
+          "Plant": "Olesnica [MFG]"
+        },
+        "children": [
+          {
+            "name": "30001234",
+            "status": "Released",
+            "riskTier": "Pass",
+            "nodeColor": "#10b981",
+            "attributes": {
+              "Batch": "0009900001",
+              "Depth": 1,
+              "Plant": "Olesnica [MFG]"
+            },
+            "children": []
+          }
+        ]
+      },
+      "total_nodes": 2
+    }
+  },
+  "POST /api/summary": {
+    "request": {
+      "batch_id": "0008898869"
+    },
+    "response": {
+      "batch_id": "0008898869",
+      "total_produced": "23975.000",
+      "total_shipped": "23975.000",
+      "current_stock_unrestricted": "0.000",
+      "current_stock_blocked": "0.000",
+      "actual_stock": "0.000",
+      "mass_balance_variance": "0.000"
+    }
+  },
+  "POST /api/batch-details": {
+    "request": {
+      "material_id": "20582002",
+      "batch_id": "0008898869"
+    },
+    "response": {
+      "summary": {
+        "_comment": "Same shape as /api/summary response"
+      },
+      "coa_results": [
+        {
+          "mic_code": "MOIST",
+          "mic_name": "Moisture %",
+          "target_value": "35.0",
+          "tolerance_range": "2.0",
+          "actual_result": "34.8",
+          "result_status": "A",
+          "within_spec": "Within spec",
+          "deviation_from_target": "-0.2000"
+        }
+      ],
+      "customers": [
+        {
+          "customer_name": "Example Customer GmbH",
+          "country": "Germany"
+        }
+      ],
+      "cross_batch_exposure": [
+        {
+          "other_batch_id": "0009900002",
+          "shared_material_ids": "10005678",
+          "risk_level": "Low"
+        }
+      ],
+      "movement_history": [
+        {
+          "POSTING_DATE": "2024-10-25",
+          "inventory_level": "23975.000"
+        }
+      ]
+    }
+  },
+  "_type_conversion_rules": {
+    "frontend_parsing": {
+      "description": "The Databricks SQL Statement API returns ALL values as strings in data_array. The backend run_sql() function preserves this. Frontend must convert.",
+      "rules": [
+        "Quantities (qty, stock, shipped, etc.): parseFloat(value) || 0",
+        "Counts (deliveries, customers_affected): parseInt(value, 10) || 0",
+        "Dates: Date.parse(value) \u2014 check for NaN",
+        "IDs (material_id, batch_id): keep as string \u2014 NEVER parseInt",
+        "Nulls: check for null AND 'null' string"
+      ]
+    }
+  }
+}

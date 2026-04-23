@@ -1,0 +1,177 @@
+# =============================================================================
+# METRIC DEFINITIONS — Approved KPIs and Calculated Measures
+# =============================================================================
+#
+# PURPOSE:  Canonical definitions for every KPI agents may compute.
+#           If a metric is not here, agents MUST ask before inventing one.
+#
+# CONVENTION:
+#   - "sql" contains the SQL expression (using {{CATALOG}}.gold.table_name)
+#   - "grain" specifies the level at which this metric is meaningful
+#   - "direction" = higher_is_better | lower_is_better | target
+#   - "unit" = the display unit
+#
+# =============================================================================
+
+metrics:
+
+  # -------------------------------------------------------------------------
+  # Batch / Traceability Metrics
+  # -------------------------------------------------------------------------
+
+  - name: batch_status
+    display_name: Batch Status
+    description: >
+      Derived status of a batch based on stock categories and quality results.
+      Priority order: Blocked > QI Hold > Restricted > Released > Unknown.
+    grain: per batch (MATERIAL_ID, BATCH_ID)
+    sql: |
+      CASE
+        WHEN COALESCE(stk.BLOCKED, 0) > 0
+          OR COALESCE(qs.rejected_result_count, 0) > 0 THEN 'Blocked'
+        WHEN COALESCE(stk.QUALITY_INSPECTION, 0) > 0
+          OR COALESCE(qs.failed_mic_count, 0) > 0 THEN 'QI Hold'
+        WHEN COALESCE(qs.accepted_result_count, 0) > 0 THEN 'Released'
+        WHEN COALESCE(stk.UNRESTRICTED, 0) > 0 THEN 'Released'
+        ELSE 'Unknown'
+      END
+    sources:
+      - gold_batch_stock_v (aliased as stk, aggregated by MATERIAL_ID + BATCH_ID)
+      - gold_batch_quality_summary_v (aliased as qs)
+    notes: >
+      Stock must be pre-aggregated across plants before evaluating.
+      Quality summary is at batch level — no aggregation needed.
+
+  - name: mass_balance_variance
+    display_name: Mass Balance Variance
+    description: >
+      Difference between current inventory and the expected balance from
+      production minus shipments.  Non-zero variance indicates unaccounted
+      movements (adjustments, scrap, STO leakage).
+    grain: per batch (MATERIAL_ID, BATCH_ID)
+    unit: KG
+    direction: lower_is_better
+    sql: |
+      COALESCE(stk.actual_stock, 0) - (mb.total_produced - mb.total_shipped)
+    where: |
+      -- mb subquery:
+      SELECT
+        COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Production' THEN ABS_QUANTITY ELSE 0 END), 0) AS total_produced,
+        COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment'   THEN ABS_QUANTITY ELSE 0 END), 0) AS total_shipped
+      FROM {{CATALOG}}.gold.gold_batch_mass_balance_v
+      WHERE BATCH_ID = :batch_id
+        AND MOVEMENT_CATEGORY NOT LIKE 'STO%'
+    notes: STO (stock transport order) movements excluded to avoid double-counting
+
+  - name: customers_affected
+    display_name: Customers Affected
+    description: Count of distinct customers who received material from a batch.
+    grain: per batch
+    unit: count
+    sql: |
+      COUNT(DISTINCT CUSTOMER_ID)
+      FROM (
+        SELECT DISTINCT DELIVERY, CUSTOMER_ID, ABS_QUANTITY
+        FROM {{CATALOG}}.gold.gold_batch_delivery_v
+        WHERE BATCH_ID = :batch_id AND DELIVERY IS NOT NULL
+      )
+    notes: Deduplicate deliveries before counting to avoid inflation
+
+  - name: downstream_exposure_count
+    display_name: Downstream Exposed Batches
+    description: >
+      Number of distinct output batches that consumed material from a given
+      batch, traced to depth 2 via PRODUCTION and BATCH_TRANSFER links.
+    grain: per batch
+    unit: count
+    sql: |
+      -- Requires WITH RECURSIVE CTE on gold_batch_lineage
+      -- See canonical_sql.sql for the full pattern
+    notes: Always use WITH RECURSIVE and cycle detection
+
+  # -------------------------------------------------------------------------
+  # Manufacturing KPIs
+  # -------------------------------------------------------------------------
+
+  - name: first_pass_yield
+    display_name: First Pass Yield (FPY)
+    description: >
+      Percentage of inspection lots that pass all MICs on the first inspection
+      without rework or re-inspection.
+    grain: per material or per plant over a date range
+    unit: "%"
+    direction: higher_is_better
+    target: "> 95%"
+    sql: |
+      ROUND(
+        100.0 * COUNT(DISTINCT CASE WHEN rejected_result_count = 0 THEN BATCH_ID END)
+        / NULLIF(COUNT(DISTINCT BATCH_ID), 0),
+        2
+      )
+    source: gold_batch_quality_summary_v
+
+  - name: batch_cycle_time
+    display_name: Batch Cycle Time
+    description: >
+      Days between first production receipt and last goods issue for a batch.
+      Measures manufacturing-to-shipment velocity.
+    grain: per batch
+    unit: days
+    direction: lower_is_better
+    sql: |
+      DATEDIFF(
+        MAX(CASE WHEN MOVEMENT_CATEGORY = 'Shipment' THEN POSTING_DATE END),
+        MIN(CASE WHEN MOVEMENT_CATEGORY = 'Production' THEN POSTING_DATE END)
+      )
+    source: gold_batch_mass_balance_v
+    notes: NULL if batch has not been shipped yet
+
+  # -------------------------------------------------------------------------
+  # SPC Metrics
+  # -------------------------------------------------------------------------
+
+  - name: x_bar_ucl
+    display_name: X-bar Upper Control Limit
+    description: >
+      Upper control limit for X-bar chart.  Calculated as mean + 3*sigma_within.
+    grain: per MIC selection key
+    unit: same as measured_value
+    sql: |
+      CASE
+        WHEN sigma_within IS NOT NULL AND mean_value IS NOT NULL
+        THEN mean_value + 3 * sigma_within
+        ELSE NULL
+      END
+    notes: >
+      sigma_within uses the average moving range method (MR-bar / d2).
+      These are CALCULATED limits, not stored columns.
+
+  - name: x_bar_lcl
+    display_name: X-bar Lower Control Limit
+    description: >
+      Lower control limit for X-bar chart.  Calculated as mean - 3*sigma_within.
+    grain: per MIC selection key
+    sql: |
+      CASE
+        WHEN sigma_within IS NOT NULL AND mean_value IS NOT NULL
+        THEN mean_value - 3 * sigma_within
+        ELSE NULL
+      END
+
+  - name: cpk
+    display_name: Process Capability Index (Cpk)
+    description: >
+      Measures how well a process fits within specification limits.
+      Cpk = MIN((USL - mean) / 3*sigma, (mean - LSL) / 3*sigma).
+    grain: per MIC selection key over a measurement window
+    unit: ratio
+    direction: higher_is_better
+    target: "> 1.33"
+    sql: |
+      LEAST(
+        (upper_spec_limit - mean_value) / NULLIF(3 * sigma_within, 0),
+        (mean_value - lower_spec_limit) / NULLIF(3 * sigma_within, 0)
+      )
+    notes: >
+      Only meaningful for normally distributed, stable processes.
+      Returns NULL if spec limits or sigma are unavailable.

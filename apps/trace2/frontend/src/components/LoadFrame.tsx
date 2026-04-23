@@ -30,11 +30,11 @@ export function LoadFrame<T>({ state, eyebrow, loadingTitle, loadingSubtitle, ch
 
 function MessageBlock({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle?: string }) {
   return (
-    <div style={{ padding: "48px 0", fontFamily: "'Inter', sans-serif" }}>
-      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, letterSpacing: "0.14em", color: "var(--ink-3)", textTransform: "uppercase", marginBottom: 8 }}>
+    <div style={{ padding: "48px 0", fontFamily: "var(--font-sans)" }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: "0.14em", color: "var(--ink-3)", textTransform: "uppercase", marginBottom: 8 }}>
         {eyebrow}
       </div>
-      <div style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 22, color: "var(--ink)", marginBottom: 8 }}>
+      <div style={{ fontFamily: "var(--font-serif)", fontSize: 22, color: "var(--ink)", marginBottom: 8 }}>
         {title}
       </div>
       {subtitle && <div style={{ fontSize: 13, color: "var(--ink-2)" }}>{subtitle}</div>}
@@ -48,7 +48,7 @@ export function EmptyBlock({ message }: { message: string }) {
       style={{
         padding: "32px 16px",
         textAlign: "center",
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-sans)",
         fontSize: 12.5,
         color: "var(--ink-3)",
       }}

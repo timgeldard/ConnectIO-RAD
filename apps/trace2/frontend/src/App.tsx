@@ -1,7 +1,7 @@
 import { CSSProperties, ReactNode, useEffect, useState } from "react";
 import type { Batch, DemoState, PageId, Tweaks } from "./types";
 import { BATCH, BATCH_FAIL, BATCH_RECALL } from "./data/mock";
-import { ParamField } from "./ui";
+import { HexMark, ParamField, SimBanner, StatusPill } from "./ui";
 import { PageRecallReadiness } from "./pages/RecallReadiness";
 import { PageBottomUp } from "./pages/BottomUp";
 import { PageTopDown } from "./pages/TopDown";
@@ -11,57 +11,113 @@ import { PageProductionHistory } from "./pages/ProductionHistory";
 import { PageBatchCompare } from "./pages/BatchCompare";
 import { PageSupplierRisk } from "./pages/SupplierRisk";
 import { PageCoA } from "./pages/CoA";
+import { PageOverview } from "./pages/Overview";
+import { PageCustomersDeliveries } from "./pages/CustomersDeliveries";
 
-type PageComponent = (props: { batch: Batch; navigate: (id: PageId) => void }) => JSX.Element;
+export type PageProps = {
+  batch: Batch;
+  navigate: (id: PageId) => void;
+  sim?: boolean;
+  onSim?: (v: boolean) => void;
+  maxLevels?: number;
+  setMaxLevels?: (v: number) => void;
+  maxInputDepth?: number;
+  setMaxInputDepth?: (v: number) => void;
+};
+type PageComponent = (props: PageProps) => JSX.Element;
 
 interface PageDef {
   id: PageId;
   label: string;
   component: PageComponent;
   num: string;
-  accent?: "danger";
+  group: string;
 }
 
+const NAV_GROUPS = ["360°", "Lineage", "Quality & production", "Readiness"] as const;
+
 const PAGES: PageDef[] = [
-  { id: "recall_readiness", label: "Recall Readiness", component: PageRecallReadiness as PageComponent, num: "01", accent: "danger" },
-  { id: "bottom_up", label: "Bottom-Up Trace", component: PageBottomUp as PageComponent, num: "02" },
-  { id: "top_down", label: "Top-Down Trace", component: PageTopDown as PageComponent, num: "03" },
-  { id: "mass_balance", label: "Mass Balance", component: PageMassBalance as PageComponent, num: "04" },
-  { id: "quality", label: "Quality", component: PageQuality as PageComponent, num: "05" },
-  { id: "production_history", label: "Production History", component: PageProductionHistory as PageComponent, num: "06" },
-  { id: "batch_comparison", label: "Batch Comparison", component: PageBatchCompare as PageComponent, num: "07" },
-  { id: "supplier_risk", label: "Supplier Risk", component: PageSupplierRisk as PageComponent, num: "08" },
-  { id: "coa", label: "Certificate of Analysis", component: PageCoA as PageComponent, num: "09" },
+  { id: "overview",             label: "Overview",               component: PageOverview as unknown as PageComponent,             num: "01", group: "360°" },
+  { id: "mass_balance",         label: "Mass Balance",           component: PageMassBalance as unknown as PageComponent,         num: "02", group: "360°" },
+  { id: "bottom_up",            label: "Bottom-Up Trace",        component: PageBottomUp as unknown as PageComponent,            num: "03", group: "Lineage" },
+  { id: "top_down",             label: "Top-Down Trace",         component: PageTopDown as unknown as PageComponent,             num: "04", group: "Lineage" },
+  { id: "customers_deliveries", label: "Customers & Deliveries", component: PageCustomersDeliveries as unknown as PageComponent, num: "05", group: "Lineage" },
+  { id: "quality",              label: "Quality",                component: PageQuality as unknown as PageComponent,             num: "06", group: "Quality & production" },
+  { id: "production_history",   label: "Production History",     component: PageProductionHistory as unknown as PageComponent,   num: "07", group: "Quality & production" },
+  { id: "batch_comparison",     label: "Batch Comparison",       component: PageBatchCompare as unknown as PageComponent,        num: "08", group: "Quality & production" },
+  { id: "supplier_risk",        label: "Suppliers",              component: PageSupplierRisk as unknown as PageComponent,        num: "09", group: "Quality & production" },
+  { id: "recall_readiness",     label: "Recall Readiness",       component: PageRecallReadiness as unknown as PageComponent,     num: "10", group: "Readiness" },
+  { id: "coa",                  label: "Certificate of Analysis",component: PageCoA as unknown as PageComponent,                 num: "11", group: "Readiness" },
 ];
 
 const TWEAK_DEFAULTS: Tweaks = {
   theme: "light",
   density: "comfortable",
-  brandName: "Meridian",
+  brandName: "Kerry",
 };
 
 const LIGHT_THEME: Record<string, string> = {
-  "--paper": "#ffffff",
-  "--paper-2": "#f7f7f5",
-  "--card": "#ffffff",
-  "--ink": "#0f1419",
-  "--ink-2": "#4a5159",
-  "--ink-3": "#8a9199",
-  "--line": "#ececec",
-  "--line-2": "#d7d7d7",
-  "--hover": "rgba(15,20,25,0.03)",
+  "--paper":          "#FFFFFF",
+  "--paper-2":        "#F8F8EE",
+  "--card":           "#FFFFFF",
+  "--panel":          "#FAFAF2",
+  "--ink":            "#143700",
+  "--ink-2":          "color-mix(in srgb, #143700 68%, white)",
+  "--ink-3":          "color-mix(in srgb, #143700 45%, white)",
+  "--ink-4":          "color-mix(in srgb, #143700 28%, white)",
+  "--line":           "color-mix(in srgb, #143700 12%, transparent)",
+  "--line-2":         "color-mix(in srgb, #143700 22%, transparent)",
+  "--hover":          "color-mix(in srgb, #005776 7%, transparent)",
+  "--brand":          "#005776",
+  "--brand-deep":     "#003C52",
+  "--brand-20":       "color-mix(in srgb, #005776 14%, white)",
+  "--brand-10":       "color-mix(in srgb, #005776 7%, white)",
+  "--slate-surface":  "#E3EEF3",
+  "--forest-surface": "#E8EDE1",
+  "--stone":          "#F1F1E5",
+  "--valentia-slate": "#005776",
+  "--forest":         "#143700",
+  "--sage":           "#289BA2",
+  "--jade":           "#44CF93",
+  "--sunrise":        "#F9C20A",
+  "--sunset":         "#F24A00",
+  "--innovation":     "#DFFF11",
+  "--font-sans":      "'Noto Sans', ui-sans-serif, system-ui, sans-serif",
+  "--font-serif":     "'Noto Serif', ui-serif, Georgia, serif",
+  "--font-impact":    "'Noto Sans Condensed', 'Noto Sans', sans-serif",
+  "--font-mono":      "'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace",
 };
 
 const DARK_THEME: Record<string, string> = {
-  "--paper": "#15130e",
-  "--paper-2": "#1a1813",
-  "--card": "#1f1c16",
-  "--ink": "#f0ebdf",
-  "--ink-2": "#a8a192",
-  "--ink-3": "#6f6858",
-  "--line": "#2a2620",
-  "--line-2": "#3a352c",
-  "--hover": "rgba(240,235,223,0.04)",
+  "--paper":          "#14120D",
+  "--paper-2":        "#1A1813",
+  "--card":           "#1F1C16",
+  "--panel":          "#17150F",
+  "--ink":            "#F0EBD8",
+  "--ink-2":          "color-mix(in srgb, #F0EBD8 70%, #1A1813)",
+  "--ink-3":          "color-mix(in srgb, #F0EBD8 42%, #1A1813)",
+  "--ink-4":          "color-mix(in srgb, #F0EBD8 25%, #1A1813)",
+  "--line":           "rgba(240,235,216,0.08)",
+  "--line-2":         "rgba(240,235,216,0.14)",
+  "--hover":          "rgba(0,87,118,0.12)",
+  "--brand":          "#3A9BBE",
+  "--brand-deep":     "#005776",
+  "--brand-20":       "rgba(58,155,190,0.18)",
+  "--brand-10":       "rgba(58,155,190,0.09)",
+  "--slate-surface":  "rgba(58,155,190,0.12)",
+  "--forest-surface": "rgba(40,155,162,0.1)",
+  "--stone":          "#1A1813",
+  "--valentia-slate": "#3A9BBE",
+  "--forest":         "#F0EBD8",
+  "--sage":           "#4CC4CB",
+  "--jade":           "#55DFA0",
+  "--sunrise":        "#FBC632",
+  "--sunset":         "#FF6B2B",
+  "--innovation":     "#DFFF11",
+  "--font-sans":      "'Noto Sans', ui-sans-serif, system-ui, sans-serif",
+  "--font-serif":     "'Noto Serif', ui-serif, Georgia, serif",
+  "--font-impact":    "'Noto Sans Condensed', 'Noto Sans', sans-serif",
+  "--font-mono":      "'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace",
 };
 
 function NavLink({ page, active, onClick }: { page: PageDef; active: boolean; onClick: () => void }) {
@@ -72,256 +128,170 @@ function NavLink({ page, active, onClick }: { page: PageDef; active: boolean; on
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        padding: "8px 12px",
+        padding: "7px 14px",
         cursor: "pointer",
-        background: active ? "var(--card)" : hover ? "var(--hover)" : "transparent",
-        borderLeft: `2px solid ${active ? "var(--ink)" : "transparent"}`,
+        background: active ? "rgba(255,255,255,0.08)" : hover ? "rgba(255,255,255,0.05)" : "transparent",
+        borderLeft: `3px solid ${active ? "var(--innovation)" : "transparent"}`,
         display: "flex",
         alignItems: "center",
         gap: 10,
+        borderRadius: "0 4px 4px 0",
         marginBottom: 1,
+        transition: "background 150ms ease",
       }}
     >
-      <span
-        style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 10.5,
-          color: active ? "var(--ink)" : "var(--ink-3)",
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
+      <span style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 10.5,
+        color: active ? "var(--innovation)" : "rgba(255,255,255,0.5)",
+        fontVariantNumeric: "tabular-nums",
+        flexShrink: 0,
+      }}>
         {page.num}
       </span>
-      <span
-        style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 13,
-          color: active ? "var(--ink)" : "var(--ink-2)",
-          fontWeight: active ? 500 : 400,
-        }}
-      >
+      <span style={{
+        fontFamily: "var(--font-sans)",
+        fontSize: 13,
+        color: active ? "#fff" : "rgba(255,255,255,0.78)",
+        fontWeight: active ? 500 : 400,
+      }}>
         {page.label}
       </span>
-      {page.accent === "danger" && (
-        <span style={{ marginLeft: "auto", width: 5, height: 5, borderRadius: 3, background: "oklch(55% 0.13 40)" }} />
-      )}
     </div>
   );
 }
 
-function Sidebar({ active, onNavigate, tweaks }: { active: PageId; onNavigate: (id: PageId) => void; tweaks: Tweaks }) {
+function Sidebar({ active, onNavigate }: { active: PageId; onNavigate: (id: PageId) => void }) {
+  const groups = NAV_GROUPS.map((g) => ({ label: g, pages: PAGES.filter((p) => p.group === g) }));
   return (
-    <aside
-      style={{
-        width: 240,
-        flexShrink: 0,
-        background: "var(--paper-2)",
-        borderRight: "1px solid var(--line)",
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        position: "sticky",
-        top: 0,
-      }}
-    >
-      <div style={{ padding: "22px 24px 20px", borderBottom: "1px solid var(--line)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <svg width="22" height="22" viewBox="0 0 22 22">
-            <circle cx="11" cy="11" r="10" fill="none" stroke="var(--ink)" strokeWidth="1.2" />
-            <path d="M 11 3 L 11 19 M 3 11 L 19 11" stroke="var(--ink)" strokeWidth="0.8" />
-            <circle cx="11" cy="11" r="3" fill="oklch(38% 0.06 155)" />
-          </svg>
-          <div>
-            <div
-              style={{
-                fontFamily: "'Newsreader', Georgia, serif",
-                fontSize: 17,
-                fontWeight: 500,
-                color: "var(--ink)",
-                letterSpacing: "-0.01em",
-                lineHeight: 1,
-              }}
-            >
-              {tweaks.brandName || "Meridian"}
-            </div>
-            <div
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 10,
-                color: "var(--ink-3)",
-                textTransform: "uppercase",
-                letterSpacing: "0.14em",
-                marginTop: 3,
-              }}
-            >
-              Traceability
-            </div>
-          </div>
+    <aside style={{
+      width: 248,
+      flexShrink: 0,
+      background: "var(--valentia-slate)",
+      display: "flex",
+      flexDirection: "column",
+      height: "100vh",
+      position: "sticky",
+      top: 0,
+      zIndex: 20,
+    }}>
+      <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+          <HexMark size={20} />
+          <span style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: 17, fontWeight: 600,
+            color: "#fff",
+            letterSpacing: "-0.01em",
+            lineHeight: 1,
+          }}>Kerry</span>
+        </div>
+        <div style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 9.5, color: "rgba(255,255,255,0.5)",
+          textTransform: "uppercase", letterSpacing: "0.14em",
+          marginLeft: 28,
+        }}>
+          Global Ops · Batch Traceability
         </div>
       </div>
 
-      <nav style={{ padding: "16px 12px", flex: 1, overflowY: "auto" }}>
-        <div
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 9.5,
-            color: "var(--ink-3)",
-            letterSpacing: "0.16em",
-            padding: "4px 12px",
-            marginBottom: 4,
-            textTransform: "uppercase",
-          }}
-        >
-          Batch analysis
-        </div>
-        {PAGES.map((p) => (
-          <NavLink key={p.id} page={p} active={active === p.id} onClick={() => onNavigate(p.id)} />
+      <nav style={{ padding: "14px 8px", flex: 1, overflowY: "auto" }}>
+        {groups.map((g) => (
+          <div key={g.label} style={{ marginBottom: 16 }}>
+            <div style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 9, color: "rgba(255,255,255,0.45)",
+              letterSpacing: "0.18em", padding: "2px 14px 6px",
+              textTransform: "uppercase",
+            }}>{g.label}</div>
+            {g.pages.map((p) => (
+              <NavLink key={p.id} page={p} active={active === p.id} onClick={() => onNavigate(p.id)} />
+            ))}
+          </div>
         ))}
       </nav>
 
-      <div style={{ padding: "14px 20px", borderTop: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10 }}>
-        <div
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 14,
-            background: "oklch(38% 0.06 155)",
-            color: "var(--paper)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontFamily: "'Newsreader', Georgia, serif",
-            fontSize: 13,
-          }}
-        >
-          H
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: "var(--ink)", fontWeight: 500 }}>Dr. H. Vogel</div>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10.5, color: "var(--ink-3)" }}>Head of Quality</div>
+      <div style={{ padding: "12px 20px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: "rgba(255,255,255,0.38)", letterSpacing: "0.08em" }}>
+          Batch Traceability · v2
         </div>
       </div>
     </aside>
   );
 }
 
-const chevBtn: CSSProperties = {
-  width: 22,
-  height: 22,
-  border: "1px solid var(--line-2)",
-  background: "var(--card)",
-  color: "var(--ink-2)",
-  cursor: "pointer",
-  fontSize: 14,
-  lineHeight: 1,
-  borderRadius: 2,
-};
-
-function DepthControl({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function GhostIconButton({ children, title, onClick }: { children: ReactNode; title?: string; onClick?: () => void }) {
+  const [hover, setHover] = useState(false);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      <div
-        style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 10,
-          color: "var(--ink-3)",
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-        }}
-      >
-        {label}
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <button onClick={() => onChange(Math.max(1, value - 1))} style={chevBtn}>
-          −
-        </button>
-        <span
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 13,
-            color: "var(--ink)",
-            minWidth: 18,
-            textAlign: "center",
-          }}
-        >
-          {value}
-        </span>
-        <button onClick={() => onChange(Math.min(8, value + 1))} style={chevBtn}>
-          +
-        </button>
-      </div>
-    </div>
+    <button
+      title={title}
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: 32, height: 32,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: hover ? "var(--slate-surface)" : "var(--paper)",
+        color: hover ? "var(--brand)" : "var(--ink-3)",
+        border: `1px solid ${hover ? "var(--brand)" : "var(--line-2)"}`,
+        borderRadius: 4, cursor: "pointer",
+        fontSize: 15, fontFamily: "var(--font-sans)",
+        transition: "all 150ms ease",
+      }}
+    >{children}</button>
   );
 }
 
-function TopBar({
-  batch,
-  maxLevels,
-  setMaxLevels,
-  maxInputDepth,
-  setMaxInputDepth,
-  demoState,
-  setDemoState,
-}: {
-  batch: Batch;
-  maxLevels: number;
-  setMaxLevels: (v: number) => void;
-  maxInputDepth: number;
-  setMaxInputDepth: (v: number) => void;
-  demoState: DemoState;
-  setDemoState: (v: DemoState) => void;
-}) {
-  const states: { k: DemoState; label: string }[] = [
-    { k: "default", label: "Released" },
-    { k: "qi", label: "In QI" },
-    { k: "recall", label: "Blocked" },
-  ];
+function TopBar({ batch }: { batch: Batch }) {
   return (
-    <div
-      style={{
-        padding: "18px 32px",
-        borderBottom: "1px solid var(--line)",
-        background: "var(--paper)",
-        display: "flex",
-        alignItems: "center",
-        gap: 28,
-        position: "sticky",
-        top: 0,
-        zIndex: 10,
-      }}
-    >
-      <div style={{ display: "flex", gap: 24, flex: 1, minWidth: 0 }}>
-        <ParamField label="Material ID" value={batch.material_id} emphasize />
-        <ParamField label="Material" value={batch.material_desc40} mono={false} emphasize />
-        <ParamField label="Batch ID" value={batch.batch_id} emphasize />
-        <ParamField label="MFG Date" value={batch.manufacture_date} />
-        <ParamField label="Expiry" value={batch.expiry_date} />
+    <div style={{
+      height: 64,
+      padding: "0 28px",
+      borderBottom: "1px solid var(--line)",
+      background: "var(--paper)",
+      display: "flex",
+      alignItems: "center",
+      gap: 20,
+      position: "sticky",
+      top: 0,
+      zIndex: 10,
+    }}>
+      <div style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 10, color: "var(--ink-3)",
+        textTransform: "uppercase", letterSpacing: "0.12em",
+        whiteSpace: "nowrap",
+        flexShrink: 0,
+      }}>
+        Global Ops{" "}
+        <span style={{ opacity: 0.5 }}>/</span>{" "}
+        <span style={{ color: "var(--brand)", fontWeight: 500 }}>{batch.batch_id}</span>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-        <DepthControl label="Trace depth ↓" value={maxLevels} onChange={setMaxLevels} />
-        <DepthControl label="Input depth ↑" value={maxInputDepth} onChange={setMaxInputDepth} />
+      <div style={{ flex: 1, display: "flex", justifyContent: "center", overflow: "hidden" }}>
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 12,
+          padding: "8px 14px",
+          background: "var(--panel)",
+          border: "1px solid var(--line-2)",
+          borderRadius: 6,
+          maxWidth: 860, overflow: "hidden",
+        }}>
+          <HexMark size={16} />
+          <ParamField label="Material" value={batch.material_id} />
+          <div style={{ width: 1, height: 26, background: "var(--line-2)", flexShrink: 0 }} />
+          <ParamField label="Description" value={batch.material_desc40} mono={false} />
+          <div style={{ width: 1, height: 26, background: "var(--line-2)", flexShrink: 0 }} />
+          <ParamField label="Batch" value={batch.batch_id} emphasize />
+          <div style={{ width: 1, height: 26, background: "var(--line-2)", flexShrink: 0 }} />
+          <ParamField label="Plant" value={batch.plant_name || batch.plant_id} mono={false} />
+          <StatusPill status={batch.batch_status} size="sm" />
+        </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 4, padding: 3, border: "1px solid var(--line-2)", borderRadius: 2 }}>
-        {states.map((s) => (
-          <button
-            key={s.k}
-            onClick={() => setDemoState(s.k)}
-            style={{
-              padding: "4px 10px",
-              fontSize: 11,
-              fontFamily: "'Inter', sans-serif",
-              background: demoState === s.k ? "var(--ink)" : "transparent",
-              color: demoState === s.k ? "var(--paper)" : "var(--ink-2)",
-              border: "none",
-              borderRadius: 2,
-              cursor: "pointer",
-            }}
-          >
-            {s.label}
-          </button>
-        ))}
+      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+        <GhostIconButton title="Refresh" onClick={() => window.location.reload()}>↻</GhostIconButton>
       </div>
     </div>
   );
@@ -330,193 +300,133 @@ function TopBar({
 function TweakRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-      <span style={{ fontSize: 11.5, color: "var(--ink-2)", letterSpacing: "0.02em" }}>{label}</span>
+      <span style={{ fontSize: 11.5, color: "var(--ink-2)", fontFamily: "var(--font-sans)" }}>{label}</span>
       <div>{children}</div>
     </div>
   );
 }
 
 function Segmented<V extends string>({
-  options,
-  value,
-  onChange,
+  options, value, onChange,
 }: {
   options: { k: V; l: string }[];
   value: V;
   onChange: (v: V) => void;
 }) {
   return (
-    <div style={{ display: "flex", border: "1px solid var(--line-2)", borderRadius: 2 }}>
+    <div style={{ display: "flex", border: "1px solid var(--line-2)", borderRadius: 3, overflow: "hidden" }}>
       {options.map((o) => (
-        <button
-          key={o.k}
-          onClick={() => onChange(o.k)}
-          style={{
-            padding: "4px 10px",
-            fontSize: 11,
-            background: value === o.k ? "var(--ink)" : "transparent",
-            color: value === o.k ? "var(--paper)" : "var(--ink-2)",
-            border: "none",
-            cursor: "pointer",
-            fontFamily: "'Inter', sans-serif",
-          }}
-        >
-          {o.l}
-        </button>
+        <button key={o.k} onClick={() => onChange(o.k)} style={{
+          padding: "4px 10px", fontSize: 11,
+          background: value === o.k ? "var(--ink)" : "transparent",
+          color: value === o.k ? "var(--paper)" : "var(--ink-2)",
+          border: "none", cursor: "pointer",
+          fontFamily: "var(--font-sans)",
+        }}>{o.l}</button>
       ))}
     </div>
   );
 }
 
 function BatchPicker({
-  materialDraft,
-  batchDraft,
-  onMaterialChange,
-  onBatchChange,
-  onApply,
-  dirty,
+  materialDraft, batchDraft, onMaterialChange, onBatchChange, onApply, dirty,
 }: {
-  materialDraft: string;
-  batchDraft: string;
-  onMaterialChange: (v: string) => void;
-  onBatchChange: (v: string) => void;
-  onApply: () => void;
-  dirty: boolean;
+  materialDraft: string; batchDraft: string;
+  onMaterialChange: (v: string) => void; onBatchChange: (v: string) => void;
+  onApply: () => void; dirty: boolean;
 }) {
   const inputStyle: CSSProperties = {
-    padding: "6px 10px",
+    padding: "5px 9px",
     border: "1px solid var(--line-2)",
     background: "var(--paper)",
     color: "var(--ink)",
-    fontFamily: "'JetBrains Mono', monospace",
-    fontSize: 12,
-    borderRadius: 2,
-    minWidth: 160,
+    fontFamily: "var(--font-mono)",
+    fontSize: 12, borderRadius: 3,
+    minWidth: 148,
+    outline: "none",
   };
   function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && dirty) onApply();
   }
   return (
-    <div
-      style={{
-        padding: "10px 32px",
-        borderBottom: "1px solid var(--line)",
-        background: "var(--paper-2)",
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        fontFamily: "'Inter', sans-serif",
-        fontSize: 11.5,
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 10,
-          color: "var(--ink-3)",
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-        }}
-      >
-        Live batch
-      </span>
-      <label style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-2)" }}>
+    <div style={{
+      padding: "8px 28px",
+      borderBottom: "1px solid var(--line)",
+      background: "var(--paper-2)",
+      display: "flex", alignItems: "center", gap: 12,
+    }}>
+      <span style={{
+        fontFamily: "var(--font-mono)", fontSize: 9.5,
+        color: "var(--ink-3)", letterSpacing: "0.14em",
+        textTransform: "uppercase",
+      }}>Live batch</span>
+      <label style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-2)", fontFamily: "var(--font-sans)", fontSize: 11.5 }}>
         Material
-        <input
-          value={materialDraft}
-          onChange={(e) => onMaterialChange(e.target.value)}
-          onKeyDown={handleKey}
-          style={inputStyle}
-          placeholder="Material ID"
-        />
+        <input value={materialDraft} onChange={(e) => onMaterialChange(e.target.value)} onKeyDown={handleKey} style={inputStyle} placeholder="Material ID" />
       </label>
-      <label style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-2)" }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-2)", fontFamily: "var(--font-sans)", fontSize: 11.5 }}>
         Batch
-        <input
-          value={batchDraft}
-          onChange={(e) => onBatchChange(e.target.value)}
-          onKeyDown={handleKey}
-          style={inputStyle}
-          placeholder="Batch ID"
-        />
+        <input value={batchDraft} onChange={(e) => onBatchChange(e.target.value)} onKeyDown={handleKey} style={inputStyle} placeholder="Batch ID" />
       </label>
       <button
         onClick={onApply}
         disabled={!dirty}
         style={{
-          padding: "6px 14px",
-          fontSize: 11.5,
-          background: dirty ? "var(--ink)" : "var(--line)",
-          color: dirty ? "var(--paper)" : "var(--ink-3)",
-          border: "none",
-          borderRadius: 2,
+          padding: "5px 13px", fontSize: 11.5,
+          background: dirty ? "var(--brand)" : "var(--line)",
+          color: dirty ? "#fff" : "var(--ink-3)",
+          border: "none", borderRadius: 3,
           cursor: dirty ? "pointer" : "not-allowed",
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "var(--font-sans)",
         }}
-      >
-        Load
-      </button>
+      >Load</button>
     </div>
   );
 }
 
 function TweaksPanel({
-  open,
-  tweaks,
-  setTweaks,
+  open, tweaks, setTweaks, demoState, setDemoState,
 }: {
-  open: boolean;
-  tweaks: Tweaks;
-  setTweaks: (patch: Partial<Tweaks>) => void;
+  open: boolean; tweaks: Tweaks; setTweaks: (patch: Partial<Tweaks>) => void;
+  demoState: DemoState; setDemoState: (v: DemoState) => void;
 }) {
   if (!open) return null;
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 24,
-        right: 24,
-        width: 320,
-        background: "var(--card)",
-        border: "1px solid var(--ink)",
-        boxShadow: "0 10px 40px oklch(0% 0 0 / 0.15)",
-        zIndex: 100,
-        fontFamily: "'Inter', sans-serif",
-      }}
-    >
-      <div
-        style={{
-          padding: "14px 18px",
-          borderBottom: "1px solid var(--line)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: 15, color: "var(--ink)" }}>Tweaks</span>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--ink-3)", letterSpacing: "0.1em" }}>
-          DESIGN CONTROLS
+    <div style={{
+      position: "fixed", bottom: 24, right: 24, width: 320,
+      background: "var(--card)", border: "1px solid var(--line-2)",
+      boxShadow: "0 10px 40px rgba(20,55,0,0.12)",
+      zIndex: 100, borderRadius: 8,
+    }}>
+      <div style={{
+        padding: "14px 18px", borderBottom: "1px solid var(--line)",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <span style={{ fontFamily: "var(--font-sans)", fontSize: 14, fontWeight: 600, color: "var(--forest)" }}>Design controls</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--ink-3)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+          Ctrl+.
         </span>
       </div>
       <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
         <TweakRow label="Theme">
           <Segmented<Tweaks["theme"]>
-            options={[
-              { k: "light", l: "Light" },
-              { k: "dark", l: "Dark" },
-            ]}
+            options={[{ k: "light", l: "Light" }, { k: "dark", l: "Dark" }]}
             value={tweaks.theme}
             onChange={(v) => setTweaks({ theme: v })}
           />
         </TweakRow>
         <TweakRow label="Density">
           <Segmented<Tweaks["density"]>
-            options={[
-              { k: "comfortable", l: "Comfortable" },
-              { k: "compact", l: "Compact" },
-            ]}
+            options={[{ k: "comfortable", l: "Comfortable" }, { k: "compact", l: "Compact" }]}
             value={tweaks.density}
             onChange={(v) => setTweaks({ density: v })}
+          />
+        </TweakRow>
+        <TweakRow label="Demo state">
+          <Segmented<DemoState>
+            options={[{ k: "default", l: "Released" }, { k: "qi", l: "In QI" }, { k: "recall", l: "Blocked" }]}
+            value={demoState}
+            onChange={setDemoState}
           />
         </TweakRow>
         <TweakRow label="Brand name">
@@ -524,14 +434,9 @@ function TweaksPanel({
             value={tweaks.brandName}
             onChange={(e) => setTweaks({ brandName: e.target.value })}
             style={{
-              padding: "5px 8px",
-              border: "1px solid var(--line-2)",
-              background: "var(--paper)",
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 12,
-              color: "var(--ink)",
-              borderRadius: 2,
-              width: "100%",
+              padding: "5px 8px", border: "1px solid var(--line-2)",
+              background: "var(--paper)", fontFamily: "var(--font-sans)",
+              fontSize: 12, color: "var(--ink)", borderRadius: 3, width: "100%",
             }}
           />
         </TweakRow>
@@ -544,16 +449,14 @@ function loadTweaks(): Tweaks {
   try {
     const raw = localStorage.getItem("mi:tweaks");
     if (raw) return { ...TWEAK_DEFAULTS, ...JSON.parse(raw) };
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
   return TWEAK_DEFAULTS;
 }
 
 function loadPage(): PageId {
   const stored = localStorage.getItem("mi:page") as PageId | null;
   if (stored && PAGES.some((p) => p.id === stored)) return stored;
-  return "recall_readiness";
+  return "overview";
 }
 
 export default function App() {
@@ -561,25 +464,18 @@ export default function App() {
   const [maxLevels, setMaxLevels] = useState(3);
   const [maxInputDepth, setMaxInputDepth] = useState(3);
   const [demoState, setDemoState] = useState<DemoState>("default");
+  const [sim, setSim] = useState(false);
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [tweaks, setTweaksState] = useState<Tweaks>(loadTweaks);
 
   function setTweaks(patch: Partial<Tweaks>) {
     const next = { ...tweaks, ...patch };
     setTweaksState(next);
-    try {
-      localStorage.setItem("mi:tweaks", JSON.stringify(next));
-    } catch {
-      // ignore
-    }
+    try { localStorage.setItem("mi:tweaks", JSON.stringify(next)); } catch { /* ignore */ }
   }
 
   useEffect(() => {
-    try {
-      localStorage.setItem("mi:page", page);
-    } catch {
-      // ignore
-    }
+    try { localStorage.setItem("mi:page", page); } catch { /* ignore */ }
   }, [page]);
 
   useEffect(() => {
@@ -595,7 +491,8 @@ export default function App() {
 
   const mockBatch: Batch = demoState === "qi" ? BATCH_FAIL : demoState === "recall" ? BATCH_RECALL : BATCH;
   const pageDef = PAGES.find((p) => p.id === page) ?? PAGES[0];
-  const PageComponent = pageDef.component;
+  const PageComp = pageDef.component;
+
   const [liveMaterialId, setLiveMaterialId] = useState("20582002");
   const [liveBatchId, setLiveBatchId] = useState("0008898869");
   const [materialDraft, setMaterialDraft] = useState(liveMaterialId);
@@ -603,19 +500,16 @@ export default function App() {
   const batch: Batch = { ...mockBatch, material_id: liveMaterialId, batch_id: liveBatchId };
 
   return (
-    <div style={{ ...cssVars, background: "var(--paper)", minHeight: "100vh", color: "var(--ink)" }}>
+    <div style={{ ...cssVars, minHeight: "100vh", color: "var(--ink)" }}>
       <div style={{ display: "flex" }}>
-        <Sidebar active={page} onNavigate={setPage} tweaks={tweaks} />
-        <main style={{ flex: 1, minWidth: 0 }}>
-          <TopBar
-            batch={batch}
-            maxLevels={maxLevels}
-            setMaxLevels={setMaxLevels}
-            maxInputDepth={maxInputDepth}
-            setMaxInputDepth={setMaxInputDepth}
-            demoState={demoState}
-            setDemoState={setDemoState}
-          />
+        <Sidebar active={page} onNavigate={setPage} />
+        <main style={{ flex: 1, minWidth: 0, background: "var(--stone)" }}>
+          <TopBar batch={batch} />
+          {sim && (
+            <div style={{ padding: "12px 28px 0" }}>
+              <SimBanner batchId={batch.batch_id} onClear={() => setSim(false)} />
+            </div>
+          )}
           <BatchPicker
             materialDraft={materialDraft}
             batchDraft={batchDraft}
@@ -624,15 +518,37 @@ export default function App() {
             onApply={() => {
               setLiveMaterialId(materialDraft.trim());
               setLiveBatchId(batchDraft.trim());
+              setSim(false);
             }}
             dirty={materialDraft.trim() !== liveMaterialId || batchDraft.trim() !== liveBatchId}
           />
-          <div style={{ padding: tweaks.density === "compact" ? "24px 32px" : "36px 44px", maxWidth: 1440 }}>
-            <PageComponent batch={batch} navigate={setPage} />
+          <div style={{ padding: tweaks.density === "compact" ? "24px 28px" : "36px 40px", maxWidth: 1440 }}>
+            <PageComp
+              batch={batch}
+              navigate={setPage}
+              sim={sim}
+              onSim={setSim}
+              maxLevels={maxLevels}
+              setMaxLevels={setMaxLevels}
+              maxInputDepth={maxInputDepth}
+              setMaxInputDepth={setMaxInputDepth}
+            />
           </div>
         </main>
       </div>
-      <TweaksPanel open={tweaksOpen} tweaks={tweaks} setTweaks={setTweaks} />
+      <TweaksPanel
+        open={tweaksOpen}
+        tweaks={tweaks}
+        setTweaks={setTweaks}
+        demoState={demoState}
+        setDemoState={setDemoState}
+      />
+      {tweaksOpen && (
+        <div
+          onClick={() => setTweaksOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 99 }}
+        />
+      )}
     </div>
   );
 }

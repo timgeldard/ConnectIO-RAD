@@ -1,0 +1,1738 @@
+# =============================================================================
+# SEMANTIC MODEL — APPROVED ENTITY DEFINITIONS
+# =============================================================================
+#
+# This file is the single source of truth for every data object that agents
+# are permitted to use.  If an object is NOT listed here, agents MUST NOT
+# reference it.
+#
+# Catalog placeholder: {{CATALOG}}   (resolved per environment)
+# Schema:              gold
+#
+# Tier key:
+#   APPROVED    — agent may query freely
+#   RESTRICTED  — agent may query only with explicit human instruction
+#   DEPRECATED  — do not use; listed for migration awareness only
+#
+# Last reviewed: 2026-04-23
+# =============================================================================
+
+catalog: "{{CATALOG}}"
+schema: gold
+
+entities:
+
+  # ---------------------------------------------------------------------------
+  # DIMENSION: gold_material
+  # ---------------------------------------------------------------------------
+  - name: gold_material
+    business_name: Material Master
+    type: dimension
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Canonical material dimension containing product descriptions, material
+      group, material type, base unit of measure, and gross weight.  Sourced
+      from SAP MARA / MAKT.  Multi-language — always filter LANGUAGE_ID for
+      the desired locale.
+    grain: One row per (MATERIAL_ID, LANGUAGE_ID)
+    primary_keys: [MATERIAL_ID, LANGUAGE_ID]
+    preferred_synonyms:
+      - material
+      - product
+      - SKU
+      - item
+      - matnr
+    important_dimensions:
+      - name: MATERIAL_ID
+        type: STRING
+        description: SAP material number, 18-char, leading-zero-padded
+        example: "000000000020582002"
+      - name: LANGUAGE_ID
+        type: STRING
+        description: "Language key for description (E = English, D = German, etc.)"
+        example: "E"
+      - name: MATERIAL_NAME
+        type: STRING
+        description: Material short text in the given language (max 40 chars)
+        example: "PRT1519 PRE-COOK NUGGET 25KG"
+      - name: MATERIAL_GROUP
+        type: STRING
+        description: SAP material group classification code
+      - name: MATERIAL_TYPE
+        type: STRING
+        description: "SAP material type (FERT = finished, ROH = raw, HALB = semi-finished, VERP = packaging)"
+      - name: BASE_UOM
+        type: STRING
+        description: Base unit of measure (KG, L, EA, PAL, etc.)
+      - name: GROSS_WEIGHT
+        type: DECIMAL(13,3)
+        description: Gross weight per base unit
+    important_measures: []
+    forbidden_usage:
+      - "NEVER cast MATERIAL_ID to INTEGER — it has leading zeros"
+      - "NEVER omit the LANGUAGE_ID filter — you will get duplicate rows per language"
+    common_questions:
+      - "What is the description for material X?"
+      - "Which materials belong to material group Y?"
+      - "What is the base unit of measure for material X?"
+    traps:
+      - "Always filter LANGUAGE_ID = 'E' for English unless the user requests another language"
+      - "Some materials lack an English description — use COALESCE(MATERIAL_NAME, MATERIAL_ID)"
+      - "MATERIAL_TYPE codes are SAP internal — see sap_code_meanings.md for translations"
+
+  # ---------------------------------------------------------------------------
+  # DIMENSION: gold_plant
+  # ---------------------------------------------------------------------------
+  - name: gold_plant
+    business_name: Plant Master
+    type: dimension
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Plant/site dimension with plant name, country, region, and company code.
+      Sourced from SAP T001W.
+    grain: One row per PLANT_ID
+    primary_keys: [PLANT_ID]
+    preferred_synonyms:
+      - plant
+      - site
+      - factory
+      - facility
+      - werk
+    important_dimensions:
+      - name: PLANT_ID
+        type: STRING
+        description: SAP 4-character plant code
+        example: "C351"
+      - name: PLANT_NAME
+        type: STRING
+        description: Human-readable plant name
+        example: "Olesnica [MFG]"
+      - name: COUNTRY_ID
+        type: STRING
+        description: ISO 2-letter country code
+        example: "PL"
+      - name: REGION
+        type: STRING
+        description: "Business region (EMEA, APAC, Americas)"
+      - name: COMPANY_CODE
+        type: STRING
+        description: SAP company code (4-char)
+    important_measures: []
+    forbidden_usage:
+      - "NEVER cast PLANT_ID to INTEGER"
+    common_questions:
+      - "Which plants are in EMEA?"
+      - "What is the name of plant C351?"
+    traps:
+      - "PLANT_NAME may include suffixes like [MFG], [DC], [LAB] indicating site type"
+
+  # ---------------------------------------------------------------------------
+  # FACT: gold_batch_lineage
+  # ---------------------------------------------------------------------------
+  - name: gold_batch_lineage
+    business_name: Batch Lineage
+    type: fact
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Batch-to-batch traceability graph.  Each row is a directed edge from a
+      parent (input) batch to a child (output) batch, linked through a
+      production order, batch transfer, or stock transport order.  This is the
+      core table for forward trace (where did it go?) and reverse trace (where
+      did it come from?).  Sourced from SAP CHVW and process order component
+      lists.
+    grain: One edge per (PARENT_MATERIAL_ID, PARENT_BATCH_ID, CHILD_MATERIAL_ID, CHILD_BATCH_ID, LINK_TYPE)
+    primary_keys: [PARENT_MATERIAL_ID, PARENT_BATCH_ID, CHILD_MATERIAL_ID, CHILD_BATCH_ID, LINK_TYPE]
+    preferred_synonyms:
+      - lineage
+      - traceability
+      - genealogy
+      - batch tree
+      - where-used
+    important_dimensions:
+      - name: PARENT_MATERIAL_ID
+        type: STRING
+        description: Material number of the input (consumed) batch
+      - name: PARENT_BATCH_ID
+        type: STRING
+        description: Batch number of the input batch
+      - name: PARENT_PLANT_ID
+        type: STRING
+        description: Plant where the parent batch was held
+      - name: CHILD_MATERIAL_ID
+        type: STRING
+        description: Material number of the output (produced) batch
+      - name: CHILD_BATCH_ID
+        type: STRING
+        description: Batch number of the output batch
+      - name: CHILD_PLANT_ID
+        type: STRING
+        description: Plant where the child batch was produced
+      - name: LINK_TYPE
+        type: STRING
+        description: "Edge type: PRODUCTION | BATCH_TRANSFER | STO_TRANSFER"
+      - name: PROCESS_ORDER_ID
+        type: STRING
+        description: Process order that created the link (NULL for transfers)
+      - name: LINK_DATE
+        type: DATE
+        description: Date the lineage edge was created (goods movement date)
+    important_measures: []
+    forbidden_usage:
+      - "NEVER traverse lineage without WITH RECURSIVE — plain CTEs cannot self-reference"
+      - "NEVER omit cycle detection — data can contain circular references from reversals"
+      - "NEVER assume CHILD_BATCH_ID is non-null — filter explicitly"
+    common_questions:
+      - "Where did batch X end up? (forward trace)"
+      - "What raw materials went into batch X? (reverse trace)"
+      - "Which customers are exposed if batch X is recalled?"
+      - "How many downstream batches does batch X feed?"
+    traps:
+      - "Always SELECT DISTINCT edges before recursive traversal — duplicates exist from multiple extraction loads"
+      - "LINK_TYPE filtering is critical: use PRODUCTION for BOM-level tracing, include BATCH_TRANSFER for full graph"
+      - "CHILD_BATCH_ID can be NULL for scrap/waste outputs — always filter IS NOT NULL unless analysing waste"
+      - "Use path-tracking string concatenation for cycle detection in recursive CTEs"
+
+  # ---------------------------------------------------------------------------
+  # FACT: gold_inventory_movement
+  # ---------------------------------------------------------------------------
+  - name: gold_inventory_movement
+    business_name: Inventory Movement
+    type: fact
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Every goods movement (receipt, issue, transfer, adjustment) for batch-
+      managed materials.  One row per document line.  Sourced from SAP MSEG /
+      MKPF.  Use for mass balance, inventory history, and movement analytics.
+    grain: One row per (MATERIAL_DOCUMENT_ID, MATERIAL_DOCUMENT_ITEM)
+    primary_keys: [MATERIAL_DOCUMENT_ID, MATERIAL_DOCUMENT_ITEM]
+    preferred_synonyms:
+      - movement
+      - goods movement
+      - stock movement
+      - inventory transaction
+      - material movement
+    important_dimensions:
+      - name: MATERIAL_ID
+        type: STRING
+        description: Material number
+      - name: BATCH_ID
+        type: STRING
+        description: Batch number
+      - name: PLANT_ID
+        type: STRING
+        description: Plant where movement occurred
+      - name: STORAGE_LOCATION
+        type: STRING
+        description: Storage location within plant
+      - name: MOVEMENT_TYPE
+        type: STRING
+        description: SAP 3-digit movement type code (see sap_code_meanings.md)
+        example: "101"
+      - name: MOVEMENT_CATEGORY
+        type: STRING
+        description: "Derived human-readable category: Production, Shipment, Consumption, Transfer, Adjustment"
+      - name: POSTING_DATE
+        type: DATE
+        description: Date the movement was posted in SAP
+      - name: PROCESS_ORDER_ID
+        type: STRING
+        description: Production order (for 101/261 movements)
+      - name: CUSTOMER_ID
+        type: STRING
+        description: Ship-to customer (for 601 delivery movements)
+      - name: DELIVERY_ID
+        type: STRING
+        description: Delivery document number (for shipments)
+      - name: MATERIAL_DOCUMENT_ID
+        type: STRING
+        description: Material document number
+      - name: MATERIAL_DOCUMENT_ITEM
+        type: STRING
+        description: Line item within the material document
+    important_measures:
+      - name: MOVEMENT_QTY
+        type: DECIMAL(23,3)
+        description: Signed quantity (positive = receipt, negative = issue)
+      - name: ABS_QTY
+        type: DECIMAL(23,3)
+        description: Absolute (unsigned) movement quantity
+      - name: MOVEMENT_UOM
+        type: STRING
+        description: Unit of measure for this movement
+    forbidden_usage:
+      - "NEVER sum MOVEMENT_QTY across different UOMs without conversion"
+      - "NEVER include STO movements (641/642) in mass balance without understanding they appear twice (issue + receipt)"
+    common_questions:
+      - "What is the production volume this week?"
+      - "Show inventory movements for batch X"
+      - "How much was shipped to customer Y last month?"
+      - "What is the mass balance for batch X?"
+      - "Show all scrap/adjustment movements"
+    traps:
+      - "Use ABS_QTY for volume summaries — MOVEMENT_QTY carries the sign"
+      - "Use MOVEMENT_QTY for running balance calculations"
+      - "Exclude STO transfers (MOVEMENT_CATEGORY LIKE 'STO%') from single-site mass balance"
+      - "Deliveries can appear as both 601 (shipment) and 641 (STO) — clarify with user"
+      - "POSTING_DATE is the SAP posting date, not necessarily the physical movement date"
+
+  # ---------------------------------------------------------------------------
+  # FACT: gold_process_order
+  # ---------------------------------------------------------------------------
+  - name: gold_process_order
+    business_name: Process Order
+    type: fact
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Production/process order header.  One row per order.  Contains planned
+      and actual dates, quantities, status, and the material being produced.
+      Sourced from SAP AUFK / AFKO / AFPO.  Core entity for schedule
+      adherence, cycle time, and production planning analytics.
+    grain: One row per ORDER_ID
+    primary_keys: [ORDER_ID]
+    preferred_synonyms:
+      - process order
+      - production order
+      - manufacturing order
+      - work order
+      - aufnr
+    important_dimensions:
+      - name: ORDER_ID
+        type: STRING
+        description: SAP process/production order number (12-char)
+        example: "007006276688"
+      - name: ORDER_TYPE
+        type: STRING
+        description: "SAP order type (PP01 = process, PI01 = PI sheet, etc.)"
+      - name: MATERIAL_ID
+        type: STRING
+        description: Material being produced
+      - name: PLANT_ID
+        type: STRING
+        description: Production plant
+      - name: PRODUCTION_LINE
+        type: STRING
+        description: Work centre or production line identifier
+      - name: ORDER_STATUS
+        type: STRING
+        description: "Current status: CREATED, RELEASED, STARTED, CONFIRMED, CLOSED, DELETED"
+      - name: PLANNED_START_DATE
+        type: DATE
+        description: Scheduled start date
+      - name: PLANNED_END_DATE
+        type: DATE
+        description: Scheduled finish date
+      - name: ACTUAL_START_DATE
+        type: DATE
+        description: Actual production start (first confirmation)
+      - name: ACTUAL_END_DATE
+        type: DATE
+        description: Actual production finish (final confirmation)
+    important_measures:
+      - name: PLANNED_QTY
+        type: DECIMAL(23,3)
+        description: Target output quantity
+      - name: CONFIRMED_QTY
+        type: DECIMAL(23,3)
+        description: Actual confirmed output quantity
+      - name: SCRAP_QTY
+        type: DECIMAL(23,3)
+        description: Reported scrap quantity
+      - name: PLANNED_DURATION_HRS
+        type: DECIMAL(10,2)
+        description: Planned production duration in hours
+      - name: ACTUAL_DURATION_HRS
+        type: DECIMAL(10,2)
+        description: Actual production duration in hours
+    forbidden_usage:
+      - "NEVER include DELETED orders in KPI calculations — always filter ORDER_STATUS != 'DELETED'"
+      - "NEVER compare PLANNED_QTY to CONFIRMED_QTY without checking that the order is CONFIRMED or CLOSED"
+    common_questions:
+      - "How many orders were completed on time this week?"
+      - "What is the average cycle time per production line?"
+      - "Which orders are overdue?"
+      - "What was the planned vs actual output for order X?"
+    traps:
+      - "ACTUAL_END_DATE is NULL for orders not yet completed — filter ORDER_STATUS IN ('CONFIRMED','CLOSED') for completion analysis"
+      - "SCRAP_QTY is cumulative — do not double-count across confirmations"
+      - "One order can produce into multiple batches — join to gold_batch_lineage for batch-level detail"
+
+  # ---------------------------------------------------------------------------
+  # METRIC VIEW: metric_oee_daily
+  # ---------------------------------------------------------------------------
+  - name: metric_oee_daily
+    business_name: Daily OEE
+    type: metric_view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Pre-calculated daily Overall Equipment Effectiveness per production line
+      per plant.  OEE = Availability × Performance × Quality.  Built from
+      process order confirmations, downtime logs, and quality results.
+      Refreshed daily.
+    grain: One row per (PLANT_ID, PRODUCTION_LINE, PRODUCTION_DATE)
+    primary_keys: [PLANT_ID, PRODUCTION_LINE, PRODUCTION_DATE]
+    preferred_synonyms:
+      - OEE
+      - equipment effectiveness
+      - line efficiency
+    important_dimensions:
+      - name: PLANT_ID
+        type: STRING
+        description: Plant code
+      - name: PRODUCTION_LINE
+        type: STRING
+        description: Work centre / production line identifier
+      - name: PRODUCTION_DATE
+        type: DATE
+        description: Calendar date of production
+    important_measures:
+      - name: AVAILABILITY_PCT
+        type: DECIMAL(5,2)
+        description: "(Scheduled Time - Downtime) / Scheduled Time × 100"
+      - name: PERFORMANCE_PCT
+        type: DECIMAL(5,2)
+        description: "(Actual Output / Theoretical Max Output) × 100"
+      - name: QUALITY_PCT
+        type: DECIMAL(5,2)
+        description: "(Good Units / Total Units Produced) × 100"
+      - name: OEE_PCT
+        type: DECIMAL(5,2)
+        description: "Availability × Performance × Quality / 10000 (result is 0–100)"
+      - name: SCHEDULED_MINUTES
+        type: DECIMAL(10,2)
+        description: Total scheduled production minutes for the day
+      - name: DOWNTIME_MINUTES
+        type: DECIMAL(10,2)
+        description: Total unplanned downtime minutes
+      - name: TOTAL_UNITS_PRODUCED
+        type: DECIMAL(15,3)
+        description: All units produced (good + defect)
+      - name: GOOD_UNITS_PRODUCED
+        type: DECIMAL(15,3)
+        description: Units passing quality on first pass
+    forbidden_usage:
+      - "NEVER recalculate OEE from components — use the pre-calculated OEE_PCT column"
+      - "NEVER average OEE_PCT across lines without weighting by SCHEDULED_MINUTES"
+    common_questions:
+      - "What is OEE for line X this week?"
+      - "Which lines have OEE below 65%?"
+      - "What is the OEE trend for plant C351?"
+      - "What is driving low OEE — availability, performance, or quality?"
+    traps:
+      - "OEE components are percentages (0–100), not fractions (0–1)"
+      - "Weighted average OEE = SUM(OEE_PCT × SCHEDULED_MINUTES) / SUM(SCHEDULED_MINUTES)"
+      - "Days with zero SCHEDULED_MINUTES should be excluded (no production planned)"
+      - "OEE above 85% is generally considered world-class in food manufacturing"
+
+  # ---------------------------------------------------------------------------
+  # METRIC VIEW: metric_schedule_adherence
+  # ---------------------------------------------------------------------------
+  - name: metric_schedule_adherence
+    business_name: Schedule Adherence
+    type: metric_view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Order-level schedule adherence.  One row per completed process order,
+      comparing planned vs actual completion date and planned vs actual
+      quantity.  Sourced from gold_process_order with completion logic applied.
+    grain: One row per ORDER_ID (completed orders only)
+    primary_keys: [ORDER_ID]
+    preferred_synonyms:
+      - schedule adherence
+      - on-time delivery
+      - OTIF
+      - on-time completion
+    important_dimensions:
+      - name: ORDER_ID
+        type: STRING
+        description: Process order number
+      - name: MATERIAL_ID
+        type: STRING
+        description: Produced material
+      - name: PLANT_ID
+        type: STRING
+        description: Production plant
+      - name: PRODUCTION_LINE
+        type: STRING
+        description: Production line
+      - name: PLANNED_END_DATE
+        type: DATE
+        description: Originally scheduled completion date
+      - name: ACTUAL_END_DATE
+        type: DATE
+        description: Actual completion date
+    important_measures:
+      - name: PLANNED_QTY
+        type: DECIMAL(23,3)
+        description: Planned production quantity
+      - name: CONFIRMED_QTY
+        type: DECIMAL(23,3)
+        description: Actual confirmed quantity
+      - name: IS_ON_TIME
+        type: BOOLEAN
+        description: "TRUE if ACTUAL_END_DATE <= PLANNED_END_DATE"
+      - name: IS_IN_FULL
+        type: BOOLEAN
+        description: "TRUE if CONFIRMED_QTY >= 0.95 × PLANNED_QTY (within 5% tolerance)"
+      - name: IS_OTIF
+        type: BOOLEAN
+        description: "TRUE if both IS_ON_TIME and IS_IN_FULL are TRUE"
+      - name: DELAY_DAYS
+        type: INT
+        description: "DATEDIFF(ACTUAL_END_DATE, PLANNED_END_DATE) — positive = late"
+      - name: QTY_VARIANCE_PCT
+        type: DECIMAL(7,2)
+        description: "((CONFIRMED_QTY - PLANNED_QTY) / PLANNED_QTY) × 100"
+    forbidden_usage:
+      - "NEVER include orders with ORDER_STATUS = 'DELETED' or 'CREATED' — only completed orders"
+      - "NEVER calculate schedule adherence rate without filtering to the correct date window"
+    common_questions:
+      - "What percentage of orders were on time this month?"
+      - "Which plant has the best schedule adherence?"
+      - "What is the average delay for late orders?"
+      - "What is the OTIF rate by production line?"
+    traps:
+      - "This view contains only CONFIRMED or CLOSED orders — in-progress orders are excluded"
+      - "IS_IN_FULL uses a 5% tolerance — an order delivering 96% of planned qty is 'in full'"
+      - "Aggregate adherence = SUM(IS_ON_TIME::INT) / COUNT(*) — not AVG(IS_ON_TIME)"
+
+  # ---------------------------------------------------------------------------
+  # METRIC VIEW: metric_quality_yield
+  # ---------------------------------------------------------------------------
+  - name: metric_quality_yield
+    business_name: Quality Yield
+    type: metric_view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      First-pass quality yield per batch and aggregatable by material, plant,
+      and production line.  Measures the ratio of good output to total output
+      on the first inspection — without rework.  Sourced from process order
+      confirmations and quality inspection results.
+    grain: One row per (ORDER_ID, BATCH_ID)
+    primary_keys: [ORDER_ID, BATCH_ID]
+    preferred_synonyms:
+      - quality yield
+      - first pass yield
+      - FPY
+      - right first time
+      - RFT
+    important_dimensions:
+      - name: ORDER_ID
+        type: STRING
+        description: Process order
+      - name: BATCH_ID
+        type: STRING
+        description: Produced batch
+      - name: MATERIAL_ID
+        type: STRING
+        description: Produced material
+      - name: PLANT_ID
+        type: STRING
+        description: Production plant
+      - name: PRODUCTION_LINE
+        type: STRING
+        description: Production line
+      - name: PRODUCTION_DATE
+        type: DATE
+        description: Date of production (goods receipt date)
+    important_measures:
+      - name: TOTAL_QTY
+        type: DECIMAL(23,3)
+        description: Total quantity produced (good + defect + scrap)
+      - name: GOOD_QTY
+        type: DECIMAL(23,3)
+        description: Quantity passing all quality checks on first inspection
+      - name: DEFECT_QTY
+        type: DECIMAL(23,3)
+        description: Quantity requiring rework or downgrade
+      - name: SCRAP_QTY
+        type: DECIMAL(23,3)
+        description: Quantity scrapped (unrecoverable)
+      - name: YIELD_PCT
+        type: DECIMAL(5,2)
+        description: "(GOOD_QTY / TOTAL_QTY) × 100"
+      - name: INSPECTION_RESULT
+        type: STRING
+        description: "Overall batch result: ACCEPTED, REJECTED, CONDITIONAL"
+    forbidden_usage:
+      - "NEVER recalculate YIELD_PCT — use the pre-calculated column"
+      - "NEVER include batches with TOTAL_QTY = 0 in yield aggregations (division by zero)"
+    common_questions:
+      - "What is the first pass yield this month?"
+      - "Which materials have yield below 95%?"
+      - "What is the yield trend for plant C351?"
+      - "How much scrap was generated last week?"
+    traps:
+      - "Weighted average yield = SUM(GOOD_QTY) / SUM(TOTAL_QTY) × 100 — NOT AVG(YIELD_PCT)"
+      - "Zero-production rows (TOTAL_QTY = 0) should be excluded from all yield calculations"
+      - "CONDITIONAL inspection result means the batch was released with deviations — count as GOOD for yield but flag for reporting"
+
+  # ===========================================================================
+  # ENVMON APP
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # FACT: gold_inspection_lot
+  # ---------------------------------------------------------------------------
+  - name: gold_inspection_lot
+    business_name: Inspection Lot
+    type: fact
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      SAP QM inspection lot header records. Each row is one inspection lot
+      created against a batch or process order. Sourced from SAP QALS via
+      the gold layer. Core entity for environmental monitoring and QM analytics.
+    grain: One row per (INSPECTION_LOT_ID)
+    primary_keys: [INSPECTION_LOT_ID]
+    preferred_synonyms:
+      - inspection lot
+      - lot
+      - QM lot
+      - prueflos
+    important_dimensions:
+      - name: INSPECTION_LOT_ID
+        type: STRING
+        description: SAP inspection lot number (12-char)
+        example: "040000012345"
+      - name: MATERIAL_ID
+        type: STRING
+        description: Material number of the inspected item
+      - name: BATCH_ID
+        type: STRING
+        description: Batch number
+      - name: PLANT_ID
+        type: STRING
+        description: SAP plant code
+      - name: INSPECTION_TYPE
+        type: STRING
+        description: "SAP inspection type (01 = goods receipt, 04 = production, 08/09 = recurring)"
+      - name: PROCESS_ORDER_ID
+        type: STRING
+        description: Process order that triggered the lot
+      - name: CREATED_DATE
+        type: DATE
+        description: Lot creation date
+      - name: INSPECTION_END_DATE
+        type: DATE
+        description: Date inspection was closed (NULL if still open)
+      - name: INSPECTION_SHORT_TEXT
+        type: STRING
+        description: Free-text description of the inspection lot
+      - name: USAGE_DECISION_LONG_TEXT
+        type: STRING
+        description: Long text from the usage decision (UD) — may contain QM engineer notes
+    traps:
+      - "MATERIAL_ID appears twice in the schema (duplicate column from join) — use the first occurrence"
+      - "PLANT_ID also appears twice — same issue"
+      - "GROUP_COUNTER_ID is the composite PK in the underlying SAP table but INSPECTION_LOT_ID is sufficient for most queries"
+      - "Filter on INSPECTION_TYPE to distinguish goods receipt (01) from recurring/env monitoring (08/09) lots"
+    notes:
+      - "Join to gold_inspection_point on INSPECTION_LOT_ID for characteristic-level detail"
+      - "Join to gold_batch_quality_result_v on INSPECTION_LOT_ID for MIC results"
+
+  # ---------------------------------------------------------------------------
+  # FACT: gold_inspection_point
+  # ---------------------------------------------------------------------------
+  - name: gold_inspection_point
+    business_name: Inspection Point
+    type: fact
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Inspection point records tied to inspection lots. Each row represents a
+      sample point or functional location within a lot. Critical for
+      environmental monitoring — the FUNCTIONAL_LOCATION column maps sample
+      points to physical locations on a floor plan.
+    grain: One row per (INSPECTION_LOT_ID, INSPECTION_POINT_ID)
+    primary_keys: [INSPECTION_LOT_ID, INSPECTION_POINT_ID]
+    preferred_synonyms:
+      - inspection point
+      - sample point
+      - monitoring point
+    important_dimensions:
+      - name: INSPECTION_LOT_ID
+        type: STRING
+        description: Parent inspection lot
+      - name: INSPECTION_POINT_ID
+        type: STRING
+        description: Unique point within the lot
+      - name: INSPECTION_OPERATION_ID
+        type: STRING
+        description: Operation (routing step) within the lot
+      - name: OPERATION_ID
+        type: STRING
+        description: Current node number from order counter
+      - name: SAMPLE_ID
+        type: STRING
+        description: Sample number based on the inspection point
+      - name: FUNCTIONAL_LOCATION
+        type: STRING
+        description: "SAP functional location (TPLNR) — links to em_location_coordinates for floor plan rendering"
+        example: "Q225-0101-SEV3-Z0-72"
+      - name: SAMPLE_HOUR
+        type: STRING
+        description: Time-of-day user field for the sample (HH:MM format)
+      - name: CREATED_DATE
+        type: DATE
+        description: Point creation date
+    traps:
+      - "FUNCTIONAL_LOCATION can be NULL for lots not tied to a physical location"
+      - "USER_FIELD_1 through USER_FIELD_4 are plant-specific — meaning varies by site"
+    notes:
+      - "Join to em_location_coordinates on func_loc_id = FUNCTIONAL_LOCATION for XY floor plan positions"
+      - "SAMPLE_SUMMARY is a sort key, not a unique identifier"
+
+  # ---------------------------------------------------------------------------
+  # APP TABLE: em_location_coordinates
+  # ---------------------------------------------------------------------------
+  - name: em_location_coordinates
+    business_name: Location Coordinates
+    type: app_table
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      App-managed lookup table mapping SAP functional location IDs to XY
+      coordinates on floor plan SVG images. Maintained by QM engineers via
+      the EnvMon app UI. Not sourced from SAP.
+    grain: One row per (func_loc_id, floor_id)
+    primary_keys: [func_loc_id, floor_id]
+    preferred_synonyms:
+      - location coordinates
+      - floor plan positions
+      - coordinate map
+    important_dimensions:
+      - name: func_loc_id
+        type: STRING
+        description: "SAP functional location code (TPLNR) — join key to gold_inspection_point.FUNCTIONAL_LOCATION"
+        example: "Q225-0101-SEV3-Z0-72"
+      - name: floor_id
+        type: STRING
+        description: "Application floor identifier: F1, F2, or F3"
+        example: "F1"
+      - name: x_pos
+        type: DOUBLE
+        description: Relative X position on the floor plan image (0.0 to 100.0 percent)
+      - name: y_pos
+        type: DOUBLE
+        description: Relative Y position on the floor plan image (0.0 to 100.0 percent)
+      - name: updated_by
+        type: STRING
+        description: Databricks identity who last saved these coordinates
+      - name: updated_at
+        type: TIMESTAMP
+        description: Timestamp of last coordinate update
+    traps:
+      - "Coordinates are percentages (0–100), not pixels — frontend must scale to SVG viewport"
+      - "Not all functional locations have coordinates — new locations appear in gold_inspection_point before being mapped here"
+    notes:
+      - "This table is written by the EnvMon app backend, not by a pipeline"
+      - "Column names are lowercase (app convention), unlike gold-layer tables which are UPPERCASE"
+
+  # ===========================================================================
+  # SHARED (trace2 + spc + envmon)
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # VIEW: gold_batch_quality_result_v
+  # ---------------------------------------------------------------------------
+  - name: gold_batch_quality_result_v
+    business_name: Quality Results
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Individual MIC measurement results from SAP QM inspections. Each row is
+      one characteristic measurement for one sample within an inspection lot.
+      Includes quantitative values, qualitative codes, valuations (A/R), and
+      tolerance limits. Sourced from SAP QASE/QASR via gold layer.
+    grain: One row per (INSPECTION_LOT_ID, OPERATION_ID, MIC_ID, SAMPLE_ID)
+    primary_keys: [INSPECTION_LOT_ID, OPERATION_ID, MIC_ID, SAMPLE_ID]
+    preferred_synonyms:
+      - quality results
+      - MIC results
+      - inspection results
+      - test results
+    important_dimensions:
+      - name: INSPECTION_LOT_ID
+        type: STRING
+        description: Parent inspection lot
+      - name: OPERATION_ID
+        type: STRING
+        description: Routing operation/step within the lot
+      - name: MIC_ID
+        type: STRING
+        description: Inspection characteristic number
+      - name: MIC_NAME
+        type: STRING
+        description: Short text for the inspection characteristic
+      - name: MIC_CODE
+        type: STRING
+        description: Master inspection characteristic code (QPMK)
+      - name: SAMPLE_ID
+        type: STRING
+        description: Partial sample number
+      - name: QUANTITATIVE_RESULT
+        type: DOUBLE
+        description: Numeric measurement value (NULL for qualitative MICs)
+      - name: TARGET_VALUE
+        type: DOUBLE
+        description: Specification target value
+      - name: UPPER_TOLERANCE
+        type: DOUBLE
+        description: Upper specification limit
+      - name: LOWER_TOLERANCE
+        type: DOUBLE
+        description: Lower specification limit
+      - name: INSPECTION_RESULT_VALUATION
+        type: STRING
+        description: "Result valuation: A = Accepted, R = Rejected"
+      - name: MATERIAL_ID
+        type: STRING
+        description: Material number
+      - name: BATCH_ID
+        type: STRING
+        description: Batch number
+      - name: PLANT_ID
+        type: STRING
+        description: Plant code
+      - name: INSPECTION_METHOD
+        type: STRING
+        description: Inspection method used
+    traps:
+      - "QUANTITATIVE_RESULT is NULL for qualitative (pass/fail) characteristics — check before arithmetic"
+      - "TOLERANCE column is a derived STRING — use UPPER_TOLERANCE / LOWER_TOLERANCE (DOUBLE) for numeric comparison"
+      - "ORDER BY INSPECTION_LOT_ID, OPERATION_ID, MIC_ID, SAMPLE_ID for deterministic output"
+    notes:
+      - "Join to gold_batch_quality_lot_v on INSPECTION_LOT_ID + MATERIAL_ID + BATCH_ID for lot header"
+      - "Used by SPC app for control chart data and by trace2 for Certificate of Analysis"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: gold_batch_quality_summary_v
+  # ---------------------------------------------------------------------------
+  - name: gold_batch_quality_summary_v
+    business_name: Quality Summary
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Pre-aggregated quality summary per material/batch. Counts of inspection
+      lots, accepted results, rejected results, and failed MICs. Use for
+      quick batch status checks without scanning all individual results.
+    grain: One row per (MATERIAL_ID, BATCH_ID)
+    primary_keys: [MATERIAL_ID, BATCH_ID]
+    preferred_synonyms:
+      - quality summary
+      - batch quality
+      - pass/fail summary
+    important_dimensions:
+      - name: MATERIAL_ID
+        type: STRING
+        description: Material number
+      - name: BATCH_ID
+        type: STRING
+        description: Batch number
+      - name: lot_count
+        type: BIGINT
+        description: Number of inspection lots for this batch
+      - name: latest_inspection_date
+        type: DATE
+        description: Most recent inspection date
+      - name: accepted_result_count
+        type: BIGINT
+        description: Count of accepted (A) MIC results
+      - name: rejected_result_count
+        type: BIGINT
+        description: Count of rejected (R) MIC results
+      - name: failed_mic_count
+        type: BIGINT
+        description: Count of distinct MICs that had at least one rejection
+    traps:
+      - "This is a summary — use gold_batch_quality_result_v for MIC-level detail"
+      - "rejected_result_count = 0 means the batch passed all inspections"
+    notes:
+      - "Used by trace2 for batch status derivation: rejected > 0 → Blocked"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: gold_batch_quality_lot_v
+  # ---------------------------------------------------------------------------
+  - name: gold_batch_quality_lot_v
+    business_name: Quality Lot
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Inspection lot header data linked to batches. One row per lot with
+      plant, type, dates, and descriptive text. Sourced from SAP QALS.
+    grain: One row per (INSPECTION_LOT_ID)
+    primary_keys: [INSPECTION_LOT_ID]
+    preferred_synonyms:
+      - quality lot
+      - inspection lot
+    important_dimensions:
+      - name: INSPECTION_LOT_ID
+        type: STRING
+        description: Inspection lot number
+      - name: PLANT_ID
+        type: STRING
+        description: Plant code
+      - name: INSPECTION_TYPE
+        type: STRING
+        description: SAP inspection type code
+      - name: INSPECTION_LOT_ORIGIN
+        type: STRING
+        description: Origin of the lot (e.g., production, goods receipt)
+      - name: CREATED_DATE
+        type: DATE
+        description: Lot creation date
+      - name: INSPECTION_END_DATE
+        type: DATE
+        description: Lot closure date
+      - name: PROCESS_ORDER_ID
+        type: STRING
+        description: Related process order
+      - name: MATERIAL_ID
+        type: STRING
+        description: Material number
+      - name: BATCH_ID
+        type: STRING
+        description: Batch number
+      - name: USAGE_DECISION_LONG_TEXT
+        type: STRING
+        description: UD long text with QM engineer notes
+    traps:
+      - "Join to gold_batch_quality_result_v on INSPECTION_LOT_ID + MATERIAL_ID + BATCH_ID — use all three keys"
+    notes:
+      - "Simpler than gold_inspection_lot — this view already filters to batch-relevant lots"
+
+  # ===========================================================================
+  # TRACE2 APP
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # VIEW: gold_batch_delivery_v
+  # ---------------------------------------------------------------------------
+  - name: gold_batch_delivery_v
+    business_name: Batch Delivery
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Customer delivery/shipment lines per batch. Each row is a delivery
+      document line showing goods issued to a customer. Includes customer
+      details, country, quantity, and posting date. Sourced from SAP
+      LIKP/LIPS + customer master.
+    grain: One row per (DELIVERY, MATERIAL_ID, BATCH_ID) — but duplicates possible from extraction
+    primary_keys: [DELIVERY, MATERIAL_ID, BATCH_ID]
+    preferred_synonyms:
+      - delivery
+      - shipment
+      - customer delivery
+      - goods issue
+    important_dimensions:
+      - name: MATERIAL_ID
+        type: STRING
+        description: Material number
+      - name: BATCH_ID
+        type: STRING
+        description: Batch number
+      - name: PLANT_ID
+        type: STRING
+        description: Shipping plant
+      - name: CUSTOMER_ID
+        type: STRING
+        description: SAP customer account number
+      - name: CUSTOMER_NAME
+        type: STRING
+        description: Customer name
+      - name: COUNTRY_ID
+        type: STRING
+        description: Ship-to country code (ISO 2-letter)
+      - name: COUNTRY_NAME
+        type: STRING
+        description: Country name
+      - name: DELIVERY
+        type: STRING
+        description: SAP delivery document number
+      - name: ABS_QUANTITY
+        type: DECIMAL(13,3)
+        description: Absolute delivered quantity (always positive)
+      - name: POSTING_DATE
+        type: DATE
+        description: Goods issue posting date
+    traps:
+      - "ALWAYS SELECT DISTINCT before SUM(ABS_QUANTITY) — duplicate rows exist from extraction"
+      - "DELIVERY can be NULL for non-delivery movements — filter WHERE DELIVERY IS NOT NULL"
+      - "CUSTOMER_NAME can be NULL — use COALESCE(CUSTOMER_NAME, '(unknown)')"
+    notes:
+      - "QUANTITY is signed; ABS_QUANTITY is unsigned — use ABS_QUANTITY for volume summaries"
+      - "MOVEMENT_TYPE 601 = delivery, 602 = reversal"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: gold_batch_mass_balance_v
+  # ---------------------------------------------------------------------------
+  - name: gold_batch_mass_balance_v
+    business_name: Mass Balance
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      All goods movements for batch-managed materials. Each row is one
+      movement document line with signed quantity. Used for mass balance
+      reconciliation: produced - consumed - shipped ± adjustments = stock.
+      Sourced from SAP MSEG/MKPF.
+    grain: One row per movement document line (MATERIAL_ID, BATCH_ID, POSTING_DATE, MOVEMENT_TYPE — not strictly unique)
+    primary_keys: []
+    preferred_synonyms:
+      - mass balance
+      - goods movements
+      - inventory movements
+      - material movements
+    important_dimensions:
+      - name: MATERIAL_ID
+        type: STRING
+        description: Material number
+      - name: BATCH_ID
+        type: STRING
+        description: Batch number
+      - name: PLANT_ID
+        type: STRING
+        description: Plant code
+      - name: MOVEMENT_TYPE
+        type: STRING
+        description: "SAP 3-digit movement type (101=production, 261=consumption, 601=shipment, etc.)"
+      - name: MOVEMENT_CATEGORY
+        type: STRING
+        description: "Derived category: Production, Shipment, Consumption, Transfer, Adjustment"
+      - name: POSTING_DATE
+        type: DATE
+        description: SAP posting date
+      - name: ABS_QUANTITY
+        type: DECIMAL(13,3)
+        description: Unsigned movement quantity
+      - name: BALANCE_QTY
+        type: DECIMAL(13,3)
+        description: Signed quantity (positive=receipt, negative=issue)
+      - name: PROCESS_ORDER_ID
+        type: STRING
+        description: Related process order (for production/consumption movements)
+      - name: UOM
+        type: STRING
+        description: Base unit of measure
+    traps:
+      - "Use ABS_QUANTITY for volume summaries — always positive"
+      - "Use BALANCE_QTY for running balance calculations — carries the sign"
+      - "Exclude STO transfers: WHERE MOVEMENT_CATEGORY NOT LIKE 'STO%'"
+      - "No true primary key — use GROUP BY for aggregations"
+    notes:
+      - "MOVEMENT_CATEGORY is the agent-preferred filter; MOVEMENT_TYPE for SAP-level detail"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: gold_batch_stock_v
+  # ---------------------------------------------------------------------------
+  - name: gold_batch_stock_v
+    business_name: Batch Stock
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Current stock snapshot per material/batch/plant split by stock category.
+      Sourced from SAP MCHB/MSKA. Always current — reflects latest extraction.
+    grain: One row per (MATERIAL_ID, BATCH_ID, PLANT_ID)
+    primary_keys: [MATERIAL_ID, BATCH_ID, PLANT_ID]
+    preferred_synonyms:
+      - stock
+      - inventory
+      - batch stock
+      - current stock
+    important_dimensions:
+      - name: MATERIAL_ID
+        type: STRING
+        description: Material number
+      - name: BATCH_ID
+        type: STRING
+        description: Batch number
+      - name: PLANT_ID
+        type: STRING
+        description: Plant code
+      - name: UNRESTRICTED
+        type: DECIMAL(13,3)
+        description: Freely available stock (KG)
+      - name: BLOCKED
+        type: DECIMAL(13,3)
+        description: Blocked stock (KG)
+      - name: QUALITY_INSPECTION
+        type: DECIMAL(13,3)
+        description: QI hold stock (KG)
+      - name: RESTRICTED
+        type: DECIMAL(13,3)
+        description: Restricted stock (KG)
+      - name: TRANSIT
+        type: DECIMAL(13,3)
+        description: Stock in transit (KG)
+      - name: TOTAL_STOCK
+        type: DECIMAL(17,3)
+        description: Sum of all stock categories
+    traps:
+      - "Always GROUP BY MATERIAL_ID, BATCH_ID when aggregating across plants"
+      - "Zero-stock rows may exist — filter TOTAL_STOCK > 0 if needed"
+    notes:
+      - "Pre-aggregate before joining to lineage to avoid plant-level fan-out"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: gold_batch_summary_v
+  # ---------------------------------------------------------------------------
+  - name: gold_batch_summary_v
+    business_name: Batch Summary
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Denormalised batch header with material details, dates, and shelf-life
+      status. One row per material/batch. Designed for quick batch lookups
+      and overview cards.
+    grain: One row per (MATERIAL_ID, BATCH_ID)
+    primary_keys: [MATERIAL_ID, BATCH_ID]
+    preferred_synonyms:
+      - batch summary
+      - batch header
+      - batch overview
+    important_dimensions:
+      - name: MATERIAL_ID
+        type: STRING
+        description: Material number
+      - name: BATCH_ID
+        type: STRING
+        description: Batch number
+      - name: MANUFACTURE_DATE
+        type: DATE
+        description: Manufacturing/production date
+      - name: SHELF_LIFE_EXPIRATION_DATE
+        type: DATE
+        description: Shelf-life expiry date
+      - name: MATERIAL_NAME
+        type: STRING
+        description: Material description
+      - name: MATERIAL_TYPE
+        type: STRING
+        description: "SAP material type (FERT, ROH, HALB, VERP)"
+      - name: MATERIAL_DESC_SHORT
+        type: STRING
+        description: Short material description
+      - name: days_to_expiry
+        type: INT
+        description: Calculated days remaining until expiry (can be negative)
+      - name: shelf_life_status
+        type: STRING
+        description: "Derived status: WITHIN_SHELF_LIFE, EXPIRING_SOON, EXPIRED"
+    traps:
+      - "SHELF_LIFE_EXPIRATION_DATE can be NULL for materials without shelf-life management"
+      - "days_to_expiry is calculated at view refresh time — may be stale by hours"
+    notes:
+      - "Use this for batch header display; join to other views for stock/quality detail"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: gold_batch_coa_results_v
+  # ---------------------------------------------------------------------------
+  - name: gold_batch_coa_results_v
+    business_name: Certificate of Analysis Results
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Pre-formatted Certificate of Analysis results for a batch. One row per
+      MIC with target, tolerance, actual result, and within-spec flag. Designed
+      for direct rendering in CoA reports.
+    grain: One row per (batch_id, mic_code)
+    primary_keys: [batch_id, mic_code]
+    preferred_synonyms:
+      - CoA
+      - certificate of analysis
+      - CoA results
+    important_dimensions:
+      - name: batch_id
+        type: STRING
+        description: Batch number
+      - name: mic_code
+        type: STRING
+        description: Master inspection characteristic code
+      - name: mic_name
+        type: STRING
+        description: Characteristic description
+      - name: target_value
+        type: DOUBLE
+        description: Specification target
+      - name: tolerance_range
+        type: STRING
+        description: Tolerance as display string
+      - name: actual_result
+        type: DOUBLE
+        description: Measured value
+      - name: result_status
+        type: STRING
+        description: "Valuation: A = Accepted, R = Rejected"
+      - name: within_spec
+        type: BOOLEAN
+        description: TRUE if actual is within tolerance of target
+      - name: deviation_from_target
+        type: DOUBLE
+        description: actual_result minus target_value
+    traps:
+      - "Column names are lowercase (unlike other gold views) — use exact case"
+      - "tolerance_range is a display STRING, not numeric"
+    notes:
+      - "This view is optimised for CoA rendering — for raw data use gold_batch_quality_result_v"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: gold_batch_production_history_v
+  # ---------------------------------------------------------------------------
+  - name: gold_batch_production_history_v
+    business_name: Production History
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Production order history linked to batches. Shows which process orders
+      produced which batches, with quantities and quality status.
+    grain: One row per (PROCESS_ORDER_ID, BATCH_ID)
+    primary_keys: [PROCESS_ORDER_ID, BATCH_ID]
+    preferred_synonyms:
+      - production history
+      - production orders
+      - manufacturing history
+    important_dimensions:
+      - name: PROCESS_ORDER_ID
+        type: STRING
+        description: SAP process order number
+      - name: BATCH_ID
+        type: STRING
+        description: Produced batch number
+      - name: PLANT_ID
+        type: STRING
+        description: Production plant
+      - name: MATERIAL_ID
+        type: STRING
+        description: Produced material number
+      - name: POSTING_DATE
+        type: DATE
+        description: Goods receipt posting date
+      - name: BATCH_QTY
+        type: DECIMAL(23,3)
+        description: Quantity produced into this batch
+      - name: UOM
+        type: STRING
+        description: Unit of measure
+      - name: quality_status
+        type: STRING
+        description: "Derived quality status for the batch"
+    traps:
+      - "One process order can produce into multiple batches — do not assume 1:1"
+    notes:
+      - "Use for production timeline display; join to gold_batch_summary_v for material details"
+
+  # ---------------------------------------------------------------------------
+  # DIMENSION: gold_supplier
+  # ---------------------------------------------------------------------------
+  - name: gold_supplier
+    business_name: Supplier Master
+    type: dimension
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Supplier/vendor master dimension with name, address, and contact details.
+      Sourced from SAP LFA1/LFB1.
+    grain: One row per SUPPLIER_ID
+    primary_keys: [SUPPLIER_ID]
+    preferred_synonyms:
+      - supplier
+      - vendor
+      - lifnr
+    important_dimensions:
+      - name: SUPPLIER_ID
+        type: STRING
+        description: SAP supplier account number (10-char, leading zeros)
+        example: "0000012345"
+      - name: SUPPLIER_NAME
+        type: STRING
+        description: Supplier name
+      - name: CITY
+        type: STRING
+        description: City
+      - name: COUNTRY_ID
+        type: STRING
+        description: Country code (ISO 2-letter)
+      - name: COUNTRY_NAME
+        type: STRING
+        description: Country name
+      - name: EMAIL
+        type: STRING
+        description: Contact email address
+    traps:
+      - "SUPPLIER_ID has leading zeros — always treat as STRING"
+      - "__BATCH_ID, __CREATED_ON, __UPDATED_ON are ingestion metadata — ignore in queries"
+    notes:
+      - "Currently no direct FK to gold_batch_lineage — supplier-batch linking requires intermediate join via purchase orders (not yet in gold layer)"
+
+  # ===========================================================================
+  # SPC APP — Materialized Views & Config Tables
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # VIEW: spc_quality_metrics
+  # ---------------------------------------------------------------------------
+  - name: spc_quality_metrics
+    business_name: SPC Quality Metrics
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      Pre-aggregated quality KPIs per material/plant/MIC combination. Contains
+      58 columns covering statistical measures (mean, stddev, Cp, Cpk, Pp, Ppk),
+      control limits (UCL/LCL), specification limits, Nelson rule flags, and
+      batch-level aggregations. This is the primary data source for SPC
+      dashboards and control chart rendering.
+    grain: One row per (material_id, plant_id, mic_id, operation_id, batch_id)
+    primary_keys: [material_id, plant_id, mic_id, operation_id, batch_id]
+    preferred_synonyms:
+      - SPC metrics
+      - quality metrics
+      - control chart data
+    important_dimensions:
+      - name: material_id
+        type: STRING
+        description: Material number
+      - name: plant_id
+        type: STRING
+        description: Plant code
+      - name: mic_id
+        type: STRING
+        description: Inspection characteristic number
+      - name: mic_name
+        type: STRING
+        description: MIC description
+      - name: operation_id
+        type: STRING
+        description: Routing operation
+      - name: unified_mic_key
+        type: STRING
+        description: "Plant-scoped canonical MIC key: PLANT_ID||UPPER(TRIM(MIC_NAME))||UOM"
+      - name: batch_id
+        type: STRING
+        description: Batch number
+      - name: batch_date
+        type: DATE
+        description: Batch production date
+      - name: mean_value
+        type: DOUBLE
+        description: Arithmetic mean of measured values
+      - name: sigma_within
+        type: DOUBLE
+        description: Within-subgroup standard deviation (from average moving range)
+      - name: x_bar_ucl
+        type: DOUBLE
+        description: X-bar upper control limit (mean + 3*sigma_within)
+      - name: x_bar_lcl
+        type: DOUBLE
+        description: X-bar lower control limit (mean - 3*sigma_within)
+      - name: spec_upper
+        type: DOUBLE
+        description: Upper specification limit
+      - name: spec_lower
+        type: DOUBLE
+        description: Lower specification limit
+      - name: cpk
+        type: DOUBLE
+        description: Process capability index (Cpk)
+      - name: ppk
+        type: DOUBLE
+        description: Process performance index (Ppk)
+      - name: ooc_rate
+        type: DOUBLE
+        description: Out-of-control rate (fraction of points beyond control limits)
+    traps:
+      - "58 columns — only query what you need, never SELECT *"
+      - "Column names are lowercase (app convention)"
+      - "spec_safe and normality_safe are flags (0/1) indicating whether specs/normality are consistent across batches"
+      - "Control limits (x_bar_ucl/lcl) are calculated, not locked — see spc_locked_limits for frozen limits"
+    notes:
+      - "This is a metric view, not a materialized view — it queries underlying fact data"
+      - "The DAL's fetch_control_limits() function reads from this entity"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: spc_characteristic_dim_mv
+  # ---------------------------------------------------------------------------
+  - name: spc_characteristic_dim_mv
+    business_name: SPC Characteristic Dimension
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      MIC characteristic dimension for SPC. One row per material/MIC/operation
+      combination. Provides MIC metadata including whether it is attribute or
+      quantitative, batch count, and normalised name for matching.
+    grain: One row per (material_id, mic_id, operation_id)
+    primary_keys: [material_id, mic_id, operation_id]
+    preferred_synonyms:
+      - MIC dimension
+      - characteristic dimension
+    important_dimensions:
+      - name: material_id
+        type: STRING
+        description: Material number
+      - name: mic_id
+        type: STRING
+        description: Characteristic number
+      - name: mic_name
+        type: STRING
+        description: Characteristic short text
+      - name: inspection_method
+        type: STRING
+        description: Inspection method
+      - name: operation_id
+        type: STRING
+        description: Routing operation
+      - name: is_attribute
+        type: INT
+        description: "1 = attribute (pass/fail), 0 = variable (measured)"
+      - name: has_quantitative
+        type: INT
+        description: 1 = has numeric measurement data
+      - name: batch_count
+        type: BIGINT
+        description: Number of batches with results for this MIC
+      - name: mic_name_normalized
+        type: STRING
+        description: Uppercased trimmed MIC name for matching
+    traps:
+      - "material_id appears twice in DESCRIBE output (MV artifact) — use the first occurrence"
+      - "is_attribute and has_quantitative are INT flags, not BOOLEAN"
+    notes:
+      - "Used by the SPC frontend to populate MIC selection dropdowns"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: spc_material_dim_mv
+  # ---------------------------------------------------------------------------
+  - name: spc_material_dim_mv
+    business_name: SPC Material Dimension
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      Minimal material dimension for SPC context. Only materials that appear
+      in SPC-relevant inspection data.
+    grain: One row per (material_id)
+    primary_keys: [material_id]
+    preferred_synonyms:
+      - SPC materials
+    important_dimensions:
+      - name: material_id
+        type: STRING
+        description: Material number
+      - name: material_name
+        type: STRING
+        description: Material description
+    traps:
+      - "material_id appears twice in DESCRIBE output (MV artifact)"
+      - "Only 3 columns — this is a filter dimension, not a full material master"
+    notes:
+      - "For full material details, join to gold_material with LANGUAGE_ID = 'E'"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: spc_plant_material_dim_mv
+  # ---------------------------------------------------------------------------
+  - name: spc_plant_material_dim_mv
+    business_name: SPC Plant-Material Dimension
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      Plant-material combinations in SPC scope. Used to filter valid
+      plant/material pairs in SPC dropdowns.
+    grain: One row per (material_id, plant_id)
+    primary_keys: [material_id, plant_id]
+    preferred_synonyms:
+      - plant-material scope
+    important_dimensions:
+      - name: material_id
+        type: STRING
+        description: Material number
+      - name: plant_id
+        type: STRING
+        description: Plant code
+      - name: plant_name
+        type: STRING
+        description: Plant name
+    traps:
+      - "material_id appears twice (MV artifact)"
+    notes:
+      - "Only contains combinations that have SPC-relevant inspection data"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: spc_batch_dim_mv
+  # ---------------------------------------------------------------------------
+  - name: spc_batch_dim_mv
+    business_name: SPC Batch Dimension
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      Batch dimension for SPC charts. One row per material/batch with
+      production date, last posting date, and period columns for time-series
+      aggregation.
+    grain: One row per (MATERIAL_ID, BATCH_ID)
+    primary_keys: [MATERIAL_ID, BATCH_ID]
+    preferred_synonyms:
+      - SPC batches
+    important_dimensions:
+      - name: MATERIAL_ID
+        type: STRING
+        description: Material number
+      - name: BATCH_ID
+        type: STRING
+        description: Batch number
+      - name: batch_date
+        type: DATE
+        description: Batch production date
+      - name: last_posting_date
+        type: DATE
+        description: Most recent goods movement date for this batch
+      - name: plant_id
+        type: STRING
+        description: Plant code
+      - name: batch_week
+        type: TIMESTAMP
+        description: Week start timestamp (for weekly aggregation)
+      - name: batch_month
+        type: TIMESTAMP
+        description: Month start timestamp (for monthly aggregation)
+    traps:
+      - "MATERIAL_ID appears twice (MV artifact)"
+      - "batch_week and batch_month are TIMESTAMP not DATE — cast if needed"
+    notes:
+      - "Used for time-series x-axis in SPC control charts"
+
+  # ---------------------------------------------------------------------------
+  # APP TABLE: spc_mic_chart_config
+  # ---------------------------------------------------------------------------
+  - name: spc_mic_chart_config
+    business_name: SPC Chart Configuration
+    type: app_table
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      Agent-editable chart type overrides per MIC. QM engineers use this to
+      specify which control chart type to render for a given characteristic
+      (IMR, X-bar R, p-chart, etc.). Defaults to IMR if no row exists.
+      Written by the SPC app backend.
+    grain: One row per (plant_id, material_id, mic_id) — NULLs act as wildcards
+    primary_keys: [plant_id, material_id, mic_id]
+    preferred_synonyms:
+      - chart config
+      - chart type override
+    important_dimensions:
+      - name: plant_id
+        type: STRING
+        description: "SAP plant code; NULL = applies across all plants"
+      - name: material_id
+        type: STRING
+        description: "SAP material code; NULL = applies across all materials"
+      - name: mic_id
+        type: STRING
+        description: Inspection characteristic code
+      - name: mic_name
+        type: STRING
+        description: Cached MIC name at time of override (for audit)
+      - name: chart_type
+        type: STRING
+        description: "Chart type: imr | xbar_r | xbar_s | p_chart | np_chart | c_chart | u_chart"
+      - name: rationale
+        type: STRING
+        description: Why this override exists — typed by the QM engineer
+      - name: updated_by
+        type: STRING
+        description: Databricks user who set the override
+      - name: updated_at
+        type: TIMESTAMP
+        description: When the override was last set
+    traps:
+      - "NULL plant_id or material_id means wildcard — match logic must handle NULL comparisons"
+      - "Default chart type (when no row exists) is IMR — do not assume a row always exists"
+    notes:
+      - "App writes via INSERT/MERGE — not pipeline-managed"
+      - "chart_type values are lowercase strings, not enum codes"
+
+  # ---------------------------------------------------------------------------
+  # APP TABLE: spc_locked_limits
+  # ---------------------------------------------------------------------------
+  - name: spc_locked_limits
+    business_name: SPC Locked Limits
+    type: app_table
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      Frozen control limits per MIC, locked by a QM engineer after Phase I
+      baseline analysis. Once locked, these limits override the dynamically
+      calculated limits from spc_quality_metrics. Includes the centre line,
+      UCL/LCL for X-bar and range charts, and metadata about the baseline
+      period and locking rationale.
+    grain: One row per (material_id, mic_id, plant_id, operation_id)
+    primary_keys: [material_id, mic_id, plant_id, operation_id]
+    preferred_synonyms:
+      - locked limits
+      - frozen limits
+      - Phase I limits
+    important_dimensions:
+      - name: material_id
+        type: STRING
+        description: Material number
+      - name: mic_id
+        type: STRING
+        description: Characteristic code
+      - name: plant_id
+        type: STRING
+        description: Plant code
+      - name: operation_id
+        type: STRING
+        description: Routing operation
+      - name: chart_type
+        type: STRING
+        description: Chart type these limits apply to
+      - name: cl
+        type: DOUBLE
+        description: Centre line (mean)
+      - name: ucl
+        type: DOUBLE
+        description: Upper control limit
+      - name: lcl
+        type: DOUBLE
+        description: Lower control limit
+      - name: ucl_r
+        type: DOUBLE
+        description: Upper control limit for range chart
+      - name: lcl_r
+        type: DOUBLE
+        description: Lower control limit for range chart
+      - name: sigma_within
+        type: DOUBLE
+        description: Within-subgroup sigma at time of locking
+      - name: baseline_from
+        type: STRING
+        description: Start of baseline period (date string)
+      - name: baseline_to
+        type: STRING
+        description: End of baseline period (date string)
+      - name: locked_by
+        type: STRING
+        description: Databricks user who locked the limits
+      - name: locked_at
+        type: TIMESTAMP
+        description: When limits were locked
+      - name: unified_mic_key
+        type: STRING
+        description: "Plant-scoped canonical MIC key: PLANT_ID||UPPER(TRIM(MIC_NAME))||UOM"
+      - name: spec_signature
+        type: STRING
+        description: "Spec fingerprint at lock time (LSL|USL|Nominal) — used to detect post-lock spec drift"
+      - name: locking_note
+        type: STRING
+        description: "Free-text justification (e.g., 'Phase I baseline 2024-Q4, 32 batches, Cp=1.42')"
+    traps:
+      - "baseline_from and baseline_to are STRING, not DATE — cast if comparing"
+      - "unified_mic_key and mic_origin may be NULL on rows created before Migration 014"
+      - "If spec_signature no longer matches live data, a stale-lock warning should be raised"
+    notes:
+      - "When locked limits exist, they take precedence over dynamic limits in spc_quality_metrics"
+      - "App writes via INSERT — migration 000_setup_locked_limits.sql creates the table"
+
+  # ---------------------------------------------------------------------------
+  # APP TABLE: spc_exclusions
+  # ---------------------------------------------------------------------------
+  - name: spc_exclusions
+    business_name: SPC Exclusions
+    type: app_table
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      Exclusion events for SPC data points. When a QM engineer excludes batches
+      or individual data points from control chart analysis, the exclusion is
+      recorded here with a justification, the affected date range, and
+      before/after limit snapshots. Used for audit trail and to filter points
+      from chart rendering.
+    grain: One row per event_id
+    primary_keys: [event_id]
+    preferred_synonyms:
+      - exclusions
+      - excluded points
+      - SPC exclusions
+    important_dimensions:
+      - name: event_id
+        type: STRING
+        description: Unique exclusion event identifier (UUID)
+      - name: material_id
+        type: STRING
+        description: Material number
+      - name: mic_id
+        type: STRING
+        description: Characteristic code
+      - name: mic_name
+        type: STRING
+        description: Characteristic name
+      - name: plant_id
+        type: STRING
+        description: Plant code
+      - name: operation_id
+        type: STRING
+        description: Routing operation
+      - name: chart_type
+        type: STRING
+        description: Chart type context
+      - name: date_from
+        type: STRING
+        description: Start of exclusion date range
+      - name: date_to
+        type: STRING
+        description: End of exclusion date range
+      - name: justification
+        type: STRING
+        description: Engineer's written reason for the exclusion
+      - name: action
+        type: STRING
+        description: "Exclusion action type (e.g., EXCLUDE, RECALCULATE)"
+      - name: excluded_count
+        type: INT
+        description: Number of data points excluded
+      - name: excluded_points_json
+        type: STRING
+        description: JSON array of excluded batch_id/sample tuples
+      - name: before_limits_json
+        type: STRING
+        description: JSON snapshot of control limits before exclusion
+      - name: after_limits_json
+        type: STRING
+        description: JSON snapshot of control limits after exclusion
+      - name: user_id
+        type: STRING
+        description: Databricks user who performed the exclusion
+      - name: event_ts
+        type: TIMESTAMP
+        description: When the exclusion was recorded
+      - name: stratify_all
+        type: BOOLEAN
+        description: Whether exclusion applies across all stratifications
+      - name: stratify_by
+        type: STRING
+        description: Stratification dimension (e.g., plant, operation)
+    traps:
+      - "date_from and date_to are STRING, not DATE — cast if comparing"
+      - "excluded_points_json, before_limits_json, after_limits_json are JSON strings — parse carefully"
+      - "stratify_all = TRUE means ignore stratify_by"
+    notes:
+      - "This is an append-only audit log — rows are never updated or deleted"
+      - "Used by the SPC frontend to grey out excluded points on control charts"

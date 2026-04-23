@@ -210,12 +210,14 @@ export type Tweaks = {
 export type DemoState = "default" | "qi" | "recall";
 
 export type PageId =
-  | "recall_readiness"
+  | "overview"
+  | "mass_balance"
   | "bottom_up"
   | "top_down"
-  | "mass_balance"
+  | "customers_deliveries"
   | "quality"
   | "production_history"
   | "batch_comparison"
   | "supplier_risk"
+  | "recall_readiness"
   | "coa";
