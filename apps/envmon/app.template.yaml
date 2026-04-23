@@ -19,5 +19,5 @@ env:
   - name: TRACE_SCHEMA
     value: "${TRACE_SCHEMA}"
 
-  - name: EM_PLANT_ID
-    value: "${EM_PLANT_ID}"
+  - name: CENTRAL_SERVICES_CATALOG
+    value: "${CENTRAL_SERVICES_CATALOG}"
