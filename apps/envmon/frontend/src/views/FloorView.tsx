@@ -1,4 +1,3 @@
-import React from 'react';
 import { useEM } from '~/context/EMContext';
 import { useFloors } from '~/api/client';
 import FilterBar from '~/components/controls/FilterBar';
