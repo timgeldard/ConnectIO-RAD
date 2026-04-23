@@ -15,12 +15,13 @@
 
 metrics:
 
-  # -------------------------------------------------------------------------
-  # Batch / Traceability Metrics
-  # -------------------------------------------------------------------------
+  # =========================================================================
+  # TRACE2 — Batch / Traceability Metrics
+  # =========================================================================
 
   - name: batch_status
     display_name: Batch Status
+    app: trace2
     description: >
       Derived status of a batch based on stock categories and quality results.
       Priority order: Blocked > QI Hold > Restricted > Released > Unknown.
@@ -44,6 +45,7 @@ metrics:
 
   - name: mass_balance_variance
     display_name: Mass Balance Variance
+    app: trace2
     description: >
       Difference between current inventory and the expected balance from
       production minus shipments.  Non-zero variance indicates unaccounted
@@ -65,6 +67,7 @@ metrics:
 
   - name: customers_affected
     display_name: Customers Affected
+    app: trace2
     description: Count of distinct customers who received material from a batch.
     grain: per batch
     unit: count
@@ -79,6 +82,7 @@ metrics:
 
   - name: downstream_exposure_count
     display_name: Downstream Exposed Batches
+    app: trace2
     description: >
       Number of distinct output batches that consumed material from a given
       batch, traced to depth 2 via PRODUCTION and BATCH_TRANSFER links.
@@ -89,12 +93,112 @@ metrics:
       -- See canonical_sql.sql for the full pattern
     notes: Always use WITH RECURSIVE and cycle detection
 
-  # -------------------------------------------------------------------------
-  # Manufacturing KPIs
-  # -------------------------------------------------------------------------
+  - name: total_shipped_quantity
+    display_name: Total Shipped Quantity
+    app: trace2
+    description: >
+      Sum of absolute quantities shipped to customers for a batch.
+      MUST deduplicate deliveries before aggregation.
+    grain: per batch (MATERIAL_ID, BATCH_ID)
+    unit: same as delivery UOM
+    direction: informational
+    sql: |
+      SELECT SUM(ABS_QUANTITY) AS total_shipped
+      FROM (
+        SELECT DISTINCT DELIVERY, MATERIAL_ID, BATCH_ID, ABS_QUANTITY
+        FROM {{CATALOG}}.gold.gold_batch_delivery_v
+        WHERE BATCH_ID = :batch_id
+      )
+    source: gold_batch_delivery_v
+    notes: ALWAYS SELECT DISTINCT before SUM to avoid double-counting
+
+  - name: current_stock_total
+    display_name: Current Stock Total
+    app: trace2
+    description: >
+      Total stock on hand for a batch aggregated across all plants and
+      stock categories (unrestricted + blocked + QI + restricted).
+    grain: per batch (MATERIAL_ID, BATCH_ID)
+    unit: same as stock UOM
+    direction: informational
+    sql: |
+      SELECT
+        SUM(UNRESTRICTED) AS unrestricted,
+        SUM(BLOCKED) AS blocked,
+        SUM(QUALITY_INSPECTION) AS qi,
+        SUM(TOTAL_STOCK) AS total_stock
+      FROM {{CATALOG}}.gold.gold_batch_stock_v
+      WHERE BATCH_ID = :batch_id
+      GROUP BY MATERIAL_ID, BATCH_ID
+    source: gold_batch_stock_v
+    notes: Pre-aggregate across plants — stock has one row per plant per batch
+
+  - name: days_to_expiry
+    display_name: Days to Expiry
+    app: trace2
+    description: >
+      Days remaining until shelf life expiration.  Pre-calculated in
+      gold_batch_summary_v.  Negative means already expired.
+    grain: per batch
+    unit: days
+    direction: higher_is_better
+    sql: |
+      days_to_expiry
+    source: gold_batch_summary_v
+    notes: Companion column shelf_life_status (OK / Warning / Critical / Expired) provides categorical bucketing
+
+  - name: production_order_count
+    display_name: Production Orders for Batch
+    app: trace2
+    description: Count of distinct production orders that produced a given batch.
+    grain: per batch (MATERIAL_ID, BATCH_ID)
+    unit: count
+    sql: |
+      COUNT(DISTINCT PROCESS_ORDER_ID)
+      FROM {{CATALOG}}.gold.gold_batch_production_history_v
+      WHERE BATCH_ID = :batch_id
+    source: gold_batch_production_history_v
+
+  - name: coa_pass_rate
+    display_name: CoA Pass Rate
+    app: trace2
+    description: >
+      Percentage of Certificate of Analysis results that are accepted (status A)
+      for a given batch.
+    grain: per batch
+    unit: "%"
+    direction: higher_is_better
+    target: "100%"
+    sql: |
+      ROUND(
+        100.0 * COUNT(CASE WHEN result_status = 'A' THEN 1 END)
+        / NULLIF(COUNT(*), 0),
+        2
+      )
+    source: gold_batch_coa_results_v
+    notes: result_status values — A (Accepted), R (Rejected), F (Failed), blank (not evaluated)
+
+  - name: coa_deviation_severity
+    display_name: CoA Max Deviation from Target
+    app: trace2
+    description: >
+      Maximum absolute deviation from target across all CoA results for a batch.
+      Indicates worst-case out-of-spec severity.
+    grain: per batch
+    unit: same as MIC unit
+    direction: lower_is_better
+    sql: |
+      MAX(ABS(deviation_from_target))
+    source: gold_batch_coa_results_v
+    notes: NULL deviation means target was zero or not set — exclude from severity ranking
+
+  # =========================================================================
+  # SHARED QUALITY METRICS
+  # =========================================================================
 
   - name: first_pass_yield
     display_name: First Pass Yield (FPY)
+    app: shared
     description: >
       Percentage of inspection lots that pass all MICs on the first inspection
       without rework or re-inspection.
@@ -110,8 +214,27 @@ metrics:
       )
     source: gold_batch_quality_summary_v
 
+  - name: rejection_rate
+    display_name: Rejection Rate
+    app: shared
+    description: >
+      Percentage of individual MIC results that are rejected across all
+      inspections in a date range.
+    grain: per material, per plant, or per MIC over a date range
+    unit: "%"
+    direction: lower_is_better
+    target: "< 2%"
+    sql: |
+      ROUND(
+        100.0 * COUNT(CASE WHEN INSPECTION_RESULT_VALUATION = 'R' THEN 1 END)
+        / NULLIF(COUNT(*), 0),
+        2
+      )
+    source: gold_batch_quality_result_v
+
   - name: batch_cycle_time
     display_name: Batch Cycle Time
+    app: shared
     description: >
       Days between first production receipt and last goods issue for a batch.
       Measures manufacturing-to-shipment velocity.
@@ -126,12 +249,109 @@ metrics:
     source: gold_batch_mass_balance_v
     notes: NULL if batch has not been shipped yet
 
-  # -------------------------------------------------------------------------
-  # SPC Metrics
-  # -------------------------------------------------------------------------
+  - name: quality_lot_turnaround
+    display_name: Quality Lot Turnaround Time
+    app: shared
+    description: >
+      Days between lot creation and inspection end for quality lots.
+      Measures quality lab responsiveness.
+    grain: per inspection lot
+    unit: days
+    direction: lower_is_better
+    sql: |
+      DATEDIFF(INSPECTION_END_DATE, CREATED_DATE)
+    source: gold_batch_quality_lot_v
+    notes: NULL if inspection not yet completed (INSPECTION_END_DATE is NULL)
+
+  # =========================================================================
+  # ENVMON — Environmental Monitoring Metrics
+  # =========================================================================
+
+  - name: envmon_inspection_completion_rate
+    display_name: EnvMon Inspection Completion Rate
+    app: envmon
+    description: >
+      Percentage of environmental monitoring inspection lots that have been
+      completed (have an INSPECTION_END_DATE) within a date range.
+    grain: per plant or per functional location over a date range
+    unit: "%"
+    direction: higher_is_better
+    target: "> 98%"
+    sql: |
+      ROUND(
+        100.0 * COUNT(CASE WHEN l.INSPECTION_END_DATE IS NOT NULL THEN 1 END)
+        / NULLIF(COUNT(*), 0),
+        2
+      )
+    source: gold_inspection_lot (filtered to INSPECTION_LOT_ORIGIN = '08' for recurring/periodic)
+    notes: >
+      EnvMon lots are typically origin '08' (recurring/periodic).
+      Filter by INSPECTION_LOT_ORIGIN to isolate environmental inspections.
+
+  - name: envmon_out_of_spec_rate
+    display_name: EnvMon Out-of-Spec Rate
+    app: envmon
+    description: >
+      Percentage of inspection results at environmental monitoring points
+      that are rejected or failed.
+    grain: per functional location or per plant over a date range
+    unit: "%"
+    direction: lower_is_better
+    target: "< 1%"
+    sql: |
+      ROUND(
+        100.0 * COUNT(CASE WHEN r.INSPECTION_RESULT_VALUATION IN ('R', 'F') THEN 1 END)
+        / NULLIF(COUNT(*), 0),
+        2
+      )
+    sources:
+      - gold_inspection_lot (l) — filter INSPECTION_LOT_ORIGIN = '08'
+      - gold_inspection_point (p) — join on INSPECTION_LOT_ID for func location
+      - gold_batch_quality_result_v (r) — join on INSPECTION_LOT_ID for results
+
+  - name: envmon_location_coverage
+    display_name: EnvMon Location Coverage
+    app: envmon
+    description: >
+      Percentage of mapped functional locations (in em_location_coordinates)
+      that have at least one inspection point in the current period.
+    grain: per floor plan / site
+    unit: "%"
+    direction: higher_is_better
+    target: "100%"
+    sql: |
+      ROUND(
+        100.0 * COUNT(DISTINCT p.FUNCTIONAL_LOCATION)
+        / NULLIF((SELECT COUNT(*) FROM {{CATALOG}}.gold.em_location_coordinates), 0),
+        2
+      )
+    sources:
+      - gold_inspection_point (p)
+      - em_location_coordinates
+
+  - name: envmon_inspection_density
+    display_name: Inspections per Location per Month
+    app: envmon
+    description: >
+      Average number of inspection lots per functional location per month.
+      Used to detect gaps in sampling schedules.
+    grain: per functional location per month
+    unit: count
+    direction: informational
+    sql: |
+      COUNT(DISTINCT l.INSPECTION_LOT_ID)
+    sources:
+      - gold_inspection_lot (l)
+      - gold_inspection_point (p) — join for FUNCTIONAL_LOCATION
+    notes: Group by FUNCTIONAL_LOCATION, DATE_TRUNC('month', l.CREATED_DATE)
+
+  # =========================================================================
+  # SPC — Statistical Process Control Metrics
+  # =========================================================================
 
   - name: x_bar_ucl
     display_name: X-bar Upper Control Limit
+    app: spc
     description: >
       Upper control limit for X-bar chart.  Calculated as mean + 3*sigma_within.
     grain: per MIC selection key
@@ -142,12 +362,14 @@ metrics:
         THEN mean_value + 3 * sigma_within
         ELSE NULL
       END
+    source: spc_quality_metrics (also available as metric view measure)
     notes: >
       sigma_within uses the average moving range method (MR-bar / d2).
-      These are CALCULATED limits, not stored columns.
+      If spc_locked_limits has a matching row, use its ucl instead.
 
   - name: x_bar_lcl
     display_name: X-bar Lower Control Limit
+    app: spc
     description: >
       Lower control limit for X-bar chart.  Calculated as mean - 3*sigma_within.
     grain: per MIC selection key
@@ -157,21 +379,208 @@ metrics:
         THEN mean_value - 3 * sigma_within
         ELSE NULL
       END
+    source: spc_quality_metrics
+    notes: If spc_locked_limits has a matching row, use its lcl instead.
 
   - name: cpk
     display_name: Process Capability Index (Cpk)
+    app: spc
     description: >
       Measures how well a process fits within specification limits.
       Cpk = MIN((USL - mean) / 3*sigma, (mean - LSL) / 3*sigma).
+      Uses sigma_within (short-term, within-subgroup).
     grain: per MIC selection key over a measurement window
     unit: ratio
     direction: higher_is_better
     target: "> 1.33"
     sql: |
       LEAST(
-        (upper_spec_limit - mean_value) / NULLIF(3 * sigma_within, 0),
-        (mean_value - lower_spec_limit) / NULLIF(3 * sigma_within, 0)
+        (spec_upper - mean_value) / NULLIF(3 * sigma_within, 0),
+        (mean_value - spec_lower) / NULLIF(3 * sigma_within, 0)
       )
+    source: spc_quality_metrics
     notes: >
       Only meaningful for normally distributed, stable processes.
       Returns NULL if spec limits or sigma are unavailable.
+      Available as pre-computed column in spc_quality_metrics.
+
+  - name: ppk
+    display_name: Process Performance Index (Ppk)
+    app: spc
+    description: >
+      Like Cpk but uses sigma_overall (long-term, total variation).
+      Ppk = MIN((USL - mean) / 3*sigma_overall, (mean - LSL) / 3*sigma_overall).
+    grain: per MIC selection key over a measurement window
+    unit: ratio
+    direction: higher_is_better
+    target: "> 1.33"
+    sql: |
+      LEAST(
+        (spec_upper - mean_value) / NULLIF(3 * stddev_overall, 0),
+        (mean_value - spec_lower) / NULLIF(3 * stddev_overall, 0)
+      )
+    source: spc_quality_metrics
+    notes: >
+      Ppk < Cpk indicates process is not centred within spec.
+      Available as pre-computed column in spc_quality_metrics.
+
+  - name: cp
+    display_name: Process Capability (Cp)
+    app: spc
+    description: >
+      Spec width relative to process spread.
+      Cp = (USL - LSL) / (6 * sigma_within).
+      Measures potential capability, ignoring centering.
+    grain: per MIC selection key
+    unit: ratio
+    direction: higher_is_better
+    target: "> 1.33"
+    sql: |
+      (spec_upper - spec_lower) / NULLIF(6 * sigma_within, 0)
+    source: spc_quality_metrics
+
+  - name: pp
+    display_name: Process Performance (Pp)
+    app: spc
+    description: >
+      Like Cp but uses sigma_overall.
+      Pp = (USL - LSL) / (6 * sigma_overall).
+    grain: per MIC selection key
+    unit: ratio
+    direction: higher_is_better
+    sql: |
+      (spec_upper - spec_lower) / NULLIF(6 * stddev_overall, 0)
+    source: spc_quality_metrics
+
+  - name: ooc_rate
+    display_name: Out-of-Control Rate
+    app: spc
+    description: >
+      Percentage of batches with results outside control limits.
+      Pre-computed in spc_quality_metrics.
+    grain: per MIC selection key
+    unit: "%"
+    direction: lower_is_better
+    target: "< 0.27% (3-sigma expectation)"
+    sql: |
+      ooc_rate
+    source: spc_quality_metrics
+    notes: >
+      ooc_rate = rejected_batches / batch_count.
+      High ooc_rate (> ~1%) indicates an unstable process
+      requiring investigation before capability analysis.
+
+  - name: dpmo
+    display_name: Defects Per Million Opportunities
+    app: spc
+    description: >
+      Estimated defects per million based on the process distribution
+      and specification limits.
+    grain: per MIC selection key
+    unit: count per million
+    direction: lower_is_better
+    target: "< 3.4 (six sigma)"
+    sql: |
+      dpmo
+    source: spc_quality_metrics
+    notes: Pre-computed. NULL when spec limits or sigma unavailable.
+
+  - name: z_score
+    display_name: Process Z-Score
+    app: spc
+    description: >
+      Number of standard deviations between the process mean and
+      the nearest specification limit.  Higher = more capable.
+    grain: per MIC selection key
+    unit: sigma
+    direction: higher_is_better
+    target: "> 4.0"
+    sql: |
+      z_score
+    source: spc_quality_metrics
+
+  - name: mean_offset_pct
+    display_name: Mean Offset (% of Spec Width)
+    app: spc
+    description: >
+      How far the process mean is from the nominal target, expressed
+      as a percentage of the full specification width (USL - LSL).
+    grain: per MIC selection key
+    unit: "%"
+    direction: lower_is_better
+    target: "< 10%"
+    sql: |
+      pct_mean_offset_of_spec_width
+    source: spc_quality_metrics
+    notes: >
+      0% = perfectly centred on target.
+      Companion flag mean_out_of_spec_flag = 1 when mean is outside spec.
+
+  - name: sigma_within
+    display_name: Within-Subgroup Sigma
+    app: spc
+    description: >
+      Short-term process variability estimated from average moving range.
+      sigma_within = avg_subgroup_range / d2.
+    grain: per MIC selection key
+    unit: same as measured value
+    direction: lower_is_better
+    sql: |
+      sigma_within
+    source: spc_quality_metrics
+    notes: Used for Cp/Cpk and control limit calculations
+
+  - name: sigma_ratio
+    display_name: Sigma Ratio (Overall / Within)
+    app: spc
+    description: >
+      Ratio of overall sigma to within-subgroup sigma.
+      Values >> 1 indicate significant between-subgroup variation
+      (special cause or shifting mean).
+    grain: per MIC selection key
+    unit: ratio
+    direction: lower_is_better
+    target: "~1.0 for stable process"
+    sql: |
+      stddev_overall / NULLIF(sigma_within, 0)
+    source: spc_quality_metrics
+    notes: >
+      sigma_ratio >> 1 → Ppk << Cpk → process is drifting.
+      sigma_ratio ≈ 1 → common cause only → Ppk ≈ Cpk.
+
+  - name: spec_safety_flag
+    display_name: Specification Safety Flag
+    app: spc
+    description: >
+      Binary flag indicating whether the MIC has exactly one unique
+      specification pair (upper/lower) across the measurement window.
+      spec_safe = 1 means capability indices are trustworthy.
+    grain: per MIC selection key
+    unit: boolean (0/1)
+    sql: |
+      spec_safe
+    source: spc_quality_metrics
+    notes: >
+      spec_safe = 0 when distinct_spec_count > 1 — specs changed mid-window.
+      In this case, Cpk/Ppk are unreliable — split the analysis by spec period.
+
+  - name: exclusion_count
+    display_name: Excluded Data Points
+    app: spc
+    description: >
+      Number of data points currently excluded from SPC calculations
+      for a given MIC context.  Sourced from the spc_exclusions log.
+    grain: per MIC (material_id, mic_id, plant_id)
+    unit: count
+    direction: informational
+    sql: |
+      -- Net excluded = sum of excluded_count for latest non-clear action set
+      -- Implementation note: spc_exclusions is append-only.
+      -- clear_exclusions resets the count to 0.
+      SUM(CASE WHEN action IN ('manual_exclude', 'auto_clean_phase_i') THEN excluded_count ELSE 0 END)
+      - SUM(CASE WHEN action = 'manual_restore' THEN excluded_count ELSE 0 END)
+    source: spc_exclusions
+    notes: >
+      After a clear_exclusions action, all prior exclusions are void.
+      Agents should filter to actions AFTER the latest clear_exclusions
+      for that MIC context.
