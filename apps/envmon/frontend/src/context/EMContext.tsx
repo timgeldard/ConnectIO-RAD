@@ -1,6 +1,7 @@
 /**
- * Global filter state for the EM app.
- * Synced to URL search params so filters survive page refresh / sharing.
+ * Global state for the EM app.
+ * Adds multi-level navigation (view) and persona gating on top of the original
+ * filter state. Theme removed (Kerry design system, no dark mode toggle).
  */
 
 import React, {
@@ -10,29 +11,33 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import type { HeatmapMode, TimeWindow } from '~/types';
+import type { HeatmapMode, TimeWindow, ViewState, PersonaId } from '~/types';
 
 interface EMState {
+  // Navigation
+  view: ViewState;
+  personaId: PersonaId;
+  // Floor-level filters
   activeFloor: string;
   timeWindow: TimeWindow;
   heatmapMode: HeatmapMode;
   selectedLocId: string | null;
   adminMode: boolean;
   sidePanelExpanded: boolean;
-  theme: 'white' | 'g100';
   historicalDate: string | null;
   decayLambda: number;
   selectedMics: string[];
 }
 
 interface EMActions {
+  setView: (v: ViewState) => void;
+  setPersonaId: (id: PersonaId) => void;
   setActiveFloor: (floor: string) => void;
   setTimeWindow: (tw: TimeWindow) => void;
   setHeatmapMode: (mode: HeatmapMode) => void;
   setSelectedLocId: (id: string | null) => void;
   setAdminMode: (on: boolean) => void;
   setSidePanelExpanded: (on: boolean) => void;
-  setTheme: (theme: 'white' | 'g100') => void;
   setHistoricalDate: (date: string | null) => void;
   setDecayLambda: (val: number) => void;
   setSelectedMics: (mics: string[]) => void;
@@ -46,13 +51,30 @@ function readSearchParam<T extends string>(key: string, fallback: T, valid: T[])
   return v && valid.includes(v) ? v : fallback;
 }
 
+function readLocalStorage<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 export function EMProvider({ children }: { children: React.ReactNode }) {
+  const [view, setViewRaw] = useState<ViewState>(() =>
+    readLocalStorage<ViewState>('em_view', { level: 'global', plantId: null, floorId: null }),
+  );
+  const [personaId, setPersonaIdRaw] = useState<PersonaId>(() =>
+    readLocalStorage<PersonaId>('em_persona', 'regional'),
+  );
+
   const [activeFloor, setActiveFloorRaw] = useState<string>(
-    () => new URLSearchParams(window.location.search).get('floor') ?? 'F1',
+    () => new URLSearchParams(window.location.search).get('floor') ?? view.floorId ?? 'F1',
   );
   const [timeWindow, setTimeWindowRaw] = useState<TimeWindow>(
     () =>
-      readSearchParam<string>('tw', '365', ['30', '60', '90', '180', '365']) as unknown as TimeWindow
+      (readSearchParam<string>('tw', '365', ['30', '60', '90', '180', '365']) as unknown as TimeWindow)
       ?? 365,
   );
   const [heatmapMode, setHeatmapModeRaw] = useState<HeatmapMode>(
@@ -61,9 +83,6 @@ export function EMProvider({ children }: { children: React.ReactNode }) {
   const [selectedLocId, setSelectedLocId] = useState<string | null>(null);
   const [adminMode, setAdminMode] = useState(false);
   const [sidePanelExpanded, setSidePanelExpanded] = useState(false);
-  const [theme, setThemeRaw] = useState<'white' | 'g100'>(
-    () => readSearchParam<string>('theme', 'white', ['white', 'g100']) as 'white' | 'g100',
-  );
   const [historicalDate, setHistoricalDateRaw] = useState<string | null>(null);
   const [decayLambda, setDecayLambdaRaw] = useState<number>(() => {
     const raw = new URLSearchParams(window.location.search).get('lambda');
@@ -76,12 +95,21 @@ export function EMProvider({ children }: { children: React.ReactNode }) {
 
   const pushParam = useCallback((key: string, value: string) => {
     const sp = new URLSearchParams(window.location.search);
-    if (value) {
-      sp.set(key, value);
-    } else {
-      sp.delete(key);
-    }
+    if (value) sp.set(key, value); else sp.delete(key);
     window.history.replaceState(null, '', `?${sp}`);
+  }, []);
+
+  const setView = useCallback((v: ViewState) => {
+    setViewRaw(v);
+    localStorage.setItem('em_view', JSON.stringify(v));
+    // Sync activeFloor when navigating into a floor
+    if (v.floorId) setActiveFloorRaw(v.floorId);
+    setSelectedLocId(null);
+  }, []);
+
+  const setPersonaId = useCallback((id: PersonaId) => {
+    setPersonaIdRaw(id);
+    localStorage.setItem('em_persona', JSON.stringify(id));
   }, []);
 
   const setActiveFloor = useCallback(
@@ -89,31 +117,18 @@ export function EMProvider({ children }: { children: React.ReactNode }) {
       setActiveFloorRaw(floor);
       setSelectedLocId(null);
       pushParam('floor', floor);
+      setViewRaw((prev) => ({ ...prev, floorId: floor }));
     },
     [pushParam],
   );
 
   const setTimeWindow = useCallback(
-    (tw: TimeWindow) => {
-      setTimeWindowRaw(tw);
-      pushParam('tw', String(tw));
-    },
+    (tw: TimeWindow) => { setTimeWindowRaw(tw); pushParam('tw', String(tw)); },
     [pushParam],
   );
 
   const setHeatmapMode = useCallback(
-    (mode: HeatmapMode) => {
-      setHeatmapModeRaw(mode);
-      pushParam('mode', mode);
-    },
-    [pushParam],
-  );
-
-  const setTheme = useCallback(
-    (newTheme: 'white' | 'g100') => {
-      setThemeRaw(newTheme);
-      pushParam('theme', newTheme);
-    },
+    (mode: HeatmapMode) => { setHeatmapModeRaw(mode); pushParam('mode', mode); },
     [pushParam],
   );
 
@@ -122,47 +137,35 @@ export function EMProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setDecayLambda = useCallback(
-    (val: number) => {
-      setDecayLambdaRaw(val);
-      pushParam('lambda', String(val));
-    },
+    (val: number) => { setDecayLambdaRaw(val); pushParam('lambda', String(val)); },
     [pushParam],
   );
 
   const setSelectedMics = useCallback(
-    (mics: string[]) => {
-      setSelectedMicsRaw(mics);
-      pushParam('mics', mics.join(','));
-    },
+    (mics: string[]) => { setSelectedMicsRaw(mics); pushParam('mics', mics.join(',')); },
     [pushParam],
   );
 
   const value = useMemo(
     () => ({
-      activeFloor,
-      timeWindow,
-      heatmapMode,
-      selectedLocId,
-      adminMode,
-      sidePanelExpanded,
-      theme,
-      historicalDate,
-      decayLambda,
-      selectedMics,
-      setActiveFloor,
-      setTimeWindow,
-      setHeatmapMode,
-      setSelectedLocId,
-      setAdminMode,
-      setSidePanelExpanded,
-      setTheme,
-      setHistoricalDate,
-      setDecayLambda,
-      setSelectedMics,
+      view, personaId,
+      activeFloor, timeWindow, heatmapMode,
+      selectedLocId, adminMode, sidePanelExpanded,
+      historicalDate, decayLambda, selectedMics,
+      setView, setPersonaId,
+      setActiveFloor, setTimeWindow, setHeatmapMode,
+      setSelectedLocId, setAdminMode, setSidePanelExpanded,
+      setHistoricalDate, setDecayLambda, setSelectedMics,
     }),
     [
-      activeFloor, timeWindow, heatmapMode, selectedLocId, adminMode, sidePanelExpanded, theme, historicalDate, decayLambda, selectedMics,
-      setActiveFloor, setTimeWindow, setHeatmapMode, setSelectedLocId, setSidePanelExpanded, setTheme, setHistoricalDate, setDecayLambda, setSelectedMics,
+      view, personaId,
+      activeFloor, timeWindow, heatmapMode,
+      selectedLocId, adminMode, sidePanelExpanded,
+      historicalDate, decayLambda, selectedMics,
+      setView, setPersonaId,
+      setActiveFloor, setTimeWindow, setHeatmapMode,
+      setSelectedLocId, setSidePanelExpanded,
+      setHistoricalDate, setDecayLambda, setSelectedMics,
     ],
   );
 

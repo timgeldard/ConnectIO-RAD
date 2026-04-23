@@ -1,4 +1,4 @@
-import { Tag } from '@carbon/react';
+import React from 'react';
 import type { MarkerData } from '~/types';
 
 interface TooltipProps {
@@ -7,47 +7,41 @@ interface TooltipProps {
   y: number;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  PASS:    'Pass',
-  FAIL:    'Fail',
-  PENDING: 'Pending',
-  NO_DATA: 'No data',
-};
-
-const TAG_TYPE: Record<string, 'green' | 'red' | 'magenta' | 'gray'> = {
-  PASS:    'green',
-  FAIL:    'red',
-  PENDING: 'magenta',
-  NO_DATA: 'gray',
+const STATUS_COLOR: Record<string, string> = {
+  PASS:    '#44CF93',
+  FAIL:    '#F24A00',
+  WARNING: '#F9C20A',
+  PENDING: '#B7B7A8',
+  NO_DATA: '#D9D9CB',
 };
 
 export default function Tooltip({ marker, x, y }: TooltipProps) {
   const label = marker.func_loc_name ?? marker.func_loc_id;
-  const status = STATUS_LABEL[marker.status] ?? marker.status;
-  const tagType = TAG_TYPE[marker.status] ?? 'gray';
+  const dot = STATUS_COLOR[marker.status] ?? '#D9D9CB';
 
   return (
     <div
-      className="em-tooltip"
+      className="tooltip"
       style={{ left: x + 12, top: y - 8 }}
       role="tooltip"
-      aria-live="polite"
     >
-      <div style={{ marginBottom: 'var(--cds-spacing-02)', fontWeight: 'var(--cds-font-weight-semibold, 600)' }}>
-        {label}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--cds-spacing-03)', marginBottom: 'var(--cds-spacing-03)' }}>
-        <span style={{ color: 'var(--cds-text-inverse-placeholder)' }}>Status:</span>
-        <Tag type={tagType} size="sm" style={{ margin: 0 }}>{status}</Tag>
+      <div className="mono" style={{ fontSize: 10.5, opacity: 0.75, marginBottom: 2 }}>{marker.func_loc_id}</div>
+      <div style={{ fontWeight: 600, marginBottom: 6 }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }} />
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          {marker.status}
+        </span>
       </div>
       {marker.total_count > 0 && (
-        <div style={{ color: 'var(--cds-text-inverse)' }}>
-          {marker.fail_count} fail / {marker.total_count} total
+        <div style={{ marginTop: 5, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+          <span style={{ opacity: 0.7, marginRight: 4 }}>F</span>{marker.fail_count}
+          <span style={{ opacity: 0.7, margin: '0 4px 0 8px' }}>TOT</span>{marker.total_count}
         </div>
       )}
       {marker.risk_score !== null && (
-        <div style={{ marginTop: 'var(--cds-spacing-01)', color: 'var(--cds-text-inverse-placeholder)' }}>
-          Risk score: {marker.risk_score?.toFixed(2)}
+        <div style={{ marginTop: 4, fontSize: 11, fontFamily: 'var(--font-mono)', opacity: 0.8 }}>
+          Risk: {marker.risk_score?.toFixed(2)}
         </div>
       )}
     </div>

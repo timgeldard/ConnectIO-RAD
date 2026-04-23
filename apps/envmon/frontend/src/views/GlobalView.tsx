@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from 'react-simple-maps';
 import KPI from '~/components/ui/KPI';
 import type { PlantInfo } from '~/types';
 
@@ -9,9 +10,12 @@ interface Props {
 
 const REGIONS = ['ALL', 'EMEA', 'AMER', 'APMEA'];
 
-// Simple equirectangular projection; world bounds lon[-180,180] lat[-60,75]
-function proj(lat: number, lon: number, w: number, h: number) {
-  return { x: ((lon + 180) / 360) * w, y: (1 - (lat + 60) / 135) * h };
+const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+
+function riskColor(p: PlantInfo) {
+  if (p.kpis.risk_index > 30) return '#F24A00';
+  if (p.kpis.risk_index > 15) return '#F9C20A';
+  return '#44CF93';
 }
 
 export default function GlobalView({ plants, onOpenPlant }: Props) {
@@ -44,7 +48,7 @@ export default function GlobalView({ plants, onOpenPlant }: Props) {
     };
   }, [scoped]);
 
-  const mapW = 100, mapH = 48;
+  const validPins = plants.filter((p) => p.lat !== 0 || p.lon !== 0);
 
   return (
     <div className="scroll-y" style={{ height: '100%', padding: '20px 28px 40px' }}>
@@ -79,7 +83,7 @@ export default function GlobalView({ plants, onOpenPlant }: Props) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16, marginBottom: 20 }}>
         {/* World map */}
-        <div className="card" style={{ padding: 0 }}>
+        <div className="card" style={{ padding: 0, position: 'relative' }}>
           <div className="card-hd">
             <div>
               <h3>Risk map</h3>
@@ -91,48 +95,69 @@ export default function GlobalView({ plants, onOpenPlant }: Props) {
               <span className="item"><span className="sw" style={{ background: 'var(--jade)' }} />Low</span>
             </div>
           </div>
-          <div className="worldmap" style={{ height: 320, borderRadius: 0 }}>
-            <svg viewBox={`0 0 ${mapW} ${mapH}`} preserveAspectRatio="xMidYMid meet">
-              <g fill="#E3E3D4" stroke="#D1D1C1" strokeWidth="0.12">
-                <path d="M 10,10 Q 14,6 22,8 Q 28,9 30,14 Q 29,18 27,22 Q 24,26 20,28 Q 16,28 14,25 Q 12,22 11,18 Z" />
-                <path d="M 25,26 Q 29,28 30,32 Q 29,38 27,42 Q 24,44 23,40 Q 22,34 24,30 Z" />
-                <path d="M 46,10 Q 52,8 56,10 Q 58,14 56,17 Q 52,19 48,18 Q 45,16 45,13 Z" />
-                <path d="M 48,19 Q 54,19 56,22 Q 58,28 56,34 Q 53,40 50,40 Q 47,38 46,32 Q 45,26 46,21 Z" />
-                <path d="M 58,10 Q 68,8 78,10 Q 84,13 86,18 Q 84,22 80,24 Q 72,25 64,22 Q 60,17 58,13 Z" />
-                <path d="M 78,24 Q 84,25 87,27 Q 86,30 82,30 Q 79,29 78,26 Z" />
-                <path d="M 82,34 Q 88,33 90,36 Q 89,39 85,40 Q 81,39 81,36 Z" />
-              </g>
-              {[...Array(12)].map((_, i) => <line key={i} x1={i * 10} y1={0} x2={i * 10} y2={mapH} stroke="#EDEDDF" strokeWidth="0.08" />)}
-              {[...Array(6)].map((_, i) => <line key={i} x1={0} y1={i * 8} x2={mapW} y2={i * 8} stroke="#EDEDDF" strokeWidth="0.08" />)}
-              {plants.map((p) => {
-                const { x, y } = proj(p.lat, p.lon, mapW, mapH);
-                const color = p.kpis.risk_index > 30 ? '#F24A00' : p.kpis.risk_index > 15 ? '#F9C20A' : '#44CF93';
-                const r = 0.8 + Math.min(2.4, p.kpis.active_fails * 0.25);
-                return (
-                  <g key={p.plant_id} className="plant-pin" onClick={() => onOpenPlant(p.plant_id)}
-                    onMouseEnter={(e) => { setHover(p); setMousePos({ x: e.clientX, y: e.clientY }); }}
-                    onMouseLeave={() => setHover(null)}
-                    onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}>
-                    <circle cx={x} cy={y} r={r + 0.8} fill={color} fillOpacity="0.25" />
-                    <circle cx={x} cy={y} r={r} fill={color} stroke="white" strokeWidth="0.25" />
-                  </g>
-                );
-              })}
-            </svg>
-            {hover && (
-              <div className="tooltip" style={{ left: mousePos.x + 12, top: mousePos.y + 12 }}>
-                <div className="mono" style={{ fontSize: 10.5, opacity: 0.75 }}>{hover.plant_code}</div>
-                <div style={{ fontWeight: 600 }}>{hover.plant_name}</div>
-                <div style={{ fontSize: 11, marginTop: 4, fontFamily: 'var(--font-mono)' }}>
-                  <span style={{ color: 'var(--sunset)', marginRight: 8 }}>{hover.kpis.active_fails} FAIL</span>
-                  <span style={{ marginRight: 8 }}>{hover.kpis.pass_rate.toFixed(1)}% pass</span>
-                </div>
-              </div>
-            )}
+          <div style={{ height: 320, overflow: 'hidden', background: '#EEF0E8', borderRadius: '0 0 8px 8px' }}>
+            <ComposableMap
+              projection="geoEqualEarth"
+              projectionConfig={{ scale: 155, center: [10, 10] }}
+              style={{ width: '100%', height: '100%' }}
+            >
+              <ZoomableGroup zoom={1}>
+                <Geographies geography={GEO_URL}>
+                  {({ geographies }) =>
+                    geographies.map((geo) => (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill="#DDE0D4"
+                        stroke="#C8CCC0"
+                        strokeWidth={0.3}
+                        style={{
+                          default: { outline: 'none' },
+                          hover: { outline: 'none', fill: '#D2D5CB' },
+                          pressed: { outline: 'none' },
+                        }}
+                      />
+                    ))
+                  }
+                </Geographies>
+                {validPins.map((p) => {
+                  const r = 3 + Math.min(7, p.kpis.active_fails * 0.6);
+                  const color = riskColor(p);
+                  return (
+                    <Marker
+                      key={p.plant_id}
+                      coordinates={[p.lon, p.lat]}
+                      onClick={() => onOpenPlant(p.plant_id)}
+                      onMouseEnter={(e: React.MouseEvent) => {
+                        setHover(p);
+                        setMousePos({ x: e.clientX, y: e.clientY });
+                      }}
+                      onMouseLeave={() => setHover(null)}
+                      onMouseMove={(e: React.MouseEvent) => setMousePos({ x: e.clientX, y: e.clientY })}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <circle r={r + 3} fill={color} fillOpacity={0.2} />
+                      <circle r={r} fill={color} stroke="white" strokeWidth={1} />
+                    </Marker>
+                  );
+                })}
+              </ZoomableGroup>
+            </ComposableMap>
           </div>
+          {hover && (
+            <div className="tooltip" style={{ position: 'fixed', left: mousePos.x + 14, top: mousePos.y + 14, zIndex: 1000, pointerEvents: 'none' }}>
+              <div className="mono" style={{ fontSize: 10.5, opacity: 0.75 }}>{hover.plant_code}</div>
+              <div style={{ fontWeight: 600 }}>{hover.plant_name}</div>
+              {hover.city && <div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{hover.city}</div>}
+              <div style={{ fontSize: 11, marginTop: 4, fontFamily: 'var(--font-mono)' }}>
+                <span style={{ color: 'var(--sunset)', marginRight: 8 }}>{hover.kpis.active_fails} FAIL</span>
+                <span>{hover.kpis.pass_rate.toFixed(1)}% pass</span>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Sort controls */}
+        {/* Plant ranking list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div className="eyebrow">Plant ranking</div>
@@ -159,17 +184,17 @@ export default function GlobalView({ plants, onOpenPlant }: Props) {
 
 function PlantCard({ plant, onClick }: { plant: PlantInfo; onClick: () => void }) {
   const { kpis } = plant;
-  const riskColor = kpis.active_fails > 0 ? 'var(--sunset)' : kpis.warnings > 0 ? 'var(--sunrise)' : 'var(--jade)';
+  const riskCol = kpis.active_fails > 0 ? 'var(--sunset)' : kpis.warnings > 0 ? 'var(--sunrise)' : 'var(--jade)';
   return (
     <button className="card" onClick={onClick}
       style={{ width: '100%', textAlign: 'left', cursor: 'pointer', padding: '12px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: riskColor, flexShrink: 0 }} />
+      <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: riskCol, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <div style={{ fontWeight: 600, fontSize: 14 }}>{plant.plant_code} · {plant.plant_name}</div>
           <div className="mono" style={{ fontSize: 11.5, color: 'var(--fg-muted)' }}>{plant.country}</div>
         </div>
-        <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 2 }}>{plant.product}</div>
+        <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 2 }}>{plant.city ?? plant.product}</div>
         <div style={{ display: 'flex', gap: 12, marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
           <span style={{ color: kpis.active_fails > 0 ? 'var(--sunset)' : 'var(--fg-muted)', fontWeight: 600 }}>
             {kpis.active_fails} FAIL

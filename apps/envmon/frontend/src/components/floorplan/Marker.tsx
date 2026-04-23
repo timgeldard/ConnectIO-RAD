@@ -95,7 +95,7 @@ export default memo(function Marker({
         cy={cy}
         r={radius}
         className={statusClass}
-        stroke="var(--cds-background)"
+        stroke="white"
         strokeWidth={1.5}
       />
 
@@ -106,7 +106,7 @@ export default memo(function Marker({
           y={cy + 4}
           textAnchor="middle"
           fontSize={12}
-          fill="var(--cds-text-on-color)"
+          fill="white"
           fontWeight="600"
           className="em-marker-label"
           style={{ pointerEvents: 'none', userSelect: 'none' }}
