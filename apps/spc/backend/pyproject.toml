@@ -15,6 +15,7 @@ dependencies = [
   "databricks-sql-connector>=4.0",
   "shared-db",
   "shared-api",
+  "shared-trace",
 ]
 
 [build-system]

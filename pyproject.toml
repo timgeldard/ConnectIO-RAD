@@ -6,12 +6,14 @@ members = [
   "libs/shared-api",
   "libs/shared-auth",
   "libs/shared-db",
+  "libs/shared-trace",
 ]
 
 [tool.uv.sources]
 shared-db   = { workspace = true }
 shared-auth = { workspace = true }
 shared-api  = { workspace = true }
+shared-trace = { workspace = true }
 
 [tool.uv]
 dev-dependencies = [

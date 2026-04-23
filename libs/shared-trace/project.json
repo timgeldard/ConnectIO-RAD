@@ -1,0 +1,25 @@
+{
+  "name": "shared-trace",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:backend"],
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run ruff check . && uv run mypy src/",
+        "cwd": "libs/shared-trace"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --package shared-trace pytest",
+        "cwd": "{workspaceRoot}"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    }
+  }
+}

@@ -14,9 +14,9 @@ planning update.
 | Opportunity | Status | Last update | Next action |
 | --- | --- | --- | --- |
 | Shared FastAPI app/runtime conventions | Completed | Added shared app factory, safe exception handling, health/readiness helpers, hardened same-origin middleware, and safe SPA fallback registration; envmon, trace2, and SPC now use the shared runtime. | Keep app-specific debug/readiness extensions local while future shared API behavior is added. |
-| Shared Databricks SQL runtime | Completed for envmon/trace2 | Added `SqlRuntime`, cache policy primitives, audit hooks, comment-aware SQL classification, and `DataFreshnessRuntime`; envmon and trace2 now use shared cache/read-write/freshness behavior while SPC remains app-owned. | Revisit SPC after its audit/exclusion behavior is protected by broader DAL tests. |
-| Shared trace backend primitives | Baselined | Route map confirms the four shared SPC/trace2 trace endpoints and their rate limits/freshness sources. | Extract schemas/tree helpers and add conformance tests before moving DAL SQL. |
-| Trace2-led deploy standardization | Completed | Added `scripts/deploy_app.py`, per-app `deploy.toml` manifests, shared `make deploy` wiring, masked render logging, configurable workspace bundle paths, and profile/target-scoped resource defaults. | Validate the shared wrapper against real UAT Databricks profile deploys, then add non-UAT resource manifests before enabling those targets. |
+| Shared Databricks SQL runtime | Completed for envmon/trace2; SPC migration tested | Added `SqlRuntime`, cache policy primitives, audit hooks, comment-aware SQL classification, and `DataFreshnessRuntime`; envmon and trace2 now use shared cache/read-write/freshness behavior while SPC has dedicated migration guard tests for tiered cache, audit suppression, audit hooks, and write invalidation. | Migrate SPC only after its app-owned audit/exclusion adapter is intentionally mapped onto `SqlRuntime`. |
+| Shared trace backend primitives | Completed core contract and core DAL extraction | Added `libs/shared-trace` with shared request schemas, tree-building behavior, freshness source contracts, conformance tests, and the common SPC/trace2 trace DAL SQL behind injected app SQL helpers. Trace2-only recall/page DAL remains app-owned. | Keep shared trace DAL limited to the four common endpoints until the data catalog documents trace2-only page contracts. |
+| Trace2-led deploy standardization | Completed | Added `scripts/deploy_app.py`, per-app `deploy.toml` manifests, shared `make deploy` wiring, masked render logging, configurable workspace bundle paths, profile/target-scoped resource defaults, a `validate` action, UAT dry-run deploy validation, and fail-closed prod resource placeholders. | Run real Databricks UAT deploys when ready; dry-run and manifest validation now pass locally. |
 | Frontend API/query standardization | Completed | Added `libs/shared-frontend-api`; envmon, SPC, and trace2 use shared transport helpers, and envmon/SPC use shared React Query defaults. | Keep trace2 response mapping local until the shared trace contract is introduced. |
 | Repo consolidation scanner suite | Completed | Added `scripts/consolidation_audit.py`; reports are regenerated as consolidation phases change. | Keep reports current with each consolidation phase. |
 | Frontend build/dependency standardization | In progress | SPC React typings and TypeScript were aligned enough for typecheck; dependency drift report now includes shared frontend packages. | Continue remaining Vite/plugin/version alignment in a later build-standardization slice. |
@@ -30,17 +30,15 @@ planning update.
 
 | Rank | Opportunity | Area | Impact | Risk | Effort | Suggested timing |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Extract shared trace backend primitives | Backend/data | High | Medium | High | Now, staged |
-| 2 | Add SPC SQL runtime migration tests | Backend/data | High | Medium | Medium | Now |
-| 3 | Validate shared deploy wrapper in UAT | Deploy | High | Medium | Medium | Now |
-| 4 | Add non-UAT profile/target resource manifests | Deploy/data | High | Medium | Medium | Next |
+| 1 | Build a data contract and SQL reference catalog | Data | High | Medium | Medium | Next |
+| 2 | Standardize migration orchestration manifests | Data/deploy | Medium | Medium | Medium | Next |
+| 3 | Map SPC audit/exclusion adapter onto `SqlRuntime` | Backend/data | Medium | Medium | Medium | Next |
+| 4 | Run real Databricks UAT deploys through the shared wrapper | Deploy | High | Medium | Medium | When ready |
 | 5 | Normalize frontend Vite/Nx/package conventions | Frontend/build | Medium | Low | Medium | Next |
-| 6 | Build a data contract and SQL reference catalog | Data | Medium | Medium | Medium | Next |
-| 7 | Standardize migration orchestration manifests | Data/deploy | Medium | Medium | Medium | Next |
-| 8 | Improve app-level test conformance | Testing | Medium | Low | Medium | Continuous |
-| 9 | Consolidate Carbon shell primitives | Frontend UI | Medium | Medium | High | Later |
-| 10 | Keep trace2 response mapping local until trace contracts stabilize | Frontend/data | Medium | Low | Low | Later |
-| 11 | Keep SPC statistical logic app-owned for now | Backend/domain | Low | High | High | Later |
+| 6 | Improve app-level test conformance | Testing | Medium | Low | Medium | Continuous |
+| 7 | Consolidate Carbon shell primitives | Frontend UI | Medium | Medium | High | Later |
+| 8 | Keep trace2 response mapping local until trace contracts stabilize | Frontend/data | Medium | Low | Low | Later |
+| 9 | Keep SPC statistical logic app-owned for now | Backend/domain | Low | High | High | Later |
 
 ## High Priority Opportunities
 
@@ -440,14 +438,12 @@ real requirements.
 
 ## Suggested First Five Tickets
 
-1. Extract shared trace request schemas, tree building, and conformance tests
-   before moving DAL SQL.
-2. Add SPC SQL runtime conformance tests for audit, exclusions, tiered caches,
-   and write invalidation.
-3. Run the shared deploy wrapper against the UAT profile for envmon, SPC, and
-   trace2, recording any app-specific follow-ups.
-4. Add explicit non-UAT profile/target resource manifest sections before those
-   deploy paths are used.
+1. Promote SQL scanner output into a maintained data contract catalog.
+2. Convert app migration hooks into explicit migration manifests.
+3. Map SPC audit/exclusion adapter behavior onto `SqlRuntime` behind the new
+   migration guard tests.
+4. Run real Databricks UAT deploys through the shared wrapper when an execution
+   window is available.
 5. Normalize remaining frontend Vite/Nx/package drift now that the shared
    frontend API package is in place.
 
@@ -478,3 +474,24 @@ libs/shared-trace/src/shared_trace/freshness_sources.py
 Start with request schemas, tree building, and conformance tests for `/trace`,
 `/summary`, `/batch-details`, and `/impact`. Move DAL SQL only after both SPC
 and trace2 pass the shared route contracts.
+
+Sprint 5 progress:
+
+- Added `libs/shared-trace/src/shared_trace/schemas.py` and re-exported the
+  shared request models from the SPC and trace2 backend schema modules.
+- Added `libs/shared-trace/src/shared_trace/tree.py` and replaced the duplicated
+  SPC/trace2 `_build_tree` implementations with the shared tree builder.
+- Added `libs/shared-trace/src/shared_trace/freshness_sources.py` and wired the
+  shared freshness source contracts into both common trace routers.
+- Added `shared_trace.conformance` and app-level contract tests that exercise
+  `/api/trace`, `/api/summary`, `/api/batch-details`, and `/api/impact` in both
+  SPC and trace2.
+- Moved the common trace DAL SQL for `/trace`, `/summary`, `/batch-details`, and
+  `/impact` into `shared_trace.dal.TraceCoreDal` behind injected app SQL helpers.
+- Added SPC SQL runtime migration guard tests for tiered cache shape, audit hook
+  behavior, audit suppression, and write invalidation.
+- Added `scripts/deploy_app.py --action validate`; UAT manifest validation and
+  UAT full deploy dry-runs pass for envmon, SPC, and trace2.
+- Added explicit prod profile/target resource sections with blank required
+  values, so non-UAT deploy paths fail closed until real values are supplied via
+  environment.
