@@ -93,8 +93,59 @@ export interface LocationSummary {
 }
 
 export interface CoordinateUpsertRequest {
+  plant_id: string;
   func_loc_id: string;
   floor_id: string;
   x_pos: number;
   y_pos: number;
+}
+
+// ---------------------------------------------------------------------------
+// Multi-plant portfolio
+// ---------------------------------------------------------------------------
+
+export interface PlantKpis {
+  total_locs: number;
+  active_fails: number;
+  warnings: number;
+  pending: number;
+  pass_rate: number;
+  lots_tested: number;
+  lots_planned: number;
+  risk_index: number;
+  pathogen_hits: number;
+}
+
+export interface PlantInfo {
+  plant_id: string;
+  plant_name: string;
+  plant_code: string;
+  country: string;
+  region: string;
+  product: string;
+  employees: number;
+  lat: number;
+  lon: number;
+  floors: number;
+  kpis: PlantKpis;
+}
+
+export type ViewLevel = 'global' | 'site' | 'floor' | 'admin';
+
+export interface ViewState {
+  level: ViewLevel;
+  plantId: string | null;
+  floorId: string | null;
+}
+
+export type PersonaId = 'regional' | 'site' | 'sanitation' | 'auditor' | 'admin';
+
+export interface Persona {
+  id: PersonaId;
+  name: string;
+  role: string;
+  scope: string;
+  initials: string;
+  blurb: string;
+  defaultView: ViewLevel;
 }

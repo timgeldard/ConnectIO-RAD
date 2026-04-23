@@ -1,11 +1,7 @@
-import { useEffect, useState, useRef } from 'react';
-import {
-  Select, SelectItem, Toggle, Layer, Slider,
-  IconButton, MultiSelect
-} from '@carbon/react';
-import { Play, Pause, Download } from '@carbon/icons-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useEM } from '~/context/EMContext';
 import { useMics, useHeatmap } from '~/api/client';
+import { IconDownload, IconPlay, IconPause } from '~/components/ui/Icons';
 import type { TimeWindow } from '~/types';
 
 function escapeCsv(val: unknown): string {
@@ -15,15 +11,6 @@ function escapeCsv(val: unknown): string {
   return `"${s.replace(/"/g, '""')}"`;
 }
 
-const TIME_WINDOWS: { value: TimeWindow; label: string }[] = [
-  { value: 30,  label: 'Last 30 days' },
-  { value: 60,  label: 'Last 60 days' },
-  { value: 90,  label: 'Last 90 days' },
-  { value: 180, label: 'Last 180 days' },
-  { value: 365, label: 'Last 365 days' },
-];
-
-/** Compute days between a YYYY-MM-DD string and today (local time) */
 function computeDaysSinceToday(ymd: string): number {
   const [y, m, d] = ymd.split('-').map(Number);
   const hDate = new Date(y, m - 1, d);
@@ -32,8 +19,17 @@ function computeDaysSinceToday(ymd: string): number {
   return Math.floor((today.getTime() - hDate.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+const TIME_WINDOWS: { value: TimeWindow; label: string }[] = [
+  { value: 30,  label: '30 days' },
+  { value: 60,  label: '60 days' },
+  { value: 90,  label: '90 days' },
+  { value: 180, label: '180 days' },
+  { value: 365, label: '365 days' },
+];
+
 export default function FilterBar() {
   const {
+    view,
     activeFloor,
     timeWindow, setTimeWindow,
     heatmapMode, setHeatmapMode,
@@ -42,8 +38,52 @@ export default function FilterBar() {
     selectedMics, setSelectedMics,
   } = useEM();
 
-  const { data: allMics = [] } = useMics();
-  const { data: heatmapData } = useHeatmap(activeFloor, heatmapMode, timeWindow, historicalDate, decayLambda, selectedMics);
+  const plantId = view.plantId;
+  const { data: allMics = [] } = useMics(plantId, null);
+  const { data: heatmapData } = useHeatmap(plantId, activeFloor, heatmapMode, timeWindow, historicalDate, decayLambda, selectedMics);
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const playbackRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (historicalDate && computeDaysSinceToday(historicalDate) > timeWindow) {
+      setHistoricalDate(null);
+    }
+  }, [timeWindow, historicalDate, setHistoricalDate]);
+
+  useEffect(() => {
+    if (isPlaying) {
+      let currentDays = historicalDate ? computeDaysSinceToday(historicalDate) : timeWindow;
+      if (currentDays <= 0) currentDays = timeWindow;
+      playbackRef.current = setInterval(() => {
+        currentDays -= 1;
+        if (currentDays < 0) {
+          setIsPlaying(false);
+          setHistoricalDate(null);
+        } else {
+          const d = new Date();
+          d.setDate(d.getDate() - currentDays);
+          setHistoricalDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+        }
+      }, 600);
+    } else {
+      if (playbackRef.current) clearInterval(playbackRef.current);
+    }
+    return () => { if (playbackRef.current) clearInterval(playbackRef.current); };
+  }, [isPlaying, timeWindow, setHistoricalDate, historicalDate]);
+
+  const sliderValue = historicalDate ? Math.min(Math.max(computeDaysSinceToday(historicalDate), 0), timeWindow) : 0;
+
+  const handleSliderChange = (val: number) => {
+    if (isPlaying) setIsPlaying(false);
+    if (val === 0) {
+      setHistoricalDate(null);
+    } else {
+      const d = new Date();
+      d.setDate(d.getDate() - val);
+      setHistoricalDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    }
+  };
 
   const handleExport = () => {
     const markers = heatmapData?.markers;
@@ -59,152 +99,101 @@ export default function FilterBar() {
     a.click();
     setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 100);
   };
-  const [isPlaying, setIsPlaying] = useState(false);
-  const playbackRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Clamp or clear historicalDate when timeWindow shrinks
-  useEffect(() => {
-    if (historicalDate && computeDaysSinceToday(historicalDate) > timeWindow) {
-      setHistoricalDate(null);
-    }
-  }, [timeWindow, historicalDate, setHistoricalDate]);
-
-  // Historical Playback Animation
-  useEffect(() => {
-    if (isPlaying) {
-      // Start from current position or max if at 0
-      let currentDays = historicalDate ? computeDaysSinceToday(historicalDate) : timeWindow;
-      if (currentDays <= 0) currentDays = timeWindow;
-
-      playbackRef.current = setInterval(() => {
-        currentDays -= 1;
-        if (currentDays < 0) {
-          setIsPlaying(false);
-          setHistoricalDate(null);
-        } else {
-          const d = new Date();
-          d.setDate(d.getDate() - currentDays);
-          const year = d.getFullYear();
-          const month = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-          setHistoricalDate(`${year}-${month}-${day}`);
-        }
-      }, 600); // Speed of animation
-    } else {
-      if (playbackRef.current) clearInterval(playbackRef.current);
-    }
-    return () => { if (playbackRef.current) clearInterval(playbackRef.current); };
-  }, [isPlaying, timeWindow, setHistoricalDate, historicalDate]);
-
-  const handleSliderChange = ({ value }: { value: number }) => {
-    if (isPlaying) setIsPlaying(false);
-    if (value === 0) {
-      setHistoricalDate(null);
-    } else {
-      const d = new Date();
-      d.setDate(d.getDate() - value);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      setHistoricalDate(`${year}-${month}-${day}`);
-    }
-  };
-
-  const getSliderValue = () => {
-    if (!historicalDate) return 0;
-    const diff = computeDaysSinceToday(historicalDate);
-    return Math.min(Math.max(diff, 0), timeWindow);
-  };
 
   return (
-    <div className="em-filter-bar" role="region" aria-label="Heatmap filters">
-      <Layer style={{ display: 'flex', alignItems: 'center', gap: 'var(--cds-spacing-05)', flex: 1 }}>
-        <Select
-          id="em-time-window"
-          labelText="Time window"
-          size="sm"
-          inline
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 24px', background: 'white', borderBottom: '1px solid var(--stroke-soft)', flexWrap: 'wrap', flexShrink: 0 }}>
+      {/* Time window */}
+      <div>
+        <div className="eyebrow" style={{ marginBottom: 4 }}>Time window</div>
+        <select
           value={String(timeWindow)}
           onChange={(e) => setTimeWindow(Number(e.target.value) as TimeWindow)}
-          style={{ width: 'auto', minWidth: '10rem' }}
+          style={{ width: 110 }}
         >
           {TIME_WINDOWS.map(({ value, label }) => (
-            <SelectItem key={value} value={String(value)} text={label} />
+            <option key={value} value={String(value)}>{label}</option>
           ))}
-        </Select>
+        </select>
+      </div>
 
-        <div style={{ width: '14rem' }}>
-          <MultiSelect
-            id="em-mic-filter"
-            label="All characteristic types"
-            titleText=""
-            items={allMics}
-            selectedItems={selectedMics}
-            onChange={({ selectedItems }) => setSelectedMics(selectedItems ?? [])}
-            size="sm"
-            type="inline"
-          />
-        </div>
-
-        <Toggle
-          id="em-heatmap-mode"
-          labelText="Heatmap mode"
-          labelA="Deterministic"
-          labelB="Continuous"
-          toggled={heatmapMode === 'continuous'}
-          onToggle={(checked: boolean) =>
-            setHeatmapMode(checked ? 'continuous' : 'deterministic')
-          }
-          size="sm"
-        />
-
-        {heatmapMode === 'continuous' && (
-          <div className="em-filter-bar__slider" style={{ flex: 1, maxWidth: '14rem', marginLeft: 'var(--cds-spacing-05)' }}>
-            <Slider
-              id="risk-sensitivity"
-              labelText={`Sensitivity (HL: ${Math.round(Math.log(2) / decayLambda)}d)`}
-              max={0.5}
-              min={0.01}
-              step={0.01}
-              value={decayLambda}
-              onChange={({ value }) => setDecayLambda(value)}
-              hideTextInput
-            />
+      {/* MIC filter chips */}
+      {allMics.length > 0 && (
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>MIC filter</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {allMics.slice(0, 6).map((m) => {
+              const active = selectedMics.includes(m);
+              return (
+                <button key={m} className={`chip${active ? ' active' : ''}`}
+                  style={{ fontSize: 11, padding: '2px 8px' }}
+                  onClick={() => setSelectedMics(active ? selectedMics.filter((x) => x !== m) : [...selectedMics, m])}>
+                  {m}
+                </button>
+              );
+            })}
+            {selectedMics.length > 0 && (
+              <button className="chip" style={{ fontSize: 11, padding: '2px 8px', color: 'var(--fg-muted)' }}
+                onClick={() => setSelectedMics([])}>
+                ✕ clear
+              </button>
+            )}
           </div>
-        )}
-
-        <div className="em-filter-bar__slider" style={{ flex: 1, maxWidth: '24rem', marginLeft: 'var(--cds-spacing-07)', display: 'flex', alignItems: 'center', gap: 'var(--cds-spacing-03)' }}>
-          <IconButton
-            label={isPlaying ? 'Pause playback' : 'Play time-lapse'}
-            kind="ghost"
-            size="sm"
-            onClick={() => setIsPlaying(!isPlaying)}
-          >
-            {isPlaying ? <Pause /> : <Play />}
-          </IconButton>
-          <Slider
-            id="time-travel-scrub"
-            labelText={historicalDate ? `Viewing: ${historicalDate}` : 'Scrub history (Today)'}
-            max={timeWindow}
-            min={0}
-            step={1}
-            value={getSliderValue()}
-            onChange={handleSliderChange}
-            hideTextInput
-          />
         </div>
+      )}
 
-        <IconButton
-          label="Export markers to CSV"
-          kind="ghost"
-          size="sm"
-          align="bottom"
-          onClick={handleExport}
-          disabled={!heatmapData?.markers?.length}
-        >
-          <Download size={16} />
-        </IconButton>
-      </Layer>
+      {/* Heatmap mode */}
+      <div>
+        <div className="eyebrow" style={{ marginBottom: 4 }}>Heatmap mode</div>
+        <div style={{ display: 'inline-flex', background: 'var(--stone)', borderRadius: 999, padding: 2 }}>
+          {(['deterministic', 'continuous'] as const).map((m) => (
+            <button key={m} onClick={() => setHeatmapMode(m)}
+              style={{ padding: '4px 12px', fontSize: 12, borderRadius: 999,
+                background: heatmapMode === m ? 'var(--forest)' : 'transparent',
+                color: heatmapMode === m ? 'white' : 'var(--fg-muted)',
+                textTransform: 'capitalize' }}>
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sensitivity (continuous only) */}
+      {heatmapMode === 'continuous' && (
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>
+            Sensitivity · HL {Math.round(Math.log(2) / decayLambda)}d
+          </div>
+          <input type="range" min="0.02" max="0.5" step="0.01" value={decayLambda}
+            onChange={(e) => setDecayLambda(Number(e.target.value))}
+            style={{ width: 130 }} />
+        </div>
+      )}
+
+      <div style={{ flex: 1 }} />
+
+      {/* Time-travel */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="eyebrow" style={{ marginRight: 2 }}>Time-travel</div>
+        <button className="btn btn-icon btn-ghost"
+          onClick={() => setIsPlaying(!isPlaying)}
+          title={isPlaying ? 'Pause' : 'Play'}>
+          {isPlaying ? <IconPause size={12} /> : <IconPlay size={12} />}
+        </button>
+        <input type="range" min={0} max={timeWindow} step={1} value={sliderValue}
+          onChange={(e) => handleSliderChange(Number(e.target.value))}
+          style={{ width: 160 }} />
+        <span className="mono" style={{ fontSize: 11, color: 'var(--fg-muted)', minWidth: 56 }}>
+          {sliderValue === 0 ? 'Today' : `-${sliderValue}d`}
+        </span>
+      </div>
+
+      {/* Export */}
+      <button className="btn btn-ghost btn-sm"
+        onClick={handleExport}
+        disabled={!heatmapData?.markers?.length}
+        title="Export markers to CSV">
+        <IconDownload size={12} /> CSV
+      </button>
     </div>
   );
 }
