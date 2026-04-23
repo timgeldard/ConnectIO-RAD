@@ -1,0 +1,36 @@
+[app]
+name = "spc-tim"
+bundle_name = "spc-tim"
+default_profile = "uat"
+template = "app.template.yaml"
+config_output = "app.yaml"
+
+[build]
+cwd = "frontend"
+command = "npm run build"
+
+[bundle]
+include_target = false
+
+[post_deploy]
+enabled = true
+source_target = "profile"
+repair_sql_scope = true
+
+[commands]
+after_bundle = [
+  "make setup-locked-limits PROFILE={profile}",
+  "make setup-exclusions PROFILE={profile}",
+  "make setup-query-audit PROFILE={profile}",
+  "make setup-operation-id-locked-limits PROFILE={profile}",
+  "make setup-operation-id-exclusions PROFILE={profile}",
+  "make setup-locked-limits-unified-key PROFILE={profile}",
+  "make setup-metric-views PROFILE={profile}",
+  "make setup-unified-mic-views PROFILE={profile}",
+  "make setup-mic-chart-config PROFILE={profile}",
+]
+
+[profiles.uat.env]
+DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/e76480b94bea6ed5"
+TRACE_CATALOG = "connected_plant_uat"
+TRACE_SCHEMA = "gold"

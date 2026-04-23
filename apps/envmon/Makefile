@@ -8,14 +8,18 @@
 
 PROFILE ?= uat
 TARGET  ?= uat
+DEPLOY_APP ?= python3 ../../scripts/deploy_app.py --app-dir .
 
-.PHONY: deploy build install dev
+.PHONY: deploy build install dev render-app-config
 
 deploy:
-	bash deploy.sh $(PROFILE) $(TARGET)
+	$(DEPLOY_APP) --profile $(PROFILE) --target $(TARGET)
 
 build:
 	cd frontend && npm run build
+
+render-app-config:
+	$(DEPLOY_APP) --action render --profile $(PROFILE) --target $(TARGET)
 
 install:
 	pip install -r backend/requirements.txt

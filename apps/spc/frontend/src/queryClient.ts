@@ -1,15 +1,4 @@
 import { QueryClient } from '@tanstack/react-query'
+import { queryClientDefaultOptions } from '@connectio/shared-frontend-api/query'
 
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 30_000,
-      gcTime: 5 * 60_000,
-      refetchOnWindowFocus: false,
-    },
-    mutations: {
-      retry: 0,
-    },
-  },
-})
+export const queryClient = new QueryClient({ defaultOptions: queryClientDefaultOptions })

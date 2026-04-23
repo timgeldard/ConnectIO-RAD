@@ -7,9 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json"
   },
   "dependencies": {
+    "@connectio/shared-frontend-api": "file:../../../libs/shared-frontend-api",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

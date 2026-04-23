@@ -5,6 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchJson } from '@connectio/shared-frontend-api';
 import type {
   FloorInfo,
   LocationMeta,
@@ -21,14 +22,7 @@ import type {
 // Base fetch
 // ---------------------------------------------------------------------------
 
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, init);
-  if (!res.ok) {
-    const detail = await res.text().catch(() => res.statusText);
-    throw new Error(`API ${res.status}: ${detail}`);
-  }
-  return res.json() as Promise<T>;
-}
+const apiFetch = fetchJson;
 
 // ---------------------------------------------------------------------------
 // Floors

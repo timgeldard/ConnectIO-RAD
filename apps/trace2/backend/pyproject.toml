@@ -9,6 +9,7 @@ dependencies = [
   "cachetools>=5.3",
   "pypika>=0.51",
   "shared-db",
+  "shared-api",
 ]
 
 [build-system]

@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react'
+import type { CarbonIconType } from '@carbon/icons-react'
 import { Tile } from '~/lib/carbon-layout'
 
 interface KPICardProps {
@@ -7,8 +7,8 @@ interface KPICardProps {
   unit?: string
   change?: string
   status: 'good' | 'warning' | 'bad' | 'neutral'
-  // Accepts any icon component with a size prop (Carbon icons, Lucide, etc.)
-  icon: ComponentType<{ size?: number; style?: React.CSSProperties }>
+  // Overview KPI cards use Carbon icons so sizing and token styling stay consistent.
+  icon: CarbonIconType
 }
 
 // Maps semantic status to Carbon's design token layer for borders and icon colour.

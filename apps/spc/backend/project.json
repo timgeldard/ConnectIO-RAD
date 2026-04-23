@@ -14,15 +14,15 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run --package spc-backend uvicorn backend.main:app --reload --port 8000",
-        "cwd": "apps/spc/backend"
+        "command": "PYTHONPATH=. uv run --package spc-backend uvicorn backend.main:app --reload --port 8000",
+        "cwd": "apps/spc"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run --package spc-backend pytest",
-        "cwd": "apps/spc/backend"
+        "command": "PYTHONPATH=. uv run --package spc-backend pytest backend/tests",
+        "cwd": "apps/spc"
       },
       "inputs": ["pyFiles", "sharedGlobals"],
       "cache": true
@@ -30,8 +30,8 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run ruff check . && uv run mypy .",
-        "cwd": "apps/spc/backend"
+        "command": "PYTHONPATH=. uv run ruff check backend && PYTHONPATH=. uv run mypy backend",
+        "cwd": "apps/spc"
       },
       "inputs": ["pyFiles", "sharedGlobals"],
       "cache": true

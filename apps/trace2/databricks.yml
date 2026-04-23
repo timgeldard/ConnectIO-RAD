@@ -1,5 +1,6 @@
 bundle:
   name: trace2
+  databricks_cli_version: '>= 0.283.0'
 
 sync:
   include:

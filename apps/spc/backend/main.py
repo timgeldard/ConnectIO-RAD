@@ -1,13 +1,10 @@
-import os
 import logging
+import os
 import time
-import uuid
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import Header, HTTPException
 from starlette.requests import Request as StarletteRequest
 
 from backend.routers.exclusions import router as exclusions_router
@@ -36,11 +33,15 @@ from backend.utils.rate_limit import (
     rate_limit_handler,
 )
 from backend.utils.schema_contract import assert_gold_view_schema
-from backend.utils.security import SameOriginMiddleware
+from shared_api import (
+    create_api_app,
+    health_payload,
+    register_spa_routes,
+    safe_global_exception_response,
+)
 
 ENABLE_DEBUG_ENDPOINTS: bool = os.environ.get("APP_ENV", "").strip().lower() == "development"
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
-_NO_CACHE = {"Cache-Control": "no-store"}
 _LATENCY_BUDGETS_MS = {
     "/api/spc/scorecard": 8_000,
     "/api/spc/chart-data": 5_000,
@@ -50,11 +51,13 @@ _LATENCY_BUDGETS_MS = {
 _DEFAULT_LATENCY_BUDGET_MS = 10_000
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="TraceApp API", docs_url="/api/docs", redoc_url=None)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
-app.add_middleware(SlowAPIMiddleware)
-app.add_middleware(SameOriginMiddleware)
+app = create_api_app(
+    title="TraceApp API",
+    limiter=limiter,
+    rate_limit_exception=RateLimitExceeded,
+    rate_limit_handler=rate_limit_handler,
+    slowapi_middleware=SlowAPIMiddleware,
+)
 
 app.include_router(trace_router, prefix="/api", tags=["Traceability"])
 app.include_router(spc_metadata_router, prefix="/api/spc", tags=["SPC"])
@@ -103,24 +106,12 @@ async def latency_middleware(request: StarletteRequest, call_next):
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: StarletteRequest, exc: Exception):
-    if isinstance(exc, HTTPException):
-        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
-    error_id = str(uuid.uuid4())
-    logging.getLogger(__name__).exception(
-        "Unhandled exception error_id=%s method=%s path=%s",
-        error_id,
-        request.method,
-        request.url.path,
-    )
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error", "error_id": error_id},
-    )
+    return await safe_global_exception_response(request, exc, logger_name=__name__)
 
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok"}
+    return health_payload()
 
 
 @app.get("/api/ready")
@@ -232,22 +223,4 @@ async def test_query(
     return info
 
 
-if (STATIC_DIR / "assets").exists():
-    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
-
-
-@app.get("/", include_in_schema=False)
-async def serve_index():
-    if not STATIC_DIR.exists():
-        return {"status": "backend running", "frontend": "not built"}
-    return FileResponse(STATIC_DIR / "index.html", headers=_NO_CACHE)
-
-
-@app.get("/{full_path:path}", include_in_schema=False)
-async def serve_spa(full_path: str):
-    if STATIC_DIR.exists():
-        candidate = STATIC_DIR / full_path
-        if candidate.is_file():
-            return FileResponse(candidate)
-        return FileResponse(STATIC_DIR / "index.html", headers=_NO_CACHE)
-    raise HTTPException(status_code=404, detail="Frontend not built.")
+register_spa_routes(app, static_dir_getter=lambda: STATIC_DIR)

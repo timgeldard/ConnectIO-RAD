@@ -1,0 +1,32 @@
+{
+  "name": "shared-api",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:backend"],
+  "targets": {
+    "sync": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync --package shared-api",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --package shared-api pytest",
+        "cwd": "libs/shared-api"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run ruff check . && uv run mypy .",
+        "cwd": "libs/shared-api"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    }
+  }
+}
