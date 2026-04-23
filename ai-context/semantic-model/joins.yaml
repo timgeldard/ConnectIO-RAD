@@ -1,12 +1,16 @@
 # =============================================================================
-# APPROVED JOIN PATHS
+# APPROVED JOIN PATHS — All 29 Entities
 # =============================================================================
 # If a join is not listed here, agents MUST NOT use it.
+# Catalog: {{CATALOG}}.gold
+# Last updated: 2026-04-23
 # =============================================================================
 
 approved_joins:
 
-  # ── Material dimension lookups ───────────────────────────────────────────
+  # ===========================================================================
+  # CROSS-APP JOINS (gold_material, gold_plant, gold_batch_lineage, etc.)
+  # ===========================================================================
 
   - name: movement_to_material
     from_entity: gold_inventory_movement
@@ -53,8 +57,6 @@ approved_joins:
     required_filters: ["gold_material.LANGUAGE_ID = 'E'"]
     purpose: Resolve material description for quality yield reporting
 
-  # ── Plant dimension lookups ──────────────────────────────────────────────
-
   - name: movement_to_plant
     from_entity: gold_inventory_movement
     to_entity: gold_plant
@@ -95,8 +97,6 @@ approved_joins:
     on: ["gold_plant.PLANT_ID = metric_quality_yield.PLANT_ID"]
     purpose: Resolve plant name for yield reporting
 
-  # ── Fact-to-fact joins ───────────────────────────────────────────────────
-
   - name: lineage_to_process_order
     from_entity: gold_batch_lineage
     to_entity: gold_process_order
@@ -132,6 +132,400 @@ approved_joins:
       ) mv ON mv.MATERIAL_ID = trace.material_id AND mv.BATCH_ID = trace.batch_id
     notes: NEVER join directly — always pre-aggregate by MATERIAL_ID + BATCH_ID
 
+  # ===========================================================================
+  # ENVMON JOINS
+  # ===========================================================================
+
+  - name: inspection_lot_to_inspection_point
+    from_entity: gold_inspection_lot
+    to_entity: gold_inspection_point
+    cardinality: one-to-many
+    join_type: INNER JOIN
+    on:
+      - "gold_inspection_point.INSPECTION_LOT_ID = gold_inspection_lot.INSPECTION_LOT_ID"
+    purpose: Get sample points / functional locations for an inspection lot
+    notes: One lot has many inspection points
+
+  - name: inspection_point_to_location_coordinates
+    from_entity: gold_inspection_point
+    to_entity: em_location_coordinates
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "em_location_coordinates.func_loc_id = gold_inspection_point.FUNCTIONAL_LOCATION"
+    purpose: Map inspection points to XY positions on floor plan SVGs
+    notes: >
+      LEFT JOIN because not all functional locations have coordinates yet.
+      New locations appear in gold_inspection_point before being mapped.
+
+  - name: inspection_lot_to_quality_result
+    from_entity: gold_inspection_lot
+    to_entity: gold_batch_quality_result_v
+    cardinality: one-to-many
+    join_type: INNER JOIN
+    on:
+      - "gold_batch_quality_result_v.INSPECTION_LOT_ID = gold_inspection_lot.INSPECTION_LOT_ID"
+    purpose: Get individual MIC results for an inspection lot
+    notes: One lot has many MIC results across operations and samples
+
+  - name: inspection_lot_to_plant
+    from_entity: gold_inspection_lot
+    to_entity: gold_plant
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_plant.PLANT_ID = gold_inspection_lot.PLANT_ID"
+    purpose: Resolve plant name for inspection lots
+
+  - name: inspection_lot_to_material
+    from_entity: gold_inspection_lot
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_material.MATERIAL_ID = gold_inspection_lot.MATERIAL_ID"
+    required_filters:
+      - "gold_material.LANGUAGE_ID = 'E'"
+    purpose: Resolve material description for inspection lots
+
+  # ===========================================================================
+  # SHARED QUALITY JOINS
+  # ===========================================================================
+
+  - name: quality_result_to_quality_lot
+    from_entity: gold_batch_quality_result_v
+    to_entity: gold_batch_quality_lot_v
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_batch_quality_lot_v.INSPECTION_LOT_ID = gold_batch_quality_result_v.INSPECTION_LOT_ID"
+      - "gold_batch_quality_lot_v.MATERIAL_ID = gold_batch_quality_result_v.MATERIAL_ID"
+      - "gold_batch_quality_lot_v.BATCH_ID = gold_batch_quality_result_v.BATCH_ID"
+    purpose: Attach lot header info (dates, UD text) to individual results
+    notes: Use ALL THREE join keys to avoid fan-out on multi-material lots
+
+  - name: quality_result_to_material
+    from_entity: gold_batch_quality_result_v
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_material.MATERIAL_ID = gold_batch_quality_result_v.MATERIAL_ID"
+    required_filters:
+      - "gold_material.LANGUAGE_ID = 'E'"
+    purpose: Resolve material description for quality results
+
+  - name: quality_result_to_plant
+    from_entity: gold_batch_quality_result_v
+    to_entity: gold_plant
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_plant.PLANT_ID = gold_batch_quality_result_v.PLANT_ID"
+    purpose: Resolve plant name for quality results
+
+  - name: quality_summary_to_material
+    from_entity: gold_batch_quality_summary_v
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_material.MATERIAL_ID = gold_batch_quality_summary_v.MATERIAL_ID"
+    required_filters:
+      - "gold_material.LANGUAGE_ID = 'E'"
+    purpose: Resolve material description for quality summaries
+
+  # ===========================================================================
+  # TRACE2 JOINS
+  # ===========================================================================
+
+  - name: delivery_to_material
+    from_entity: gold_batch_delivery_v
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_material.MATERIAL_ID = gold_batch_delivery_v.MATERIAL_ID"
+    required_filters:
+      - "gold_material.LANGUAGE_ID = 'E'"
+    purpose: Resolve material description for deliveries
+
+  - name: delivery_to_plant
+    from_entity: gold_batch_delivery_v
+    to_entity: gold_plant
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_plant.PLANT_ID = gold_batch_delivery_v.PLANT_ID"
+    purpose: Resolve plant name for deliveries
+
+  - name: mass_balance_to_material
+    from_entity: gold_batch_mass_balance_v
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_material.MATERIAL_ID = gold_batch_mass_balance_v.MATERIAL_ID"
+    required_filters:
+      - "gold_material.LANGUAGE_ID = 'E'"
+    purpose: Resolve material description for movements
+
+  - name: mass_balance_to_plant
+    from_entity: gold_batch_mass_balance_v
+    to_entity: gold_plant
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_plant.PLANT_ID = gold_batch_mass_balance_v.PLANT_ID"
+    purpose: Resolve plant name for movements
+
+  - name: stock_to_material
+    from_entity: gold_batch_stock_v
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_material.MATERIAL_ID = gold_batch_stock_v.MATERIAL_ID"
+    required_filters:
+      - "gold_material.LANGUAGE_ID = 'E'"
+    purpose: Resolve material description for stock
+
+  - name: stock_to_plant
+    from_entity: gold_batch_stock_v
+    to_entity: gold_plant
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_plant.PLANT_ID = gold_batch_stock_v.PLANT_ID"
+    purpose: Resolve plant name for stock
+
+  - name: stock_to_quality_summary
+    from_entity: gold_batch_stock_v
+    to_entity: gold_batch_quality_summary_v
+    cardinality: one-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_batch_quality_summary_v.MATERIAL_ID = gold_batch_stock_v.MATERIAL_ID"
+      - "gold_batch_quality_summary_v.BATCH_ID = gold_batch_stock_v.BATCH_ID"
+    purpose: Combine stock position with quality status for batch status derivation
+    notes: Both at MATERIAL_ID + BATCH_ID grain — safe 1:1 join after stock aggregation
+
+  - name: batch_summary_to_stock_aggregated
+    from_entity: gold_batch_summary_v
+    to_entity: gold_batch_stock_v
+    cardinality: one-to-one
+    join_type: LEFT JOIN
+    pattern: aggregated_subquery
+    on:
+      - "stk.MATERIAL_ID = gold_batch_summary_v.MATERIAL_ID"
+      - "stk.BATCH_ID = gold_batch_summary_v.BATCH_ID"
+    purpose: Attach total stock to batch summary
+    example: |
+      LEFT JOIN (
+        SELECT MATERIAL_ID, BATCH_ID,
+          SUM(UNRESTRICTED) AS unrestricted,
+          SUM(BLOCKED) AS blocked,
+          SUM(QUALITY_INSPECTION) AS qi,
+          SUM(TOTAL_STOCK) AS total_stock
+        FROM {{CATALOG}}.gold.gold_batch_stock_v
+        GROUP BY MATERIAL_ID, BATCH_ID
+      ) stk ON stk.MATERIAL_ID = s.MATERIAL_ID AND stk.BATCH_ID = s.BATCH_ID
+    notes: ALWAYS pre-aggregate stock across plants before joining
+
+  - name: production_history_to_material
+    from_entity: gold_batch_production_history_v
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_material.MATERIAL_ID = gold_batch_production_history_v.MATERIAL_ID"
+    required_filters:
+      - "gold_material.LANGUAGE_ID = 'E'"
+    purpose: Resolve material description for production history
+
+  - name: production_history_to_plant
+    from_entity: gold_batch_production_history_v
+    to_entity: gold_plant
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_plant.PLANT_ID = gold_batch_production_history_v.PLANT_ID"
+    purpose: Resolve plant name for production history
+
+  - name: batch_lineage_to_mass_balance_aggregated
+    from_entity: gold_batch_lineage
+    to_entity: gold_batch_mass_balance_v
+    cardinality: many-to-many
+    join_type: LEFT JOIN
+    pattern: aggregated_subquery
+    purpose: Attach movement totals to lineage trace nodes
+    example: |
+      LEFT JOIN (
+        SELECT MATERIAL_ID, BATCH_ID,
+          SUM(CASE WHEN MOVEMENT_CATEGORY = 'Production' THEN ABS_QUANTITY ELSE 0 END) AS produced,
+          SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment'   THEN ABS_QUANTITY ELSE 0 END) AS shipped
+        FROM {{CATALOG}}.gold.gold_batch_mass_balance_v
+        WHERE MOVEMENT_CATEGORY NOT LIKE 'STO%'
+        GROUP BY MATERIAL_ID, BATCH_ID
+      ) mv ON mv.MATERIAL_ID = trace.material_id AND mv.BATCH_ID = trace.batch_id
+    notes: NEVER join directly — always pre-aggregate by MATERIAL_ID + BATCH_ID
+
+  - name: batch_lineage_to_stock_aggregated
+    from_entity: gold_batch_lineage
+    to_entity: gold_batch_stock_v
+    cardinality: many-to-many
+    join_type: LEFT JOIN
+    pattern: aggregated_subquery
+    purpose: Attach stock totals to lineage trace nodes
+    example: |
+      LEFT JOIN (
+        SELECT MATERIAL_ID, BATCH_ID,
+          SUM(UNRESTRICTED) AS unrestricted,
+          SUM(BLOCKED) AS blocked,
+          SUM(QUALITY_INSPECTION) AS qi,
+          SUM(TOTAL_STOCK) AS current_stock
+        FROM {{CATALOG}}.gold.gold_batch_stock_v
+        GROUP BY MATERIAL_ID, BATCH_ID
+      ) stk ON stk.MATERIAL_ID = trace.material_id AND stk.BATCH_ID = trace.batch_id
+    notes: Pre-aggregate to avoid plant-level fan-out
+
+  - name: batch_lineage_to_delivery_aggregated
+    from_entity: gold_batch_lineage
+    to_entity: gold_batch_delivery_v
+    cardinality: many-to-many
+    join_type: LEFT JOIN
+    pattern: aggregated_subquery
+    purpose: Attach shipped quantities to lineage trace nodes
+    example: |
+      LEFT JOIN (
+        SELECT MATERIAL_ID, BATCH_ID, SUM(ABS_QUANTITY) AS total_shipped
+        FROM (
+          SELECT DISTINCT MATERIAL_ID, BATCH_ID, DELIVERY, ABS_QUANTITY
+          FROM {{CATALOG}}.gold.gold_batch_delivery_v
+        ) dv
+        GROUP BY MATERIAL_ID, BATCH_ID
+      ) del ON del.MATERIAL_ID = trace.material_id AND del.BATCH_ID = trace.batch_id
+    notes: ALWAYS deduplicate deliveries (SELECT DISTINCT) before summing
+
+  - name: batch_lineage_child_to_material
+    from_entity: gold_batch_lineage
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_material.MATERIAL_ID = gold_batch_lineage.CHILD_MATERIAL_ID"
+    required_filters:
+      - "gold_material.LANGUAGE_ID = 'E'"
+    purpose: Resolve output material description in lineage
+
+  - name: batch_lineage_parent_to_material
+    from_entity: gold_batch_lineage
+    to_entity: gold_material
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_material.MATERIAL_ID = gold_batch_lineage.PARENT_MATERIAL_ID"
+    required_filters:
+      - "gold_material.LANGUAGE_ID = 'E'"
+    purpose: Resolve input material description in lineage
+
+  - name: batch_lineage_child_to_plant
+    from_entity: gold_batch_lineage
+    to_entity: gold_plant
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "gold_plant.PLANT_ID = gold_batch_lineage.CHILD_PLANT_ID"
+    purpose: Resolve output plant in lineage
+
+  # ===========================================================================
+  # SPC JOINS
+  # ===========================================================================
+
+  - name: spc_metrics_to_material
+    from_entity: spc_quality_metrics
+    to_entity: spc_material_dim_mv
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "spc_material_dim_mv.material_id = spc_quality_metrics.material_id"
+    purpose: Resolve material name for SPC metrics
+
+  - name: spc_metrics_to_plant_material
+    from_entity: spc_quality_metrics
+    to_entity: spc_plant_material_dim_mv
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "spc_plant_material_dim_mv.material_id = spc_quality_metrics.material_id"
+      - "spc_plant_material_dim_mv.plant_id = spc_quality_metrics.plant_id"
+    purpose: Resolve plant name for SPC metrics
+
+  - name: spc_metrics_to_characteristic
+    from_entity: spc_quality_metrics
+    to_entity: spc_characteristic_dim_mv
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "spc_characteristic_dim_mv.material_id = spc_quality_metrics.material_id"
+      - "spc_characteristic_dim_mv.mic_id = spc_quality_metrics.mic_id"
+      - "spc_characteristic_dim_mv.operation_id = spc_quality_metrics.operation_id"
+    purpose: Get MIC metadata (attribute flag, normalised name) for SPC metrics
+
+  - name: spc_metrics_to_batch_dim
+    from_entity: spc_quality_metrics
+    to_entity: spc_batch_dim_mv
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "spc_batch_dim_mv.MATERIAL_ID = spc_quality_metrics.material_id"
+      - "spc_batch_dim_mv.BATCH_ID = spc_quality_metrics.batch_id"
+    purpose: Get batch date and period columns for time-series charts
+    notes: "Case mismatch: spc_batch_dim_mv uses UPPER (MATERIAL_ID), spc_quality_metrics uses lower (material_id)"
+
+  - name: spc_metrics_to_locked_limits
+    from_entity: spc_quality_metrics
+    to_entity: spc_locked_limits
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "spc_locked_limits.material_id = spc_quality_metrics.material_id"
+      - "spc_locked_limits.mic_id = spc_quality_metrics.mic_id"
+      - "spc_locked_limits.plant_id = spc_quality_metrics.plant_id"
+      - "spc_locked_limits.operation_id = spc_quality_metrics.operation_id"
+    purpose: Override dynamic limits with frozen Phase I limits when they exist
+    notes: >
+      When spc_locked_limits has a matching row, its UCL/LCL take precedence
+      over the dynamic x_bar_ucl/x_bar_lcl in spc_quality_metrics.
+
+  - name: spc_metrics_to_chart_config
+    from_entity: spc_quality_metrics
+    to_entity: spc_mic_chart_config
+    cardinality: many-to-one
+    join_type: LEFT JOIN
+    on:
+      - "spc_mic_chart_config.mic_id = spc_quality_metrics.mic_id"
+    purpose: Get chart type override for a MIC
+    notes: >
+      spc_mic_chart_config uses NULL plant_id/material_id as wildcards.
+      Match logic: specific > wildcard > default (IMR).
+      Simple join on mic_id gives the most specific match for single-plant queries.
+
+  - name: spc_metrics_to_exclusions
+    from_entity: spc_quality_metrics
+    to_entity: spc_exclusions
+    cardinality: many-to-many
+    join_type: LEFT JOIN
+    on:
+      - "spc_exclusions.material_id = spc_quality_metrics.material_id"
+      - "spc_exclusions.mic_id = spc_quality_metrics.mic_id"
+      - "spc_exclusions.plant_id = spc_quality_metrics.plant_id"
+    purpose: Identify excluded data points for a given MIC context
+    notes: >
+      Also filter by date range: spc_exclusions.date_from / date_to overlap
+      with the batch_date being rendered. Exclusions are an append-only log
+      so multiple events may apply to the same MIC.
+
 # =============================================================================
 # FORBIDDEN JOINS
 # =============================================================================
@@ -141,29 +535,75 @@ forbidden_joins:
   - name: direct_movement_to_lineage
     from_entity: gold_inventory_movement
     to_entity: gold_batch_lineage
+    severity: HIGH
     reason: >
       Direct join without aggregation causes massive fan-out.  Movements have
       many rows per batch; lineage has multiple edges per batch.
-    severity: HIGH
     correct_approach: Use lineage_to_movement_aggregated pattern above
+
+  - name: direct_mass_balance_to_lineage
+    from_entity: gold_batch_mass_balance_v
+    to_entity: gold_batch_lineage
+    severity: HIGH
+    reason: >
+      Direct join without aggregation causes massive fan-out.  Movements have
+      many rows per batch; lineage has multiple edges per batch.
+    correct_approach: Pre-aggregate movements by MATERIAL_ID + BATCH_ID in subquery first
+
+  - name: direct_stock_to_lineage
+    from_entity: gold_batch_stock_v
+    to_entity: gold_batch_lineage
+    severity: HIGH
+    reason: >
+      Stock has one row per plant; lineage has edges per batch.  Direct join
+      fans out by plant count.
+    correct_approach: Pre-aggregate stock by MATERIAL_ID + BATCH_ID before joining
+
+  - name: direct_delivery_to_lineage
+    from_entity: gold_batch_delivery_v
+    to_entity: gold_batch_lineage
+    severity: HIGH
+    reason: >
+      Delivery rows can be duplicated from extraction.  Direct join inflates
+      shipped quantities.
+    correct_approach: Deduplicate (SELECT DISTINCT) then aggregate before joining
 
   - name: oee_to_process_order
     from_entity: metric_oee_daily
     to_entity: gold_process_order
+    severity: HIGH
     reason: >
       OEE is at production-line-day grain; process orders are at order grain.
       Multiple orders run on the same line on the same day.  No clean FK.
-    severity: HIGH
     correct_approach: Correlate via PLANT_ID + PRODUCTION_LINE + date range
 
   - name: cross_metric_direct
     from_entity: metric_oee_daily
     to_entity: metric_quality_yield
+    severity: MEDIUM
     reason: >
       Different grains (line-day vs order-batch).  Direct join produces
       incorrect cross-products.
-    severity: MEDIUM
     correct_approach: Aggregate both to a common grain (plant-week) before combining
+
+  - name: spc_metrics_to_gold_material
+    from_entity: spc_quality_metrics
+    to_entity: gold_material
+    severity: MEDIUM
+    reason: >
+      SPC entities use their own dimension MVs (spc_material_dim_mv) which
+      are scoped to SPC-relevant materials.  Joining to gold_material adds
+      LANGUAGE_ID complexity and may return materials outside SPC scope.
+    correct_approach: Use spc_material_dim_mv or spc_plant_material_dim_mv instead
+
+  - name: cross_app_spc_to_delivery
+    from_entity: spc_quality_metrics
+    to_entity: gold_batch_delivery_v
+    severity: MEDIUM
+    reason: >
+      SPC metrics and delivery data serve different apps.  No approved join
+      path exists.  Grain mismatch (MIC-level vs delivery-line).
+    correct_approach: If needed, aggregate both to MATERIAL_ID + BATCH_ID grain first and validate with engineering
 
 # =============================================================================
 # COMMON JOIN TRAPS
@@ -171,13 +611,33 @@ forbidden_joins:
 
 common_traps:
 
-  - trap: Missing LANGUAGE_ID filter on gold_material
-    impact: Row multiplication — one extra row per language
-    fix: Always include gold_material.LANGUAGE_ID = 'E'
+  - trap: Missing LANGUAGE_ID = 'E' on gold_material
+    impact: Row duplication — one extra row per language
+    fix: Always include gold_material.LANGUAGE_ID = 'E' in ON or WHERE
 
-  - trap: Joining movements to lineage without pre-aggregation
+  - trap: Joining movements or stock to lineage without pre-aggregation
     impact: Massive fan-out, inflated quantities
-    fix: Pre-aggregate movements by MATERIAL_ID + BATCH_ID in a subquery
+    fix: Always pre-aggregate by MATERIAL_ID + BATCH_ID in a subquery
+
+  - trap: Summing delivery ABS_QUANTITY without deduplication
+    impact: Double-counted shipments
+    fix: SELECT DISTINCT DELIVERY, MATERIAL_ID, BATCH_ID, ABS_QUANTITY before SUM
+
+  - trap: Joining quality_result to quality_lot on INSPECTION_LOT_ID only
+    impact: Fan-out for lots spanning multiple materials
+    fix: Join on all three keys — INSPECTION_LOT_ID + MATERIAL_ID + BATCH_ID
+
+  - trap: Using gold_material for SPC instead of spc_material_dim_mv
+    impact: LANGUAGE_ID complexity, out-of-scope materials
+    fix: Use SPC-scoped dimension MVs within the SPC app
+
+  - trap: Case mismatch between SPC MVs and SPC metrics
+    impact: Silent join failure (zero rows)
+    fix: "spc_batch_dim_mv uses MATERIAL_ID (upper); spc_quality_metrics uses material_id (lower) — Databricks is case-insensitive by default but be aware in code"
+
+  - trap: Ignoring NULL wildcards in spc_mic_chart_config
+    impact: Missing chart type overrides
+    fix: Match logic must handle NULL plant_id/material_id as wildcards
 
   - trap: Averaging percentages without weighting
     impact: Small-volume lines skew the average

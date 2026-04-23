@@ -89,3 +89,212 @@ stock_categories:
   QUALITY_INSPECTION: "Pending quality decision (QI hold)"
   RESTRICTED: "Available under controlled conditions only"
   TRANSIT: "In transit between plants"
+
+# ===========================================================================
+# TRACE2 APP ENUMERATIONS
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Mass Balance Movement Categories (derived in gold_batch_mass_balance_v)
+# ---------------------------------------------------------------------------
+# The MOVEMENT_CATEGORY column is a derived grouping of SAP MOVEMENT_TYPE.
+# Named categories cover the high-volume types; "Other (NNN)" is the
+# catch-all for lower-volume movement types.
+mass_balance_categories:
+  Production:    "Goods receipt from manufacturing (mvt 101/102)"
+  Shipment:      "Customer delivery goods issue (mvt 601/602)"
+  STO_Transfer:  "Stock Transport Order outbound (mvt 641/642)"
+  STO_Receipt:   "Stock Transport Order inbound receipt"
+  Return:        "Customer returns or goods receipt returns"
+  Reversal:      "Reversals of prior movements"
+  Write-Off:     "Scrapping or write-off adjustments (mvt 531/532)"
+  "Other (NNN)":
+    meaning: "Catch-all for all other SAP movement types not in a named category"
+    note: >
+      The NNN in parentheses is the original SAP movement type code.
+      Top catch-all types by volume: 261 (GI for process order), Z01, Z61,
+      321 (to blocked stock), Z62, 311 (to QI), 262, 711.
+
+# ---------------------------------------------------------------------------
+# Delivery Movement Types (gold_batch_delivery_v)
+# ---------------------------------------------------------------------------
+delivery_movement_types:
+  "601": "Goods Issue for Delivery — outbound shipment to customer"
+  "602": "GI Delivery Reversal — reversal of a prior 601"
+
+# ---------------------------------------------------------------------------
+# Quality / Inspection Result Statuses (CoA and production history)
+# ---------------------------------------------------------------------------
+# Used in: gold_batch_coa_results_v.result_status,
+#          gold_batch_production_history_v.quality_status
+coa_result_statuses:
+  A: { meaning: "Accepted", description: "Result within specification" }
+  R: { meaning: "Rejected", description: "Result outside specification" }
+  F: { meaning: "Failed", description: "Inspection could not be completed" }
+  "": { meaning: "Blank / Not evaluated", description: "No valuation assigned" }
+
+production_quality_statuses:
+  Pass: "All inspection results accepted — batch released"
+  Fail: "One or more inspection results rejected"
+
+# ---------------------------------------------------------------------------
+# Shelf Life Status (gold_batch_summary_v — derived)
+# ---------------------------------------------------------------------------
+shelf_life_statuses:
+  OK:       "Expiration date is comfortably in the future"
+  Warning:  "Approaching expiration — requires attention"
+  Critical: "Very close to expiration or imminently expiring"
+  Expired:  "Past shelf life expiration date"
+
+# ---------------------------------------------------------------------------
+# SAP Material Types (gold_batch_summary_v.MATERIAL_TYPE)
+# ---------------------------------------------------------------------------
+material_types:
+  FERT: "Finished product (Fertigerzeugnis)"
+  HALB: "Semi-finished product (Halbfabrikat)"
+  ROH:  "Raw material (Rohstoff)"
+  HAWA: "Trading good (Handelsware)"
+  VERP: "Packaging material (Verpackung)"
+  ERSA: "Spare part (Ersatzteil)"
+  ZCON: "Custom — consumable"
+  ZIBC: "Custom — IBC / intermediate bulk container"
+  ZRSA: "Custom — returnable spare / asset"
+
+# ===========================================================================
+# ENVMON APP ENUMERATIONS
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Inspection Lot Origin (gold_inspection_lot.INSPECTION_LOT_ORIGIN)
+# ---------------------------------------------------------------------------
+inspection_lot_origins:
+  "01": { meaning: "Goods Receipt", volume: "high",  description: "Inspection triggered by inbound goods receipt" }
+  "02": { meaning: "Goods Issue", volume: "low",     description: "Inspection triggered by outbound goods issue" }
+  "03": { meaning: "Production", volume: "highest",  description: "In-process or end-of-production inspection" }
+  "04": { meaning: "Process Order", volume: "high",   description: "Linked to a specific process order" }
+  "05": { meaning: "Stock Transfer", volume: "low",   description: "Triggered by stock movement between locations" }
+  "06": { meaning: "Delivery", volume: "rare",       description: "Inspection at delivery" }
+  "08": { meaning: "Recurring / Periodic", volume: "high", description: "Recurring / periodic inspection (e.g. environmental monitoring)" }
+  "09": { meaning: "Misc / Other", volume: "medium",  description: "Miscellaneous or manually triggered lots" }
+  "12": { meaning: "Calibration", volume: "low",      description: "Calibration inspection" }
+  "14": { meaning: "Stability", volume: "high",       description: "Stability study inspection" }
+  "15": { meaning: "Audit", volume: "rare",           description: "Audit inspection lot" }
+  "89": { meaning: "External / Legacy", volume: "medium", description: "External system or legacy import" }
+
+# ---------------------------------------------------------------------------
+# Inspection Lot Usage (gold_inspection_lot.USAGE — task list usage)
+# ---------------------------------------------------------------------------
+inspection_lot_usage:
+  "1": { meaning: "Production", volume: "high",   description: "Used in production inspection plans" }
+  "3": { meaning: "Universal", volume: "rare",    description: "Universal task list usage" }
+  "4": { meaning: "Inspection for Engineering", volume: "high", description: "Engineering change inspection" }
+  "5": { meaning: "Inspection Plan", volume: "highest", description: "Standard QM inspection plan" }
+  "6": { meaning: "Functional Location", volume: "medium", description: "Inspection at functional location (envmon)" }
+  "9": { meaning: "General Maintenance", volume: "medium", description: "Maintenance task list" }
+  X8:  { meaning: "Custom — X8", volume: "low",   description: "Kerry custom usage X8" }
+  Z5:  { meaning: "Custom — Z5", volume: "rare",  description: "Kerry custom usage Z5" }
+  Z8:  { meaning: "Custom — Z8", volume: "medium", description: "Kerry custom usage Z8" }
+  Z:   { meaning: "Custom — Z", volume: "rare",   description: "Kerry custom usage Z" }
+
+# ---------------------------------------------------------------------------
+# Task List Types (gold_inspection_lot.TASK_LIST_TYPE)
+# ---------------------------------------------------------------------------
+task_list_types:
+  "2": "Inspection plan"
+  A:   "Routing"
+  E:   "Equipment task list"
+  Q:   "QM inspection plan"
+
+# ===========================================================================
+# SPC APP ENUMERATIONS
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# SPC Chart Types
+# ---------------------------------------------------------------------------
+spc_chart_types:
+  imr:
+    meaning: "Individual & Moving Range"
+    description: >
+      Default chart type. Individual chart (I) plots single observations;
+      Moving Range chart (MR) plots |x_i - x_{i-1}|.  Uses d2 = 1.128
+      for sigma estimation.
+  xbar_r:
+    meaning: "X-bar & Range"
+    description: >
+      Subgroup means chart (X-bar) with Range chart.  Used when natural
+      subgroups exist (e.g. multiple samples per lot).
+  xbar_s:
+    meaning: "X-bar & Std Dev"
+    description: >
+      Subgroup means chart with Std Dev chart.  Preferred over X-bar R
+      when subgroup size > 10.
+  p_chart:
+    meaning: "Proportion Defective"
+    description: >
+      For attribute (pass/fail) data.  Plots proportion defective per
+      subgroup.  Used when is_attribute = 1 in characteristic dim.
+  note: >
+    Chart type resolution order:
+    1. spc_mic_chart_config with matching plant_id + material_id (most specific)
+    2. spc_mic_chart_config with NULL plant_id/material_id (wildcard)
+    3. Default: imr
+
+# ---------------------------------------------------------------------------
+# SPC Exclusion Actions (spc_exclusions.action)
+# ---------------------------------------------------------------------------
+spc_exclusion_actions:
+  manual_exclude:
+    meaning: "User manually excluded data point(s)"
+    excluded_count: "≥ 1"
+    description: "Operator or quality engineer manually flagged point(s) as outliers"
+  manual_restore:
+    meaning: "User restored previously excluded point(s)"
+    excluded_count: "0"
+    description: "Reversal of a prior manual_exclude — point re-included in calculations"
+  auto_clean_phase_i:
+    meaning: "System auto-excluded during Phase I baseline cleaning"
+    excluded_count: "≥ 1"
+    description: >
+      Automated outlier removal during Phase I limit calculation.
+      Points beyond ±3σ iteratively removed until stable.
+  clear_exclusions:
+    meaning: "All exclusions cleared for a MIC context"
+    excluded_count: "0"
+    description: "Bulk reset — all prior exclusions for the MIC context are voided"
+
+# ---------------------------------------------------------------------------
+# SPC Stratify By (spc_exclusions.stratify_by)
+# ---------------------------------------------------------------------------
+spc_stratify_by:
+  inspection_lot_id: "Exclusion scoped to a specific inspection lot"
+  null: "Exclusion applies to the MIC context globally (no sub-stratification)"
+
+# ---------------------------------------------------------------------------
+# SPC Characteristic Attribute Flag (spc_characteristic_dim_mv.is_attribute)
+# ---------------------------------------------------------------------------
+spc_is_attribute:
+  0: "Quantitative / variable — measured numeric value (e.g. moisture %, pH)"
+  1: "Attribute / qualitative — pass/fail or categorical result"
+
+# ---------------------------------------------------------------------------
+# SPC Locked Limits Columns (semantic meaning)
+# ---------------------------------------------------------------------------
+# spc_locked_limits stores frozen Phase I control limits.
+# When a row exists, these values OVERRIDE the dynamic limits
+# calculated in spc_quality_metrics (x_bar_ucl, x_bar_lcl).
+spc_locked_limit_fields:
+  cl:           "Centre Line — frozen mean"
+  ucl:          "Upper Control Limit — frozen UCL for individuals/X-bar chart"
+  lcl:          "Lower Control Limit — frozen LCL for individuals/X-bar chart"
+  ucl_r:        "Upper Control Limit for Range/MR chart"
+  lcl_r:        "Lower Control Limit for Range/MR chart (often 0)"
+  sigma_within: "Frozen within-subgroup sigma estimate"
+  baseline_from: "Start date of Phase I baseline window"
+  baseline_to:   "End date of Phase I baseline window"
+  locked_by:     "User who locked the limits"
+  locked_at:     "Timestamp when limits were locked"
+  locking_note:  "Free-text reason for locking"
+  mic_origin:    "Source system of the MIC (usually NULL — reserved for future use)"
+  spec_signature: "Hash of specification at lock time — detects spec drift"
+  unified_mic_key: "Composite key: material_id|mic_id|plant_id|operation_id"
