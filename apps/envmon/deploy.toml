@@ -7,8 +7,8 @@ template = "app.template.yaml"
 config_output = "app.yaml"
 
 [build]
-cwd = "frontend"
-command = "npm run build"
+cwd = "."
+command = "python3 scripts/build.py"
 
 [bundle]
 include_target = true
@@ -23,16 +23,21 @@ name = "em_location_coordinates"
 file = "scripts/migrations/000_create_em_location_coordinates.sql"
 warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
 
+[[migrations]]
+name = "em_plant_floor"
+file = "scripts/migrations/001_add_plant_id_to_coordinates.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
 [targets.uat.env]
 DATABRICKS_WAREHOUSE_ID = "e76480b94bea6ed5"
 DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/e76480b94bea6ed5"
 TRACE_CATALOG = "connected_plant_uat"
 TRACE_SCHEMA = "gold"
-EM_PLANT_ID = "P225"
+CENTRAL_SERVICES_CATALOG = "published_uat"
 
 [targets.prod.env]
 DATABRICKS_WAREHOUSE_ID = ""
 DATABRICKS_WAREHOUSE_HTTP_PATH = ""
 TRACE_CATALOG = ""
 TRACE_SCHEMA = "gold"
-EM_PLANT_ID = ""
+CENTRAL_SERVICES_CATALOG = "published_prod"
