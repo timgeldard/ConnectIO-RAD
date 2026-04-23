@@ -167,7 +167,7 @@ function RecallReadinessBody({
             { header: "Destination", key: "destination", muted: true },
             { header: "Country", mono: true, render: (r) => <span>{r.country ? `${flag(r.country)} ${r.country}` : "—"}</span> },
             { header: "Date", key: "date", mono: true, muted: true },
-            { header: "Qty (KG)", align: "right", mono: true, num: true, render: (r) => fmtN(r.qty, 1) },
+            { header: `Qty (${batch.uom})`, align: "right", mono: true, num: true, render: (r) => fmtN(r.qty, 1) },
             { header: "Status", render: (r) => <StatusPill status={r.status} size="sm" /> },
             { header: "Doc", key: "doc", mono: true, muted: true },
           ]} rows={deliveries}

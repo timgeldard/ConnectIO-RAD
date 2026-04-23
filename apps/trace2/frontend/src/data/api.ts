@@ -289,7 +289,7 @@ function mapEvent(ev: RawEvent): RecallEvent {
     type: str(ev.type),
     plant: str(ev.plant),
     qty: num(ev.qty),
-    uom: str(ev.uom, "KG"),
+    uom: str(ev.uom),
     customer: ev.customer ?? null,
     country: ev.country ?? null,
     doc: str(ev.doc),

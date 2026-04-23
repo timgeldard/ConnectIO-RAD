@@ -3,10 +3,10 @@ import type {
   CountryRow,
   CustomerRow,
   Delivery,
+  MassBalanceEvent,
   PageId,
-  RecallEvent,
 } from "../types";
-import { fetchOverview } from "../data/api";
+import { fetchOverview, fetchMassBalance } from "../data/api";
 import { useBatchData } from "../data/useBatchData";
 import { LoadFrame } from "../components/LoadFrame";
 import {
@@ -25,6 +25,7 @@ export function PageOverview({
   onSim?: (v: boolean) => void;
 }) {
   const state = useBatchData(fetchOverview, headerBatch.material_id, headerBatch.batch_id);
+  const mbState = useBatchData(fetchMassBalance, headerBatch.material_id, headerBatch.batch_id);
   return (
     <LoadFrame
       state={state}
@@ -32,13 +33,13 @@ export function PageOverview({
       loadingTitle="Loading batch overview…"
       loadingSubtitle={`Material ${headerBatch.material_id} · Batch ${headerBatch.batch_id}`}
     >
-      {({ batch, countries, customers, deliveries, events }) => (
+      {({ batch, countries, customers, deliveries }) => (
         <OverviewBody
           batch={batch}
           countries={countries}
           customers={customers}
           deliveries={deliveries}
-          events={events}
+          mbEvents={mbState.kind === "ready" ? mbState.data.events : []}
           sim={sim ?? false}
           onSim={onSim ?? (() => {})}
         />
@@ -47,72 +48,45 @@ export function PageOverview({
   );
 }
 
-function MiniMassBalanceChart({ events, height = 160 }: { events: RecallEvent[]; height?: number }) {
-  if (!events.length) return null;
-
-  // Build time-series: production = +qty, others = -qty
-  const points = events.map((e) => ({
-    delta: e.category === "PRODUCTION" ? e.qty : -e.qty,
-  }));
-
-  let running = 0;
-  const cumValues = points.map((p) => {
-    running += p.delta;
-    return running;
-  });
-
-  const minV = Math.min(0, ...cumValues);
-  const maxV = Math.max(...cumValues, 1);
-  const range = maxV - minV || 1;
-  const w = 560;
-  const h = height;
-  const pad = { top: 12, bottom: 12, left: 4, right: 4 };
-  const plotW = w - pad.left - pad.right;
-  const plotH = h - pad.top - pad.bottom;
-
-  function xPct(i: number) {
-    return pad.left + (i / Math.max(cumValues.length - 1, 1)) * plotW;
-  }
-  function yPct(v: number) {
-    return pad.top + plotH - ((v - minV) / range) * plotH;
-  }
-
-  const pathD = cumValues
-    .map((v, i) => `${i === 0 ? "M" : "L"} ${xPct(i).toFixed(1)} ${yPct(v).toFixed(1)}`)
-    .join(" ");
-
-  const areaD = `${pathD} L ${xPct(cumValues.length - 1).toFixed(1)} ${(pad.top + plotH).toFixed(1)} L ${pad.left} ${(pad.top + plotH).toFixed(1)} Z`;
-
-  const gradId = "mbg-ov";
-  const zeroY = yPct(0);
+function MiniInventoryChart({ data, height = 170 }: { data: MassBalanceEvent[]; height?: number }) {
+  if (data.length < 2) return null;
+  const width = 560;
+  const pad = { l: 4, r: 4, t: 12, b: 12 };
+  const plotH = height - pad.t - pad.b;
+  const max = Math.max(1, ...data.map((d) => d.cum)) * 1.05;
+  const min = Math.min(0, ...data.map((d) => d.cum));
+  const range = max - min || 1;
+  const xStep = (width - pad.l - pad.r) / (data.length - 1);
+  const points = data.map((d, i) => [
+    pad.l + i * xStep,
+    pad.t + plotH - ((d.cum - min) / range) * plotH,
+  ] as [number, number]);
+  const pathD = "M " + points.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" L ");
+  const last = points[points.length - 1];
+  const areaD = `${pathD} L ${last[0].toFixed(1)} ${(pad.t + plotH).toFixed(1)} L ${pad.l} ${(pad.t + plotH).toFixed(1)} Z`;
 
   return (
-    <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: "block", overflow: "visible" }}>
+    <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ display: "block", overflow: "visible" }}>
       <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="mbg-ov" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--valentia-slate)" stopOpacity="0.18" />
           <stop offset="100%" stopColor="var(--valentia-slate)" stopOpacity="0.03" />
         </linearGradient>
       </defs>
-      {/* zero line */}
-      {zeroY > pad.top && zeroY < pad.top + plotH && (
-        <line x1={pad.left} y1={zeroY} x2={pad.left + plotW} y2={zeroY}
-          stroke="var(--line-2)" strokeWidth={1} strokeDasharray="3,3" />
-      )}
-      <path d={areaD} fill={`url(#${gradId})`} />
+      <path d={areaD} fill="url(#mbg-ov)" />
       <path d={pathD} fill="none" stroke="var(--valentia-slate)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   );
 }
 
 function OverviewBody({
-  batch, countries, customers, deliveries, events, sim, onSim,
+  batch, countries, customers, deliveries, mbEvents, sim, onSim,
 }: {
   batch: Batch;
   countries: CountryRow[];
   customers: CustomerRow[];
   deliveries: Delivery[];
-  events: RecallEvent[];
+  mbEvents: MassBalanceEvent[];
   sim: boolean;
   onSim: (v: boolean) => void;
 }) {
@@ -187,9 +161,15 @@ function OverviewBody({
 
       {/* Mass balance chart + Batch identity card */}
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 20 }}>
-        <Card title="Mass balance timeline" subtitle="Cumulative stock movement across production, shipments and consumption">
+        <Card title="Mass balance timeline" subtitle="Running inventory balance across production, shipments and consumption">
           <div style={{ padding: "12px 16px 16px" }}>
-            <MiniMassBalanceChart events={events} height={170} />
+            {mbEvents.length < 2 ? (
+              <div style={{ height: 170, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)" }}>
+                No movement data
+              </div>
+            ) : (
+              <MiniInventoryChart data={mbEvents} height={170} />
+            )}
           </div>
         </Card>
 
@@ -258,7 +238,7 @@ function OverviewBody({
             { header: "Destination", key: "destination" },
             { header: "Country", render: (r) => <span>{flag(r.country)} {r.country}</span>, width: 80 },
             { header: "Date", key: "date", mono: true },
-            { header: "Qty", key: "qty", align: "right", num: true, render: (r) => `${fmtN(r.qty)} ${batch.uom}` },
+            { header: `Qty (${batch.uom})`, key: "qty", align: "right", num: true, render: (r) => `${fmtN(r.qty)} ${batch.uom}` },
             { header: "Status", render: (r) => <StatusPill status={r.status} size="sm" />, width: 130 },
           ]}
           rows={recentDeliveries}
