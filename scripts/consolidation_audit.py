@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import ast
 import json
 import re
 import tomllib
@@ -17,7 +16,6 @@ ROOT = Path(__file__).resolve().parents[1]
 APPS_DIR = ROOT / "apps"
 REPORT_DIR = ROOT / "reports" / "consolidation"
 
-HTTP_METHODS = ("get", "post", "put", "patch", "delete")
 ROUTE_RE = re.compile(r"@router\.(?P<method>get|post|put|patch|delete)\(\s*['\"](?P<path>[^'\"]+)['\"]")
 RATE_LIMIT_RE = re.compile(r"@limiter\.limit\(\s*['\"](?P<limit>[^'\"]+)['\"]")
 TABLE_RE = re.compile(
@@ -27,8 +25,8 @@ TABLE_RE = re.compile(
     """,
     re.VERBOSE,
 )
-FETCH_RE = re.compile(r"\bfetch\s*\(\s*['\"](?P<path>/api/[^'\"]+)['\"]")
 CLIENT_PATH_RE = re.compile(r"['\"](?P<path>/api/[^'\"]+)['\"]")
+IGNORED_PARTS = {".venv", "node_modules"}
 
 
 @dataclass(frozen=True)
@@ -45,6 +43,10 @@ class Route:
 
 def rel(path: Path) -> str:
     return path.relative_to(ROOT).as_posix()
+
+
+def is_ignored_path(path: Path) -> bool:
+    return bool(IGNORED_PARTS.intersection(path.parts))
 
 
 def read_text(path: Path) -> str:
@@ -169,7 +171,7 @@ def source_files_for_sql() -> list[Path]:
             continue
         for path in base.rglob("*"):
             if path.is_file() and (path.suffix in suffixes or path.name == "Makefile"):
-                if ".venv" not in path.parts and "node_modules" not in path.parts:
+                if not is_ignored_path(path):
                     files.append(path)
     return sorted(files)
 
@@ -230,7 +232,7 @@ def dependency_sections() -> dict[str, dict[str, str]]:
                 for name, version in data.get(key, {}).items():
                     deps[name] = str(version)
             sections[f"{app_dir.name}/frontend"] = deps
-        for pyproject in sorted(app_dir.glob("**/pyproject.toml")):
+        for pyproject in sorted(path for path in app_dir.glob("**/pyproject.toml") if not is_ignored_path(path)):
             data = load_toml(pyproject)
             project = data.get("project", {})
             deps = {}
@@ -422,7 +424,13 @@ def scan_frontend_api() -> str:
                 continue
             text = read_text(path)
             endpoints = sorted(set(CLIENT_PATH_RE.findall(text)))
-            if not endpoints and "fetch(" not in text and "ApiError" not in text and "useQuery" not in text:
+            if (
+                not endpoints
+                and "fetch(" not in text
+                and "ApiError" not in text
+                and "useQuery" not in text
+                and "useMutation" not in text
+            ):
                 continue
             rows.append(
                 [

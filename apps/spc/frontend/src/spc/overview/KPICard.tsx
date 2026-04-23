@@ -7,7 +7,7 @@ interface KPICardProps {
   unit?: string
   change?: string
   status: 'good' | 'warning' | 'bad' | 'neutral'
-  // Accepts any icon component with a size prop (Carbon icons, Lucide, etc.)
+  // Overview KPI cards use Carbon icons so sizing and token styling stay consistent.
   icon: CarbonIconType
 }
 

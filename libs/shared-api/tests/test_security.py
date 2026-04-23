@@ -58,7 +58,7 @@ def test_missing_origin_and_referer_is_allowed_for_non_browser_clients():
 
 
 def test_env_allowed_origins_override(monkeypatch):
-    monkeypatch.setenv("SPC_ALLOWED_ORIGINS", "https://trusted.example.com,https://also-trusted.com")
+    monkeypatch.setenv("APP_ALLOWED_ORIGINS", "https://trusted.example.com,https://also-trusted.com")
     client = TestClient(_make_app(), base_url="http://testserver")
 
     trusted = client.post("/write", headers={"Origin": "https://trusted.example.com"})
@@ -68,7 +68,18 @@ def test_env_allowed_origins_override(monkeypatch):
     assert blocked.status_code == 403
 
 
-def test_x_forwarded_host_chain_uses_first_hop():
+def test_legacy_spc_allowed_origins_still_supported(monkeypatch):
+    monkeypatch.delenv("APP_ALLOWED_ORIGINS", raising=False)
+    monkeypatch.setenv("SPC_ALLOWED_ORIGINS", "https://legacy.example.com")
+    client = TestClient(_make_app(), base_url="http://testserver")
+
+    response = client.post("/write", headers={"Origin": "https://legacy.example.com"})
+
+    assert response.status_code == 200
+
+
+def test_x_forwarded_host_chain_uses_first_hop_when_trusted(monkeypatch):
+    monkeypatch.setenv("APP_TRUST_X_FORWARDED_HOST", "true")
     client = TestClient(_make_app(), base_url="http://internal.service.local")
     response = client.post(
         "/write",
@@ -80,7 +91,20 @@ def test_x_forwarded_host_chain_uses_first_hop():
     assert response.status_code == 200
 
 
-def test_origin_mismatching_both_host_and_forwarded_still_blocked():
+def test_x_forwarded_host_is_not_trusted_by_default():
+    client = TestClient(_make_app(), base_url="http://internal.service.local")
+    response = client.post(
+        "/write",
+        headers={
+            "Origin": "https://spc-abc123.azure.databricksapps.com",
+            "X-Forwarded-Host": "spc-abc123.azure.databricksapps.com",
+        },
+    )
+    assert response.status_code == 403
+
+
+def test_origin_mismatching_both_host_and_forwarded_still_blocked(monkeypatch):
+    monkeypatch.setenv("APP_TRUST_X_FORWARDED_HOST", "true")
     client = TestClient(_make_app(), base_url="http://internal.service.local")
     response = client.post(
         "/write",
@@ -100,3 +124,9 @@ def test_referer_fallback_when_no_origin_header():
 
     assert same.status_code == 200
     assert cross.status_code == 403
+
+
+def test_invalid_origin_header_is_blocked():
+    client = TestClient(_make_app(), base_url="http://testserver")
+    response = client.post("/write", headers={"Origin": "null"})
+    assert response.status_code == 403

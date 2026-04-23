@@ -33,6 +33,17 @@ async def maybe_await(value: Any) -> Any:
     return value
 
 
+def accepts_keyword(func: RunSql, name: str) -> bool:
+    try:
+        signature = inspect.signature(func)
+    except (TypeError, ValueError):
+        return False
+    return any(
+        parameter.kind == inspect.Parameter.VAR_KEYWORD or parameter.name == name
+        for parameter in signature.parameters.values()
+    )
+
+
 async def databricks_sql_ready(
     *,
     check_warehouse_config: CheckWarehouseConfig,
@@ -57,10 +68,10 @@ async def databricks_sql_ready(
         raise not_ready("readiness_token_missing", message=readiness_token_message)
 
     try:
-        if endpoint_hint is None:
-            rows = await maybe_await(run_sql(readiness_token, query))
-        else:
+        if endpoint_hint is not None and accepts_keyword(run_sql, "endpoint_hint"):
             rows = await maybe_await(run_sql(readiness_token, query, endpoint_hint=endpoint_hint))
+        else:
+            rows = await maybe_await(run_sql(readiness_token, query))
     except Exception as exc:
         raise not_ready("sql_warehouse_unreachable", message=sql_error_message) from exc
 

@@ -15,7 +15,7 @@ async def safe_global_exception_response(
     logger_name: str,
 ) -> JSONResponse:
     if isinstance(exc, HTTPException):
-        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=exc.headers)
 
     error_id = str(uuid.uuid4())
     logging.getLogger(logger_name).exception(

@@ -36,7 +36,7 @@ def _origin_host(origin_header: str) -> str | None:
 
 
 def _parse_env_allowed_origins() -> set[str]:
-    raw = os.environ.get("SPC_ALLOWED_ORIGINS", "").strip()
+    raw = os.environ.get("APP_ALLOWED_ORIGINS", os.environ.get("SPC_ALLOWED_ORIGINS", "")).strip()
     if not raw:
         return set()
     hosts = set()
@@ -48,6 +48,10 @@ def _parse_env_allowed_origins() -> set[str]:
         if host:
             hosts.add(host)
     return hosts
+
+
+def _trust_forwarded_host() -> bool:
+    return os.environ.get("APP_TRUST_X_FORWARDED_HOST", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 class SameOriginMiddleware(BaseHTTPMiddleware):
@@ -71,12 +75,31 @@ class SameOriginMiddleware(BaseHTTPMiddleware):
         origin_header = request.headers.get("origin") or ""
         referer_header = request.headers.get("referer") or ""
 
-        origin_host = _origin_host(origin_header) or _origin_host(referer_header)
-        if origin_host is None:
+        browser_header = origin_header or referer_header
+        if not browser_header:
             return await call_next(request)
+        origin_host = _origin_host(browser_header)
+        if origin_host is None:
+            _log.warning(
+                "cross_origin_mutation_blocked_invalid_origin method=%s path=%s host=%s origin=%s",
+                request.method,
+                request.url.path,
+                direct_host,
+                browser_header,
+            )
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "detail": "Cross-origin mutation blocked",
+                    "origin": browser_header,
+                },
+            )
 
         allowed = self._static_allowed | _parse_env_allowed_origins()
-        candidates = {h for h in (forwarded_host, direct_host) if h} | allowed
+        candidate_hosts = [direct_host]
+        if _trust_forwarded_host():
+            candidate_hosts.append(forwarded_host)
+        candidates = {h for h in candidate_hosts if h} | allowed
         if origin_host in candidates:
             return await call_next(request)
 

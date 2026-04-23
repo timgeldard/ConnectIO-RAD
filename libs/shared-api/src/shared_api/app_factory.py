@@ -6,7 +6,6 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 
 from shared_api.security import SameOriginMiddleware
 
@@ -45,25 +44,38 @@ def register_spa_routes(
     assets_path: str = "/assets",
     missing_frontend_payload: dict[str, str] | None = None,
 ) -> None:
-    initial_static_dir = static_dir_getter()
-    if (initial_static_dir / "assets").exists():
-        app.mount(assets_path, StaticFiles(directory=initial_static_dir / "assets"), name="assets")
-
     fallback_payload = missing_frontend_payload or {"status": "backend running", "frontend": "not built"}
+
+    def index_file(static_dir: Path) -> Path | None:
+        index = static_dir / "index.html"
+        return index if static_dir.exists() and index.is_file() else None
+
+    def safe_static_file(static_dir: Path, requested_path: str) -> Path | None:
+        if not static_dir.exists():
+            return None
+        root = static_dir.resolve()
+        candidate = (root / requested_path.lstrip("/")).resolve()
+        if not candidate.is_relative_to(root):
+            return None
+        return candidate if candidate.is_file() else None
 
     @app.get("/", include_in_schema=False)
     async def serve_index():
-        static_dir = static_dir_getter()
-        if not static_dir.exists():
+        index = index_file(static_dir_getter())
+        if index is None:
             return fallback_payload
-        return FileResponse(static_dir / "index.html", headers=NO_CACHE)
+        return FileResponse(index, headers=NO_CACHE)
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_spa(full_path: str):
         static_dir = static_dir_getter()
-        if static_dir.exists():
-            candidate = static_dir / full_path
-            if candidate.is_file():
-                return FileResponse(candidate)
-            return FileResponse(static_dir / "index.html", headers=NO_CACHE)
+        candidate = safe_static_file(static_dir, full_path)
+        asset_prefix = assets_path.strip("/")
+        if candidate is None and asset_prefix and full_path.startswith(f"{asset_prefix}/"):
+            candidate = safe_static_file(static_dir, f"assets/{full_path.removeprefix(f'{asset_prefix}/')}")
+        if candidate is not None:
+            return FileResponse(candidate)
+        index = index_file(static_dir)
+        if index is not None:
+            return FileResponse(index, headers=NO_CACHE)
         raise HTTPException(status_code=404, detail="Frontend not built.")

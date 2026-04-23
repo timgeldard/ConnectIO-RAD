@@ -36,12 +36,7 @@ from shared_db.executors import (
     _CONNECTOR_EXECUTOR,
 )
 from shared_db.freshness import DataFreshnessRuntime
-from shared_db.runtime import (
-    SqlRuntime,
-    is_read_only_statement as _is_read_only_statement,
-    is_write_statement as _is_write_statement,
-    sql_cache_key as _sql_cache_key,
-)
+from shared_db.runtime import SqlRuntime, is_read_only_statement, is_write_statement, sql_cache_key  # noqa: F401
 
 try:
     from databricks import sql as databricks_sql
@@ -89,9 +84,11 @@ async def run_sql_async(
     token: str,
     statement: str,
     params: Optional[list[dict]] = None,
+    *,
+    endpoint_hint: str = "unknown",
 ) -> list[dict]:
     """Non-blocking SQL execution with write-invalidating cache and inline error mapping."""
-    return await _sql_runtime.run_sql_async(token, statement, params)
+    return await _sql_runtime.run_sql_async(token, statement, params, endpoint_hint=endpoint_hint)
 
 
 def get_data_freshness(token: str, source_views: list[str]) -> dict:

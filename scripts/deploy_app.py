@@ -20,6 +20,8 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_WORKSPACE_FILES_PATH = "/Workspace/Shared/.bundle/{bundle_name}/{source_target}/files"
+SENSITIVE_ENV_FRAGMENTS = ("TOKEN", "SECRET", "PASSWORD", "KEY", "CLIENT_ID", "CLIENT_SECRET")
 
 
 def load_manifest(path: Path) -> dict[str, Any]:
@@ -35,9 +37,22 @@ def manifest_path(args: argparse.Namespace) -> Path:
     return args.manifest.resolve() if args.manifest else app_path(args) / "deploy.toml"
 
 
-def command_env(manifest: dict[str, Any]) -> dict[str, str]:
+def scoped_config(manifest: dict[str, Any], scope: str, name: str) -> dict[str, Any]:
+    value = manifest.get(scope, {}).get(name, {})
+    return value if isinstance(value, dict) else {}
+
+
+def environment_defaults(manifest: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    ctx = context(manifest, args)
+    defaults: dict[str, Any] = dict(manifest.get("env", {}))
+    defaults.update(scoped_config(manifest, "profiles", ctx["profile"]).get("env", {}))
+    defaults.update(scoped_config(manifest, "targets", ctx["target"]).get("env", {}))
+    return defaults
+
+
+def command_env(manifest: dict[str, Any], args: argparse.Namespace) -> dict[str, str]:
     env = os.environ.copy()
-    for name, default in manifest.get("env", {}).items():
+    for name, default in environment_defaults(manifest, args).items():
         env[name] = os.environ.get(name, str(default))
     env.setdefault("MSYS_NO_PATHCONV", "1")
     env.setdefault("MSYS2_ARG_CONV_EXCL", "*")
@@ -46,6 +61,23 @@ def command_env(manifest: dict[str, Any]) -> dict[str, str]:
 
 def format_value(value: str, context: dict[str, str]) -> str:
     return value.format(**context)
+
+
+def display_env_value(name: str, value: str, *, print_env: bool) -> str:
+    if print_env:
+        return value
+    if any(fragment in name.upper() for fragment in SENSITIVE_ENV_FRAGMENTS):
+        return "***"
+    return "<set>"
+
+
+def template_variables(template_text: str) -> set[str]:
+    names: set[str] = set()
+    for match in Template.pattern.finditer(template_text):
+        name = match.group("named") or match.group("braced")
+        if name:
+            names.add(name)
+    return names
 
 
 def run_command(
@@ -106,13 +138,18 @@ def render_config(manifest: dict[str, Any], args: argparse.Namespace, env: dict[
     app = manifest.get("app", {})
     template_path = app_path(args) / app.get("template", "app.template.yaml")
     output_path = app_path(args) / app.get("config_output", "app.yaml")
-    values = {name: env[name] for name in manifest.get("env", {})}
-    rendered = Template(template_path.read_text(encoding="utf-8")).safe_substitute(values)
+    template_text = template_path.read_text(encoding="utf-8")
+    names = set(environment_defaults(manifest, args)) | template_variables(template_text)
+    values = {name: env[name] for name in names if name in env}
+    missing = sorted(name for name in names if name not in values)
+    if missing:
+        raise ValueError(f"Missing required render variables for {template_path.name}: {', '.join(missing)}")
+    rendered = Template(template_text).substitute(values)
     print(f"-> render {template_path.name} -> {output_path.name}")
     if not args.dry_run:
         output_path.write_text(rendered, encoding="utf-8")
     for name in sorted(values):
-        print(f"   {name}={values[name]}")
+        print(f"   {name}={display_env_value(name, values[name], print_env=args.print_env)}")
 
 
 def bundle_deploy(manifest: dict[str, Any], args: argparse.Namespace, env: dict[str, str]) -> None:
@@ -131,9 +168,12 @@ def post_deploy(manifest: dict[str, Any], args: argparse.Namespace, env: dict[st
         return
 
     ctx = context(manifest, args)
-    target_key = post.get("source_target", "profile")
+    target_key = post.get("source_target", "target")
+    if target_key not in {"target", "profile"}:
+        raise ValueError("post_deploy.source_target must be 'target' or 'profile'")
     source_target = ctx["target"] if target_key == "target" else ctx["profile"]
-    source_path = f"/Workspace/Shared/.bundle/{ctx['bundle_name']}/{source_target}/files"
+    source_context = {**ctx, "source_target": source_target}
+    source_path = format_value(str(post.get("workspace_files_path", DEFAULT_WORKSPACE_FILES_PATH)), source_context)
     payload = json.dumps({"source_code_path": source_path, "mode": "SNAPSHOT"})
 
     run_command(
@@ -167,11 +207,11 @@ def run_sql_migrations(manifest: dict[str, Any], args: argparse.Namespace, env: 
         print("-> no SQL migrations configured")
         return
     ctx = context(manifest, args)
-    values = {name: env[name] for name in manifest.get("env", {})}
+    values = {name: env[name] for name in environment_defaults(manifest, args)}
     for migration in migrations:
         name = migration["name"]
         sql_path = app_path(args) / migration["file"]
-        warehouse_id = str(migration["warehouse_id"])
+        warehouse_id = str(migration.get("warehouse_id") or env[migration["warehouse_id_env"]])
         statement = Template(sql_path.read_text(encoding="utf-8")).safe_substitute(values)
         payload = json.dumps({"warehouse_id": warehouse_id, "statement": statement, "wait_timeout": "30s"})
         print(f"-> apply migration {name} from {migration['file']}")
@@ -239,6 +279,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--app-name", help="Override app name")
     parser.add_argument("--bundle-name", help="Override bundle name")
     parser.add_argument("--dry-run", action="store_true", help="Print commands without running them")
+    parser.add_argument("--print-env", action="store_true", help="Print resolved render variables without masking")
     parser.add_argument(
         "--action",
         choices=["plan", "check-env", "build", "render", "bundle", "post-deploy", "migrations", "hooks", "deploy"],
@@ -250,7 +291,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
     manifest = load_manifest(manifest_path(args))
-    env = command_env(manifest)
+    env = command_env(manifest, args)
 
     if args.action == "plan":
         print_plan(manifest, args)

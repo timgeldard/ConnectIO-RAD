@@ -5,11 +5,6 @@ default_profile = "uat"
 template = "app.template.yaml"
 config_output = "app.yaml"
 
-[env]
-DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/e76480b94bea6ed5"
-TRACE_CATALOG = "connected_plant_uat"
-TRACE_SCHEMA = "gold"
-
 [build]
 cwd = "frontend"
 command = "npm run build"
@@ -34,3 +29,8 @@ after_bundle = [
   "make setup-unified-mic-views PROFILE={profile}",
   "make setup-mic-chart-config PROFILE={profile}",
 ]
+
+[profiles.uat.env]
+DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/e76480b94bea6ed5"
+TRACE_CATALOG = "connected_plant_uat"
+TRACE_SCHEMA = "gold"

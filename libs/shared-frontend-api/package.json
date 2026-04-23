@@ -7,6 +7,14 @@
     ".": "./src/client.ts",
     "./query": "./src/query.ts"
   },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.99.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "typescript": "^5.5.0"
   }

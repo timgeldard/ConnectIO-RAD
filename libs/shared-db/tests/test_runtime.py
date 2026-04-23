@@ -1,12 +1,14 @@
 import asyncio
 
 from shared_db.freshness import DataFreshnessRuntime
-from shared_db.runtime import SqlRuntime, is_read_only_statement, is_write_statement, sql_cache_key
+from shared_db.runtime import CachePolicy, CacheTier, SqlRuntime, is_read_only_statement, is_write_statement, sql_cache_key
 
 
 def test_statement_classification():
     assert is_read_only_statement("SELECT 1")
     assert is_read_only_statement("  WITH cte AS (SELECT 1) SELECT * FROM cte")
+    assert is_read_only_statement("-- warmup\nSELECT 1")
+    assert is_read_only_statement("/* warmup */\nSELECT 1")
     assert is_write_statement("INSERT INTO t VALUES (1)")
     assert is_write_statement("UPDATE t SET value = 1")
     assert not is_read_only_statement("INSERT INTO t VALUES (1)")
@@ -54,6 +56,45 @@ def test_sql_cache_key_includes_params():
     right = sql_cache_key("token", "SELECT :value", [{"name": "value", "value": "2"}])
 
     assert left != right
+
+
+def test_sql_runtime_accepts_endpoint_hint_and_audit_hook():
+    audit_events = []
+
+    def run_sql(_token, statement, params=None):
+        return [{"statement": statement, "params": params}]
+
+    async def audit_hook(**event):
+        audit_events.append(event)
+
+    runtime = SqlRuntime(run_sql=run_sql, audit_hook=audit_hook)
+
+    asyncio.run(runtime.run_sql_async("token", "SELECT 1 AS ok", endpoint_hint="test.endpoint"))
+
+    assert audit_events[0]["endpoint_hint"] == "test.endpoint"
+    assert audit_events[0]["rows"] == [{"statement": "SELECT 1 AS ok", "params": None}]
+
+
+def test_sql_runtime_supports_tiered_cache_policy():
+    calls = []
+
+    def run_sql(_token, statement, params=None):
+        calls.append(statement)
+        return [{"ok": len(calls)}]
+
+    runtime = SqlRuntime(
+        run_sql=run_sql,
+        cache_policy=CachePolicy.tiered(
+            CacheTier("metadata", maxsize=10, ttl_seconds=300, row_limit=10, prefixes=("SHOW", "DESCRIBE")),
+            CacheTier("reads", maxsize=10, ttl_seconds=300, row_limit=10, prefixes=("SELECT", "WITH")),
+        ),
+    )
+
+    first = asyncio.run(runtime.run_sql_async("token", "SHOW TABLES"))
+    second = asyncio.run(runtime.run_sql_async("token", "SHOW TABLES"))
+
+    assert first == second
+    assert calls == ["SHOW TABLES"]
 
 
 def test_data_freshness_runtime_filters_views_and_caches():

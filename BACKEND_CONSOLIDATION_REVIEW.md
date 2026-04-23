@@ -12,20 +12,21 @@ Reviewed the backend surface for the three apps now consolidated into this monor
 
 Also reviewed the shared backend libraries:
 
+- `libs/shared-api`
 - `libs/shared-db`
 - `libs/shared-auth`
 
-The repository already has the right overall shape: a `uv` workspace defines all backend packages and shared libraries, and each app has an Nx backend project. The main opportunity now is to stop carrying copied root-repo code in each app and move repeated backend platform concerns into shared packages.
+The repository already has the right overall shape: a `uv` workspace defines all backend packages and shared libraries, and each app has an Nx backend project. The first consolidation slices have now moved FastAPI runtime conventions, same-origin middleware, shared readiness helpers, envmon/trace2 SQL runtime behavior, and shared deploy wiring out of the app copies. The main opportunity now is to keep shrinking copied root-repo code while preserving app-specific product behavior.
 
 ## Executive Summary
 
-The strongest immediate consolidation candidates are:
+The strongest remaining consolidation candidates are:
 
-1. FastAPI app bootstrapping: exception handling, health/ready endpoints, static SPA serving, docs URL settings, rate limit setup, and debug endpoints are repeated across all apps.
-2. SQL utility wrappers: `spc`, `envmon`, and `trace2` each keep app-local variants of async SQL execution, cache keys, freshness lookup, audit helpers, and exclusion snapshot insertion.
+1. Traceability backend primitives: `spc` and `trace2` still share trace schemas, tree assembly, and core endpoint behavior that can be extracted after conformance tests land.
+2. SPC SQL runtime migration: envmon and trace2 now use `shared_db.SqlRuntime`; SPC should move only after tiered cache, audit, and exclusion behavior is protected by tests.
 3. Traceability backend: `spc` and `trace2` share the same trace router/DAL base, while `trace2` extends it with extra batch pages. This should become a shared trace module with an app-selected feature set.
-4. Security middleware: `SameOriginMiddleware` is mature in `spc` but not applied to `envmon` or `trace2`.
-5. Test coverage and package hygiene: `spc` has substantial backend tests, while `envmon` and `trace2` currently have no backend test files. Dependency versions and legacy `requirements.txt` usage are also inconsistent.
+4. Migration orchestration and data-resource targeting: deploy manifests now share one wrapper, but prod/non-UAT resources should be explicit before broadening targets.
+5. Test coverage and package hygiene: `spc` still has the broadest backend tests; envmon and trace2 now have focused shared-runtime tests but need broader route and deploy conformance coverage.
 
 The work can be done incrementally. I would avoid a large one-shot move of SPC statistical logic; that code is domain-specific and currently the best-tested part of the backend.
 
@@ -39,25 +40,25 @@ SPC also has the richest SQL wrapper. `apps/spc/backend/utils/db.py` re-exports 
 
 ### Envmon
 
-`apps/envmon/backend/main.py` is a smaller FastAPI host with the same exception handler and SPA serving structure as the other apps, but it lacks SPC's same-origin middleware, debug endpoint, async readiness style, and schema-readiness pattern. See `apps/envmon/backend/main.py:30`, `apps/envmon/backend/main.py:42`, `apps/envmon/backend/main.py:64`, and `apps/envmon/backend/main.py:92`.
+`apps/envmon/backend/main.py` is now a thin FastAPI host using the shared app factory, same-origin middleware, safe exception handling, health/readiness helper, and SPA fallback registration. It intentionally keeps envmon-specific routers and readiness behavior local.
 
-`apps/envmon/backend/utils/db.py` duplicates much of the SQL wrapper logic from SPC/trace2: cache key generation, read/write classification, executor selection, freshness lookup, audit insertion, and exclusion snapshot insertion. See `apps/envmon/backend/utils/db.py:54`, `apps/envmon/backend/utils/db.py:64`, `apps/envmon/backend/utils/db.py:94`, `apps/envmon/backend/utils/db.py:113`, `apps/envmon/backend/utils/db.py:146`, `apps/envmon/backend/utils/db.py:190`, and `apps/envmon/backend/utils/db.py:255`.
+`apps/envmon/backend/utils/db.py` now delegates read/write classification, cache key generation, async SQL caching, write invalidation, and freshness lookup to shared DB runtime objects. The remaining app-owned behavior is executor selection and envmon-specific freshness error handling.
 
 Envmon also has app-specific table configuration in `apps/envmon/backend/utils/em_config.py`. That is appropriate, but there is a small cleanup opportunity: `INSPECTION_TYPES_RAW` and `INSPECTION_TYPES` are defined twice at `apps/envmon/backend/utils/em_config.py:13` and `apps/envmon/backend/utils/em_config.py:37`.
 
 ### Trace2
 
-`apps/trace2/backend/main.py` sits between SPC and envmon. It has async readiness and debug health like SPC, but not same-origin middleware or latency budgets. See `apps/trace2/backend/main.py:35`, `apps/trace2/backend/main.py:43`, `apps/trace2/backend/main.py:65`, `apps/trace2/backend/main.py:112`, and `apps/trace2/backend/main.py:132`.
+`apps/trace2/backend/main.py` now uses the shared app factory, same-origin middleware, safe exception handling, health/readiness helper, and SPA fallback registration. Trace2 keeps its debug health and trace router extensions local.
 
-Trace2's SQL wrapper is close to envmon's but less safe for writes: `apps/trace2/backend/utils/db.py:57` caches every statement by key without read/write classification or invalidation. That means an `INSERT`, `MERGE`, `UPDATE`, or `DELETE` routed through `run_sql_async` can be cached and skipped on repeat input. The app currently defines `insert_spc_exclusion_snapshot` at `apps/trace2/backend/utils/db.py:190`, so this is not just theoretical shared code drift.
+Trace2's SQL wrapper now uses `shared_db.SqlRuntime`, so non-read statements bypass the cache and write statements clear cached reads. Its remaining app-owned behavior is audit/freshness failure handling.
 
 Trace2's trace backend is a superset of SPC's trace backend. The first four trace endpoints are effectively common across both apps, while trace2 adds recall readiness and eight batch page endpoints. Compare `apps/spc/backend/routers/trace.py:26` through `apps/spc/backend/routers/trace.py:140` with `apps/trace2/backend/routers/trace.py:37` through `apps/trace2/backend/routers/trace.py:374`.
 
 ## Shared Libraries Today
 
-`libs/shared-db` already centralizes core Databricks configuration, token resolution, table quoting, SQL parameter formatting, SQL executors, error classification, and rate limiting. Useful anchors are `libs/shared-db/src/shared_db/core.py:50`, `libs/shared-db/src/shared_db/core.py:66`, `libs/shared-db/src/shared_db/core.py:76`, `libs/shared-db/src/shared_db/core.py:99`, `libs/shared-db/src/shared_db/executors.py:77`, `libs/shared-db/src/shared_db/executors.py:167`, and `libs/shared-db/src/shared_db/rate_limit.py:119`.
+`libs/shared-api` now centralizes FastAPI app creation, same-origin enforcement, safe global exception responses, shared health/readiness helpers, and safe SPA fallback serving.
 
-The library is currently below the app wrappers in capability. The shared `run_sql_async` at `libs/shared-db/src/shared_db/core.py:122` uses a single cache and the REST executor only. It does not include write invalidation, connector selection, structured freshness lookup, audit helpers, or app-specific cache profiles.
+`libs/shared-db` centralizes core Databricks configuration, token resolution, table quoting, SQL parameter formatting, SQL executors, error classification, rate limiting, read/write SQL classification, cache invalidation, freshness lookup, audit hooks, and cache policy primitives. SPC still has the richer app-local runtime until its audit/exclusion behavior is covered well enough to migrate.
 
 `libs/shared-auth` is a stub with only token extraction. See `libs/shared-auth/src/shared_auth/middleware.py:4`. The repo TODO already calls this out at `TODO.md:25`.
 
@@ -270,4 +271,3 @@ Why third: the trace backend is visibly duplicated, but the DAL is large. It sho
 4. Deduplicate `envmon` inspection type config.
 5. Draft `shared_db.SqlRuntime` and migrate envmon first.
 6. Extract shared trace schemas and the core trace router once SQL runtime is stable.
-

@@ -13,12 +13,12 @@ planning update.
 
 | Opportunity | Status | Last update | Next action |
 | --- | --- | --- | --- |
-| Shared FastAPI app/runtime conventions | Completed | Added shared app factory, safe exception handling, health/readiness helpers, and SPA fallback registration; envmon, trace2, and SPC now use the shared runtime. | Keep app-specific debug/readiness extensions local while future shared API behavior is added. |
-| Shared Databricks SQL runtime | Completed for envmon/trace2 | Added `SqlRuntime` and `DataFreshnessRuntime`; envmon and trace2 now use shared cache/read-write/freshness behavior while SPC remains app-owned. | Revisit SPC after its audit/exclusion behavior is protected by broader DAL tests. |
+| Shared FastAPI app/runtime conventions | Completed | Added shared app factory, safe exception handling, health/readiness helpers, hardened same-origin middleware, and safe SPA fallback registration; envmon, trace2, and SPC now use the shared runtime. | Keep app-specific debug/readiness extensions local while future shared API behavior is added. |
+| Shared Databricks SQL runtime | Completed for envmon/trace2 | Added `SqlRuntime`, cache policy primitives, audit hooks, comment-aware SQL classification, and `DataFreshnessRuntime`; envmon and trace2 now use shared cache/read-write/freshness behavior while SPC remains app-owned. | Revisit SPC after its audit/exclusion behavior is protected by broader DAL tests. |
 | Shared trace backend primitives | Baselined | Route map confirms the four shared SPC/trace2 trace endpoints and their rate limits/freshness sources. | Extract schemas/tree helpers and add conformance tests before moving DAL SQL. |
-| Trace2-led deploy standardization | Completed | Added `scripts/deploy_app.py`, per-app `deploy.toml` manifests, and shared `make deploy` wiring for envmon, SPC, and trace2. | Use the shared wrapper for real Databricks profile deploy validation. |
+| Trace2-led deploy standardization | Completed | Added `scripts/deploy_app.py`, per-app `deploy.toml` manifests, shared `make deploy` wiring, masked render logging, configurable workspace bundle paths, and profile/target-scoped resource defaults. | Validate the shared wrapper against real UAT Databricks profile deploys, then add non-UAT resource manifests before enabling those targets. |
 | Frontend API/query standardization | Completed | Added `libs/shared-frontend-api`; envmon, SPC, and trace2 use shared transport helpers, and envmon/SPC use shared React Query defaults. | Keep trace2 response mapping local until the shared trace contract is introduced. |
-| Repo consolidation scanner suite | Completed | Added `scripts/consolidation_audit.py`; reports were regenerated after Phase 1 deploy standardization. | Keep reports current with each consolidation phase. |
+| Repo consolidation scanner suite | Completed | Added `scripts/consolidation_audit.py`; reports are regenerated as consolidation phases change. | Keep reports current with each consolidation phase. |
 | Frontend build/dependency standardization | In progress | SPC React typings and TypeScript were aligned enough for typecheck; dependency drift report now includes shared frontend packages. | Continue remaining Vite/plugin/version alignment in a later build-standardization slice. |
 | Carbon shell primitives | Deferred | Envmon/SPC share Carbon patterns; trace2 remains custom. | Revisit after backend/deploy drift stabilizes. |
 | Data contract catalog | Baselined | SQL table map identifies shared Databricks view families and app-specific references. | Promote scanner output into a maintained data catalog after shared DB work starts. |
@@ -30,18 +30,17 @@ planning update.
 
 | Rank | Opportunity | Area | Impact | Risk | Effort | Suggested timing |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Finish shared FastAPI app/runtime conventions | Backend | High | Low | Medium | Now |
-| 2 | Create a shared Databricks SQL runtime | Backend/data | High | Medium | Medium | Now |
-| 3 | Extract shared trace backend primitives | Backend/data | High | Medium | High | Now, staged |
-| 4 | Standardize Databricks app deploy/render tooling | Deploy | High | Medium | Medium | Now |
-| 5 | Standardize frontend API clients and query defaults | Frontend | Medium | Low | Medium | Now |
-| 6 | Add a repo-level consolidation scanner suite | Tooling | Medium | Low | Medium | Now |
-| 7 | Normalize frontend Vite/Nx/package conventions | Frontend/build | Medium | Low | Medium | Next |
-| 8 | Consolidate Carbon shell primitives | Frontend UI | Medium | Medium | High | Next |
-| 9 | Build a data contract and SQL reference catalog | Data | Medium | Medium | Medium | Next |
-| 10 | Standardize migration orchestration | Data/deploy | Medium | Medium | Medium | Next |
-| 11 | Improve app-level test conformance | Testing | Medium | Low | Medium | Continuous |
-| 12 | Keep SPC statistical logic app-owned for now | Backend/domain | Low | High | High | Later |
+| 1 | Extract shared trace backend primitives | Backend/data | High | Medium | High | Now, staged |
+| 2 | Add SPC SQL runtime migration tests | Backend/data | High | Medium | Medium | Now |
+| 3 | Validate shared deploy wrapper in UAT | Deploy | High | Medium | Medium | Now |
+| 4 | Add non-UAT profile/target resource manifests | Deploy/data | High | Medium | Medium | Next |
+| 5 | Normalize frontend Vite/Nx/package conventions | Frontend/build | Medium | Low | Medium | Next |
+| 6 | Build a data contract and SQL reference catalog | Data | Medium | Medium | Medium | Next |
+| 7 | Standardize migration orchestration manifests | Data/deploy | Medium | Medium | Medium | Next |
+| 8 | Improve app-level test conformance | Testing | Medium | Low | Medium | Continuous |
+| 9 | Consolidate Carbon shell primitives | Frontend UI | Medium | Medium | High | Later |
+| 10 | Keep trace2 response mapping local until trace contracts stabilize | Frontend/data | Medium | Low | Low | Later |
+| 11 | Keep SPC statistical logic app-owned for now | Backend/domain | Low | High | High | Later |
 
 ## High Priority Opportunities
 
@@ -82,10 +81,11 @@ libs/shared-api/src/shared_api/
 
 First ticket:
 
-- Add `create_databricks_app(config)` with opt-in pieces rather than a rigid
-  framework.
-- Migrate one smaller app first, likely envmon, then trace2, then SPC.
-- Keep routers app-owned.
+- Treat the shared runtime as operational baseline and add conformance tests
+  when new shared API behavior is introduced.
+- Keep routers app-owned unless two apps share the same domain contract.
+- Add non-UAT origin/host configuration only through explicit deploy manifest
+  or environment settings.
 
 ### 2. Create a Shared Databricks SQL Runtime
 
@@ -106,17 +106,12 @@ Candidate shared capabilities:
 
 Evidence:
 
-- Envmon still contains an SPC-named audit helper at
-  `apps/envmon/backend/utils/db.py:190`.
-- Trace2 contains the same SPC-named audit helper at
-  `apps/trace2/backend/utils/db.py:141`.
-- Trace2 also carries SPC exclusion snapshot write logic at
-  `apps/trace2/backend/utils/db.py:220`, which appears domain-specific to SPC
-  and should either be removed from trace2 or generalized behind an app
-  capability.
-- The previous consolidation fixed trace2 query caching so non-read statements
-  are not cached and write statements clear cache entries. That behavior belongs
-  in one shared SQL runtime.
+- Envmon and trace2 now delegate read/write classification, async cache
+  behavior, cache invalidation, and freshness lookup to `shared-db`.
+- `shared-db.SqlRuntime` includes audit hooks and tiered cache policy primitives
+  so SPC can migrate without losing its richer app-local behavior.
+- SPC remains app-owned until DAL tests protect audit, exclusion, and tiered
+  cache invariants.
 
 Suggested package shape:
 
@@ -132,11 +127,11 @@ libs/shared-db/src/shared_db/
 
 First ticket:
 
-- Move read/write detection, statement execution, cache invalidation, and
-  freshness lookup into `shared-db`.
-- Replace envmon and trace2 DB helpers with thin app adapters.
-- Leave SPC on the old path until its larger DAL has dedicated tests around
-  exclusion/audit behavior.
+- Add SPC-focused SQL runtime conformance tests around audit, exclusions,
+  tiered cache selection, and write invalidation.
+- Migrate SPC to `shared-db.SqlRuntime` only after those tests describe the
+  current behavior.
+- Keep app-specific alerting and audit sink wiring in the app adapters.
 
 ### 3. Extract Shared Trace Backend Primitives
 
@@ -209,16 +204,13 @@ Candidate shared capabilities:
 
 Evidence:
 
-- Envmon, SPC, and trace2 each define app-level Makefiles and
-  `app.template.yaml`.
-- Envmon uses `${VAR}` placeholder syntax while SPC and trace2 use `$VAR`.
-- Envmon and SPC declare `databricks_cli_version >=0.283.0`; trace2 currently
-  omits that pin.
-- Trace2 comments that DAB schema does not support `user_api_scopes` and uses
-  post-deploy repair logic, while envmon and SPC include app scopes in bundle
-  config.
-- SPC has the most complete migration and Databricks SQL API patterns, but they
-  are currently embedded in a large app Makefile.
+- Envmon, SPC, and trace2 now define `deploy.toml` manifests and route
+  `make deploy` through `scripts/deploy_app.py`.
+- The wrapper renders app config, builds frontends, deploys bundles, applies app
+  snapshots, runs configured SQL migrations, supports post-bundle hooks, and
+  masks rendered env values by default.
+- UAT data resources are now scoped under profile/target manifest sections;
+  non-UAT targets still need explicit values before activation.
 
 Suggested package shape:
 
@@ -231,9 +223,11 @@ apps/<app>/deploy.toml
 
 First ticket:
 
-- Introduce a declarative per-app deploy manifest and use it for one app.
-- Standardize template syntax before moving all apps.
-- Preserve app-specific post-deploy hooks.
+- Run the shared wrapper end-to-end against the known-good UAT profile for each
+  app, starting with trace2 as the proven deployment baseline.
+- Add explicit prod/non-UAT resource sections before enabling those targets.
+- Promote direct SQL migrations into a richer migration manifest only after UAT
+  deploy validation is repeatable.
 
 ### 5. Standardize Frontend API Clients and Query Defaults
 
@@ -446,15 +440,16 @@ real requirements.
 
 ## Suggested First Five Tickets
 
-1. Finish `shared-api` app factory and health/readiness helpers.
-2. Create `shared-db.SqlRuntime` and move cache/read/write/freshness behavior
-   into it.
-3. Remove or generalize SPC-named audit and exclusion helpers from envmon and
-   trace2.
-4. Extract shared trace request schemas, tree building, and conformance tests
+1. Extract shared trace request schemas, tree building, and conformance tests
    before moving DAL SQL.
-5. Add `scripts/consolidation_audit.py` with route, SQL table, dependency,
-   deploy, and test matrix reports.
+2. Add SPC SQL runtime conformance tests for audit, exclusions, tiered caches,
+   and write invalidation.
+3. Run the shared deploy wrapper against the UAT profile for envmon, SPC, and
+   trace2, recording any app-specific follow-ups.
+4. Add explicit non-UAT profile/target resource manifest sections before those
+   deploy paths are used.
+5. Normalize remaining frontend Vite/Nx/package drift now that the shared
+   frontend API package is in place.
 
 ## Best-Practice Guardrails
 
