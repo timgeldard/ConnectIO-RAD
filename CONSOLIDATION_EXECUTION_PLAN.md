@@ -399,6 +399,7 @@ Sprint 6:
 
 ## Immediate Next Slice
 
-Phase 0 through Phase 4 are complete. The next slice is Phase 5: add the shared
-trace contract and conformance tests before moving any DAL SQL, then keep the
-opportunity map updated in the same change.
+Phase 0 through Phase 4 are complete. Phase 5 has started with shared trace
+request schemas, tree building, freshness-source contracts, and app-level
+conformance tests. The next Sprint 5 decision is whether to move core trace DAL
+SQL after SPC and trace2 pass those shared route contracts.

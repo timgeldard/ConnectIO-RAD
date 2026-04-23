@@ -15,6 +15,7 @@ members = [
     "shared-api",
     "shared-auth",
     "shared-db",
+    "shared-trace",
     "spc-backend",
     "trace2-backend",
 ]
@@ -1466,6 +1467,21 @@ requires-dist = [
 ]
 
 [[package]]
+name = "shared-trace"
+version = "0.1.0"
+source = { editable = "libs/shared-trace" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.110" },
+    { name = "pydantic", specifier = ">=2" },
+]
+
+[[package]]
 name = "six"
 version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1502,6 +1518,7 @@ dependencies = [
     { name = "scipy" },
     { name = "shared-api" },
     { name = "shared-db" },
+    { name = "shared-trace" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -1518,6 +1535,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.13" },
     { name = "shared-api" },
     { name = "shared-db" },
+    { name = "shared-trace" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.29" },
 ]
 
@@ -1608,6 +1626,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "shared-api" },
     { name = "shared-db" },
+    { name = "shared-trace" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -1619,6 +1638,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "shared-api", editable = "libs/shared-api" },
     { name = "shared-db", editable = "libs/shared-db" },
+    { name = "shared-trace", editable = "libs/shared-trace" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.29" },
 ]
 

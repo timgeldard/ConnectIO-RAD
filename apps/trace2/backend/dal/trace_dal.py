@@ -1,85 +1,16 @@
 import asyncio
-import logging
 import os
 from typing import Optional
 
+from shared_trace.tree import build_trace_tree
+
 from backend.utils.db import run_sql_async, sql_param, tbl
 
-logger = logging.getLogger(__name__)
 MAX_TRACE_LEVELS: int = int(os.environ.get("MAX_TRACE_LEVELS", "10"))
 
 
-def _build_tree(rows: list[dict]) -> Optional[dict]:
-    if not rows:
-        return None
-
-    node_rows: dict[tuple[str, str], dict] = {}
-    edge_rows: list[dict] = []
-    for row in rows:
-        key = (str(row["material_id"]), str(row["batch_id"]))
-        if key not in node_rows or row.get("depth", 0) < node_rows[key].get("depth", 0):
-            node_rows[key] = row
-        edge_rows.append(row)
-
-    def make_node(row: dict) -> dict:
-        status = str(row.get("release_status", "Unknown")).strip()
-        if status == "Released":
-            color, tier = "#10b981", "Pass"
-        elif status in ["Blocked", "Rejected", "Expired"]:
-            color, tier = "#ef4444", "Critical"
-        elif status in ["QI Hold", "Restricted"]:
-            color, tier = "#f59e0b", "Warning"
-        else:
-            color, tier = "#9ca3af", "Unknown"
-
-        return {
-            "name": str(row["material_id"]),
-            "status": status,
-            "riskTier": tier,
-            "nodeColor": color,
-            "attributes": {
-                "Batch": str(row["batch_id"]),
-                "Depth": row.get("depth", 0),
-                "Plant": row.get("plant_name", "Unknown Plant"),
-            },
-            "children": [],
-        }
-
-    children_of: dict[tuple[str, str], list[tuple[str, str]]] = {k: [] for k in node_rows}
-    root_key: Optional[tuple[str, str]] = None
-
-    for row in edge_rows:
-        key = (str(row["material_id"]), str(row["batch_id"]))
-        p_mat = row.get("parent_material_id")
-        p_bat = row.get("parent_batch_id")
-        if p_mat is None or p_bat is None:
-            if root_key is None or row.get("depth", 0) < node_rows[root_key].get("depth", 0):
-                root_key = key
-        else:
-            parent_key = (str(p_mat), str(p_bat))
-            if parent_key in node_rows and key in node_rows:
-                siblings = children_of[parent_key]
-                if key not in siblings:
-                    siblings.append(key)
-
-    def build_subtree(node_key: tuple[str, str], ancestors: set[tuple[str, str]]) -> dict:
-        node = make_node(node_rows[node_key])
-        next_ancestors = set(ancestors)
-        next_ancestors.add(node_key)
-        for child_key in children_of.get(node_key, []):
-            if child_key in next_ancestors:
-                logger.warning(
-                    "Cycle detected in _build_tree: %s -> %s already in ancestor path",
-                    node_key,
-                    child_key,
-                )
-                continue
-            node["children"].append(build_subtree(child_key, next_ancestors))
-        return node
-
-    if root_key is None:
-        return None
-    return build_subtree(root_key, set())
+def _build_tree(rows: list[dict]) -> dict | None:
+    return build_trace_tree(rows)
 
 
 async def fetch_trace_tree(

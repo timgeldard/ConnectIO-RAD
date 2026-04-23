@@ -2,6 +2,14 @@ from typing import Optional
 
 from fastapi import APIRouter, Header, HTTPException, Request
 
+from shared_trace.freshness_sources import (
+    BATCH_DETAILS_FRESHNESS_SOURCES,
+    IMPACT_FRESHNESS_SOURCES,
+    SUMMARY_FRESHNESS_SOURCES,
+    TRACE2_PAGE_FRESHNESS_SOURCES,
+    TRACE_TREE_FRESHNESS_SOURCES,
+)
+
 from backend.dal.trace_dal import (
     MAX_TRACE_LEVELS,
     _build_tree,
@@ -59,13 +67,7 @@ async def trace(
         {"tree": _build_tree(rows), "total_nodes": len(rows)},
         token,
         request.url.path,
-        [
-            "gold_batch_lineage",
-            "gold_material",
-            "gold_plant",
-            "gold_batch_quality_summary_v",
-            "gold_batch_stock_v",
-        ],
+        list(TRACE_TREE_FRESHNESS_SOURCES),
     )
 
 
@@ -91,7 +93,7 @@ async def summary(
         payload,
         token,
         request.url.path,
-        ["gold_batch_stock_v", "gold_batch_mass_balance_v"],
+        list(SUMMARY_FRESHNESS_SOURCES),
     )
 
 
@@ -117,14 +119,7 @@ async def batch_details(
         payload,
         token,
         request.url.path,
-        [
-            "gold_batch_stock_v",
-            "gold_batch_mass_balance_v",
-            "gold_batch_quality_result_v",
-            "gold_batch_quality_lot_v",
-            "gold_batch_delivery_v",
-            "gold_batch_lineage",
-        ],
+        list(BATCH_DETAILS_FRESHNESS_SOURCES),
     )
 
 
@@ -147,7 +142,7 @@ async def impact(
         payload,
         token,
         request.url.path,
-        ["gold_batch_delivery_v", "gold_batch_lineage"],
+        list(IMPACT_FRESHNESS_SOURCES),
     )
 
 
@@ -187,58 +182,7 @@ async def recall_readiness(
     )
 
 
-_PAGE_SOURCES = {
-    "coa": [
-        "gold_batch_coa_results_v",
-        "gold_batch_summary_v",
-        "gold_batch_mass_balance_v",
-        "gold_batch_stock_v",
-        "gold_plant",
-    ],
-    "mass_balance": [
-        "gold_batch_mass_balance_v",
-        "gold_batch_summary_v",
-        "gold_batch_stock_v",
-        "gold_batch_delivery_v",
-        "gold_batch_lineage",
-        "gold_plant",
-    ],
-    "quality": [
-        "gold_batch_quality_lot_v",
-        "gold_batch_quality_result_v",
-        "gold_batch_quality_summary_v",
-        "gold_batch_summary_v",
-    ],
-    "production_history": [
-        "gold_batch_production_history_v",
-        "gold_batch_summary_v",
-    ],
-    "batch_compare": [
-        "gold_batch_production_history_v",
-        "gold_batch_quality_summary_v",
-        "gold_batch_summary_v",
-    ],
-    "bottom_up": [
-        "gold_batch_lineage",
-        "gold_material",
-        "gold_plant",
-        "gold_supplier",
-        "gold_batch_summary_v",
-    ],
-    "top_down": [
-        "gold_batch_lineage",
-        "gold_material",
-        "gold_plant",
-        "gold_batch_delivery_v",
-        "gold_batch_summary_v",
-    ],
-    "supplier_risk": [
-        "gold_batch_lineage",
-        "gold_supplier",
-        "gold_material",
-        "gold_batch_summary_v",
-    ],
-}
+_PAGE_SOURCES = {key: list(value) for key, value in TRACE2_PAGE_FRESHNESS_SOURCES.items()}
 
 
 async def _batch_page_endpoint(

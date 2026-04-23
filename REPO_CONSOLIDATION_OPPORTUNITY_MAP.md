@@ -15,7 +15,7 @@ planning update.
 | --- | --- | --- | --- |
 | Shared FastAPI app/runtime conventions | Completed | Added shared app factory, safe exception handling, health/readiness helpers, hardened same-origin middleware, and safe SPA fallback registration; envmon, trace2, and SPC now use the shared runtime. | Keep app-specific debug/readiness extensions local while future shared API behavior is added. |
 | Shared Databricks SQL runtime | Completed for envmon/trace2 | Added `SqlRuntime`, cache policy primitives, audit hooks, comment-aware SQL classification, and `DataFreshnessRuntime`; envmon and trace2 now use shared cache/read-write/freshness behavior while SPC remains app-owned. | Revisit SPC after its audit/exclusion behavior is protected by broader DAL tests. |
-| Shared trace backend primitives | Baselined | Route map confirms the four shared SPC/trace2 trace endpoints and their rate limits/freshness sources. | Extract schemas/tree helpers and add conformance tests before moving DAL SQL. |
+| Shared trace backend primitives | In progress | Added `libs/shared-trace` with shared request schemas, tree-building behavior, freshness source contracts, and shared conformance tests for the four common SPC/trace2 trace endpoints. | Decide whether core trace DAL SQL should move after the conformance tests have soaked across both apps. |
 | Trace2-led deploy standardization | Completed | Added `scripts/deploy_app.py`, per-app `deploy.toml` manifests, shared `make deploy` wiring, masked render logging, configurable workspace bundle paths, and profile/target-scoped resource defaults. | Validate the shared wrapper against real UAT Databricks profile deploys, then add non-UAT resource manifests before enabling those targets. |
 | Frontend API/query standardization | Completed | Added `libs/shared-frontend-api`; envmon, SPC, and trace2 use shared transport helpers, and envmon/SPC use shared React Query defaults. | Keep trace2 response mapping local until the shared trace contract is introduced. |
 | Repo consolidation scanner suite | Completed | Added `scripts/consolidation_audit.py`; reports are regenerated as consolidation phases change. | Keep reports current with each consolidation phase. |
@@ -30,7 +30,7 @@ planning update.
 
 | Rank | Opportunity | Area | Impact | Risk | Effort | Suggested timing |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Extract shared trace backend primitives | Backend/data | High | Medium | High | Now, staged |
+| 1 | Decide whether to move core trace DAL SQL | Backend/data | High | Medium | High | Now, gated |
 | 2 | Add SPC SQL runtime migration tests | Backend/data | High | Medium | Medium | Now |
 | 3 | Validate shared deploy wrapper in UAT | Deploy | High | Medium | Medium | Now |
 | 4 | Add non-UAT profile/target resource manifests | Deploy/data | High | Medium | Medium | Next |
@@ -478,3 +478,17 @@ libs/shared-trace/src/shared_trace/freshness_sources.py
 Start with request schemas, tree building, and conformance tests for `/trace`,
 `/summary`, `/batch-details`, and `/impact`. Move DAL SQL only after both SPC
 and trace2 pass the shared route contracts.
+
+Sprint 5 progress:
+
+- Added `libs/shared-trace/src/shared_trace/schemas.py` and re-exported the
+  shared request models from the SPC and trace2 backend schema modules.
+- Added `libs/shared-trace/src/shared_trace/tree.py` and replaced the duplicated
+  SPC/trace2 `_build_tree` implementations with the shared tree builder.
+- Added `libs/shared-trace/src/shared_trace/freshness_sources.py` and wired the
+  shared freshness source contracts into both common trace routers.
+- Added `shared_trace.conformance` and app-level contract tests that exercise
+  `/api/trace`, `/api/summary`, `/api/batch-details`, and `/api/impact` in both
+  SPC and trace2.
+- Core trace DAL SQL remains app-owned until the conformance tests have passed
+  reliably and the remaining SQL differences are reviewed explicitly.

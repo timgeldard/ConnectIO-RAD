@@ -1,16 +1,10 @@
 [project]
-name = "trace2-backend"
+name = "shared-trace"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.110",
-  "uvicorn[standard]>=0.29",
-  "python-dotenv>=1.0",
-  "cachetools>=5.3",
-  "pypika>=0.51",
-  "shared-db",
-  "shared-api",
-  "shared-trace",
+  "pydantic>=2",
 ]
 
 [build-system]
@@ -18,4 +12,4 @@ requires      = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["backend"]
+packages = ["src/shared_trace"]
