@@ -24,8 +24,18 @@ file = "scripts/migrations/000_create_em_location_coordinates.sql"
 warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
 
 [[migrations]]
+name = "em_drop_coordinates"
+file = "scripts/migrations/001a_drop_em_location_coordinates.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "em_location_coordinates_v2"
+file = "scripts/migrations/001b_create_em_location_coordinates.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
 name = "em_plant_floor"
-file = "scripts/migrations/001_add_plant_id_to_coordinates.sql"
+file = "scripts/migrations/001c_create_em_plant_floor.sql"
 warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
 
 [targets.uat.env]
