@@ -57,7 +57,7 @@ if __name__ == "__main__":
     print("=== HEADER ===")
     rows = run(f"""
         WITH prod AS (
-          SELECT * FROM {tbl('gold_batch_mass_balance_v')}
+          SELECT * FROM {tbl('gold_batch_mass_balance_mat')}
           WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat AND MOVEMENT_CATEGORY = 'Production'
         ),
         prod_agg AS (
@@ -73,7 +73,7 @@ if __name__ == "__main__":
             COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment' THEN ABS_QUANTITY ELSE 0 END), 0) AS qty_shipped,
             COALESCE(SUM(CASE WHEN MOVEMENT_TYPE IN ('261','262','201','202') THEN ABS_QUANTITY ELSE 0 END), 0) AS qty_consumed,
             COALESCE(SUM(CASE WHEN MOVEMENT_TYPE IN ('701','702','711','712','531','532') THEN ABS_QUANTITY ELSE 0 END), 0) AS qty_adjusted
-          FROM {tbl('gold_batch_mass_balance_v')}
+          FROM {tbl('gold_batch_mass_balance_mat')}
           WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat
             AND COALESCE(MOVEMENT_CATEGORY, '') NOT LIKE 'STO%'
         ),
@@ -86,12 +86,12 @@ if __name__ == "__main__":
             COALESCE(SUM(TRANSIT), 0) AS transit,
             COALESCE(SUM(TOTAL_STOCK), 0) AS current_stock,
             MAX(PLANT_ID) AS stk_plant_id
-          FROM {tbl('gold_batch_stock_v')}
+          FROM {tbl('gold_batch_stock_mat')}
           WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat
         ),
         del_unique AS (
           SELECT DISTINCT DELIVERY, CUSTOMER_ID, COUNTRY_ID, ABS_QUANTITY
-          FROM {tbl('gold_batch_delivery_v')}
+          FROM {tbl('gold_batch_delivery_mat')}
           WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat AND DELIVERY IS NOT NULL
         ),
         del AS (

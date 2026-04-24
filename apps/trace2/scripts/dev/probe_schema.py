@@ -12,9 +12,9 @@ VIEWS = [
     "gold_batch_lineage",
     "gold_material",
     "gold_plant",
-    "gold_batch_stock_v",
-    "gold_batch_mass_balance_v",
-    "gold_batch_delivery_v",
+    "gold_batch_stock_mat",
+    "gold_batch_mass_balance_mat",
+    "gold_batch_delivery_mat",
     "gold_batch_quality_summary_v",
 ]
 
