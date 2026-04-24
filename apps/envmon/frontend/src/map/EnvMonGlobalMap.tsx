@@ -225,7 +225,9 @@ export default function EnvMonGlobalMap({
   return (
     <div style={{ position: 'relative', height: '100%' }}>
       <div ref={containerRef} className="envmon-map-container" />
-      {!hasLocations && <div className="envmon-map-empty">No location data</div>}
+      {!hasLocations && plants.length > 0 && (
+        <div className="envmon-map-badge">No GPS coordinates on record</div>
+      )}
       {tooltip && (
         <div
           className="tooltip"

@@ -276,18 +276,22 @@ input, select { font-family: inherit; color: inherit; }
   width: 100%;
   height: 100%;
 }
-.envmon-map-empty {
+.envmon-map-badge {
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--fg-muted);
-  background: var(--stone);
-  border-radius: inherit;
+  background: rgba(255,255,255,0.88);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 4px 12px;
   pointer-events: none;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+  z-index: 5;
 }
 
 /* Tooltip */
