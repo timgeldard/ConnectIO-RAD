@@ -540,7 +540,7 @@ async def fetch_correlation(
     where_sql = "WHERE " + " AND ".join(filters)
 
     query = f"""
-        WITH filtered_avgs AS (
+        WITH all_avgs AS (
             SELECT
                 mic_selection_key,
                 mic_display_name,
@@ -549,13 +549,16 @@ async def fetch_correlation(
             FROM {tbl('spc_correlation_source_mv')}
             {where_sql}
         ),
-        mic_batch_counts AS (
-            SELECT mic_selection_key, COUNT(DISTINCT batch_id) AS n
-            FROM filtered_avgs
-            GROUP BY mic_selection_key
-        ),
         qualified_mics AS (
-            SELECT mic_selection_key FROM mic_batch_counts WHERE n >= :min_batches
+            SELECT mic_selection_key
+            FROM all_avgs
+            GROUP BY mic_selection_key
+            HAVING COUNT(DISTINCT batch_id) >= :min_batches
+        ),
+        filtered_avgs AS (
+            SELECT a.*
+            FROM all_avgs a
+            WHERE a.mic_selection_key IN (SELECT mic_selection_key FROM qualified_mics)
         ),
         corr_pairs AS (
             SELECT
@@ -569,8 +572,6 @@ async def fetch_correlation(
             JOIN filtered_avgs b
                 ON a.batch_id = b.batch_id
                 AND a.mic_selection_key < b.mic_selection_key
-            WHERE a.mic_selection_key IN (SELECT mic_selection_key FROM qualified_mics)
-              AND b.mic_selection_key IN (SELECT mic_selection_key FROM qualified_mics)
             GROUP BY a.mic_selection_key, a.mic_display_name, b.mic_selection_key, b.mic_display_name
             HAVING COUNT(*) >= :min_batches
         )

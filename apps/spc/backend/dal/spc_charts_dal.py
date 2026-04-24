@@ -1112,52 +1112,71 @@ async def fetch_data_quality_summary(
             FROM {tbl('gold_batch_quality_result_v')} r
             JOIN (
                 SELECT BATCH_ID, MATERIAL_ID, MIN(POSTING_DATE) AS POSTING_DATE, MAX(PLANT_ID) AS PLANT_ID
-                FROM {tbl('gold_batch_mass_balance_v')}
+                FROM {tbl('gold_batch_mass_balance_mat')}
                 WHERE MOVEMENT_CATEGORY = 'Production'
                 GROUP BY BATCH_ID, MATERIAL_ID
             ) mb ON mb.BATCH_ID = r.BATCH_ID AND mb.MATERIAL_ID = r.MATERIAL_ID
             WHERE {where_clause}
         ),
-        stats AS (
+        sample_stats AS (
             SELECT
-                AVG(value)                                     AS mean_value,
-                STDDEV_SAMP(value)                             AS stddev_value
+                COUNT(*)                                                                               AS n_samples,
+                COUNT(DISTINCT batch_id)                                                               AS n_batches,
+                COUNT(CASE WHEN raw_value IS NULL OR raw_value = '' THEN 1 END)                        AS n_missing_values,
+                COUNT(CASE WHEN value IS NULL AND raw_value IS NOT NULL AND raw_value != '' THEN 1 END) AS n_unparseable_values,
+                AVG(value)                                                                             AS mean_value,
+                STDDEV_SAMP(value)                                                                     AS stddev_value
             FROM filtered
-            WHERE value IS NOT NULL
+        ),
+        outlier_stats AS (
+            SELECT COUNT(*) AS n_outliers_3sigma
+            FROM filtered f
+            CROSS JOIN sample_stats s
+            WHERE f.value IS NOT NULL
+              AND s.stddev_value IS NOT NULL
+              AND s.stddev_value > 0
+              AND ABS(f.value - s.mean_value) > 3 * s.stddev_value
         ),
         per_batch AS (
             SELECT batch_id, MIN(posting_date) AS batch_date
             FROM filtered
             GROUP BY batch_id
         ),
-        gaps AS (
+        batch_stats AS (
+            SELECT MIN(batch_date) AS first_batch_date, MAX(batch_date) AS last_batch_date
+            FROM per_batch
+        ),
+        gap_stats AS (
             SELECT
-                DATEDIFF(
+                PERCENTILE(gap_days, 0.5)  AS median_gap_days,
+                PERCENTILE(gap_days, 0.95) AS p95_gap_days,
+                MAX(gap_days)              AS max_gap_days
+            FROM (
+                SELECT DATEDIFF(
                     batch_date,
                     LAG(batch_date) OVER (ORDER BY batch_date)
                 ) AS gap_days
-            FROM per_batch
+                FROM per_batch
+            )
+            WHERE gap_days IS NOT NULL
         )
         SELECT
-            (SELECT COUNT(*) FROM filtered)                                                          AS n_samples,
-            (SELECT COUNT(DISTINCT batch_id) FROM filtered)                                          AS n_batches,
-            (SELECT COUNT(*) FROM filtered WHERE raw_value IS NULL OR raw_value = '')                AS n_missing_values,
-            (SELECT COUNT(*) FROM filtered WHERE value IS NULL AND raw_value IS NOT NULL AND raw_value != '') AS n_unparseable_values,
-            (SELECT mean_value FROM stats)                                                           AS mean_value,
-            (SELECT stddev_value FROM stats)                                                         AS stddev_value,
-            (
-                SELECT COUNT(*)
-                FROM filtered, stats
-                WHERE filtered.value IS NOT NULL
-                  AND stats.stddev_value IS NOT NULL
-                  AND stats.stddev_value > 0
-                  AND ABS(filtered.value - stats.mean_value) > 3 * stats.stddev_value
-            )                                                                                        AS n_outliers_3sigma,
-            (SELECT MIN(batch_date) FROM per_batch)                                                  AS first_batch_date,
-            (SELECT MAX(batch_date) FROM per_batch)                                                  AS last_batch_date,
-            (SELECT PERCENTILE(gap_days, 0.5) FROM gaps WHERE gap_days IS NOT NULL)                  AS median_gap_days,
-            (SELECT PERCENTILE(gap_days, 0.95) FROM gaps WHERE gap_days IS NOT NULL)                 AS p95_gap_days,
-            (SELECT MAX(gap_days) FROM gaps WHERE gap_days IS NOT NULL)                              AS max_gap_days
+            s.n_samples,
+            s.n_batches,
+            s.n_missing_values,
+            s.n_unparseable_values,
+            s.mean_value,
+            s.stddev_value,
+            o.n_outliers_3sigma,
+            bs.first_batch_date,
+            bs.last_batch_date,
+            gs.median_gap_days,
+            gs.p95_gap_days,
+            gs.max_gap_days
+        FROM sample_stats s
+        CROSS JOIN outlier_stats o
+        CROSS JOIN batch_stats bs
+        CROSS JOIN gap_stats gs
     """
     rows = await run_sql_async(token, query, params, endpoint_hint="spc.charts.data-quality")
     row = rows[0] if rows else {}
@@ -1182,7 +1201,7 @@ async def fetch_data_quality_summary(
                 FROM {tbl('gold_batch_quality_result_v')} r
                 JOIN (
                     SELECT BATCH_ID, MATERIAL_ID, MIN(POSTING_DATE) AS POSTING_DATE, MAX(PLANT_ID) AS PLANT_ID
-                    FROM {tbl('gold_batch_mass_balance_v')}
+                    FROM {tbl('gold_batch_mass_balance_mat')}
                     WHERE MOVEMENT_CATEGORY = 'Production'
                     GROUP BY BATCH_ID, MATERIAL_ID
                 ) mb ON mb.BATCH_ID = r.BATCH_ID AND mb.MATERIAL_ID = r.MATERIAL_ID

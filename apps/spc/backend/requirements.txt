@@ -11,3 +11,4 @@ scipy>=1.13.0
 cachetools>=5.3.0
 pypika>=0.51.1
 databricks-sql-connector>=4.0.0
+orjson>=3.9.0

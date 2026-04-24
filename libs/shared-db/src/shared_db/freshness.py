@@ -56,8 +56,8 @@ class DataFreshnessRuntime:
             view_clauses.append(f"table_name = :{param_name}")
             params.append(sql_param(param_name, view))
 
-        # Only server-generated parameter names are interpolated; values remain bound SQL parameters.
-        query = f"""  # noqa: S608
+        # noqa: S608 — view_clauses contain only server-generated param names; all values are bound SQL params.
+        query = f"""
             SELECT
                 table_name AS source_view,
                 CAST(last_altered AS STRING) AS last_altered_utc

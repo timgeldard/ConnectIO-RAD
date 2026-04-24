@@ -114,15 +114,13 @@ async def fetch_plants(token: str, material_id: str) -> list[dict]:
 async def validate_material(token: str, material_id: str) -> Optional[dict]:
     query = f"""
         SELECT
-            r.MATERIAL_ID AS material_id,
-            COALESCE(m.MATERIAL_NAME, r.MATERIAL_ID) AS material_name
-        FROM {tbl('gold_batch_quality_result_v')} r
+            b.MATERIAL_ID AS material_id,
+            COALESCE(m.MATERIAL_NAME, b.MATERIAL_ID) AS material_name
+        FROM {tbl('spc_batch_dim_mv')} b
         LEFT JOIN {tbl('gold_material')} m
-            ON m.MATERIAL_ID = r.MATERIAL_ID
+            ON m.MATERIAL_ID = b.MATERIAL_ID
             AND m.LANGUAGE_ID = 'E'
-        WHERE r.MATERIAL_ID = :material_id
-          AND (r.QUANTITATIVE_RESULT IS NOT NULL
-               OR (r.QUALITATIVE_RESULT IS NOT NULL AND r.QUALITATIVE_RESULT != ''))
+        WHERE b.MATERIAL_ID = :material_id
         LIMIT 1
     """
     rows = await run_sql_async(

@@ -15,7 +15,7 @@ import re
 import threading
 import time
 import uuid
-from copy import deepcopy
+import orjson
 from typing import Optional
 
 from fastapi import HTTPException
@@ -235,16 +235,16 @@ async def run_sql_async(
     cache, cache_lock = _sql_cache_bucket(statement)
     cache_key = _sql_cache_key(token, statement, params)
     with cache_lock:
-        cached_rows = cache.get(cache_key)
-    if cached_rows is not None:
-        return deepcopy(cached_rows)
+        cached_bytes = cache.get(cache_key)
+    if cached_bytes is not None:
+        return orjson.loads(cached_bytes)
 
     started_at = time.monotonic()
     rows = await loop.run_in_executor(_sql_executor, lambda: run_sql(token, statement, params))
     duration_ms = int((time.monotonic() - started_at) * 1000)
     if _should_cache_rows(rows):
         with cache_lock:
-            cache[cache_key] = deepcopy(rows)
+            cache[cache_key] = orjson.dumps(rows)
     _schedule_query_audit(rows, duration_ms)
     return rows
 
@@ -262,7 +262,7 @@ def get_data_freshness(token: str, source_views: list[str]) -> dict:
     with _freshness_cache_lock:
         cached = _freshness_cache.get(cache_key)
     if cached is not None:
-        return deepcopy(cached)
+        return orjson.loads(cached)
 
     params = [
         sql_param("catalog_name", TRACE_CATALOG),
@@ -292,7 +292,7 @@ def get_data_freshness(token: str, source_views: list[str]) -> dict:
         "sources": rows,
     }
     with _freshness_cache_lock:
-        _freshness_cache[cache_key] = deepcopy(result)
+        _freshness_cache[cache_key] = orjson.dumps(result)
     return result
 
 
