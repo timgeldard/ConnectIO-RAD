@@ -1,7 +1,7 @@
 import { CSSProperties, ReactNode, useEffect, useState } from "react";
 import type { Batch, DemoState, PageId, Tweaks } from "./types";
 import { BATCH, BATCH_FAIL, BATCH_RECALL } from "./data/mock";
-import { fetchOverview } from "./data/api";
+import { fetchBatchHeader } from "./data/api";
 import { HexMark, ParamField, SimBanner, StatusPill } from "./ui";
 import { PageRecallReadiness } from "./pages/RecallReadiness";
 import { PageBottomUp } from "./pages/BottomUp";
@@ -496,7 +496,7 @@ export default function App() {
     if (!liveMaterialId || !liveBatchId) return;
     let cancelled = false;
     setLiveBatch(null);
-    fetchOverview(liveMaterialId, liveBatchId)
+    fetchBatchHeader(liveMaterialId, liveBatchId)
       .then((payload) => { if (!cancelled) setLiveBatch(payload.batch); })
       .catch(() => {});
     return () => { cancelled = true; };

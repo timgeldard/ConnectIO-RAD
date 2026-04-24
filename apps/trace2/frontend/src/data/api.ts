@@ -782,6 +782,14 @@ export async function fetchSupplierRisk(material_id: string, batch_id: string): 
   };
 }
 
+export async function fetchBatchHeader(material_id: string, batch_id: string): Promise<{ batch: Batch }> {
+  const raw = await postJson<RawHeader>("/api/batch-header", { material_id, batch_id });
+  if (!raw || !raw.material_id) {
+    throw new ApiError(404, `No data for ${material_id} / ${batch_id}`);
+  }
+  return { batch: buildBatch(raw) };
+}
+
 // Overview reuses the recall-readiness endpoint — same payload, different page framing.
 export async function fetchOverview(material_id: string, batch_id: string): Promise<RecallReadinessPayload> {
   return fetchRecallReadiness(material_id, batch_id);

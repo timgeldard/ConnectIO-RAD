@@ -43,7 +43,7 @@ async def fetch_recall_readiness(token: str, material_id: str, batch_id: str) ->
     countries_query = f"""
         WITH per_delivery AS (
           SELECT DISTINCT DELIVERY, COUNTRY_ID, COUNTRY_NAME, ABS_QUANTITY
-          FROM {tbl('gold_batch_delivery_v')}
+          FROM {tbl('gold_batch_delivery_mat')}
           WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat
             AND COUNTRY_ID IS NOT NULL
         )
@@ -60,7 +60,7 @@ async def fetch_recall_readiness(token: str, material_id: str, batch_id: str) ->
     customers_query = f"""
         WITH per_delivery AS (
           SELECT DISTINCT DELIVERY, CUSTOMER_ID, CUSTOMER_NAME, COUNTRY_ID, ABS_QUANTITY
-          FROM {tbl('gold_batch_delivery_v')}
+          FROM {tbl('gold_batch_delivery_mat')}
           WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat
             AND CUSTOMER_ID IS NOT NULL
         ),
@@ -89,7 +89,7 @@ async def fetch_recall_readiness(token: str, material_id: str, batch_id: str) ->
           SELECT DISTINCT
             DELIVERY, CUSTOMER_NAME, CITY, COUNTRY_ID, POSTING_DATE,
             ABS_QUANTITY, SALES_ORDER_ID
-          FROM {tbl('gold_batch_delivery_v')}
+          FROM {tbl('gold_batch_delivery_mat')}
           WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat AND DELIVERY IS NOT NULL
         )
         SELECT
@@ -111,29 +111,25 @@ async def fetch_recall_readiness(token: str, material_id: str, batch_id: str) ->
     """
 
     exposure_query = f"""
-        WITH RECURSIVE desc_edges AS (
-          SELECT DISTINCT
-            PARENT_MATERIAL_ID, PARENT_BATCH_ID, PARENT_PLANT_ID,
-            CHILD_MATERIAL_ID, CHILD_BATCH_ID, CHILD_PLANT_ID, LINK_TYPE
-          FROM {tbl('gold_batch_lineage')}
-          WHERE CHILD_BATCH_ID IS NOT NULL
-            AND LINK_TYPE IN ('PRODUCTION', 'BATCH_TRANSFER')
-        ),
-        trace AS (
+        WITH RECURSIVE trace AS (
           SELECT 1 AS depth,
             CHILD_MATERIAL_ID AS material_id,
             CHILD_BATCH_ID AS batch_id,
             CHILD_PLANT_ID AS plant_id
-          FROM desc_edges
+          FROM {tbl('gold_batch_lineage')}
           WHERE PARENT_MATERIAL_ID = :mat AND PARENT_BATCH_ID = :bat
+            AND CHILD_BATCH_ID IS NOT NULL
+            AND LINK_TYPE IN ('PRODUCTION', 'BATCH_TRANSFER')
           UNION ALL
           SELECT t.depth + 1,
             e.CHILD_MATERIAL_ID, e.CHILD_BATCH_ID, e.CHILD_PLANT_ID
-          FROM desc_edges e
+          FROM {tbl('gold_batch_lineage')} e
           JOIN trace t
             ON e.PARENT_MATERIAL_ID = t.material_id
             AND e.PARENT_BATCH_ID = t.batch_id
           WHERE t.depth < 2
+            AND e.CHILD_BATCH_ID IS NOT NULL
+            AND e.LINK_TYPE IN ('PRODUCTION', 'BATCH_TRANSFER')
         ),
         distinct_trace AS (
           SELECT material_id, batch_id,
@@ -173,20 +169,23 @@ async def fetch_recall_readiness(token: str, material_id: str, batch_id: str) ->
             SUM(QUALITY_INSPECTION) AS qi_v,
             SUM(RESTRICTED) AS restricted_v,
             SUM(TOTAL_STOCK) AS current_stock
-          FROM {tbl('gold_batch_stock_v')}
+          FROM {tbl('gold_batch_stock_mat')}
+          WHERE (MATERIAL_ID, BATCH_ID) IN (SELECT material_id, batch_id FROM distinct_trace)
           GROUP BY MATERIAL_ID, BATCH_ID
         ) stk ON stk.MATERIAL_ID = dt.material_id AND stk.BATCH_ID = dt.batch_id
         LEFT JOIN (
           SELECT MATERIAL_ID, BATCH_ID,
             SUM(CASE WHEN MOVEMENT_CATEGORY = 'Production' THEN ABS_QUANTITY ELSE 0 END) AS qty_produced
-          FROM {tbl('gold_batch_mass_balance_v')}
+          FROM {tbl('gold_batch_mass_balance_mat')}
+          WHERE (MATERIAL_ID, BATCH_ID) IN (SELECT material_id, batch_id FROM distinct_trace)
           GROUP BY MATERIAL_ID, BATCH_ID
         ) mb ON mb.MATERIAL_ID = dt.material_id AND mb.BATCH_ID = dt.batch_id
         LEFT JOIN (
           SELECT MATERIAL_ID, BATCH_ID, SUM(ABS_QUANTITY) AS total_shipped
           FROM (
             SELECT DISTINCT MATERIAL_ID, BATCH_ID, DELIVERY, ABS_QUANTITY
-            FROM {tbl('gold_batch_delivery_v')}
+            FROM {tbl('gold_batch_delivery_mat')}
+            WHERE (MATERIAL_ID, BATCH_ID) IN (SELECT material_id, batch_id FROM distinct_trace)
           ) dv
           GROUP BY MATERIAL_ID, BATCH_ID
         ) del ON del.MATERIAL_ID = dt.material_id AND del.BATCH_ID = dt.batch_id
@@ -197,7 +196,7 @@ async def fetch_recall_readiness(token: str, material_id: str, batch_id: str) ->
         WITH mb_events AS (
           SELECT DISTINCT
             POSTING_DATE, MOVEMENT_TYPE, PLANT_ID, ABS_QUANTITY, UOM, PROCESS_ORDER_ID
-          FROM {tbl('gold_batch_mass_balance_v')}
+          FROM {tbl('gold_batch_mass_balance_mat')}
           WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat
             AND (
               MOVEMENT_CATEGORY = 'Production'
@@ -208,7 +207,7 @@ async def fetch_recall_readiness(token: str, material_id: str, batch_id: str) ->
           SELECT DISTINCT
             POSTING_DATE, MOVEMENT_TYPE, PLANT_ID, ABS_QUANTITY, UOM,
             CUSTOMER_NAME, COUNTRY_ID, DELIVERY
-          FROM {tbl('gold_batch_delivery_v')}
+          FROM {tbl('gold_batch_delivery_mat')}
           WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat AND DELIVERY IS NOT NULL
         ),
         combined AS (
@@ -267,7 +266,7 @@ async def fetch_recall_readiness(token: str, material_id: str, batch_id: str) ->
 
 _BATCH_HEADER_CTE = f"""
     WITH prod AS (
-      SELECT * FROM {tbl('gold_batch_mass_balance_v')}
+      SELECT * FROM {tbl('gold_batch_mass_balance_mat')}
       WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat AND MOVEMENT_CATEGORY = 'Production'
     ),
     prod_agg AS (
@@ -283,7 +282,7 @@ _BATCH_HEADER_CTE = f"""
         COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment' THEN ABS_QUANTITY ELSE 0 END), 0) AS qty_shipped,
         COALESCE(SUM(CASE WHEN MOVEMENT_TYPE IN ('261','262','201','202') THEN ABS_QUANTITY ELSE 0 END), 0) AS qty_consumed,
         COALESCE(SUM(CASE WHEN MOVEMENT_TYPE IN ('701','702','711','712','531','532') THEN ABS_QUANTITY ELSE 0 END), 0) AS qty_adjusted
-      FROM {tbl('gold_batch_mass_balance_v')}
+      FROM {tbl('gold_batch_mass_balance_mat')}
       WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat
         AND COALESCE(MOVEMENT_CATEGORY, '') NOT LIKE 'STO%'
     ),
@@ -296,12 +295,12 @@ _BATCH_HEADER_CTE = f"""
         COALESCE(SUM(TRANSIT), 0) AS transit,
         COALESCE(SUM(TOTAL_STOCK), 0) AS current_stock,
         MAX(PLANT_ID) AS stk_plant_id
-      FROM {tbl('gold_batch_stock_v')}
+      FROM {tbl('gold_batch_stock_mat')}
       WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat
     ),
     del_unique AS (
       SELECT DISTINCT DELIVERY, CUSTOMER_ID, COUNTRY_ID, ABS_QUANTITY
-      FROM {tbl('gold_batch_delivery_v')}
+      FROM {tbl('gold_batch_delivery_mat')}
       WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat AND DELIVERY IS NOT NULL
     ),
     del AS (
@@ -411,7 +410,7 @@ async def fetch_mass_balance(token: str, material_id: str, batch_id: str) -> dic
               WHEN MOVEMENT_TYPE IN ('701','702','711','712','531','532') THEN -ABS_QUANTITY
               ELSE BALANCE_QTY
             END AS delta
-          FROM {tbl('gold_batch_mass_balance_v')}
+          FROM {tbl('gold_batch_mass_balance_mat')}
           WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat
             AND COALESCE(MOVEMENT_CATEGORY, '') NOT LIKE 'STO%'
         ),
@@ -589,15 +588,7 @@ async def fetch_bottom_up(token: str, material_id: str, batch_id: str, max_level
     ]
     header_query = _BATCH_HEADER_CTE + _BATCH_HEADER_SELECT
     lineage_query = f"""
-        WITH RECURSIVE edges AS (
-          SELECT DISTINCT
-            PARENT_MATERIAL_ID, PARENT_BATCH_ID, PARENT_PLANT_ID,
-            CHILD_MATERIAL_ID, CHILD_BATCH_ID, CHILD_PLANT_ID,
-            LINK_TYPE, SUPPLIER_ID, QUANTITY, BASE_UNIT_OF_MEASURE
-          FROM {tbl('gold_batch_lineage')}
-          WHERE PARENT_BATCH_ID IS NOT NULL
-        ),
-        walk AS (
+        WITH RECURSIVE walk AS (
           SELECT 1 AS level,
             PARENT_MATERIAL_ID AS material_id,
             PARENT_BATCH_ID AS batch_id,
@@ -609,10 +600,13 @@ async def fetch_bottom_up(token: str, material_id: str, batch_id: str, max_level
             CHILD_MATERIAL_ID AS parent_material_id,
             CHILD_BATCH_ID AS parent_batch_id,
             CHILD_PLANT_ID AS parent_plant_id,
+            -- TODO 2.4: replace path string + INSTR with native CYCLE clause (requires DBR 14+ verification).
+            -- Replace path column and INSTR guard with: ) CYCLE material_id, batch_id, plant_id SET is_cycle TO true DEFAULT false
             CONCAT(',', :mat, '|', :bat, '@', COALESCE(CHILD_PLANT_ID, ''), ',',
                    PARENT_MATERIAL_ID, '|', PARENT_BATCH_ID, '@', COALESCE(PARENT_PLANT_ID, ''), ',') AS path
-          FROM edges
+          FROM {tbl('gold_batch_lineage')}
           WHERE CHILD_MATERIAL_ID = :mat AND CHILD_BATCH_ID = :bat
+            AND PARENT_BATCH_ID IS NOT NULL
           UNION ALL
           SELECT w.level + 1,
             e.PARENT_MATERIAL_ID,
@@ -626,12 +620,13 @@ async def fetch_bottom_up(token: str, material_id: str, batch_id: str, max_level
             e.CHILD_BATCH_ID,
             e.CHILD_PLANT_ID,
             CONCAT(w.path, e.PARENT_MATERIAL_ID, '|', e.PARENT_BATCH_ID, '@', COALESCE(e.PARENT_PLANT_ID, ''), ',')
-          FROM edges e
+          FROM {tbl('gold_batch_lineage')} e
           JOIN walk w
             ON e.CHILD_MATERIAL_ID = w.material_id
            AND e.CHILD_BATCH_ID = w.batch_id
            AND COALESCE(e.CHILD_PLANT_ID, '') = COALESCE(w.plant_id, '')
           WHERE w.level < :max_levels
+            AND e.PARENT_BATCH_ID IS NOT NULL
             AND INSTR(w.path, CONCAT(',', e.PARENT_MATERIAL_ID, '|', e.PARENT_BATCH_ID, '@', COALESCE(e.PARENT_PLANT_ID, ''), ',')) = 0
         ),
         agg AS (
@@ -690,16 +685,7 @@ async def fetch_top_down(token: str, material_id: str, batch_id: str, max_levels
     ]
     header_query = _BATCH_HEADER_CTE + _BATCH_HEADER_SELECT
     lineage_query = f"""
-        WITH RECURSIVE edges AS (
-          SELECT DISTINCT
-            PARENT_MATERIAL_ID, PARENT_BATCH_ID, PARENT_PLANT_ID,
-            CHILD_MATERIAL_ID, CHILD_BATCH_ID, CHILD_PLANT_ID,
-            LINK_TYPE, CUSTOMER_ID, QUANTITY, BASE_UNIT_OF_MEASURE
-          FROM {tbl('gold_batch_lineage')}
-          WHERE CHILD_BATCH_ID IS NOT NULL
-            AND LINK_TYPE IN ('PRODUCTION', 'BATCH_TRANSFER', 'STO_TRANSFER')
-        ),
-        walk AS (
+        WITH RECURSIVE walk AS (
           SELECT 1 AS level,
             CHILD_MATERIAL_ID AS material_id,
             CHILD_BATCH_ID AS batch_id,
@@ -711,9 +697,13 @@ async def fetch_top_down(token: str, material_id: str, batch_id: str, max_levels
             PARENT_MATERIAL_ID AS parent_material_id,
             PARENT_BATCH_ID AS parent_batch_id,
             PARENT_PLANT_ID AS parent_plant_id,
+            -- TODO 2.4: replace path string + INSTR with native CYCLE clause (requires DBR 14+ verification).
+            -- Replace path column and INSTR guard with: ) CYCLE material_id, batch_id, plant_id SET is_cycle TO true DEFAULT false
             CONCAT(',', PARENT_MATERIAL_ID, '|', PARENT_BATCH_ID, '@', COALESCE(PARENT_PLANT_ID, ''), ',', CHILD_MATERIAL_ID, '|', CHILD_BATCH_ID, '@', COALESCE(CHILD_PLANT_ID, ''), ',') AS path
-          FROM edges
+          FROM {tbl('gold_batch_lineage')}
           WHERE PARENT_MATERIAL_ID = :mat AND PARENT_BATCH_ID = :bat
+            AND CHILD_BATCH_ID IS NOT NULL
+            AND LINK_TYPE IN ('PRODUCTION', 'BATCH_TRANSFER', 'STO_TRANSFER')
           UNION ALL
           SELECT w.level + 1,
             e.CHILD_MATERIAL_ID,
@@ -727,12 +717,14 @@ async def fetch_top_down(token: str, material_id: str, batch_id: str, max_levels
             e.PARENT_BATCH_ID,
             e.PARENT_PLANT_ID,
             CONCAT(w.path, e.CHILD_MATERIAL_ID, '|', e.CHILD_BATCH_ID, '@', COALESCE(e.CHILD_PLANT_ID, ''), ',')
-          FROM edges e
+          FROM {tbl('gold_batch_lineage')} e
           JOIN walk w
             ON e.PARENT_MATERIAL_ID = w.material_id
            AND e.PARENT_BATCH_ID = w.batch_id
            AND COALESCE(e.PARENT_PLANT_ID, '') = COALESCE(w.plant_id, '')
           WHERE w.level < :max_levels
+            AND e.CHILD_BATCH_ID IS NOT NULL
+            AND e.LINK_TYPE IN ('PRODUCTION', 'BATCH_TRANSFER', 'STO_TRANSFER')
             AND INSTR(w.path, CONCAT(',', e.CHILD_MATERIAL_ID, '|', e.CHILD_BATCH_ID, '@', COALESCE(e.CHILD_PLANT_ID, ''), ',')) = 0
         ),
         agg AS (
@@ -776,7 +768,7 @@ async def fetch_top_down(token: str, material_id: str, batch_id: str, max_levels
     countries_query = f"""
         WITH per_delivery AS (
           SELECT DISTINCT DELIVERY, COUNTRY_ID, COUNTRY_NAME, ABS_QUANTITY
-          FROM {tbl('gold_batch_delivery_v')}
+          FROM {tbl('gold_batch_delivery_mat')}
           WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat AND COUNTRY_ID IS NOT NULL
         )
         SELECT
@@ -791,7 +783,7 @@ async def fetch_top_down(token: str, material_id: str, batch_id: str, max_levels
     customers_query = f"""
         WITH per_delivery AS (
           SELECT DISTINCT DELIVERY, CUSTOMER_ID, CUSTOMER_NAME, COUNTRY_ID, ABS_QUANTITY
-          FROM {tbl('gold_batch_delivery_v')}
+          FROM {tbl('gold_batch_delivery_mat')}
           WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat AND CUSTOMER_ID IS NOT NULL
         ),
         per_cust AS (
@@ -817,7 +809,7 @@ async def fetch_top_down(token: str, material_id: str, batch_id: str, max_levels
           SELECT DISTINCT
             DELIVERY, CUSTOMER_NAME, CITY, COUNTRY_ID, POSTING_DATE,
             ABS_QUANTITY, SALES_ORDER_ID
-          FROM {tbl('gold_batch_delivery_v')}
+          FROM {tbl('gold_batch_delivery_mat')}
           WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat AND DELIVERY IS NOT NULL
         )
         SELECT
@@ -881,6 +873,8 @@ async def fetch_supplier_risk(token: str, material_id: str, batch_id: str) -> di
             AND l.LINK_TYPE IN ('PRODUCTION', 'BATCH_TRANSFER')
             AND l.PARENT_MATERIAL_ID IS NOT NULL
             AND l.PARENT_BATCH_ID IS NOT NULL
+            -- TODO 2.4: replace path string + INSTR with native CYCLE clause (requires DBR 14+ verification).
+            -- Replace path column and INSTR guard with: ) CYCLE material_id, batch_id SET is_cycle TO true DEFAULT false
             AND INSTR(u.path, CONCAT(',', l.PARENT_MATERIAL_ID, '|', l.PARENT_BATCH_ID, ',')) = 0
         ),
         ancestor_set AS (

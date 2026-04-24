@@ -15,6 +15,7 @@ from backend.dal.trace_dal import (
     _build_tree,
     fetch_batch_compare,
     fetch_batch_details,
+    fetch_batch_header,
     fetch_bottom_up,
     fetch_coa,
     fetch_impact,
@@ -146,6 +147,29 @@ async def impact(
     )
 
 
+@router.post("/batch-header")
+@limiter.limit("60/minute")
+async def batch_header(
+    request: Request,
+    body: BatchPageRequest,
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    token = resolve_token(x_forwarded_access_token, authorization)
+    check_warehouse_config()
+    try:
+        row = await fetch_batch_header(token, body.material_id, body.batch_id)
+    except Exception as exc:
+        handle_sql_error(exc)
+
+    if not row:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No data for Material '{body.material_id}', Batch '{body.batch_id}'.",
+        )
+    return row
+
+
 @router.post("/recall-readiness")
 @limiter.limit("30/minute")
 async def recall_readiness(
@@ -173,9 +197,9 @@ async def recall_readiness(
         request.url.path,
         [
             "gold_batch_lineage",
-            "gold_batch_stock_v",
-            "gold_batch_mass_balance_v",
-            "gold_batch_delivery_v",
+            "gold_batch_stock_mat",
+            "gold_batch_mass_balance_mat",
+            "gold_batch_delivery_mat",
             "gold_batch_summary_v",
             "gold_plant",
         ],
