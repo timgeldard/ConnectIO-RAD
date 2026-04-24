@@ -21,7 +21,7 @@ def classify_sql_runtime_error(
     if "permission denied" in msg or "no access" in msg or "403" in msg:
         return HTTPException(
             status_code=403,
-            detail="Forbidden: insufficient Unity Catalog privileges for this operation.",
+            detail="Access denied: insufficient Unity Catalog privileges for this operation.",
         )
     if "401" in msg or "unauthorized" in msg:
         return HTTPException(status_code=401, detail="Token rejected by Databricks.")
@@ -56,7 +56,7 @@ def send_operational_alert(
 ) -> None:
     """Emit a structured operational alert log event (logging stub)."""
     logger.warning(
-        "operational_alert subject=%s error_id=%s request_path=%s body=%s",
+        "operational_alert.pending subject=%s error_id=%s request_path=%s body=%s",
         subject,
         error_id or "unknown",
         request_path or "unknown",

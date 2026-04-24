@@ -148,7 +148,8 @@ def compute_non_parametric_capability(
         idx = p * (n - 1)
         i = math.floor(idx)
         d = idx - i
-        if i >= n - 1: return sorted_vals[-1]
+        if i >= n - 1:
+            return sorted_vals[-1]
         return sorted_vals[i] * (1 - d) + sorted_vals[i+1] * d
 
     p00135 = get_percentile(0.00135)

@@ -25,9 +25,6 @@ from shared_db.core import (  # noqa: F401  re-exported for existing imports
     WAREHOUSE_HTTP_PATH,
     TRACE_CATALOG,
     TRACE_SCHEMA,
-    hostname,
-    tbl,
-    check_warehouse_config,
     resolve_token,
     sql_param,
     TTLCache,
@@ -38,9 +35,15 @@ from shared_db.errors import (  # noqa: F401
     send_operational_alert,
 )
 from shared_db.executors import (
-    _sql_executor,
-    _REST_EXECUTOR,
     _CONNECTOR_EXECUTOR,
+    _REST_EXECUTOR,
+    _RestStatementExecutor,  # noqa: F401
+    _SQL_MAX_WORKERS,  # noqa: F401
+    _SQL_POLL_INITIAL_DELAY_S,  # noqa: F401
+    _SQL_POLL_MAX_ATTEMPTS,  # noqa: F401
+    _SQL_POLL_MAX_DELAY_S,  # noqa: F401
+    _normalize_statement_for_connector,  # noqa: F401
+    _sql_executor,
 )
 
 try:
@@ -79,6 +82,23 @@ _CHART_CACHE_PATTERNS = (
     "spc_spec_drift_summary_v", "spc_quality_metric_subgroup_v",
     "spc_lineage_graph_mv", "spc_process_flow_source_mv", "gold_batch_lineage",
 )
+
+
+def hostname() -> str:
+    return DATABRICKS_HOST.removeprefix("https://").removeprefix("http://").rstrip("/")
+
+
+def tbl(name: str) -> str:
+    return f"`{TRACE_CATALOG}`.`{TRACE_SCHEMA}`.`{name}`"
+
+
+def check_warehouse_config() -> str:
+    if not WAREHOUSE_HTTP_PATH:
+        raise HTTPException(
+            status_code=500,
+            detail="DATABRICKS_WAREHOUSE_HTTP_PATH environment variable is not set.",
+        )
+    return WAREHOUSE_HTTP_PATH
 
 
 def _warehouse_id() -> str:

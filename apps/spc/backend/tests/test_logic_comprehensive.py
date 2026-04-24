@@ -2,9 +2,8 @@ import pytest
 import math
 import json
 import os
-import numpy as np
-from backend.utils.msa import compute_grr, compute_grr_anova, _round, _mean, _is_number
-from backend.utils.multivariate import compute_hotelling_t2, _round_float, _safe_ratio
+from backend.utils.msa import compute_grr, compute_grr_anova, _is_number
+from backend.utils.multivariate import compute_hotelling_t2, _round_float
 
 def load_fixture(name):
     path = os.path.join(os.path.dirname(__file__), "fixtures", name)

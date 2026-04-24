@@ -2,7 +2,7 @@ import pytest
 from fastapi import HTTPException
 import numpy as np
 from backend.routers.spc_common import handle_sql_error, handle_analysis_error, handle_locked_limits_error, attach_payload_freshness
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 def test_handle_sql_error():
     with pytest.raises(HTTPException) as exc:

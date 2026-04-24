@@ -6,10 +6,9 @@ GET  /api/em/locations       — functional locations for a plant/floor
 GET  /api/em/locations/{id}/summary — location detail with MICs + recent lots
 """
 
-import logging
 from typing import Optional
 
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, Header, Query
 from pydantic import BaseModel
 
 from backend.schemas.em import FloorInfo, LocationMeta

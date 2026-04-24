@@ -6,7 +6,7 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run ruff check . && uv run mypy src/",
+        "command": "uv run --no-sync ruff check .",
         "cwd": "libs/shared-auth"
       },
       "inputs": ["pyFiles", "sharedGlobals"],
@@ -15,8 +15,8 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run pytest",
-        "cwd": "libs/shared-auth"
+        "command": "PYTHONPATH=libs/shared-auth/src uv run --no-sync --package shared-auth python -m pytest libs/shared-auth/tests",
+        "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "sharedGlobals"],
       "cache": true

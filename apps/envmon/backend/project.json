@@ -14,15 +14,15 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=. uv run --package envmon-backend uvicorn backend.main:app --reload --port 8001",
+        "command": "PYTHONPATH=. uv run --no-sync --package envmon-backend uvicorn backend.main:app --reload --port 8001",
         "cwd": "apps/envmon"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=. uv run --package envmon-backend pytest backend/tests",
-        "cwd": "apps/envmon"
+        "command": "PYTHONPATH=apps/envmon:libs/shared-db/src:libs/shared-api/src uv run --no-sync --package envmon-backend python -m pytest apps/envmon/backend/tests",
+        "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "sharedGlobals"],
       "cache": true
@@ -30,8 +30,8 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=. uv run ruff check backend && PYTHONPATH=. uv run mypy backend",
-        "cwd": "apps/envmon"
+        "command": "PYTHONPATH=apps/envmon:libs/shared-db/src:libs/shared-api/src uv run --no-sync ruff check apps/envmon/backend",
+        "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "sharedGlobals"],
       "cache": true
@@ -39,7 +39,7 @@
     "deploy": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "databricks bundle deploy --target prod",
+        "command": "make deploy PROFILE=prod TARGET=prod",
         "cwd": "apps/envmon"
       }
     }

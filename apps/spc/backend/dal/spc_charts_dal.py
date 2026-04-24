@@ -63,8 +63,8 @@ def _coerce_chart_int(row: dict, field: str) -> None:
 
 def _apply_chart_row_formatting(rows: list[dict]) -> list[dict]:
     for row in rows:
-        for field in ["value", "nominal", "tolerance", "lsl", "usl"]:
-            _coerce_chart_float(row, field)
+        for field_name in ["value", "nominal", "tolerance", "lsl", "usl"]:
+            _coerce_chart_float(row, field_name)
         _coerce_chart_int(row, "sample_seq")
         row["is_outlier"] = row.get("attribut") == "*"
         usl = row.get("usl")
@@ -1009,9 +1009,9 @@ async def fetch_locked_limits(
     if not rows:
         return None
     row = rows[0]
-    for field in ("cl", "ucl", "lcl", "ucl_r", "lcl_r", "sigma_within"):
-        value = row.get(field)
-        row[field] = float(value) if value is not None else None
+    for field_name in ("cl", "ucl", "lcl", "ucl_r", "lcl_r", "sigma_within"):
+        value = row.get(field_name)
+        row[field_name] = float(value) if value is not None else None
     if row.get("locked_at") is not None:
         row["locked_at"] = str(row["locked_at"])
     return row
