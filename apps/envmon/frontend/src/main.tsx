@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { queryClientDefaultOptions } from '@connectio/shared-frontend-api/query';
 import App from './App';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles/kerry-tokens.css';
 import './styles/kerry-app.css';
 import './index.scss';

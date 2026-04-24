@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useEM } from '~/context/EMContext';
 import { usePlants } from '~/api/client';
 import PersonaSwitcher, { PERSONAS } from '~/components/ui/PersonaSwitcher';
@@ -30,9 +30,9 @@ export default function AppShell() {
     }
   };
 
-  const navToGlobal = () => setView({ level: 'global', plantId: null, floorId: null });
-  const navToSite = (plantId: string) => setView({ level: 'site', plantId, floorId: null });
-  const navToFloor = (plantId: string, floorId: string) => setView({ level: 'floor', plantId, floorId });
+  const navToGlobal = useCallback(() => setView({ level: 'global', plantId: null, floorId: null }), [setView]);
+  const navToSite = useCallback((plantId: string) => setView({ level: 'site', plantId, floorId: null }), [setView]);
+  const navToFloor = useCallback((plantId: string, floorId: string) => setView({ level: 'floor', plantId, floorId }), [setView]);
 
   // Breadcrumbs
   const crumbs: React.ReactNode[] = [];

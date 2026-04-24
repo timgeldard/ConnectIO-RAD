@@ -29,7 +29,6 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('@carbon/icons-react')) {
-              // Further split icons to keep chunks under 500kB
               if (id.includes('es/')) {
                 const parts = id.split('es/')[1].split('/');
                 if (parts.length > 0) {
@@ -40,6 +39,9 @@ export default defineConfig({
             }
             if (id.includes('@carbon/react') || id.includes('@carbon/styles') || id.includes('@carbon/layout')) {
               return 'vendor-carbon';
+            }
+            if (id.includes('maplibre-gl') || id.includes('@mapbox/') || id.includes('mapbox-gl')) {
+              return 'vendor-maplibre';
             }
             if (id.includes('@tanstack/react-query')) {
               return 'vendor-query';
