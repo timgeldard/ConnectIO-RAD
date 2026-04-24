@@ -19,5 +19,5 @@ env:
   - name: TRACE_SCHEMA
     value: "gold"
 
-  - name: EM_PLANT_ID
-    value: "P225"
+  - name: CENTRAL_SERVICES_CATALOG
+    value: "published_uat"

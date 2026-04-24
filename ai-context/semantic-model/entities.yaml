@@ -917,11 +917,11 @@ entities:
   # ===========================================================================
 
   # ---------------------------------------------------------------------------
-  # VIEW: gold_batch_delivery_v
+  # MATERIALIZED TABLE: gold_batch_delivery_mat
   # ---------------------------------------------------------------------------
-  - name: gold_batch_delivery_v
+  - name: gold_batch_delivery_mat
     business_name: Batch Delivery
-    type: view
+    type: materialized_table
     tier: APPROVED
     approved_for_agent_use: true
     business_purpose: >
@@ -976,11 +976,11 @@ entities:
       - "MOVEMENT_TYPE 601 = delivery, 602 = reversal"
 
   # ---------------------------------------------------------------------------
-  # VIEW: gold_batch_mass_balance_v
+  # MATERIALIZED TABLE: gold_batch_mass_balance_mat
   # ---------------------------------------------------------------------------
-  - name: gold_batch_mass_balance_v
+  - name: gold_batch_mass_balance_mat
     business_name: Mass Balance
-    type: view
+    type: materialized_table
     tier: APPROVED
     approved_for_agent_use: true
     business_purpose: >
@@ -1035,11 +1035,11 @@ entities:
       - "MOVEMENT_CATEGORY is the agent-preferred filter; MOVEMENT_TYPE for SAP-level detail"
 
   # ---------------------------------------------------------------------------
-  # VIEW: gold_batch_stock_v
+  # MATERIALIZED TABLE: gold_batch_stock_mat
   # ---------------------------------------------------------------------------
-  - name: gold_batch_stock_v
+  - name: gold_batch_stock_mat
     business_name: Batch Stock
-    type: view
+    type: materialized_table
     tier: APPROVED
     approved_for_agent_use: true
     business_purpose: >
