@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import type { FeatureCollection, Point as GeoPoint } from 'geojson';
 import type { PlantFeatureProps } from './mapUtils';
@@ -128,8 +128,8 @@ export default function EnvMonGlobalMap({
         if (!features.length) return;
         const clusterId = features[0].properties?.cluster_id as number;
         const src = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource;
-        src.getClusterExpansionZoom(clusterId, (err, zoom) => {
-          if (err || zoom == null) return;
+        src.getClusterExpansionZoom(clusterId).then((zoom) => {
+          if (zoom == null) return;
           const geom = features[0].geometry as GeoPoint;
           map.easeTo({ center: geom.coordinates as [number, number], zoom });
         });

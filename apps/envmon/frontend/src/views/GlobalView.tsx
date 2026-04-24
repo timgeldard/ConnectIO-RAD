@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import EnvMonGlobalMap from '~/map/EnvMonGlobalMap';
 import { usePlantMapData } from '~/map/usePlantMapData';
 import KPI from '~/components/ui/KPI';

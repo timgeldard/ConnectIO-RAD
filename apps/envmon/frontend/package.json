@@ -12,10 +12,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json"
   },
   "dependencies": {
-    "@carbon/icons-react": "^11.78.0",
-    "@carbon/react": "^1.105.0",
-    "@carbon/styles": "^1.104.0",
-    "@connectio/shared-frontend-api": "file:../../../libs/shared-frontend-api",
+"@connectio/shared-frontend-api": "file:../../../libs/shared-frontend-api",
     "@tanstack/react-query": "^5.99.0",
     "maplibre-gl": "^4.7.0",
     "react": "^18.3.1",

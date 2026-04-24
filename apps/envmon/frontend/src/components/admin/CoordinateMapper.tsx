@@ -7,12 +7,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Tag, InlineNotification, Loading, Button,
-  Tabs, Tab, TabList, TabPanels, TabPanel,
-  Select, SelectItem, Search,
-} from '@carbon/react';
-import { TrashCan, Move, Add } from '@carbon/icons-react';
+import { IconTrash, IconMove, IconPlus, IconX, IconSearch } from '~/components/ui/Icons';
 import { useEM } from '~/context/EMContext';
 import {
   usePlants,
@@ -41,11 +36,11 @@ const STATUS_CLASS: Record<string, string> = {
 };
 
 const STATUS_FILL: Record<string, string> = {
-  'em-marker--pass':    'var(--cds-support-success)',
-  'em-marker--fail':    'var(--cds-support-error)',
-  'em-marker--warning': 'var(--cds-support-warning)',
-  'em-marker--pending': 'var(--cds-support-info)',
-  'em-marker--no-data': 'var(--cds-text-placeholder)',
+  'em-marker--pass':    'var(--jade)',
+  'em-marker--fail':    'var(--sunset)',
+  'em-marker--warning': 'var(--sunrise)',
+  'em-marker--pending': 'var(--sage)',
+  'em-marker--no-data': 'color-mix(in srgb, var(--forest) 35%, white)',
 };
 
 type DragSource = { funcLocId: string };
@@ -75,20 +70,20 @@ function AddFloorForm({ plantId, onDone }: { plantId: string; onDone: () => void
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ padding: '12px 0', borderBottom: '1px solid var(--cds-border-subtle-00)' }}>
-      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--cds-text-primary)' }}>Add floor</div>
+    <form onSubmit={handleSubmit} style={{ padding: '12px 0', borderBottom: '1px solid var(--stroke-soft)' }}>
+      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--forest)' }}>Add floor</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <input placeholder="Floor ID (e.g. F1)" value={floorId} onChange={(e) => setFloorId(e.target.value)}
-          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--cds-border-strong-01)', borderRadius: 4 }} />
+          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--stroke)', borderRadius: 4 }} />
         <input placeholder="Floor name (e.g. Ground Floor)" value={floorName} onChange={(e) => setFloorName(e.target.value)}
-          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--cds-border-strong-01)', borderRadius: 4 }} />
+          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--stroke)', borderRadius: 4 }} />
         <input placeholder="SVG URL (optional)" value={svgUrl} onChange={(e) => setSvgUrl(e.target.value)}
-          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--cds-border-strong-01)', borderRadius: 4 }} />
+          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--stroke)', borderRadius: 4 }} />
         <div style={{ display: 'flex', gap: 6 }}>
-          <Button kind="primary" size="sm" type="submit" disabled={isPending || !floorId.trim() || !floorName.trim()}>
+          <button className="btn btn-primary btn-sm" type="submit" disabled={isPending || !floorId.trim() || !floorName.trim()}>
             {isPending ? 'Saving…' : 'Add'}
-          </Button>
-          <Button kind="ghost" size="sm" type="button" onClick={onDone}>Cancel</Button>
+          </button>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={onDone}>Cancel</button>
         </div>
       </div>
     </form>
@@ -207,6 +202,7 @@ function PlantGeoPanel() {
 // ---------------------------------------------------------------------------
 export default function CoordinateMapper() {
   const [adminTab, setAdminTab] = React.useState<'floor' | 'geo'>('floor');
+  const [locationTab, setLocationTab] = useState<'unmapped' | 'mapped'>('unmapped');
   const { timeWindow } = useEM();
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -422,34 +418,35 @@ export default function CoordinateMapper() {
       {/* ------------------------------------------------------------------ */}
       <div className="em-mapper-sidebar">
         {/* Plant selector */}
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--cds-border-subtle-00)' }}>
-          <Select
-            id="mapper-plant-select"
-            labelText="Plant"
-            size="sm"
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--stroke-soft)' }}>
+          <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginBottom: 4 }}>Plant</div>
+          <select
             value={plantId ?? ''}
             onChange={(e) => { setSelectedPlantId(e.target.value); setActiveFloor(null); }}
+            style={{ fontSize: 12, padding: '4px 8px' }}
           >
-            {plantsLoading && <SelectItem value="" text="Loading plants…" />}
+            {plantsLoading && <option value="">Loading plants…</option>}
             {plants.map((p) => (
-              <SelectItem key={p.plant_id} value={p.plant_id} text={`${p.plant_id} · ${p.plant_name}`} />
+              <option key={p.plant_id} value={p.plant_id}>{p.plant_id} · {p.plant_name}</option>
             ))}
-          </Select>
+          </select>
         </div>
 
         {/* Floor management */}
-        <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--cds-border-subtle-00)' }}>
+        <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--stroke-soft)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--cds-text-secondary)' }}>Floors</span>
-            <Button kind="ghost" size="sm" hasIconOnly renderIcon={Add} iconDescription="Add floor"
-              tooltipPosition="left" onClick={() => setShowAddFloor((v) => !v)} style={{ minHeight: 'auto', padding: '2px 6px' }} />
+            <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-muted)' }}>Floors</span>
+            <button className="btn btn-icon btn-ghost btn-sm" type="button"
+              onClick={() => setShowAddFloor((v) => !v)} title="Add floor">
+              <IconPlus size={12} />
+            </button>
           </div>
           {showAddFloor && plantId && (
             <AddFloorForm plantId={plantId} onDone={() => setShowAddFloor(false)} />
           )}
-          {floorsLoading && <Loading small withOverlay={false} description="Loading floors…" />}
+          {floorsLoading && <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Loading…</span>}
           {!floorsLoading && floors.length === 0 && (
-            <p style={{ fontSize: 12, color: 'var(--cds-text-secondary)' }}>No floors configured. Add one above.</p>
+            <p style={{ fontSize: 12, color: 'var(--fg-muted)' }}>No floors configured. Add one above.</p>
           )}
           {floors.map((f) => (
             <div key={f.floor_id} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
@@ -457,30 +454,45 @@ export default function CoordinateMapper() {
                 onClick={() => setActiveFloor(f.floor_id)}
                 style={{
                   flex: 1, textAlign: 'left', padding: '4px 8px', fontSize: 12, borderRadius: 4,
-                  background: activeFloor === f.floor_id ? 'var(--cds-background-selected)' : 'transparent',
+                  background: activeFloor === f.floor_id ? 'color-mix(in srgb, var(--forest) 5%, white)' : 'transparent',
                   fontWeight: activeFloor === f.floor_id ? 600 : 400,
-                  color: 'var(--cds-text-primary)',
+                  color: 'var(--forest)',
                 }}
               >
-                {f.floor_name} <span style={{ color: 'var(--cds-text-secondary)', fontFamily: 'var(--cds-code-01-font-family)' }}>({f.location_count})</span>
+                {f.floor_name} <span style={{ color: 'var(--fg-muted)', fontFamily: 'var(--font-mono)' }}>({f.location_count})</span>
               </button>
-              <Button kind="danger--ghost" size="sm" hasIconOnly renderIcon={TrashCan}
-                iconDescription="Delete floor" tooltipPosition="left"
-                onClick={() => plantId && deleteFloor({ plantId, floorId: f.floor_id })}
-                style={{ minHeight: 'auto', padding: '2px 4px', flexShrink: 0 }} />
+              <button className="btn btn-icon btn-ghost btn-sm" type="button"
+                style={{ color: 'var(--sunset)', flexShrink: 0 }}
+                title="Delete floor"
+                onClick={() => plantId && deleteFloor({ plantId, floorId: f.floor_id })}>
+                <IconTrash size={14} />
+              </button>
             </div>
           ))}
         </div>
 
         {/* Location lists */}
         {plantId && (
-          <Tabs>
-            <TabList aria-label="Coordinate mapping tabs">
-              <Tab>Unmapped ({filteredUnmapped.length})</Tab>
-              <Tab>Mapped ({filteredMapped.length})</Tab>
-            </TabList>
-            <TabPanels>
-              <TabPanel>
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+            {/* Tab bar */}
+            <div className="subnav" style={{ padding: '6px 12px', background: 'var(--stone)', flexShrink: 0 }}>
+              <button
+                className={`tab${locationTab === 'unmapped' ? ' active' : ''}`}
+                onClick={() => setLocationTab('unmapped')}
+              >
+                Unmapped ({filteredUnmapped.length})
+              </button>
+              <button
+                className={`tab${locationTab === 'mapped' ? ' active' : ''}`}
+                onClick={() => setLocationTab('mapped')}
+              >
+                Mapped ({filteredMapped.length})
+              </button>
+            </div>
+
+            {/* Unmapped panel */}
+            {locationTab === 'unmapped' && (
+              <div style={{ padding: 12, overflowY: 'auto', flex: 1 }}>
                 <div className="em-hierarchy-filters">
                   {[
                     { id: 'filter-l1', label: 'Level 1', value: l1, options: l1Options, onChange: handleL1, disabled: false },
@@ -488,22 +500,41 @@ export default function CoordinateMapper() {
                     { id: 'filter-l3', label: 'Level 3', value: l3, options: l3Options, onChange: handleL3, disabled: !l2 },
                     { id: 'filter-l4', label: 'Level 4', value: l4, options: l4Options, onChange: setL4, disabled: !l3 },
                   ].map(({ id, label, value, options, onChange, disabled }) => (
-                    <Select key={id} id={id} labelText={label} size="sm" value={value} disabled={disabled}
-                      onChange={(e) => onChange(e.target.value)}>
-                      <SelectItem value="" text="All" />
-                      {options.map((v) => <SelectItem key={v} value={v} text={v} />)}
-                    </Select>
+                    <div key={id}>
+                      <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginBottom: 2 }}>{label}</div>
+                      <select id={id} value={value} disabled={disabled}
+                        onChange={(e) => onChange(e.target.value)}
+                        style={{ fontSize: 12, padding: '4px 8px' }}>
+                        <option value="">All</option>
+                        {options.map((v) => <option key={v} value={v}>{v}</option>)}
+                      </select>
+                    </div>
                   ))}
                 </div>
                 <div className="em-mapper-search">
-                  <Search id="mapper-search" labelText="Search locations" placeholder="Search by ID…"
-                    size="sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                    onClear={() => setSearchQuery('')} />
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: 'var(--fg-muted)', pointerEvents: 'none', display: 'flex' }}>
+                      <IconSearch size={13} />
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Search by ID…"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{ paddingLeft: 28, paddingRight: searchQuery ? 28 : undefined, fontSize: 12, padding: '5px 28px' }}
+                    />
+                    {searchQuery && (
+                      <button type="button" onClick={() => setSearchQuery('')}
+                        style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', color: 'var(--fg-muted)', padding: 2, display: 'flex' }}>
+                        <IconX size={12} />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="em-hierarchy-count">{filteredUnmapped.length} location{filteredUnmapped.length !== 1 ? 's' : ''}</div>
-                {loadingUnmapped && <Loading description="Loading…" withOverlay={false} small />}
+                {loadingUnmapped && <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Loading…</span>}
                 {!loadingUnmapped && filteredUnmapped.length === 0 && (
-                  <p style={{ color: 'var(--cds-text-secondary)', fontSize: 'var(--cds-label-01-font-size)' }}>
+                  <p style={{ color: 'var(--fg-muted)', fontSize: '0.75rem' }}>
                     {unmapped.length === 0 ? 'All locations are mapped.' : 'No locations match the selected filters.'}
                   </p>
                 )}
@@ -512,16 +543,19 @@ export default function CoordinateMapper() {
                     onDragStart={() => setDragging({ funcLocId: loc.func_loc_id })}
                     onDragEnd={() => setDragging(null)}
                     title="Drag onto floor plan to map">
-                    <Move size={12} style={{ marginRight: 'var(--cds-spacing-02)', verticalAlign: 'middle', flexShrink: 0 }} />
+                    <IconMove size={12} style={{ marginRight: 4, verticalAlign: 'middle', flexShrink: 0 }} />
                     {loc.func_loc_id}
                   </div>
                 ))}
-              </TabPanel>
+              </div>
+            )}
 
-              <TabPanel>
-                {loadingMapped && <Loading description="Loading…" withOverlay={false} small />}
+            {/* Mapped panel */}
+            {locationTab === 'mapped' && (
+              <div style={{ padding: 12, overflowY: 'auto', flex: 1 }}>
+                {loadingMapped && <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Loading…</span>}
                 {!loadingMapped && filteredMapped.length === 0 && (
-                  <p style={{ color: 'var(--cds-text-secondary)', fontSize: 'var(--cds-label-01-font-size)', marginTop: 'var(--cds-spacing-04)' }}>
+                  <p style={{ color: 'var(--fg-muted)', fontSize: '0.75rem', marginTop: 8 }}>
                     {mapped.length === 0 ? 'No locations mapped yet.' : 'No mapped locations match the search.'}
                   </p>
                 )}
@@ -532,19 +566,22 @@ export default function CoordinateMapper() {
                       onDragEnd={() => setDragging(null)}
                       title={`Floor ${loc.floor_id} — drag to reposition`}
                       style={{ flex: 1, marginBottom: 0 }}>
-                      <Move size={12} style={{ marginRight: 'var(--cds-spacing-02)', verticalAlign: 'middle', flexShrink: 0 }} />
+                      <IconMove size={12} style={{ marginRight: 4, verticalAlign: 'middle', flexShrink: 0 }} />
                       <span style={{ flex: 1 }}>{loc.func_loc_id}</span>
                       <span className="em-floor-badge">{loc.floor_id}</span>
                     </div>
-                    <Button kind="danger--ghost" size="sm" hasIconOnly renderIcon={TrashCan}
-                      iconDescription="Remove mapping" tooltipPosition="left"
+                    <button className="btn btn-icon btn-ghost btn-sm" type="button"
+                      style={{ color: 'var(--sunset)', flexShrink: 0 }}
+                      title="Remove mapping"
                       onClick={() => handleUnmap(loc.func_loc_id)}
-                      disabled={isDeleting} style={{ flexShrink: 0 }} />
+                      disabled={isDeleting}>
+                      <IconTrash size={14} />
+                    </button>
                   </div>
                 ))}
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -553,12 +590,14 @@ export default function CoordinateMapper() {
       {/* ------------------------------------------------------------------ */}
       <div className="em-mapper-canvas">
         <div className="em-mapper-floor-bar">
-          <Select id="mapper-floor-select" labelText="Select floor" hideLabel size="sm"
-            value={activeFloor ?? ''} onChange={(e) => setActiveFloor(e.target.value)}
-            style={{ width: '160px' }}>
-            {floors.length === 0 && <SelectItem value="" text="No floors configured" />}
-            {floors.map((f) => <SelectItem key={f.floor_id} value={f.floor_id} text={f.floor_name} />)}
-          </Select>
+          <select
+            value={activeFloor ?? ''}
+            onChange={(e) => setActiveFloor(e.target.value)}
+            style={{ width: 160, fontSize: 12, padding: '4px 8px' }}
+          >
+            {floors.length === 0 && <option value="">No floors configured</option>}
+            {floors.map((f) => <option key={f.floor_id} value={f.floor_id}>{f.floor_name}</option>)}
+          </select>
           <span className="em-mapper-floor-count">
             {floorMapped.length} location{floorMapped.length !== 1 ? 's' : ''} on this floor
           </span>
@@ -567,14 +606,14 @@ export default function CoordinateMapper() {
         {currentFloor?.svg_url && (
           <img key={currentFloor.svg_url} src={currentFloor.svg_url}
             alt={`${currentFloor.floor_name} plan`}
-            style={{ position: 'absolute', top: 'var(--cds-spacing-09)', left: 0, right: 0, bottom: 0,
-              width: '100%', height: 'calc(100% - var(--cds-spacing-09))', objectFit: 'contain',
+            style={{ position: 'absolute', top: 48, left: 0, right: 0, bottom: 0,
+              width: '100%', height: 'calc(100% - 48px)', objectFit: 'contain',
               objectPosition: 'center', display: 'block', pointerEvents: 'none' }} />
         )}
 
         <svg ref={svgRef} viewBox={`0 0 ${viewWidth} ${viewHeight}`} preserveAspectRatio="xMidYMid meet"
-          style={{ position: 'absolute', top: 'var(--cds-spacing-09)', left: 0, right: 0, bottom: 0,
-            width: '100%', height: 'calc(100% - var(--cds-spacing-09))',
+          style={{ position: 'absolute', top: 48, left: 0, right: 0, bottom: 0,
+            width: '100%', height: 'calc(100% - 48px)',
             cursor: isAnyDragging ? 'crosshair' : 'default', overflow: 'visible' }}
           onDrop={handleDrop} onDragOver={handleDragOver}
           onPointerMove={handleSvgPointerMove} onPointerUp={handleSvgPointerUp}>
@@ -585,7 +624,7 @@ export default function CoordinateMapper() {
             const isMoving = pointerDragging === loc.func_loc_id;
             const status = statusMap.get(loc.func_loc_id) ?? 'NO_DATA';
             const markerClass = STATUS_CLASS[status] ?? STATUS_CLASS.NO_DATA;
-            const labelFill = STATUS_FILL[markerClass] ?? 'var(--cds-text-placeholder)';
+            const labelFill = STATUS_FILL[markerClass] ?? STATUS_FILL['em-marker--no-data'];
             return (
               <g key={loc.func_loc_id}
                 style={{ cursor: isMoving ? 'grabbing' : 'grab', opacity: isMoving ? 0.4 : 1, touchAction: 'none' }}
@@ -604,42 +643,47 @@ export default function CoordinateMapper() {
 
           {pointerDragging && previewPos && (
             <circle cx={previewPos.cx} cy={previewPos.cy} r={MARKER_R}
-              fill="none" stroke="var(--cds-interactive-01)" strokeWidth={2}
+              fill="none" stroke="var(--valentia-slate)" strokeWidth={2}
               strokeDasharray="4 3" pointerEvents="none" />
           )}
 
           {dragging && (
             <rect x={0} y={0} width={viewWidth} height={viewHeight}
-              fill="var(--cds-interactive-01)" opacity={0.05}
-              stroke="var(--cds-interactive-01)" strokeWidth={8} strokeDasharray="24 12"
+              fill="var(--valentia-slate)" opacity={0.05}
+              stroke="var(--valentia-slate)" strokeWidth={8} strokeDasharray="24 12"
               pointerEvents="none" />
           )}
         </svg>
 
         {(isSaving || isDeleting) && (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'var(--cds-overlay)',
+          <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'rgba(0, 0, 0, 0.5)',
             display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Loading description="Saving…" withOverlay={false} />
+            <span style={{ color: 'white', fontSize: 13, fontFamily: 'var(--font-mono)' }}>Saving…</span>
           </div>
         )}
 
         {notification && (
-          <div style={{ position: 'absolute', top: 'calc(var(--cds-spacing-09) + var(--cds-spacing-04))',
-            left: 'var(--cds-spacing-05)', right: 'var(--cds-spacing-05)', zIndex: 20 }}>
-            <InlineNotification kind={notification.kind}
-              title={notification.kind === 'success' ? 'Saved' : 'Error'}
-              subtitle={notification.message} hideCloseButton />
+          <div style={{ position: 'absolute', top: 56, left: 16, right: 16, zIndex: 20,
+            padding: '8px 12px', borderRadius: 4, fontSize: 12,
+            background: notification.kind === 'success'
+              ? 'color-mix(in srgb, var(--jade) 18%, white)'
+              : 'color-mix(in srgb, var(--sunset) 18%, white)',
+            border: `1px solid ${notification.kind === 'success' ? 'var(--jade)' : 'var(--sunset)'}`,
+            color: 'var(--forest)',
+          }}>
+            <strong>{notification.kind === 'success' ? 'Saved' : 'Error'}:</strong> {notification.message}
           </div>
         )}
 
         {isAnyDragging && (
-          <div style={{ position: 'absolute', bottom: 'var(--cds-spacing-05)', left: '50%',
-            transform: 'translateX(-50%)', pointerEvents: 'none', zIndex: 20 }}>
-            <Tag type="blue">
-              {dragging
-                ? `Drop to place ${dragging.funcLocId} on ${currentFloor?.floor_name || activeFloor}`
-                : `Drag to reposition ${pointerDragging}`}
-            </Tag>
+          <div style={{ position: 'absolute', bottom: 16, left: '50%',
+            transform: 'translateX(-50%)', pointerEvents: 'none', zIndex: 20,
+            padding: '5px 14px', borderRadius: 999, fontSize: 12, fontFamily: 'var(--font-mono)',
+            background: 'var(--valentia-slate)', color: 'white', whiteSpace: 'nowrap',
+          }}>
+            {dragging
+              ? `Drop to place ${dragging.funcLocId} on ${currentFloor?.floor_name || activeFloor}`
+              : `Drag to reposition ${pointerDragging}`}
           </div>
         )}
       </div>

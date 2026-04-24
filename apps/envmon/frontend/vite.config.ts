@@ -28,18 +28,6 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('@carbon/icons-react')) {
-              if (id.includes('es/')) {
-                const parts = id.split('es/')[1].split('/');
-                if (parts.length > 0) {
-                  return `vendor-icons-${parts[0].charAt(0).toLowerCase()}`;
-                }
-              }
-              return 'vendor-icons';
-            }
-            if (id.includes('@carbon/react') || id.includes('@carbon/styles') || id.includes('@carbon/layout')) {
-              return 'vendor-carbon';
-            }
             if (id.includes('maplibre-gl') || id.includes('@mapbox/') || id.includes('mapbox-gl')) {
               return 'vendor-maplibre';
             }
