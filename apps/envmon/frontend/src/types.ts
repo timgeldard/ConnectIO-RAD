@@ -139,6 +139,14 @@ export interface ViewState {
   floorId: string | null;
 }
 
+export interface PlantGeoEntry {
+  plant_id: string;
+  lat: number;
+  lon: number;
+  updated_at: string | null;
+  updated_by: string | null;
+}
+
 export type PersonaId = 'regional' | 'site' | 'sanitation' | 'auditor' | 'admin';
 
 export interface Persona {

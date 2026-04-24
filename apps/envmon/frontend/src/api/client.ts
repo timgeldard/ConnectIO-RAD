@@ -17,6 +17,7 @@ import type {
   LotDetailResponse,
   LocationSummary,
   CoordinateUpsertRequest,
+  PlantGeoEntry,
   PlantInfo,
 } from '~/types';
 
@@ -223,6 +224,34 @@ export function useDeleteCoordinate() {
       queryClient.invalidateQueries({ queryKey: ['coordinates', 'mapped',   variables.plantId] });
       queryClient.invalidateQueries({ queryKey: ['locations',   variables.plantId] });
       queryClient.invalidateQueries({ queryKey: ['heatmap',     variables.plantId] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Plant geo config (admin)
+// ---------------------------------------------------------------------------
+
+export function usePlantGeoConfig() {
+  return useQuery<PlantGeoEntry[]>({
+    queryKey: ['plant-geo'],
+    queryFn: () => apiFetch('/api/em/plant-geo'),
+    staleTime: 60_000,
+  });
+}
+
+export function useUpsertPlantGeo() {
+  const queryClient = useQueryClient();
+  return useMutation<PlantGeoEntry, Error, { plantId: string; lat: number; lon: number }>({
+    mutationFn: ({ plantId, lat, lon }) =>
+      apiFetch(`/api/em/plant-geo/${encodeURIComponent(plantId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lon }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plant-geo'] });
+      queryClient.invalidateQueries({ queryKey: ['plants'] });
     },
   });
 }

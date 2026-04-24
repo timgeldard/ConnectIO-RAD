@@ -1,7 +1,8 @@
 """
 GET /api/em/plants  — discover plants that have type-14/Z14 inspection lots,
-enriched with metadata from vw_gold_plant and real lat/lon from the EPM plant
-configuration table.  No env-var config required — the list is fully DB-driven.
+enriched with metadata from vw_gold_plant and real lat/lon from the internal
+em_plant_geo config table (editable via the admin screen).
+No env-var config required — the list is fully DB-driven.
 """
 
 import asyncio
@@ -51,10 +52,10 @@ async def _fetch_plant_metadata(token: str, plant_ids: list[str]) -> dict[str, d
             p.COUNTRY_ID,
             p.REGION,
             p.CITY,
-            COALESCE(g.LATITUDE,  0.0) AS lat,
-            COALESCE(g.LONGITUDE, 0.0) AS lon
+            COALESCE(g.lat, 0.0) AS lat,
+            COALESCE(g.lon, 0.0) AS lon
         FROM {PLANT_TBL} p
-        LEFT JOIN {PLANT_GEO_TBL} g ON g.PLANT_ID = p.PLANT_ID
+        LEFT JOIN {PLANT_GEO_TBL} g ON g.plant_id = p.PLANT_ID
         WHERE p.PLANT_ID IN ({id_list})
     """
     try:

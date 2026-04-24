@@ -24,6 +24,8 @@ import {
   useHeatmap,
   useAddFloor,
   useDeleteFloor,
+  usePlantGeoConfig,
+  useUpsertPlantGeo,
 } from '~/api/client';
 
 const MARKER_R = 10;
@@ -94,9 +96,117 @@ function AddFloorForm({ plantId, onDone }: { plantId: string; onDone: () => void
 }
 
 // ---------------------------------------------------------------------------
+// Plant geo editor
+// ---------------------------------------------------------------------------
+function PlantGeoPanel() {
+  const { data: plants = [] } = usePlants();
+  const { data: saved = [] } = usePlantGeoConfig();
+  const { mutate: upsert, isPending } = useUpsertPlantGeo();
+
+  const savedMap = React.useMemo(
+    () => new Map(saved.map((e) => [e.plant_id, e])),
+    [saved],
+  );
+
+  const [edits, setEdits] = React.useState<Record<string, { lat: string; lon: string }>>({});
+  const [savedFlags, setSavedFlags] = React.useState<Record<string, boolean>>({});
+
+  const getField = (plantId: string, field: 'lat' | 'lon'): string => {
+    if (edits[plantId]?.[field] !== undefined) return edits[plantId][field];
+    const v = savedMap.get(plantId)?.[field] ?? 0;
+    return v === 0 ? '' : String(v);
+  };
+
+  const setField = (plantId: string, field: 'lat' | 'lon', value: string) => {
+    setEdits((prev) => ({
+      ...prev,
+      [plantId]: { lat: getField(plantId, 'lat'), lon: getField(plantId, 'lon'), [field]: value },
+    }));
+    setSavedFlags((prev) => ({ ...prev, [plantId]: false }));
+  };
+
+  const handleSave = (plantId: string) => {
+    const lat = parseFloat(getField(plantId, 'lat') || '0');
+    const lon = parseFloat(getField(plantId, 'lon') || '0');
+    if (isNaN(lat) || isNaN(lon)) return;
+    upsert({ plantId, lat, lon }, {
+      onSuccess: () => setSavedFlags((prev) => ({ ...prev, [plantId]: true })),
+    });
+  };
+
+  return (
+    <div style={{ padding: '20px 24px', maxWidth: 720 }}>
+      <div className="eyebrow" style={{ marginBottom: 4 }}>Map pin coordinates</div>
+      <p style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 0, marginBottom: 16 }}>
+        Set WGS-84 latitude / longitude for each plant. These are used as map pin positions on the global view.
+      </p>
+      <table className="tbl">
+        <thead>
+          <tr>
+            <th>Plant</th>
+            <th>Latitude</th>
+            <th>Longitude</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {plants.map((p) => (
+            <tr key={p.plant_id}>
+              <td>
+                <span style={{ fontWeight: 600 }}>{p.plant_code}</span>
+                <span style={{ color: 'var(--fg-muted)', marginLeft: 6, fontSize: 12 }}>{p.plant_name}</span>
+              </td>
+              <td>
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 53.3498"
+                  value={getField(p.plant_id, 'lat')}
+                  onChange={(e) => setField(p.plant_id, 'lat', e.target.value)}
+                  style={{ width: 130, padding: '5px 8px', fontSize: 13, border: '1px solid var(--stroke)', borderRadius: 4 }}
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="e.g. -6.2603"
+                  value={getField(p.plant_id, 'lon')}
+                  onChange={(e) => setField(p.plant_id, 'lon', e.target.value)}
+                  style={{ width: 130, padding: '5px 8px', fontSize: 13, border: '1px solid var(--stroke)', borderRadius: 4 }}
+                />
+              </td>
+              <td>
+                {savedFlags[p.plant_id] ? (
+                  <span style={{ fontSize: 12, color: 'var(--jade)', fontFamily: 'var(--font-mono)' }}>Saved</span>
+                ) : (
+                  <button
+                    className="btn btn-primary btn-sm"
+                    disabled={isPending}
+                    onClick={() => handleSave(p.plant_id)}
+                  >
+                    Save
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+          {plants.length === 0 && (
+            <tr>
+              <td colSpan={4} style={{ color: 'var(--fg-muted)', fontStyle: 'italic' }}>No active plants found.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 export default function CoordinateMapper() {
+  const [adminTab, setAdminTab] = React.useState<'floor' | 'geo'>('floor');
   const { timeWindow } = useEM();
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -284,6 +394,28 @@ export default function CoordinateMapper() {
   const isAnyDragging = !!dragging || !!pointerDragging;
 
   return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Admin tab bar */}
+      <div className="subnav">
+        <button
+          className={`tab${adminTab === 'floor' ? ' active' : ''}`}
+          onClick={() => setAdminTab('floor')}
+        >
+          Floor plan
+        </button>
+        <button
+          className={`tab${adminTab === 'geo' ? ' active' : ''}`}
+          onClick={() => setAdminTab('geo')}
+        >
+          Map pins
+        </button>
+      </div>
+
+      {adminTab === 'geo' ? (
+        <div className="scroll-y" style={{ flex: 1 }}>
+          <PlantGeoPanel />
+        </div>
+      ) : (
     <div className="em-mapper-container">
       {/* ------------------------------------------------------------------ */}
       {/* Sidebar                                                              */}
@@ -511,6 +643,8 @@ export default function CoordinateMapper() {
           </div>
         )}
       </div>
+    </div>
+      )}
     </div>
   );
 }

@@ -43,16 +43,19 @@ name = "em_p225_floors_seed"
 file = "scripts/migrations/002_seed_p225_floors.sql"
 warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
 
+[[migrations]]
+name = "em_plant_geo"
+file = "scripts/migrations/003_create_em_plant_geo.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
 [targets.uat.env]
 DATABRICKS_WAREHOUSE_ID = "e76480b94bea6ed5"
 DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/e76480b94bea6ed5"
 TRACE_CATALOG = "connected_plant_uat"
 TRACE_SCHEMA = "gold"
-CENTRAL_SERVICES_CATALOG = "published_uat"
 
 [targets.prod.env]
 DATABRICKS_WAREHOUSE_ID = ""
 DATABRICKS_WAREHOUSE_HTTP_PATH = ""
 TRACE_CATALOG = ""
 TRACE_SCHEMA = "gold"
-CENTRAL_SERVICES_CATALOG = "published_prod"

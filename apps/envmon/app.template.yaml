@@ -18,6 +18,3 @@ env:
 
   - name: TRACE_SCHEMA
     value: "${TRACE_SCHEMA}"
-
-  - name: CENTRAL_SERVICES_CATALOG
-    value: "${CENTRAL_SERVICES_CATALOG}"

@@ -7,9 +7,6 @@ plant_id as a query parameter so the single app serves all 110+ Kerry plants.
 import os
 from backend.utils.db import TRACE_CATALOG, TRACE_SCHEMA
 
-# Catalog for cross-org reference data (plant master lat/lon)
-CENTRAL_SERVICES_CATALOG: str = os.environ.get("CENTRAL_SERVICES_CATALOG", "published_uat")
-
 # SAP inspection types used for environmental monitoring (e.g. "14,Z14")
 INSPECTION_TYPES_RAW = os.environ.get("EM_INSPECTION_TYPES", "14,Z14").strip()
 _parsed_types = tuple(t.strip() for t in INSPECTION_TYPES_RAW.split(",") if t.strip())
@@ -25,10 +22,8 @@ RESULT_TBL_NAME = os.environ.get("EM_RESULT_TABLE", f"{TRACE_CATALOG}.{TRACE_SCH
 COORD_TBL_NAME  = os.environ.get("EM_COORD_TABLE",  f"{TRACE_CATALOG}.{TRACE_SCHEMA}.em_location_coordinates")
 FLOOR_TBL_NAME  = os.environ.get("EM_FLOOR_TABLE",  f"{TRACE_CATALOG}.{TRACE_SCHEMA}.em_plant_floor")
 PLANT_TBL_NAME  = os.environ.get("EM_PLANT_TABLE",  f"{TRACE_CATALOG}.{TRACE_SCHEMA}.vw_gold_plant")
-PLANT_GEO_TBL_NAME = os.environ.get(
-    "EM_PLANT_GEO_TABLE",
-    f"{CENTRAL_SERVICES_CATALOG}.central_services.epmplantconfiguration_zepm_plant_conf",
-)
+# Internal config table — replaces the external epmplantconfiguration_zepm_plant_conf join
+PLANT_GEO_TBL_NAME = f"{TRACE_CATALOG}.{TRACE_SCHEMA}.em_plant_geo"
 
 
 def _quote(tbl: str) -> str:
@@ -38,12 +33,12 @@ def _quote(tbl: str) -> str:
     return ".".join(f"`{p}`" for p in parts)
 
 
-LOT_TBL     = _quote(LOT_TBL_NAME)
-POINT_TBL   = _quote(POINT_TBL_NAME)
-RESULT_TBL  = _quote(RESULT_TBL_NAME)
-COORD_TBL   = _quote(COORD_TBL_NAME)
-FLOOR_TBL   = _quote(FLOOR_TBL_NAME)
-PLANT_TBL   = _quote(PLANT_TBL_NAME)
+LOT_TBL       = _quote(LOT_TBL_NAME)
+POINT_TBL     = _quote(POINT_TBL_NAME)
+RESULT_TBL    = _quote(RESULT_TBL_NAME)
+COORD_TBL     = _quote(COORD_TBL_NAME)
+FLOOR_TBL     = _quote(FLOOR_TBL_NAME)
+PLANT_TBL     = _quote(PLANT_TBL_NAME)
 PLANT_GEO_TBL = _quote(PLANT_GEO_TBL_NAME)
 
 # MIC-specific decay lambdas (lower lambda = longer half-life)
