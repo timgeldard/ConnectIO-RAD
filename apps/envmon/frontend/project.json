@@ -17,6 +17,7 @@
         "cwd": "apps/envmon/frontend"
       },
       "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "outputs": ["{projectRoot}/dist"],
       "cache": true
     },
     "typecheck": {

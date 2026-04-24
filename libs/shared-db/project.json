@@ -12,6 +12,15 @@
       "inputs": ["pyFiles", "sharedGlobals"],
       "cache": true
     },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --no-sync mypy src",
+        "cwd": "libs/shared-db"
+      },
+      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "cache": true
+    },
     "test": {
       "executor": "nx:run-commands",
       "options": {

@@ -8,6 +8,7 @@ Returns StreamingResponse with appropriate Content-Type and Content-Disposition.
 PDF export is handled client-side via window.print().
 """
 
+import csv
 import io
 import json
 from typing import Optional
@@ -393,9 +394,7 @@ def _build_signals_excel(signals: list[dict]) -> io.BytesIO:
 # ---------------------------------------------------------------------------
 
 def _rows_to_csv(headers: list[str], rows: list[list]) -> str:
-    import csv
-    import io as _io
-    buf = _io.StringIO()
+    buf = io.StringIO()
     w   = csv.writer(buf)
     w.writerow(_sanitize_row(headers))
     for row in rows:

@@ -21,6 +21,9 @@ env:
   - name: GENIE_SPACE_ID
     value: "01f134d334681d2398e1205b9b2739c4"
 
+  - name: APP_TRUST_X_FORWARDED_HOST
+    value: "true"
+
   # Readiness probe token — MUST come from a Databricks secret scope, not a
   # literal value. Canonical pattern (uncomment and adjust scope/key):
   #

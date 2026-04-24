@@ -2,7 +2,7 @@
   "name": "spc-backend",
   "projectType": "application",
   "tags": ["scope:spc", "type:backend"],
-  "implicitDependencies": ["shared-db"],
+  "implicitDependencies": ["shared-db", "shared-api", "shared-trace"],
   "targets": {
     "sync": {
       "executor": "nx:run-commands",
@@ -14,8 +14,8 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=. uv run --no-sync --package spc-backend uvicorn backend.main:app --reload --port 8000",
-        "cwd": "apps/spc"
+        "command": "PYTHONPATH=apps/spc:libs/shared-db/src:libs/shared-api/src:libs/shared-trace/src uv run --no-sync --package spc-backend uvicorn backend.main:app --reload --port 8000",
+        "cwd": "{workspaceRoot}"
       }
     },
     "test": {
@@ -24,7 +24,7 @@
         "command": "PYTHONPATH=apps/spc:libs/shared-db/src:libs/shared-api/src:libs/shared-trace/src uv run --no-sync --package spc-backend python -m pytest apps/spc/backend/tests",
         "cwd": "{workspaceRoot}"
       },
-      "inputs": ["pyFiles", "sharedGlobals"],
+      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
       "cache": true
     },
     "lint": {
@@ -33,7 +33,7 @@
         "command": "PYTHONPATH=apps/spc:libs/shared-db/src:libs/shared-api/src:libs/shared-trace/src uv run --no-sync ruff check apps/spc/backend",
         "cwd": "{workspaceRoot}"
       },
-      "inputs": ["pyFiles", "sharedGlobals"],
+      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
       "cache": true
     },
     "deploy": {
@@ -41,6 +41,14 @@
       "options": {
         "command": "make deploy PROFILE=prod",
         "cwd": "apps/spc"
+      },
+      "configurations": {
+        "uat": {
+          "command": "make deploy PROFILE=uat"
+        },
+        "prod": {
+          "command": "make deploy PROFILE=prod"
+        }
       }
     }
   }

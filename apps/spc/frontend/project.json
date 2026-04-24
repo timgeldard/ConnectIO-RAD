@@ -17,6 +17,7 @@
         "cwd": "apps/spc/frontend"
       },
       "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "outputs": ["{projectRoot}/dist"],
       "cache": true
     },
     "typecheck": {
@@ -33,6 +34,7 @@
         "cwd": "apps/spc/frontend"
       },
       "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "outputs": ["{projectRoot}/coverage"],
       "cache": true
     }
   }

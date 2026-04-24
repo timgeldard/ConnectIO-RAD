@@ -26,3 +26,23 @@ def test_get_token_falls_back_to_bearer_authorization() -> None:
 
 def test_get_token_returns_none_when_absent() -> None:
     assert get_token_from_request(_request({})) is None
+
+
+def test_get_token_non_bearer_scheme_returns_none() -> None:
+    request = _request({"authorization": "Basic dXNlcjpwYXNz"})
+    assert get_token_from_request(request) is None
+
+
+def test_get_token_mixed_case_bearer_returns_token() -> None:
+    request = _request({"authorization": "bearer my-token"})
+    assert get_token_from_request(request) == "my-token"
+
+
+def test_get_token_empty_forwarded_falls_back_to_bearer() -> None:
+    request = _request(
+        {
+            "x-forwarded-access-token": "",
+            "authorization": "Bearer fallback-token",
+        }
+    )
+    assert get_token_from_request(request) == "fallback-token"

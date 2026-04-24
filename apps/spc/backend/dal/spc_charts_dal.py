@@ -20,7 +20,7 @@ _ALLOWED_STRATIFY_COLUMNS = {
 }
 
 
-def _format_chart_row_error(field: str, raw_value: object, row: dict) -> str:
+def _format_chart_row_error(field_name: str, raw_value: object, row: dict) -> str:
     batch_id = row.get("batch_id")
     sample_id = (
         row.get("SAMPLE_ID")
@@ -32,33 +32,33 @@ def _format_chart_row_error(field: str, raw_value: object, row: dict) -> str:
         )
     )
     return (
-        f"Invalid chart row value for field '{field}' in batch_id={batch_id!r}, "
+        f"Invalid chart row value for field '{field_name}' in batch_id={batch_id!r}, "
         f"sample_id={sample_id!r}: {raw_value!r}; row={row!r}"
     )
 
 
-def _coerce_chart_float(row: dict, field: str) -> None:
-    value = row.get(field)
+def _coerce_chart_float(row: dict, field_name: str) -> None:
+    value = row.get(field_name)
     if value is None:
         return
     try:
         f = float(value)
         if math.isnan(f) or math.isinf(f):
-            row[field] = None
+            row[field_name] = None
             return
-        row[field] = f
+        row[field_name] = f
     except (ValueError, TypeError) as exc:
-        raise ValueError(_format_chart_row_error(field, value, row)) from exc
+        raise ValueError(_format_chart_row_error(field_name, value, row)) from exc
 
 
-def _coerce_chart_int(row: dict, field: str) -> None:
-    value = row.get(field)
+def _coerce_chart_int(row: dict, field_name: str) -> None:
+    value = row.get(field_name)
     if value is None:
         return
     try:
-        row[field] = int(float(value))
+        row[field_name] = int(float(value))
     except (ValueError, TypeError) as exc:
-        raise ValueError(_format_chart_row_error(field, value, row)) from exc
+        raise ValueError(_format_chart_row_error(field_name, value, row)) from exc
 
 
 def _apply_chart_row_formatting(rows: list[dict]) -> list[dict]:

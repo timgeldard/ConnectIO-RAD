@@ -7,6 +7,8 @@ from backend.utils.db import run_sql_async, sql_param, tbl
 MAX_TRACE_LEVELS: int = int(os.environ.get("MAX_TRACE_LEVELS", "10"))
 
 def _trace_dal() -> TraceCoreDal:
+    # Intentionally constructed per-call: tests monkeypatch run_sql_async at
+    # the module level, so a cached instance would capture the pre-patch reference.
     return TraceCoreDal(run_sql_async=run_sql_async, tbl=tbl, sql_param=sql_param)
 
 

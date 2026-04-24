@@ -37,12 +37,6 @@ from shared_db.errors import (  # noqa: F401
 from shared_db.executors import (
     _CONNECTOR_EXECUTOR,
     _REST_EXECUTOR,
-    _RestStatementExecutor,  # noqa: F401
-    _SQL_MAX_WORKERS,  # noqa: F401
-    _SQL_POLL_INITIAL_DELAY_S,  # noqa: F401
-    _SQL_POLL_MAX_ATTEMPTS,  # noqa: F401
-    _SQL_POLL_MAX_DELAY_S,  # noqa: F401
-    _normalize_statement_for_connector,  # noqa: F401
     _sql_executor,
 )
 
