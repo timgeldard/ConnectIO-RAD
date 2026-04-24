@@ -2,6 +2,13 @@ bundle:
   name: spc-tim
   databricks_cli_version: '>= 0.283.0'
 
+sync:
+  include:
+    - app.yaml
+    - frontend/dist/**
+    - shared_db/**
+    - shared_api/**
+
 variables:
   app_name:
     default: spc-tim

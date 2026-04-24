@@ -6,8 +6,8 @@ template = "app.template.yaml"
 config_output = "app.yaml"
 
 [build]
-cwd = "frontend"
-command = "npm run build"
+cwd = "."
+command = "python3 scripts/build.py"
 
 [bundle]
 include_target = false
