@@ -184,7 +184,6 @@ def compute_grr_anova(data: MeasurementCube, tolerance: float) -> dict[str, Any]
         for pi in range(n_parts)
     }
 
-    ss_total = sum((value - grand_mean) ** 2 for value in values)
     ss_ops = n_parts * n_replicates * sum((op_means[oi] - grand_mean) ** 2 for oi in range(n_operators))
     ss_parts = n_operators * n_replicates * sum((part_means[pi] - grand_mean) ** 2 for pi in range(n_parts))
     ss_interaction = n_replicates * sum(

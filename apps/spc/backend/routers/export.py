@@ -393,7 +393,8 @@ def _build_signals_excel(signals: list[dict]) -> io.BytesIO:
 # ---------------------------------------------------------------------------
 
 def _rows_to_csv(headers: list[str], rows: list[list]) -> str:
-    import csv, io as _io
+    import csv
+    import io as _io
     buf = _io.StringIO()
     w   = csv.writer(buf)
     w.writerow(_sanitize_row(headers))

@@ -1,4 +1,3 @@
-import pytest
 from backend.utils.statistical_utils import detect_nelson_rules
 
 def test_nelson_rule_1():

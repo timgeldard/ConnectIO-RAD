@@ -11,10 +11,10 @@
       }
     },
     "build": {
-      "executor": "@nx/vite:build",
+      "executor": "nx:run-commands",
       "options": {
-        "outputPath": "apps/spc/frontend/dist",
-        "configFile": "apps/spc/frontend/vite.config.ts"
+        "command": "npm run build",
+        "cwd": "apps/spc/frontend"
       },
       "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
       "cache": true
@@ -22,9 +22,18 @@
     "typecheck": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "tsc -b --noEmit",
+        "command": "npm run typecheck",
         "cwd": "apps/spc/frontend"
       }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run test:ci",
+        "cwd": "apps/spc/frontend"
+      },
+      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "cache": true
     }
   }
 }

@@ -2,7 +2,7 @@ import pytest
 import json
 import os
 from hypothesis import given, strategies as st
-from backend.utils.statistical_utils import mean, stddev, moving_range, compute_imr_limits, compute_capability_indices, detect_nelson_rules
+from backend.utils.statistical_utils import mean, stddev, compute_imr_limits, detect_nelson_rules
 
 def load_fixture(name):
     path = os.path.join(os.path.dirname(__file__), "fixtures", name)
@@ -73,7 +73,8 @@ def test_xbar_r_csv_fixture():
     subgroups = {}
     for r in rows:
         sg = r["subgroup"]
-        if sg not in subgroups: subgroups[sg] = []
+        if sg not in subgroups:
+            subgroups[sg] = []
         subgroups[sg].append(float(r["value"]))
     
     # Calculate R-bar manually for validation

@@ -9,6 +9,7 @@
     "tsFiles": [
       "{projectRoot}/src/**/*.{ts,tsx}",
       "{projectRoot}/vite.config.ts",
+      "{projectRoot}/vite.config.js",
       "{projectRoot}/package.json"
     ],
     "sharedGlobals": [

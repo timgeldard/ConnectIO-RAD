@@ -1,5 +1,3 @@
-import pytest
-import asyncio
 from unittest.mock import AsyncMock
 import backend.dal.trace_dal as trace_dal
 

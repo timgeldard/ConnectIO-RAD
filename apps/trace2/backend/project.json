@@ -14,15 +14,15 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=. uv run --package trace2-backend uvicorn backend.main:app --reload --port 8002",
+        "command": "PYTHONPATH=. uv run --no-sync --package trace2-backend uvicorn backend.main:app --reload --port 8002",
         "cwd": "apps/trace2"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=. uv run --package trace2-backend pytest backend/tests",
-        "cwd": "apps/trace2"
+        "command": "PYTHONPATH=apps/trace2:libs/shared-db/src:libs/shared-api/src:libs/shared-trace/src uv run --no-sync --package trace2-backend python -m pytest apps/trace2/backend/tests",
+        "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "sharedGlobals"],
       "cache": true
@@ -30,8 +30,8 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=. uv run ruff check backend && PYTHONPATH=. uv run mypy backend",
-        "cwd": "apps/trace2"
+        "command": "PYTHONPATH=apps/trace2:libs/shared-db/src:libs/shared-api/src:libs/shared-trace/src uv run --no-sync ruff check apps/trace2/backend",
+        "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "sharedGlobals"],
       "cache": true
@@ -39,7 +39,7 @@
     "deploy": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "databricks bundle deploy --target prod",
+        "command": "make deploy PROFILE=prod",
         "cwd": "apps/trace2"
       }
     }

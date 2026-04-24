@@ -1,5 +1,4 @@
 import pytest
-import math
 from backend.dal.spc_shared import normal_cdf, cpk_ci, infer_spec_type, compute_normality_result
 
 def test_normal_cdf():

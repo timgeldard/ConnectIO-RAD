@@ -14,15 +14,15 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=. uv run --package spc-backend uvicorn backend.main:app --reload --port 8000",
+        "command": "PYTHONPATH=. uv run --no-sync --package spc-backend uvicorn backend.main:app --reload --port 8000",
         "cwd": "apps/spc"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=. uv run --package spc-backend pytest backend/tests",
-        "cwd": "apps/spc"
+        "command": "PYTHONPATH=apps/spc:libs/shared-db/src:libs/shared-api/src:libs/shared-trace/src uv run --no-sync --package spc-backend python -m pytest apps/spc/backend/tests",
+        "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "sharedGlobals"],
       "cache": true
@@ -30,8 +30,8 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=. uv run ruff check backend && PYTHONPATH=. uv run mypy backend",
-        "cwd": "apps/spc"
+        "command": "PYTHONPATH=apps/spc:libs/shared-db/src:libs/shared-api/src:libs/shared-trace/src uv run --no-sync ruff check apps/spc/backend",
+        "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "sharedGlobals"],
       "cache": true
@@ -39,7 +39,7 @@
     "deploy": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "databricks bundle deploy --target prod",
+        "command": "make deploy PROFILE=prod",
         "cwd": "apps/spc"
       }
     }

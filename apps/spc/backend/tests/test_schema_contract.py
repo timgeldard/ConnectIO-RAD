@@ -40,7 +40,6 @@ def test_assert_gold_view_schema_ok_when_all_columns_present():
 
 
 def test_assert_gold_view_schema_flags_missing_column():
-    contract = schema_contract._load_contract()
     rows = _full_schema_rows()
     # Drop TARGET_VALUE from gold_batch_quality_result_v.
     rows = [

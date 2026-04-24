@@ -13,6 +13,7 @@ dependencies = [
   "pandas>=2.2",
   "scipy>=1.13",
   "databricks-sql-connector>=4.0",
+  "orjson>=3.9",
   "shared-db",
   "shared-api",
   "shared-trace",

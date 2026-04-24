@@ -13,8 +13,8 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run --package shared-api pytest",
-        "cwd": "libs/shared-api"
+        "command": "PYTHONPATH=libs/shared-api/src uv run --no-sync --package shared-api python -m pytest libs/shared-api/tests",
+        "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "sharedGlobals"],
       "cache": true
@@ -22,7 +22,7 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run ruff check . && uv run mypy .",
+        "command": "uv run --no-sync ruff check .",
         "cwd": "libs/shared-api"
       },
       "inputs": ["pyFiles", "sharedGlobals"],

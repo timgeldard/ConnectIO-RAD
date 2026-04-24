@@ -320,7 +320,6 @@ async def fetch_scorecard(
         ):
             typed_row[float_field] = _coerce_float(typed_row.get(float_field))  # type: ignore[literal-required]
 
-        mean_v = typed_row.get("mean_value")
         nominal = typed_row.get("nominal_target")
         usl = typed_row.get("usl")
         lsl = typed_row.get("lsl")
