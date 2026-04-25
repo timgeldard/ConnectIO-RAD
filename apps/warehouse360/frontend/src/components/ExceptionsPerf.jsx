@@ -1,0 +1,261 @@
+import React from 'react';
+import WM from '../data/mockData.js';
+import { Icon, Pill, RiskDot, SparkBars, Hbar } from './Primitives.jsx';
+import { FilterBar, Card, KPI } from './Shared.jsx';
+
+/* Exceptions Command Centre + Performance Analytics */
+
+const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
+  const [severity, setSeverity] = React.useState('all');
+  const [domain, setDomain] = React.useState('all');
+  const [acknowledged, setAcknowledged] = React.useState('open');
+
+  const rows = React.useMemo(() => {
+    let r = WM.EXCEPTIONS;
+    if (severity !== 'all') r = r.filter((e) => e.type.severity === severity);
+    if (domain !== 'all') r = r.filter((e) => e.type.domain === domain);
+    if (acknowledged === 'open') r = r.filter((e) => !e.acknowledged);
+    if (acknowledged === 'ack') r = r.filter((e) => e.acknowledged);
+    return [...r].sort((a, b) => {
+      const sev = { critical: 0, high: 1, medium: 2 };
+      if (sev[a.type.severity] !== sev[b.type.severity]) return sev[a.type.severity] - sev[b.type.severity];
+      return b.ageMin - a.ageMin;
+    });
+  }, [severity, domain, acknowledged]);
+
+  const counts = {
+    critical: WM.EXCEPTIONS.filter((e) => e.type.severity === 'critical' && !e.acknowledged).length,
+    high: WM.EXCEPTIONS.filter((e) => e.type.severity === 'high' && !e.acknowledged).length,
+    medium: WM.EXCEPTIONS.filter((e) => e.type.severity === 'medium' && !e.acknowledged).length,
+    total: WM.EXCEPTIONS.length,
+  };
+
+  const domains = ['all', ...new Set(WM.EXCEPTIONS.map((e) => e.type.domain))];
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <div className="page-eyebrow">Risk · Priority exceptions</div>
+          <h1 className="page-title">Exceptions</h1>
+          <div className="page-desc">Operational risk modelled from SAP events — staging delays, missed cut-offs, batch mismatches, aged tasks. Sorted by severity then age.</div>
+        </div>
+        <div className="page-actions">
+          <button className="btn btn-secondary"><Icon name="download" size={14}/> Incident log</button>
+          <button className="btn btn-primary"><Icon name="check" size={14}/> Bulk acknowledge</button>
+        </div>
+      </div>
+
+      <div className="kpi-grid">
+        <KPI label="Critical open" value={counts.critical} tone="critical"/>
+        <KPI label="High open" value={counts.high} tone="warn"/>
+        <KPI label="Medium open" value={counts.medium} tone="ok"/>
+        <KPI label="Acknowledged" value={WM.EXCEPTIONS.filter((e) => e.acknowledged).length} tone="ok"/>
+        <KPI label="Mean time to acknowledge" value="11" unit=" min" tone="ok" trend={-3} trendLabel="m vs yest"/>
+        <KPI label="Oldest open" value={Math.max(...WM.EXCEPTIONS.filter((e) => !e.acknowledged).map((e) => e.ageMin))} unit=" min" tone="warn"/>
+      </div>
+
+      <div className="grid-asym" style={{ marginBottom: 16 }}>
+        <Card title="Severity breakdown" subtitle="By domain · last 8 hours" eyebrow="Breakdown">
+          <div className="stack-8">
+            {domains.filter((d) => d !== 'all').map((d) => {
+              const byDomain = WM.EXCEPTIONS.filter((e) => e.type.domain === d);
+              const c = byDomain.filter((e) => e.type.severity === 'critical').length;
+              const h = byDomain.filter((e) => e.type.severity === 'high').length;
+              const m = byDomain.filter((e) => e.type.severity === 'medium').length;
+              return (
+                <div key={d}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, marginBottom: 3 }}>
+                    <span>{d}</span><span className="mono small muted">{byDomain.length}</span>
+                  </div>
+                  <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', background: 'var(--stone)' }}>
+                    <div style={{ width: (c / byDomain.length * 100) + '%', background: 'var(--sunset)' }}/>
+                    <div style={{ width: (h / byDomain.length * 100) + '%', background: 'var(--sunrise)' }}/>
+                    <div style={{ width: (m / byDomain.length * 100) + '%', background: 'var(--sage)' }}/>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        <Card title="Rule library" subtitle="13 active exception rules" eyebrow="Rules">
+          <div className="stack-8" style={{ maxHeight: 300, overflowY: 'auto' }}>
+            {[
+              ['staging-late', 'Production starts < 2h · staging incomplete', 'critical'],
+              ['disp-not-started', 'Dispensary task not started · < 1h to use', 'critical'],
+              ['delivery-pick-incomplete', 'Outbound cut-off < 2h · pick incomplete', 'critical'],
+              ['batch-mismatch', 'Batch picked ≠ reservation', 'critical'],
+              ['bulk-drop-uncleared', 'Bulk drop delivered · not consumed/returned', 'high'],
+              ['sscc-missing', 'SSCC missing on staged pallet', 'high'],
+              ['inbound-overdue', 'Inbound overdue · needed today', 'high'],
+              ['pick-not-delivered', 'Pick confirmed · not delivered to line', 'high'],
+              ['lineside-below-min', 'Line-side below minimum', 'high'],
+              ['stock-no-bin', 'SAP stock but no bin qty', 'high'],
+              ['to-ageing', 'TO open > 4h', 'medium'],
+              ['putaway-backlog', 'GR posted · putaway > 2h', 'medium'],
+              ['qa-hold', 'QA hold on needed material', 'medium'],
+            ].map(([id, title, sev]) => (
+              <div key={id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '6px 0' }}>
+                <span className={`risk-dot ${sev === 'critical' ? 'red' : sev === 'high' ? 'amber' : 'slate'}`}/>
+                <div style={{ flex: 1, fontSize: 12 }}>{title}</div>
+                <span className="tag">{sev.toUpperCase()}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="tabs">
+        {[['all', 'All'], ['open', 'Open'], ['ack', 'Acknowledged']].map(([id, label]) => (
+          <button key={id} className={`tab ${acknowledged === id ? 'is-active' : ''}`} onClick={() => setAcknowledged(id)}>{label}</button>
+        ))}
+      </div>
+
+      <FilterBar
+        filters={[
+          { key: 'severity', label: 'Severity', chips: [
+            { value: 'all', label: 'All' },
+            { value: 'critical', label: 'Critical', dot: 'red' },
+            { value: 'high', label: 'High', dot: 'amber' },
+            { value: 'medium', label: 'Medium', dot: 'slate' },
+          ] },
+          { key: 'domain', label: 'Domain', options: domains.map((d) => ({ value: d, label: d === 'all' ? 'All domains' : d })) },
+        ]}
+        values={{ severity, domain }}
+        onChange={(k, v) => k === 'severity' ? setSeverity(v) : setDomain(v)}
+      />
+
+      <Card title={`${rows.length} exceptions`} tight>
+        <table className="tbl">
+          <thead><tr><th></th><th>Severity</th><th>Exception</th><th>Related</th><th>Detail</th><th className="num">Age</th><th>Owner</th><th>Action</th></tr></thead>
+          <tbody>
+            {rows.map((e) => (
+              <tr key={e.id} onClick={() => e.po && onOpenOrder(e.po)}>
+                <td><span className={`risk-dot ${e.type.severity === 'critical' ? 'red' : e.type.severity === 'high' ? 'amber' : 'slate'}`}/></td>
+                <td><Pill tone={e.type.severity === 'critical' ? 'red' : e.type.severity === 'high' ? 'amber' : 'slate'}>{e.type.severity.toUpperCase()}</Pill></td>
+                <td><div style={{ fontSize: 12, fontWeight: 600 }}>{e.type.title}</div><div className="muted" style={{ fontSize: 11 }}>{e.type.domain}</div></td>
+                <td>
+                  {e.po && <div className="code small">{e.po.id}</div>}
+                  {e.del && <div className="code small">{e.del.id}</div>}
+                  {e.line && <div className="muted small">{e.line.name}</div>}
+                </td>
+                <td style={{ fontSize: 12 }}>{e.detail}</td>
+                <td className="num"><span className={e.ageMin > 120 ? 'red bold' : ''}>{e.ageMin}m</span></td>
+                <td className="small">{e.owner || <span className="muted">unassigned</span>}</td>
+                <td>
+                  {e.acknowledged ? <Pill tone="green" noDot>Acknowledged</Pill> : <button className="btn btn-xs btn-primary">Acknowledge</button>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+};
+
+const Performance = () => {
+  const bars = [
+    // last 14 days, normalised
+    72, 78, 85, 82, 88, 92, 91, 94, 89, 87, 92, 90, 93, 92,
+  ];
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <div className="page-eyebrow">Analytics · Shift & 14-day</div>
+          <h1 className="page-title">Performance</h1>
+          <div className="page-desc">KPIs defined for the Warehouse Manager. Thirteen metrics spanning staging, receipt, dispatch, cycle time, accuracy and compliance.</div>
+        </div>
+        <div className="page-actions">
+          <select className="filter-select"><option>Last 14 days</option><option>Last 30 days</option><option>Last quarter</option></select>
+          <button className="btn btn-secondary"><Icon name="download" size={14}/> Export</button>
+        </div>
+      </div>
+
+      <div className="grid-4" style={{ marginBottom: 16 }}>
+        <Card title="Staging SLA" subtitle="Orders staged on time" eyebrow="Target 95%">
+          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{WM.KPIs.stagingSLA.value}<span style={{ fontSize: 16, color: 'var(--fg-muted)', fontFamily: 'var(--font-sans)' }}>%</span></div>
+          <SparkBars data={bars} tone="slate"/>
+          <div className="small muted" style={{ marginTop: 6 }}>14-day trend · <span className="red">−1.2pp</span> vs prior</div>
+        </Card>
+        <Card title="Inbound adherence" subtitle="Receipts on scheduled day" eyebrow="Target 90%">
+          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{WM.KPIs.inboundAdherence.value}<span style={{ fontSize: 16, color: 'var(--fg-muted)', fontFamily: 'var(--font-sans)' }}>%</span></div>
+          <SparkBars data={[70, 72, 75, 78, 80, 84, 82, 86, 83, 85, 82, 84, 81, 84]} tone="sunset"/>
+          <div className="small red" style={{ marginTop: 6 }}>Below target — vendor 0010142 slipping</div>
+        </Card>
+        <Card title="Outbound ready" subtitle="Deliveries ready by cut-off" eyebrow="Target 98%">
+          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{WM.KPIs.outboundReady.value}<span style={{ fontSize: 16, color: 'var(--fg-muted)', fontFamily: 'var(--font-sans)' }}>%</span></div>
+          <SparkBars data={[92, 93, 94, 94, 95, 95, 96, 96, 97, 96, 96, 97, 97, 96]} tone="jade"/>
+          <div className="small green" style={{ marginTop: 6 }}>+0.8pp vs prior</div>
+        </Card>
+        <Card title="Pick productivity" subtitle="Lines per picker-hour" eyebrow="Target 130">
+          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{WM.KPIs.pickProd.value}</div>
+          <SparkBars data={[120, 125, 128, 130, 132, 135, 138, 140, 139, 141, 140, 142, 141, 142]} tone="slate"/>
+          <div className="small green" style={{ marginTop: 6 }}>+6 ln/h vs prior</div>
+        </Card>
+      </div>
+
+      <div className="grid-2" style={{ marginBottom: 16 }}>
+        <Card title="KPI catalogue" subtitle="Thirteen measures covering the manager's span of control" eyebrow="KPIs">
+          <table className="tbl">
+            <thead><tr><th>KPI</th><th className="num">Value</th><th className="num">Target</th><th>Δ</th></tr></thead>
+            <tbody>
+              {Object.entries(WM.KPIs).map(([k, v]) => {
+                const meetsTarget = typeof v.target === 'number' ? (k.includes('put') || k === 'toAgeing' || k === 'leftoverReturn' || k === 'stockoutRate' ? v.value <= v.target : v.value >= v.target) : true;
+                const label = ({
+                  stagingSLA: 'Staging service level', prodOnTime: 'Production orders on time',
+                  inboundAdherence: 'Inbound adherence', putawayCycle: 'Putaway cycle time',
+                  outboundReady: 'Outbound dispatch readiness', pickProd: 'Pick productivity',
+                  toAgeing: 'Transfer order ageing', binUtil: 'Bin utilisation',
+                  inventoryAccuracy: 'Inventory accuracy', dispensaryReady: 'Dispensary readiness',
+                  ssccCompliance: 'SSCC scan compliance', leftoverReturn: 'Leftover return rate',
+                  stockoutRate: 'Fast-mover stockout rate',
+                })[k];
+                return (
+                  <tr key={k}>
+                    <td style={{ fontSize: 12 }}>{label}</td>
+                    <td className="num bold">{v.value}{v.unit}</td>
+                    <td className="num muted">{v.target}{v.unit}</td>
+                    <td><Pill tone={meetsTarget ? 'green' : 'red'} noDot>{v.trend > 0 ? '+' : ''}{v.trend}</Pill></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Card>
+
+        <Card title="Workload heatmap · last 14 days × 24h" subtitle="Task-completion density by hour" eyebrow="Rhythm">
+          <div className="heatgrid" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
+            {Array.from({ length: 14 * 24 }).map((_, i) => {
+              const hour = i % 24;
+              const busyness = (Math.sin((hour - 4) * 0.26) + 1) / 2;
+              const noise = ((i * 13) % 11) / 20;
+              const v = Math.max(0, Math.min(1, busyness + noise));
+              const cls = v < 0.15 ? 'h1' : v < 0.35 ? 'h2' : v < 0.55 ? 'h3' : v < 0.8 ? 'h4' : 'h5';
+              return <div key={i} className={`heatcell ${cls}`}/>;
+            })}
+          </div>
+          <div className="flex between muted small" style={{ marginTop: 8 }}><span>14 days ago</span><span>Today</span></div>
+        </Card>
+      </div>
+
+      <Card title="Staging method · leftover & return rate" subtitle="Bulk drops and consolidated staging remain the biggest sources of waste" eyebrow="Loss">
+        <div className="stack-8">
+          <Hbar label="Bulk drop" value={4.2} max={6} tone="red"/>
+          <Hbar label="Consolidated" value={3.1} max={6} tone="amber"/>
+          <Hbar label="Standard" value={1.8} max={6}/>
+          <Hbar label="Dispensary" value={0.4} max={6} tone="jade"/>
+          <Hbar label="Campaign" value={2.0} max={6} tone="amber"/>
+          <Hbar label="SSCC pallet" value={0.6} max={6} tone="jade"/>
+          <Hbar label="Fast-mover" value={1.2} max={6}/>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+
+export { Exceptions, Performance };

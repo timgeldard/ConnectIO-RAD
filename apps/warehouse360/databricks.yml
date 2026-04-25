@@ -1,0 +1,32 @@
+bundle:
+  name: warehouse360
+  databricks_cli_version: '>= 0.283.0'
+
+sync:
+  include:
+    - app.yaml
+    - frontend/dist/**
+    - shared_db/**
+    - shared_api/**
+
+variables:
+  app_name:
+    default: warehouse360
+
+targets:
+  uat:
+    default: true
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+  prod:
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+
+resources:
+  apps:
+    warehouse360:
+      name: ${var.app_name}
+      description: Warehouse Manager 360° — Live operational cockpit for Kerry site managers
+      source_code_path: .
+      user_api_scopes:
+        - sql

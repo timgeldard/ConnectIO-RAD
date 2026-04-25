@@ -1,0 +1,287 @@
+import React from 'react';
+import WM from '../data/mockData.js';
+import { Icon, Pill, Progress, RiskDot } from './Primitives.jsx';
+import { FilterBar, Card, KPI } from './Shared.jsx';
+
+/* Production Staging — primary screen.
+   Tabs per staging method. Filters. Dense table. Detail drawer drill-down.
+*/
+
+const STAGING_TABS = [
+  { id: 'all', label: 'All orders' },
+  { id: 'std', label: 'Standard' },
+  { id: 'cons', label: 'Consolidated' },
+  { id: 'bulk', label: 'Bulk drop' },
+  { id: 'camp', label: 'Campaign' },
+  { id: 'fast', label: 'Fast-mover replen' },
+  { id: 'sscc', label: 'SSCC pallet' },
+  { id: 'disp', label: 'Dispensary' },
+];
+
+const StagingMethodChip = ({ id }) => {
+  const m = WM.STAGING_METHODS.find((m) => m.id === id);
+  if (!m) return null;
+  return <span className="tag tag-slate">{m.label}</span>;
+};
+
+const ProductionStaging = ({ onOpenOrder }) => {
+  const [tab, setTab] = React.useState('all');
+  const [filters, setFilters] = React.useState({ risk: 'all', shift: 'all', line: 'all', window: 'today' });
+  const [sort, setSort] = React.useState({ key: 'start', dir: 'asc' });
+
+  const rows = React.useMemo(() => {
+    let r = WM.PROCESS_ORDERS;
+    if (tab !== 'all') r = r.filter((o) => o.method.id === tab);
+    if (filters.risk !== 'all') r = r.filter((o) => o.risk === filters.risk);
+    if (filters.shift !== 'all') r = r.filter((o) => o.shift.id === filters.shift);
+    if (filters.line !== 'all') r = r.filter((o) => o.line.id === filters.line);
+    if (filters.window === 'today') r = r.filter((o) => {
+      const today = new Date(WM.NOW); today.setHours(0, 0, 0, 0);
+      const end = new Date(today); end.setDate(end.getDate() + 1);
+      return o.start >= today && o.start < end;
+    });
+    if (filters.window === '8h') r = r.filter((o) => WM.minutesFromNow(o.start) >= -60 && WM.minutesFromNow(o.start) <= 8 * 60);
+    r = [...r].sort((a, b) => {
+      const mul = sort.dir === 'asc' ? 1 : -1;
+      if (sort.key === 'start') return (a.start - b.start) * mul;
+      if (sort.key === 'risk') {
+        const rm = { red: 0, amber: 1, green: 2 };
+        return (rm[a.risk] - rm[b.risk]) * mul;
+      }
+      if (sort.key === 'staging') return (a.stagingPct - b.stagingPct) * mul;
+      return 0;
+    });
+    return r;
+  }, [tab, filters, sort]);
+
+  const counts = React.useMemo(() => {
+    const c = { all: WM.PROCESS_ORDERS.length };
+    for (const m of WM.STAGING_METHODS) {
+      c[m.id] = WM.PROCESS_ORDERS.filter((o) => o.method.id === m.id).length;
+    }
+    return c;
+  }, []);
+
+  const riskCounts = React.useMemo(() => ({
+    red: WM.PROCESS_ORDERS.filter((o) => o.risk === 'red').length,
+    amber: WM.PROCESS_ORDERS.filter((o) => o.risk === 'amber').length,
+    green: WM.PROCESS_ORDERS.filter((o) => o.risk === 'green').length,
+  }), []);
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <div className="page-eyebrow">Operations · Today · Shift B</div>
+          <h1 className="page-title">Production Staging</h1>
+          <div className="page-desc">Across {WM.LINES.length} lines and 8 staging methods — highlighting orders whose raw materials are late, short or uncleared.</div>
+        </div>
+        <div className="page-actions">
+          <button className="btn btn-secondary"><Icon name="download" size={14}/> Export</button>
+          <button className="btn btn-secondary"><Icon name="flag" size={14}/> Prioritise</button>
+          <button className="btn btn-primary"><Icon name="plus" size={14}/> New staging run</button>
+        </div>
+      </div>
+
+      {/* KPI strip for this screen */}
+      <div className="kpi-grid">
+        <KPI label="Orders at risk · next 8h" value={riskCounts.red + riskCounts.amber} tone="critical" trend={+3} trendLabel=" vs last shift"/>
+        <KPI label="Staging SLA · rolling 24h" value={WM.KPIs.stagingSLA.value} unit="%" tone="warn" barPct={WM.KPIs.stagingSLA.value} barTone="amber" target="95%" trend={WM.KPIs.stagingSLA.trend} trendLabel="pp"/>
+        <KPI label="Pallets staged · shift" value="184" unit="/ 240" tone="ok" barPct={76} trend={+12} trendLabel=" vs plan"/>
+        <KPI label="Line-side below min" value={WM.LINE_SIDE.filter((l) => l.status === 'Below min').length} tone="warn" trend={-1} trendLabel=" in 30m"/>
+        <KPI label="Bulk drops uncleared" value="3" tone="critical" trend={+1}/>
+        <KPI label="Dispensary tasks ready" value={WM.DISP_TASKS.filter((d) => d.status === 'Weighed').length} unit={'/ ' + WM.DISP_TASKS.length} tone="ok" barPct={WM.DISP_TASKS.filter((d) => d.status === 'Weighed').length / WM.DISP_TASKS.length * 100} barTone="slate"/>
+      </div>
+
+      {/* Timeline */}
+      <Card title="Today's run sheet" subtitle="Rolling 24h window across lines · red = staging incomplete at required time" eyebrow="Schedule"
+        actions={<div className="flex items-center gap-6">
+          <span className="tag">6:00 – 06:00 next day</span>
+          <button className="btn btn-sm btn-ghost">Zoom</button>
+        </div>}
+        style={{ marginBottom: 16 }} tight>
+        <StagingTimeline onOpen={onOpenOrder}/>
+      </Card>
+
+      {/* Method tabs */}
+      <div className="tabs">
+        {STAGING_TABS.map((t) => (
+          <button key={t.id} className={`tab ${tab === t.id ? 'is-active' : ''}`} onClick={() => setTab(t.id)}>
+            {t.label}
+            <span className="tab-count">{counts[t.id] || 0}</span>
+          </button>
+        ))}
+      </div>
+
+      <FilterBar
+        filters={[
+          { key: 'risk', label: 'Risk', chips: [
+            { value: 'all', label: 'All' },
+            { value: 'red', label: 'Critical', dot: 'red', count: riskCounts.red },
+            { value: 'amber', label: 'At risk', dot: 'amber', count: riskCounts.amber },
+            { value: 'green', label: 'On track', dot: '', count: riskCounts.green },
+          ] },
+          { key: 'shift', label: 'Shift', chips: [
+            { value: 'all', label: 'All' },
+            { value: 'A', label: 'A' }, { value: 'B', label: 'B' }, { value: 'C', label: 'C' },
+          ] },
+          { key: 'line', label: 'Line', options: [
+            { value: 'all', label: 'All lines' },
+            ...WM.LINES.map((l) => ({ value: l.id, label: l.name })),
+          ] },
+          { key: 'window', label: 'Window', chips: [
+            { value: '8h', label: 'Next 8h' },
+            { value: 'today', label: 'Today' },
+            { value: 'all', label: 'All' },
+          ] },
+        ]}
+        values={filters}
+        onChange={(k, v) => setFilters({ ...filters, [k]: v })}
+      />
+
+      <Card title={`${rows.length} production orders`}
+        subtitle="Sorted by start time · click a row for staging detail"
+        actions={<div className="flex gap-6 items-center">
+          <button className={`btn btn-xs ${sort.key === 'start' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setSort({ key: 'start', dir: sort.dir === 'asc' ? 'desc' : 'asc' })}>Start {sort.key === 'start' ? (sort.dir === 'asc' ? '↑' : '↓') : ''}</button>
+          <button className={`btn btn-xs ${sort.key === 'risk' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setSort({ key: 'risk', dir: 'asc' })}>Risk</button>
+          <button className={`btn btn-xs ${sort.key === 'staging' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setSort({ key: 'staging', dir: 'asc' })}>Staging %</button>
+        </div>}
+        tight>
+        <div className="scroll-x">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th style={{ width: 36 }}></th>
+                <th>Process order</th>
+                <th>Product</th>
+                <th>Line · Method</th>
+                <th>Start</th>
+                <th className="num">Staging</th>
+                <th className="num">Pallets</th>
+                <th className="num">BOM</th>
+                <th>Status</th>
+                <th>Exceptions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice(0, 60).map((o) => (
+                <StagingRow key={o.id} o={o} onClick={() => onOpenOrder(o)}/>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+const StagingRow = ({ o, onClick }) => {
+  const minsToStart = WM.minutesFromNow(o.start);
+  return (
+    <tr className={`is-risk-${o.risk}`} onClick={onClick}>
+      <td><RiskDot risk={o.risk}/></td>
+      <td>
+        <div className="code">{o.id}</div>
+        <div className="muted" style={{ fontSize: 11 }}>SAP {o.sapOrder}</div>
+      </td>
+      <td>
+        <div className="primary">{o.product}</div>
+        <div className="muted" style={{ fontSize: 11 }}>{o.material.id}</div>
+      </td>
+      <td>
+        <div>{o.line.name}</div>
+        <div className="muted" style={{ fontSize: 11 }}>
+          <StagingMethodChip id={o.method.id}/>
+          {o.dispensaryRequired && <span className="tag tag-forest" style={{ marginLeft: 4 }}>DSP</span>}
+        </div>
+      </td>
+      <td>
+        <div className="mono bold" style={{ fontSize: 12 }}>{WM.fmtTime(o.start)}</div>
+        <div className="muted" style={{ fontSize: 11 }}>{minsToStart < 0 ? Math.abs(minsToStart) + 'm ago' : minsToStart < 60 ? 'in ' + minsToStart + 'm' : 'in ' + (minsToStart / 60).toFixed(1) + 'h'}</div>
+      </td>
+      <td className="num" style={{ minWidth: 140 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+          <span className="mono">{o.stagingPct}%</span>
+          <div style={{ width: 60 }}><Progress pct={o.stagingPct} tone={o.stagingPct < 70 ? 'red' : o.stagingPct < 95 ? 'amber' : ''}/></div>
+        </div>
+      </td>
+      <td className="num">{o.palletsStaged}/{o.pallets}</td>
+      <td className="num">{o.bomPicked}/{o.bomCount}</td>
+      <td><Pill tone={o.status === 'Completed' || o.status === 'Staged' ? 'green' : o.status === 'In Production' ? 'slate' : o.status === 'Staging' ? 'amber' : 'grey'}>{o.status}</Pill></td>
+      <td>
+        {o.risk === 'red' ? <Pill tone="red" noDot>Critical</Pill> : null}
+        {o.risk === 'amber' ? <Pill tone="amber" noDot>At risk</Pill> : null}
+        {o.notes && <div className="muted" style={{ fontSize: 10, marginTop: 2 }}>{o.notes}</div>}
+      </td>
+    </tr>
+  );
+};
+
+// Timeline component
+const StagingTimeline = ({ onOpen }) => {
+  const hours = 24;
+  const startHour = 6; // starts at 06:00 today
+  const dayStart = (() => { const d = new Date(WM.NOW); d.setHours(startHour, 0, 0, 0); return d; })();
+  const dayEnd = new Date(dayStart.getTime() + hours * 3600000);
+
+  const lineRows = WM.LINES.slice(0, 6);
+  const orders = WM.PROCESS_ORDERS.filter((o) => o.start < dayEnd && o.end > dayStart);
+
+  const xFromTime = (d) => {
+    const pct = (d.getTime() - dayStart.getTime()) / (hours * 3600000);
+    return Math.max(0, Math.min(100, pct * 100));
+  };
+  const widthFromTimes = (a, b) => {
+    const pct = (b.getTime() - a.getTime()) / (hours * 3600000);
+    return pct * 100;
+  };
+
+  const nowX = xFromTime(WM.NOW);
+
+  return (
+    <div style={{ minWidth: 900 }}>
+      {/* hour ruler */}
+      <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}>
+        <div style={{ padding: '8px 12px', background: 'var(--stone)', borderBottom: '1px solid var(--stroke-soft)', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--fg-muted)' }}>Line</div>
+        <div className="timeline-hours">
+          {Array.from({ length: hours + 1 }).map((_, i) => {
+            const h = (startHour + i) % 24;
+            return <div key={i} className="timeline-hour" data-label={String(h).padStart(2, '0') + ':00'} style={{ left: (i / hours) * 100 + '%' }}/>;
+          })}
+        </div>
+      </div>
+      {lineRows.map((line) => {
+        const lineOrders = orders.filter((o) => o.line.id === line.id);
+        return (
+          <div className="timeline-row" key={line.id}>
+            <div className="timeline-row-label">
+              <div className="risk-dot slate"/>{line.id} · {line.name}
+            </div>
+            <div className="timeline-track">
+              <div className="timeline-now" style={{ left: nowX + '%' }}/>
+              {lineOrders.map((o) => {
+                const left = Math.max(0, xFromTime(o.start));
+                const width = Math.max(2, widthFromTimes(
+                  o.start < dayStart ? dayStart : o.start,
+                  o.end > dayEnd ? dayEnd : o.end
+                ));
+                return (
+                  <button key={o.id} className={`timeline-event risk-${o.risk}`}
+                    style={{ left: left + '%', width: width + '%', border: 'none', textAlign: 'left', cursor: 'pointer' }}
+                    onClick={() => onOpen(o)}
+                    title={`${o.id} · ${o.product}`}>
+                    <div className="timeline-event-title">{o.product.split(' · ')[0]}</div>
+                    <div className="timeline-event-meta">{WM.fmtTime(o.start)}–{WM.fmtTime(o.end)} · {o.stagingPct}%</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+
+export { ProductionStaging, StagingTimeline };
