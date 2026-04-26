@@ -39,6 +39,15 @@ from shared_db.executors import (
     _REST_EXECUTOR,
     _sql_executor,
 )
+from shared_db.runtime import (
+    CachePolicy,
+    CacheTier,
+    is_read_only_statement as _shared_is_read_only_statement,
+    is_write_statement as _shared_is_write_statement,
+    sql_cache_key as _shared_sql_cache_key,
+    statement_prefix as _shared_statement_prefix,
+    SqlRuntime,
+)
 
 try:
     from databricks import sql as databricks_sql
@@ -48,21 +57,10 @@ except ImportError:  # pragma: no cover
 logger = logging.getLogger(__name__)
 _VIEW_NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
 
-# ---------------------------------------------------------------------------
-# SPC-specific tiered caches
-# ---------------------------------------------------------------------------
-_metadata_cache      = TTLCache(maxsize=500, ttl=900)
-_metadata_cache_lock = threading.Lock()
-_scorecard_cache     = TTLCache(maxsize=200, ttl=300)
-_scorecard_cache_lock = threading.Lock()
-_chart_cache         = TTLCache(maxsize=300, ttl=180)
-_chart_cache_lock    = threading.Lock()
 _freshness_cache     = TTLCache(maxsize=50,  ttl=300)
 _freshness_cache_lock = threading.Lock()
 
 _SQL_CACHE_ROW_LIMIT = 1000
-_WRITE_SQL_PREFIXES  = ("INSERT", "MERGE", "UPDATE", "DELETE", "ALTER", "CREATE", "DROP", "TRUNCATE", "OPTIMIZE", "VACUUM")
-_READ_SQL_PREFIXES   = ("SELECT", "WITH", "SHOW", "DESCRIBE")
 _QUERY_AUDIT_TABLE_NAME = "spc_query_audit"
 
 _METADATA_CACHE_PATTERNS = (
@@ -70,12 +68,6 @@ _METADATA_CACHE_PATTERNS = (
     "spc_attribute_quality_metrics", "gold_material", "gold_plant",
 )
 _SCORECARD_CACHE_PATTERNS = ("spc_quality_metrics",)
-_CHART_CACHE_PATTERNS = (
-    "spc_batch_dim_mv", "gold_batch_quality_result_v",
-    "spc_attribute_metric_source_v", "spc_attribute_subgroup_mv",
-    "spc_spec_drift_summary_v", "spc_quality_metric_subgroup_v",
-    "spc_lineage_graph_mv", "spc_process_flow_source_mv", "gold_batch_lineage",
-)
 
 
 def hostname() -> str:
@@ -113,38 +105,24 @@ def _first_param_value(params: Optional[list[dict]], *names: str) -> Optional[st
 
 
 def _statement_prefix(statement: str) -> str:
-    stripped = statement.lstrip()
-    return stripped.split(None, 1)[0].upper() if stripped else ""
+    return _shared_statement_prefix(statement)
 
 
 def _is_read_only_statement(statement: str) -> bool:
-    return _statement_prefix(statement) in _READ_SQL_PREFIXES
+    return _shared_is_read_only_statement(statement)
 
 
 def _is_write_statement(statement: str) -> bool:
-    return _statement_prefix(statement) in _WRITE_SQL_PREFIXES
+    return _shared_is_write_statement(statement)
 
 
 def _is_query_audit_statement(statement: str) -> bool:
     return _QUERY_AUDIT_TABLE_NAME in statement.lower()
 
 
-def _clear_ttl_cache(cache: TTLCache) -> None:
-    cache.clear()
-    expires = getattr(cache, "_expires", None)
-    if isinstance(expires, dict):
-        expires.clear()
-
-
 def _sql_cache_tier(statement: str) -> str:
-    lowered = statement.lower()
-    if any(p in lowered for p in _METADATA_CACHE_PATTERNS):
-        return "metadata"
-    if any(p in lowered for p in _CHART_CACHE_PATTERNS):
-        return "chart"
-    if any(p in lowered for p in _SCORECARD_CACHE_PATTERNS):
-        return "scorecard"
-    return "chart"
+    tier = _sql_runtime._cache_tier_for(statement)
+    return tier.name if tier is not None else "chart"
 
 
 def _sql_cache_bucket(statement: str) -> tuple[TTLCache, threading.Lock]:
@@ -157,22 +135,11 @@ def _sql_cache_bucket(statement: str) -> tuple[TTLCache, threading.Lock]:
 
 
 def _clear_sql_cache() -> None:
-    for cache, lock in [
-        (_metadata_cache, _metadata_cache_lock),
-        (_scorecard_cache, _scorecard_cache_lock),
-        (_chart_cache, _chart_cache_lock),
-    ]:
-        with lock:
-            _clear_ttl_cache(cache)
+    _sql_runtime.clear_cache()
 
 
 def _sql_cache_key(token: str, statement: str, params: Optional[list[dict]] = None) -> str:
-    payload = json.dumps(params or [], sort_keys=True, default=str, separators=(",", ":"))
-    return ":".join([
-        hashlib.sha256(token.encode()).hexdigest(),
-        hashlib.sha256(statement.encode()).hexdigest(),
-        hashlib.sha256(payload.encode()).hexdigest(),
-    ])
+    return _shared_sql_cache_key(token, statement, params)
 
 
 def _should_cache_rows(rows: list[dict]) -> bool:
@@ -205,8 +172,70 @@ def run_sql(
     return _get_sql_executor().execute(token, statement, params)
 
 
+async def _spc_query_audit_hook(
+    *,
+    token: str,
+    statement: str,
+    params: Optional[list[dict]],
+    endpoint_hint: str,
+    rows: list[dict] | None = None,
+    error: Exception | None = None,
+    duration_ms: int | None = None,
+) -> None:
+    if error is not None or _is_query_audit_statement(statement):
+        return
+    try:
+        await insert_spc_query_audit(
+            token,
+            endpoint=endpoint_hint,
+            params=params,
+            row_count=len(rows or []),
+            duration_ms=duration_ms or 0,
+        )
+    except Exception:
+        logger.warning("sql.query_audit_insert_failed endpoint=%s", endpoint_hint, exc_info=True)
+
+
+_sql_runtime = SqlRuntime(
+    run_sql=lambda token, statement, params=None: run_sql(token, statement, params),
+    cache_policy=CachePolicy.tiered(
+        CacheTier(
+            "metadata",
+            maxsize=500,
+            ttl_seconds=900,
+            row_limit=_SQL_CACHE_ROW_LIMIT,
+            patterns=_METADATA_CACHE_PATTERNS,
+        ),
+        CacheTier(
+            "scorecard",
+            maxsize=200,
+            ttl_seconds=300,
+            row_limit=_SQL_CACHE_ROW_LIMIT,
+            prefixes=("SELECT", "WITH"),
+            patterns=_SCORECARD_CACHE_PATTERNS,
+        ),
+        CacheTier(
+            "chart",
+            maxsize=300,
+            ttl_seconds=180,
+            row_limit=_SQL_CACHE_ROW_LIMIT,
+            prefixes=("SELECT", "WITH", "SHOW", "DESCRIBE"),
+        ),
+    ),
+    audit_hook=_spc_query_audit_hook,
+    audit_in_background=True,
+)
+
+_metadata_cache = _sql_runtime._tier_caches["metadata"]
+_metadata_cache_lock = _sql_runtime.cache_lock
+_scorecard_cache = _sql_runtime._tier_caches["scorecard"]
+_scorecard_cache_lock = _sql_runtime.cache_lock
+_chart_cache = _sql_runtime._tier_caches["chart"]
+_chart_cache_lock = _sql_runtime.cache_lock
+
+
 # ---------------------------------------------------------------------------
-# SPC run_sql_async — tiered cache + query audit
+# SPC run_sql_async — shared runtime with tiered cache + query audit
 # ---------------------------------------------------------------------------
 async def run_sql_async(
     token: str,
@@ -216,51 +245,15 @@ async def run_sql_async(
     endpoint_hint: str = "unknown",
     audit: bool = True,
 ) -> list[dict]:
-    loop = asyncio.get_running_loop()
-
-    async def _audit_query(rows: list[dict], duration_ms: int) -> None:
-        if not audit or _is_query_audit_statement(statement):
-            return
-        try:
-            await insert_spc_query_audit(
-                token,
-                endpoint=endpoint_hint,
-                params=params,
-                row_count=len(rows),
-                duration_ms=duration_ms,
-            )
-        except Exception:
-            logger.warning("sql.query_audit_insert_failed endpoint=%s", endpoint_hint, exc_info=True)
-
-    def _schedule_query_audit(rows: list[dict], duration_ms: int) -> None:
-        if not audit or _is_query_audit_statement(statement):
-            return
-        loop.create_task(_audit_query(rows, duration_ms))
-
-    if not _is_read_only_statement(statement):
-        started_at = time.monotonic()
-        rows = await loop.run_in_executor(_sql_executor, lambda: run_sql(token, statement, params))
-        duration_ms = int((time.monotonic() - started_at) * 1000)
-        if _is_write_statement(statement) and not _is_query_audit_statement(statement):
-            _clear_sql_cache()
-        _schedule_query_audit(rows, duration_ms)
-        return rows
-
-    cache, cache_lock = _sql_cache_bucket(statement)
-    cache_key = _sql_cache_key(token, statement, params)
-    with cache_lock:
-        cached_bytes = cache.get(cache_key)
-    if cached_bytes is not None:
-        return orjson.loads(cached_bytes)
-
-    started_at = time.monotonic()
-    rows = await loop.run_in_executor(_sql_executor, lambda: run_sql(token, statement, params))
-    duration_ms = int((time.monotonic() - started_at) * 1000)
-    if _should_cache_rows(rows):
-        with cache_lock:
-            cache[cache_key] = orjson.dumps(rows)
-    _schedule_query_audit(rows, duration_ms)
-    return rows
+    is_query_audit_statement = _is_query_audit_statement(statement)
+    return await _sql_runtime.run_sql_async(
+        token,
+        statement,
+        params,
+        endpoint_hint=endpoint_hint,
+        audit=audit and not is_query_audit_statement,
+        invalidate_cache=not is_query_audit_statement,
+    )
 
 
 # ---------------------------------------------------------------------------

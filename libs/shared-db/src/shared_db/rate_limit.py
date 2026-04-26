@@ -111,7 +111,7 @@ class _Limiter:
     def _evict_oldest_bucket(self) -> None:
         if not self._last_seen:
             return
-        oldest_key = min(self._last_seen, key=self._last_seen.get)
+        oldest_key = min(self._last_seen, key=lambda key: self._last_seen[key])
         self._events.pop(oldest_key, None)
         self._last_seen.pop(oldest_key, None)
 

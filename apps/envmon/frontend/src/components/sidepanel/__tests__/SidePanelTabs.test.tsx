@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from 'vitest'
 import TrendTab from '../TrendTab'
 import LotsTab from '../LotsTab'
 import LocationPanel from '../LocationPanel'
-import React from 'react'
 
 // Mock context and hooks
 vi.mock('~/context/EMContext', () => ({

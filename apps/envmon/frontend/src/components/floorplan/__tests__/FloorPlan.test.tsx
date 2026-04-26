@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import FloorPlan from '../FloorPlan'
-import React from 'react'
 
 // Mock context and hooks
 vi.mock('~/context/EMContext', () => ({

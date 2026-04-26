@@ -11,14 +11,14 @@ import logging
 import os
 import time
 import threading
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import HTTPException
 
 try:
-    from cachetools import TTLCache
+    from cachetools import TTLCache as _CachetoolsTTLCache  # type: ignore[import-untyped]
 except ImportError:  # pragma: no cover
-    class TTLCache(dict):
+    class _FallbackTTLCache(dict):
         def __init__(self, maxsize: int, ttl: int):
             super().__init__()
             self.maxsize = maxsize
@@ -41,6 +41,9 @@ except ImportError:  # pragma: no cover
                     self._expires.pop(oldest_key, None)
             super().__setitem__(key, value)
             self._expires[key] = time.monotonic() + self.ttl
+    TTLCache: Any = _FallbackTTLCache
+else:
+    TTLCache = _CachetoolsTTLCache
 
 logger = logging.getLogger(__name__)
 

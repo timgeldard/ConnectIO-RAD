@@ -1,7 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import FloorView from '../FloorView'
-import React from 'react'
 
 vi.mock('~/context/EMContext', () => ({
   useEM: () => ({ selectedLocId: null })

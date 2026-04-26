@@ -26,6 +26,16 @@
         "command": "npm run typecheck",
         "cwd": "apps/envmon/frontend"
       }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run test:ci",
+        "cwd": "apps/envmon/frontend"
+      },
+      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "outputs": ["{projectRoot}/coverage"],
+      "cache": true
     }
   }
 }

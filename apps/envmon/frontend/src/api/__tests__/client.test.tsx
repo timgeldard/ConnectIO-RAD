@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { usePlants, useFloors, useHeatmap, useLocationSummary } from '../client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fetchJson } from '@connectio/shared-frontend-api'
-import React from 'react'
+import type { ReactNode } from 'react'
 
 // Mock shared-frontend-api
 vi.mock('@connectio/shared-frontend-api', () => ({
@@ -14,7 +14,7 @@ const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } }
   })
-  return ({ children }: { children: React.ReactNode }) => (
+  return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 }

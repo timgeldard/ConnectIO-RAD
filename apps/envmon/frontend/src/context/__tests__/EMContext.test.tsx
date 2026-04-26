@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { EMProvider, useEM } from '../EMContext'
-import React from 'react'
+import type { ReactNode } from 'react'
 
 describe('EMContext', () => {
   beforeEach(() => {
@@ -10,7 +10,7 @@ describe('EMContext', () => {
   })
 
   it('provides default values', () => {
-    const wrapper = ({ children }: { children: React.ReactNode }) => <EMProvider>{children}</EMProvider>
+    const wrapper = ({ children }: { children: ReactNode }) => <EMProvider>{children}</EMProvider>
     const { result } = renderHook(() => useEM(), { wrapper })
 
     expect(result.current.view.level).toBe('global')
@@ -19,7 +19,7 @@ describe('EMContext', () => {
   })
 
   it('updates view and active floor', () => {
-    const wrapper = ({ children }: { children: React.ReactNode }) => <EMProvider>{children}</EMProvider>
+    const wrapper = ({ children }: { children: ReactNode }) => <EMProvider>{children}</EMProvider>
     const { result } = renderHook(() => useEM(), { wrapper })
 
     act(() => {
@@ -32,7 +32,7 @@ describe('EMContext', () => {
   })
 
   it('updates active floor and syncs url', () => {
-    const wrapper = ({ children }: { children: React.ReactNode }) => <EMProvider>{children}</EMProvider>
+    const wrapper = ({ children }: { children: ReactNode }) => <EMProvider>{children}</EMProvider>
     const { result } = renderHook(() => useEM(), { wrapper })
 
     act(() => {

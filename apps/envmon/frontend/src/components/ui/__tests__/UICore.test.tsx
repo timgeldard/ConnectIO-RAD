@@ -1,9 +1,8 @@
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import KPI from '../KPI'
 import StatusPill from '../StatusPill'
 import PersonaSwitcher from '../PersonaSwitcher'
-import React from 'react'
 
 describe('UI Core Components', () => {
   it('renders KPI with delta', () => {

@@ -15,6 +15,7 @@
     "lint": "nx run-many -t lint",
     "test": "nx run-many -t test",
     "typecheck": "nx run-many -t typecheck",
+    "check:app-configs": "python3 scripts/validate_app_configs.py",
     "graph": "nx graph"
   },
   "devDependencies": {

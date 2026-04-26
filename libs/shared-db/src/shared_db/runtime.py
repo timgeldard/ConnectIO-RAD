@@ -6,6 +6,7 @@ import inspect
 import json
 import logging
 import threading
+import time
 from collections.abc import Awaitable
 from copy import deepcopy
 from dataclasses import dataclass
@@ -72,9 +73,15 @@ class CacheTier:
     ttl_seconds: int = 300
     row_limit: int = 1000
     prefixes: tuple[str, ...] = READ_SQL_PREFIXES
+    patterns: tuple[str, ...] = ()
 
     def matches(self, statement: str) -> bool:
-        return statement_prefix(statement) in self.prefixes
+        if statement_prefix(statement) not in self.prefixes:
+            return False
+        if not self.patterns:
+            return True
+        lowered = statement.lower()
+        return any(pattern.lower() in lowered for pattern in self.patterns)
 
 
 @dataclass(frozen=True)
@@ -102,6 +109,7 @@ class SqlRuntime:
         cache_row_limit: int = 1000,
         cache_policy: CachePolicy | None = None,
         audit_hook: AuditHook | None = None,
+        audit_in_background: bool = False,
     ) -> None:
         self._run_sql = run_sql
         self.cache_policy = cache_policy or CachePolicy.single(
@@ -116,6 +124,7 @@ class SqlRuntime:
         self.cache: TTLCache = self._tier_caches[self.cache_policy.tiers[0].name]
         self.cache_lock = threading.Lock()
         self.cache_row_limit = self.cache_policy.tiers[0].row_limit
+        self.audit_in_background = audit_in_background
 
     def clear_cache(self) -> None:
         with self.cache_lock:
@@ -142,6 +151,7 @@ class SqlRuntime:
         endpoint_hint: str,
         rows: list[dict] | None = None,
         error: Exception | None = None,
+        duration_ms: int | None = None,
     ) -> None:
         if self._audit_hook is None:
             return
@@ -153,11 +163,47 @@ class SqlRuntime:
                 endpoint_hint=endpoint_hint,
                 rows=rows,
                 error=error,
+                duration_ms=duration_ms,
             )
             if inspect.isawaitable(result):
                 await result
         except Exception:
             logger.warning("sql.audit_hook_failed endpoint=%s", endpoint_hint, exc_info=True)
+
+    async def _emit_audit(
+        self,
+        *,
+        token: str,
+        statement: str,
+        params: Optional[list[dict]],
+        endpoint_hint: str,
+        rows: list[dict] | None = None,
+        error: Exception | None = None,
+        duration_ms: int | None = None,
+    ) -> None:
+        if self.audit_in_background:
+            loop = asyncio.get_running_loop()
+            loop.create_task(
+                self._audit(
+                    token=token,
+                    statement=statement,
+                    params=params,
+                    endpoint_hint=endpoint_hint,
+                    rows=rows,
+                    error=error,
+                    duration_ms=duration_ms,
+                )
+            )
+            return
+        await self._audit(
+            token=token,
+            statement=statement,
+            params=params,
+            endpoint_hint=endpoint_hint,
+            rows=rows,
+            error=error,
+            duration_ms=duration_ms,
+        )
 
     async def run_sql_async(
         self,
@@ -167,21 +213,25 @@ class SqlRuntime:
         *,
         endpoint_hint: str = "unknown",
         audit: bool = True,
+        invalidate_cache: bool = True,
     ) -> list[dict]:
         try:
             tier = self._cache_tier_for(statement)
             if tier is None:
                 loop = asyncio.get_running_loop()
+                started_at = time.monotonic()
                 rows = await loop.run_in_executor(_sql_executor, lambda: self._run_sql(token, statement, params))
-                if is_write_statement(statement):
+                duration_ms = int((time.monotonic() - started_at) * 1000)
+                if invalidate_cache and is_write_statement(statement):
                     self.clear_cache()
                 if audit:
-                    await self._audit(
+                    await self._emit_audit(
                         token=token,
                         statement=statement,
                         params=params,
                         endpoint_hint=endpoint_hint,
                         rows=rows,
+                        duration_ms=duration_ms,
                     )
                 return rows
 
@@ -193,22 +243,25 @@ class SqlRuntime:
                 return deepcopy(cached_rows)
 
             loop = asyncio.get_running_loop()
+            started_at = time.monotonic()
             rows = await loop.run_in_executor(_sql_executor, lambda: self._run_sql(token, statement, params))
+            duration_ms = int((time.monotonic() - started_at) * 1000)
             if len(rows) <= tier.row_limit:
                 with self.cache_lock:
                     cache[cache_key] = deepcopy(rows)
             if audit:
-                await self._audit(
+                await self._emit_audit(
                     token=token,
                     statement=statement,
                     params=params,
                     endpoint_hint=endpoint_hint,
                     rows=rows,
+                    duration_ms=duration_ms,
                 )
             return rows
         except Exception as exc:
             if audit:
-                await self._audit(
+                await self._emit_audit(
                     token=token,
                     statement=statement,
                     params=params,

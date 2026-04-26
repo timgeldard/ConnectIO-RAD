@@ -1,7 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import Marker from '../Marker'
-import React from 'react'
 
 describe('Marker', () => {
   const mockMarker = { func_loc_id: 'L1', x_pos: 10, y_pos: 20, status: 'PASS', risk_score: null } as any

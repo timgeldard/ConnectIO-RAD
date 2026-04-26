@@ -97,6 +97,30 @@ def test_sql_runtime_supports_tiered_cache_policy():
     assert calls == ["SHOW TABLES"]
 
 
+def test_sql_runtime_supports_pattern_matched_cache_tiers_and_invalidation_opt_out():
+    calls = []
+
+    def run_sql(_token, statement, params=None):
+        calls.append(statement)
+        return [{"call": len(calls), "params": params}]
+
+    runtime = SqlRuntime(
+        run_sql=run_sql,
+        cache_policy=CachePolicy.tiered(
+            CacheTier("scorecard", patterns=("spc_quality_metrics",)),
+            CacheTier("chart"),
+        ),
+    )
+
+    first = asyncio.run(runtime.run_sql_async("token", "SELECT * FROM spc_quality_metrics"))
+    second = asyncio.run(runtime.run_sql_async("token", "SELECT * FROM spc_quality_metrics"))
+    asyncio.run(runtime.run_sql_async("token", "INSERT INTO spc_query_audit SELECT 1", invalidate_cache=False))
+    third = asyncio.run(runtime.run_sql_async("token", "SELECT * FROM spc_quality_metrics"))
+
+    assert first == second == third
+    assert calls == ["SELECT * FROM spc_quality_metrics", "INSERT INTO spc_query_audit SELECT 1"]
+
+
 def test_data_freshness_runtime_filters_views_and_caches():
     calls = []
 
