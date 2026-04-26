@@ -26,6 +26,16 @@
         "command": "npm run typecheck",
         "cwd": "apps/trace2/frontend"
       }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run test:ci",
+        "cwd": "apps/trace2/frontend"
+      },
+      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "outputs": ["{projectRoot}/coverage"],
+      "cache": true
     }
   }
 }

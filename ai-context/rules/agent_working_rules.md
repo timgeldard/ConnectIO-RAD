@@ -101,7 +101,26 @@ this `ai-context/` directory, not live schema introspection.
 
 ---
 
-## 5. Offline vs On-Network Behaviour
+## 5. Definition of Done (Mandatory)
+
+For every commit or code change, you MUST meet these three criteria:
+
+### 5.1 Inline Documentation (10/10 Standard)
+- **Python**: PEP 257 docstrings for every function, class, and module.
+- **TypeScript**: JSDoc annotations for all exports (types, interfaces, components, hooks).
+- **Explanation**: Use comments to explain non-obvious business logic or SQL optimisations.
+
+### 5.2 External Documentation
+- Update `/docs` and `apps/*/docs` to reflect changes in architecture, API, or setup.
+- Ensure Mermaid diagrams in documentation are current.
+
+### 5.3 100% Test Coverage for Changes
+- Every new or modified line of code MUST be covered by unit tests.
+- Run `pytest --cov` (backend) or `vitest run --coverage` (frontend) to verify.
+
+---
+
+## 6. Offline vs On-Network Behaviour
 
 ### 5.1 When Offline (No Databricks Access)
 - Use ONLY the files in this `ai-context/` directory as your data model

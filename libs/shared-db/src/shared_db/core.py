@@ -114,7 +114,17 @@ def run_sql(
     statement: str,
     params: Optional[list[dict]] = None,
 ) -> list[dict]:
-    """Execute a SQL statement synchronously via the REST executor."""
+    """
+    Execute a SQL statement synchronously via the REST executor.
+    
+    Args:
+        token: Databricks access token.
+        statement: The SQL query to execute.
+        params: Optional list of parameter dicts for the query.
+        
+    Returns:
+        List of dictionaries representing the query result rows.
+    """
     from .executors import _REST_EXECUTOR
     return _REST_EXECUTOR.execute(token, statement, params)
 
@@ -129,6 +139,14 @@ async def run_sql_async(
 
     This is the base implementation used by trace2 and envmon. SPC overrides
     this with its own tiered-cache version in apps/spc/backend/utils/db.py.
+
+    Args:
+        token: Databricks access token.
+        statement: The SQL query to execute.
+        params: Optional list of parameter dicts for the query.
+        
+    Returns:
+        List of dictionaries representing the query result rows.
     """
     from .executors import _sql_executor, _REST_EXECUTOR
     import hashlib

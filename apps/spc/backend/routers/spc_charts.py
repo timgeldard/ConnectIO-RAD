@@ -46,6 +46,19 @@ async def spc_chart_data(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """
+    Retrieve a paginated set of observation points for SPC charting.
+    
+    This endpoint supports cursor-based pagination to handle large datasets
+    without overloading the Databricks SQL Warehouse. Optionally includes
+    normality and specification drift summaries for the selected cohort.
+    
+    Args:
+        body: Chart configuration including material, MIC, and date range.
+        cursor: Opaque pagination cursor from a previous response.
+        limit: Maximum number of points to return in this page.
+        include_summary: If true, calculates normality and spec drift (first page only).
+    """
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
     if cursor is not None:
@@ -146,6 +159,12 @@ async def spc_data_quality(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """
+    Evaluate the quality and consistency of observation data.
+    
+    Checks for missing results, illegal values, and date-range gaps for 
+    the selected material/MIC combination.
+    """
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
     try:
@@ -177,6 +196,12 @@ async def spc_control_limits(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """
+    Retrieve calculated control limits for a specific cohort.
+    
+    Includes grand mean, UCL, LCL, and sigma estimates based on the 
+    requested stratification and statistical method.
+    """
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
     try:
@@ -208,6 +233,9 @@ async def spc_p_chart_data(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """
+    Retrieve data specifically aggregated for P-Charts (Proportion Defective).
+    """
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
     try:
@@ -240,6 +268,9 @@ async def spc_count_chart_data(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """
+    Retrieve data specifically aggregated for C-Charts or U-Charts (Count of Defects).
+    """
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
     try:

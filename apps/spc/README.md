@@ -4,6 +4,14 @@ A **Databricks App** that delivers real-time Statistical Process Control (SPC)
 charting and batch traceability for manufacturing quality teams, backed by a
 Databricks SQL Warehouse and Unity Catalog.
 
+## 📚 Documentation
+
+Detailed documentation is available in the `docs/` folder:
+
+- [**Architecture Overview**](./docs/architecture.md): Deep dive into the system design, analytics engine, and data flow.
+- [**Local Setup Guide**](./docs/setup.md): Prerequisites and step-by-step instructions for running the app locally.
+- [**API Reference**](./docs/api.md): Detailed information on backend endpoints and request models.
+
 ---
 
 ## Features

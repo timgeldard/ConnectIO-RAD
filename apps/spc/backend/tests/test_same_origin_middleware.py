@@ -75,10 +75,11 @@ def test_env_allowed_origins_override(monkeypatch):
     assert r_bad.status_code == 403
 
 
-def test_x_forwarded_host_is_trusted_when_origin_matches():
+def test_x_forwarded_host_is_trusted_when_origin_matches(monkeypatch):
     """Databricks Apps / ALB / nginx reverse proxies: the browser sees the
     external hostname (in Origin) while the backend sees an internal Host.
     The middleware must accept the request when Origin matches X-Forwarded-Host."""
+    monkeypatch.setenv("APP_TRUST_X_FORWARDED_HOST", "true")
     app = _make_app()
     client = TestClient(app, base_url="http://internal.service.local")
     r = client.post(
@@ -91,7 +92,8 @@ def test_x_forwarded_host_is_trusted_when_origin_matches():
     assert r.status_code == 200
 
 
-def test_x_forwarded_host_chain_uses_first_hop():
+def test_x_forwarded_host_chain_uses_first_hop(monkeypatch):
+    monkeypatch.setenv("APP_TRUST_X_FORWARDED_HOST", "true")
     app = _make_app()
     client = TestClient(app, base_url="http://internal.service.local")
     r = client.post(

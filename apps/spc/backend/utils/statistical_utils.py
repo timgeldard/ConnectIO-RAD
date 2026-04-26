@@ -2,23 +2,31 @@ import math
 from typing import Optional, List, Tuple
 
 def mean(values: List[float]) -> float:
+    """Calculate the arithmetic mean of a list of floats."""
     if not values:
         return 0.0
     return sum(values) / len(values)
 
 def stddev(values: List[float], ddof: int = 1) -> float:
+    """Calculate the sample standard deviation."""
     if len(values) < 2:
         return 0.0
     m = mean(values)
     return math.sqrt(sum((x - m) ** 2 for x in values) / (len(values) - ddof))
 
 def moving_range(values: List[float]) -> List[float]:
+    """Calculate the absolute differences between successive points."""
     if len(values) < 2:
         return []
     return [abs(values[i] - values[i-1]) for i in range(1, len(values))]
 
 def compute_imr_limits(values: List[float]) -> Tuple[float, float, float]:
-    """Compute I-MR control limits."""
+    """
+    Compute I-MR (Individual-Moving Range) control limits.
+    
+    Uses the average moving range (MR-bar) and the d2 constant (1.128 for n=2)
+    to estimate 'within-batch' sigma.
+    """
     x_bar = mean(values)
     mr = moving_range(values)
     mr_bar = mean(mr)
@@ -71,7 +79,15 @@ def compute_capability_indices(
     return results
 
 def detect_nelson_rules(values: List[float], centerline: float, sigma: float) -> dict:
-    """Detect Nelson Rules 1-8."""
+    """
+    Detect Nelson Rules 1-8 for a series of observations.
+    
+    Nelson rules identify 'out-of-control' or non-random patterns in 
+    statistical process control.
+    
+    Returns:
+        Dict mapping rule number (1-8) to a list of violating indices.
+    """
     violations = {i: [] for i in range(1, 9)}
     if sigma <= 0:
         return violations

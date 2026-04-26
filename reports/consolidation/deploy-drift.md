@@ -9,4 +9,5 @@ Trace2 is treated as the reference baseline because it has the proven end-to-end
 | envmon | yes | yes | yes | yes | yes | yes | yes | yes | yes | ${VAR} |
 | spc | yes | yes | yes | yes | yes | yes | yes | yes | yes | $VAR |
 | trace2 | yes | yes | yes | yes | yes | yes | yes | no | yes | $VAR |
+| warehouse360 | yes | yes | yes | yes | yes | yes | yes | no | yes | ${VAR} |
 

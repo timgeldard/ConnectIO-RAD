@@ -2,6 +2,14 @@
 
 An enterprise-grade spatial visualisation tool for monitoring environmental inspection results. Built as a **Databricks App**, it provides a real-time (and historical) view of facility health using interactive floor plans and heatmaps.
 
+## 📚 Documentation
+
+Detailed documentation is available in the `docs/` folder:
+
+- [**Architecture Overview**](./docs/architecture.md): Deep dive into the system design, mapping strategy, and technology stack.
+- [**Local Setup Guide**](./docs/setup.md): Prerequisites and step-by-step instructions for running the app locally.
+- [**API Reference**](./docs/api.md): Detailed information on backend endpoints and data models.
+
 ## 🚀 Quickstart
 
 ### Prerequisites

@@ -110,6 +110,18 @@ async def get_heatmap(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """
+    Generate heatmap data for a facility floor plan.
+    
+    Supports two modes:
+    1. 'deterministic': Displays the current status of each inspection point based on 
+       the most recent results.
+    2. 'continuous': Calculates a risk score for each point using exponential time 
+       decay (lambda), allowing for a historical "time-travel" view.
+       
+    The algorithm also detects early-warning SPC patterns (e.g., 3 points increasing 
+    towards a limit) to flag locations before they fail.
+    """
     token = resolve_token(x_forwarded_access_token, authorization)
 
     reference_date = as_of_date or date.today()

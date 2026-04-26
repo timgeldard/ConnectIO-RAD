@@ -14,11 +14,20 @@ TableRef = Callable[[str], str]
 
 @dataclass(frozen=True)
 class TraceCoreDal:
+    """
+    Core Data Access Layer for material and batch traceability.
+    
+    Provides high-performance, asynchronous methods to traverse material lineage
+    and aggregate batch-level metrics from Databricks SQL.
+    """
     run_sql_async: RunSqlAsync
     tbl: TableRef
     sql_param: SqlParam
 
     def build_tree(self, rows: list[dict]) -> dict | None:
+        """
+        Convert flat lineage rows into a hierarchical tree structure.
+        """
         return build_trace_tree(rows)
 
     async def fetch_trace_tree(
@@ -28,6 +37,18 @@ class TraceCoreDal:
         batch_id: str,
         max_levels: int,
     ) -> list[dict]:
+        """
+        Perform a recursive CTE search to find all material lineage relationships.
+        
+        Args:
+            token: Databricks access token.
+            material_id: Root material ID.
+            batch_id: Root batch ID.
+            max_levels: Maximum depth for the recursive search.
+            
+        Returns:
+            List of dictionaries representing nodes in the lineage graph.
+        """
         bounded_levels = max(1, int(max_levels))
         query = f"""
             WITH RECURSIVE unique_edges AS (
@@ -178,6 +199,10 @@ class TraceCoreDal:
         return rows[0] if rows else None
 
     async def fetch_batch_details(self, token: str, material_id: str, batch_id: str) -> dict:
+        """
+        Retrieve comprehensive details for a specific batch, including CoA,
+        customer list, and movement history.
+        """
         mat_batch = [self.sql_param("material_id", material_id), self.sql_param("batch_id", batch_id)]
 
         summary_query = f"""

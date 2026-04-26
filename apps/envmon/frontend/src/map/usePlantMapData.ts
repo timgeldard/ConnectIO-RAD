@@ -10,6 +10,14 @@ interface PlantMapData {
   scopedPlants: PlantInfo[];
 }
 
+/**
+ * Hook to manage plant data filtering, sorting, and GeoJSON conversion for the global map.
+ * 
+ * @param plants - Array of plant information.
+ * @param region - Current region filter ('ALL', 'EMEA', etc.).
+ * @param sortBy - Current sorting criteria ('risk', 'fails', 'rate', 'name').
+ * @returns Object containing the feature collection for the map and filtered/sorted plant lists.
+ */
 export function usePlantMapData(
   plants: PlantInfo[],
   region: string,

@@ -37,6 +37,12 @@ async def spc_process_flow(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """
+    Retrieve material lineage and process flow data for a specific material.
+    
+    Returns a graph-compatible structure of upstream inputs and downstream 
+    outputs, including process health indicators at each node.
+    """
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
     try:
@@ -67,6 +73,12 @@ async def spc_scorecard(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """
+    Generate a quality scorecard summary for all MICs of a material.
+    
+    Aggregates Cp/Cpk, Pp/Ppk, and violation counts for each characteristic
+    within the requested cohort.
+    """
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
     try:
@@ -90,6 +102,9 @@ async def compare_scorecard(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """
+    Compare quality performance across multiple materials.
+    """
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
     try:

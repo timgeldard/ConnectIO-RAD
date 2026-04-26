@@ -1,3 +1,7 @@
+/**
+ * Standard configuration for TanStack Query (React Query) clients.
+ * Optimized for Databricks App performance (caching, retries).
+ */
 export const queryClientDefaultOptions = {
   queries: {
     retry: 1,

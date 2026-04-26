@@ -77,6 +77,11 @@ class _MicIdMixin(BaseModel):
 
 
 class ChartDataRequest(_DateRangeMixin, _MicIdMixin):
+    """
+    Request parameters for fetching SPC observation points.
+    
+    Inherits date range validation and MIC/Operation context.
+    """
     material_id: str
     mic_name: Optional[str] = None
     plant_id: Optional[str] = None
@@ -98,6 +103,7 @@ class ChartDataRequest(_DateRangeMixin, _MicIdMixin):
 
 
 class DataQualityRequest(_DateRangeMixin, _MicIdMixin):
+    """Request parameters for the data quality/integrity summary."""
     material_id: str
     mic_name: Optional[str] = None
     plant_id: Optional[str] = None

@@ -36,6 +36,17 @@ async def fetch_impact(token: str, batch_id: str) -> dict:
 
 
 async def fetch_recall_readiness(token: str, material_id: str, batch_id: str) -> dict:
+    """
+    Perform a multi-dimensional impact analysis for a suspect batch.
+    
+    Executes multiple optimized SQL queries concurrently to provide a 
+    360-degree view of where a batch was shipped, which customers were 
+    affected, and the overall quantity exposure.
+    
+    Returns:
+        A dictionary containing header info, country-level aggregates, 
+        customer lists, and individual delivery records.
+    """
     params = [sql_param("mat", material_id), sql_param("bat", batch_id)]
 
     header_query = _BATCH_HEADER_CTE + _BATCH_HEADER_SELECT

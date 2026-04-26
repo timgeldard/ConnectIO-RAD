@@ -12,6 +12,15 @@ This is an Nx monorepo containing three Databricks Apps:
 
 Shared libraries live in `libs/`. Each app has `frontend/` (React/TypeScript/Vite) and `backend/` (FastAPI/Python) directories.
 
+## Core Mandates (Definition of Done)
+
+Every task is only "Done" when:
+1. **10/10 Inline Docs**: PEP 257 for Python, JSDoc for TypeScript. All new/modified logic is self-documenting.
+2. **Docs Updated**: External `/docs` and `apps/*/docs` are updated to match code changes.
+3. **100% Test Coverage**: Every new or changed line of code is covered by unit tests.
+
+---
+
 ## Agent Orientation — Start Here
 
 Before writing any code, read these files in order:

@@ -51,6 +51,12 @@ async def trace(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """
+    Generate a full material lineage tree (Upstream + Downstream).
+    
+    Traverses the supply chain using recursive CTEs to identify all 
+    relationships for the suspect material/batch.
+    """
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
     try:
@@ -80,6 +86,9 @@ async def summary(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """
+    Get a high-level inventory and mass-balance summary for a batch.
+    """
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
     try:

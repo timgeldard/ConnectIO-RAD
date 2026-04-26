@@ -132,6 +132,16 @@ export interface ControlChartsController {
   closeDialog: () => void
 }
 
+/**
+ * Central state orchestrator for the SPC Control Charts view.
+ * 
+ * Manages the coordination between:
+ * 1. Raw observation data fetching (useChartData)
+ * 2. Statistical SPC computations (useSPCComputedAnalytics)
+ * 3. Point exclusion workflows (useExclusionWorkflow)
+ * 4. Control limit governance and locking (useLockedLimits)
+ * 5. View settings like EWMA/CUSUM parameters.
+ */
 export function useControlChartsController(): ControlChartsController {
   const {
     selectedMaterial,

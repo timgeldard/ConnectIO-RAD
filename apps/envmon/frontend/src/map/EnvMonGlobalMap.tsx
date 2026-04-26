@@ -20,13 +20,24 @@ interface TooltipState {
   passRate: number;
 }
 
+/**
+ * Props for the Global Environment Monitoring Map.
+ */
 interface Props {
+  /** GeoJSON FeatureCollection containing plant locations and risk metrics. */
   featureCollection: FeatureCollection<GeoPoint, PlantFeatureProps>;
+  /** Raw plant data for filtering and camera movement. */
   plants: PlantInfo[];
+  /** ID of the currently focused plant to highlight. */
   selectedPlantId: string | null;
+  /** Callback triggered when a plant marker is clicked. */
   onOpenPlant: (plantId: string) => void;
 }
 
+/**
+ * Interactive world map component using MapLibre GL JS.
+ * Visualizes global plant health and risk clusters.
+ */
 export default function EnvMonGlobalMap({
   featureCollection,
   plants,

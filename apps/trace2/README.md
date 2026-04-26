@@ -5,6 +5,14 @@ traceability across Unity Catalog gold views. Nine pages covering recall
 readiness, bottom-up / top-down lineage, mass balance, quality, production
 history, batch comparison, supplier risk, and certificate of analysis.
 
+## 📚 Documentation
+
+Detailed documentation is available in the `docs/` folder:
+
+- [**Architecture Overview**](./docs/architecture.md): Deep dive into the system design, traceability engine, and data flow.
+- [**Local Setup Guide**](./docs/setup.md): Prerequisites and step-by-step instructions for running the app locally.
+- [**API Reference**](./docs/api.md): Detailed information on backend endpoints and request patterns.
+
 ## Layout
 
 ```
