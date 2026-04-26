@@ -1,20 +1,44 @@
 import React from 'react';
 import WM from '../data/mockData.js';
+import { useApi } from '../hooks/useApi.js';
 import { Icon, Pill, Progress } from './Primitives.jsx';
 import { FilterBar, Card, KPI } from './Shared.jsx';
 
 /* Dispensary Workbench */
 
+const normalizeTask = (t) => {
+  const reqBy = t.sched_start ? new Date(t.sched_start) : null;
+  return {
+    _source: 'api',
+    id: t.reservation_no + (t.item_no != null ? '-' + t.item_no : ''),
+    po: t.order_id ?? '—',
+    material: { id: t.material_id ?? '—', name: t.material_name ?? t.material_id ?? '—' },
+    batch: t.batch_id ?? '—',
+    qty: t.open_qty ?? t.required_qty ?? 0,
+    weighedQty: 0,
+    scale: '—',
+    operator: null,
+    status: 'To Do',
+    requiredBy: reqBy,
+  };
+};
+
 const Dispensary = () => {
   const [tab, setTab] = React.useState('today');
   const [filters, setFilters] = React.useState({ status: 'all', scale: 'all' });
 
+  const { data: tasksResp } = useApi('/api/dispensary');
+  const allTasks = React.useMemo(() => {
+    const api = tasksResp?.tasks ?? [];
+    return api.length > 0 ? api.map(normalizeTask) : WM.DISP_TASKS;
+  }, [tasksResp]);
+
   const rows = React.useMemo(() => {
-    let r = WM.DISP_TASKS;
+    let r = allTasks;
     if (filters.status !== 'all') r = r.filter((t) => t.status === filters.status);
     if (filters.scale !== 'all') r = r.filter((t) => t.scale === filters.scale);
     return r;
-  }, [filters]);
+  }, [allTasks, filters]);
 
   return (
     <div className="page">
@@ -31,10 +55,10 @@ const Dispensary = () => {
       </div>
 
       <div className="kpi-grid">
-        <KPI label="Tasks today" value={WM.DISP_TASKS.length} tone="ok"/>
-        <KPI label="Weighed" value={WM.DISP_TASKS.filter((t) => t.status === 'Weighed').length} tone="ok" barPct={WM.DISP_TASKS.filter((t) => t.status === 'Weighed').length / WM.DISP_TASKS.length * 100}/>
-        <KPI label="In progress" value={WM.DISP_TASKS.filter((t) => t.status === 'Weighing').length} tone="ok"/>
-        <KPI label="To do · < 1h required" value={WM.DISP_TASKS.filter((t) => t.status === 'To Do' && WM.minutesFromNow(t.requiredBy) < 60).length} tone="critical"/>
+        <KPI label="Tasks today" value={allTasks.length} tone="ok"/>
+        <KPI label="Weighed" value={allTasks.filter((t) => t.status === 'Weighed').length} tone="ok" barPct={allTasks.length > 0 ? allTasks.filter((t) => t.status === 'Weighed').length / allTasks.length * 100 : 0}/>
+        <KPI label="In progress" value={allTasks.filter((t) => t.status === 'Weighing').length} tone="ok"/>
+        <KPI label="To do · < 1h required" value={allTasks.filter((t) => t.status === 'To Do' && t.requiredBy && WM.minutesFromNow(t.requiredBy) < 60).length} tone="critical"/>
         <KPI label="Readiness vs plan" value={WM.KPIs.dispensaryReady.value} unit="%" target="95%" tone="warn" barPct={WM.KPIs.dispensaryReady.value} barTone="amber"/>
         <KPI label="Tolerance breaches" value="0" tone="ok" trendLabel=" today"/>
       </div>
@@ -98,9 +122,9 @@ const Dispensary = () => {
             <tbody>
               {rows.map((t) => {
                 const delta = t.weighedQty > 0 ? ((t.weighedQty - t.qty) / t.qty * 100) : null;
-                const mins = WM.minutesFromNow(t.requiredBy);
+                const mins = t.requiredBy ? WM.minutesFromNow(t.requiredBy) : null;
                 return (
-                  <tr key={t.id} className={t.status === 'To Do' && mins < 60 ? 'is-risk-red' : ''}>
+                  <tr key={t.id} className={t.status === 'To Do' && mins != null && mins < 60 ? 'is-risk-red' : ''}>
                     <td className="code">{t.id}</td>
                     <td><span className="code">{t.po}</span></td>
                     <td><div style={{ fontSize: 12 }}>{t.material.name}</div><div className="muted" style={{ fontSize: 11 }}>{t.material.id}</div></td>
@@ -110,7 +134,7 @@ const Dispensary = () => {
                     <td className="num">{delta !== null ? <span className={Math.abs(delta) > 0.5 ? 'red bold' : 'green'}>{delta >= 0 ? '+' : ''}{delta.toFixed(2)}%</span> : <span className="muted">—</span>}</td>
                     <td className="mono small">{t.scale}</td>
                     <td className="small">{t.operator || <span className="muted">unassigned</span>}</td>
-                    <td className="mono small">{WM.fmtTime(t.requiredBy)}<div className={mins < 60 ? 'red small bold' : 'muted small'}>{mins > 0 ? 'in ' + mins + 'm' : Math.abs(mins) + 'm ago'}</div></td>
+                    <td className="mono small">{t.requiredBy ? WM.fmtTime(t.requiredBy) : '—'}<div className={mins != null && mins < 60 ? 'red small bold' : 'muted small'}>{mins == null ? '—' : mins > 0 ? 'in ' + mins + 'm' : Math.abs(mins) + 'm ago'}</div></td>
                     <td><Pill tone={t.status === 'Weighed' ? 'green' : t.status === 'Weighing' ? 'slate' : t.status === 'Check' ? 'amber' : 'grey'}>{t.status}</Pill></td>
                   </tr>
                 );

@@ -1,24 +1,81 @@
 import React from 'react';
 import WM from '../data/mockData.js';
+import { useApi } from '../hooks/useApi.js';
 import { Icon, Pill, Progress } from './Primitives.jsx';
 import { Card, KPI } from './Shared.jsx';
 
 /* Inventory & Bin Health */
 
+const normalizeBin = (b) => {
+  const status = b.bin_status === 'free' ? 'Free'
+               : b.bin_status === 'blocked' || b.bin_status === 'restricted' ? 'Blocked'
+               : 'Occupied';
+  return {
+    _source: 'api',
+    id: b.bin_id,
+    status,
+    fillPct: (b.fill_pct ?? 0) / 100,
+    ageHours: b.age_days != null ? Math.round(b.age_days * 24) : 0,
+    batchExpiryDays: b.days_to_expiry ?? 9999,
+    storageType: { id: b.lgtyp ?? '—', name: b.lgtyp ?? '—' },
+    material: b.material_id
+      ? { id: b.material_id, name: b.material_name ?? b.material_id, uom: b.uom ?? '' }
+      : null,
+    qty: b.total_stock,
+  };
+};
+
+const normalizeLineside = (l) => {
+  const current = l.available != null ? l.available : (l.total_stock ?? 0);
+  return {
+    _source: 'api',
+    line: { id: l.bin_id, name: (l.storage_type ?? '—') + ' · ' + l.bin_id },
+    material: { id: l.material_id ?? '—', name: l.material_name ?? l.material_id ?? '—', uom: l.uom ?? '' },
+    current,
+    min: 0,
+    max: Math.max(1, current * 2),
+    status: 'In stock',
+  };
+};
+
 const Inventory = () => {
   const [tab, setTab] = React.useState('overview');
 
-  const byType = WM.STORAGE_TYPES.map((s) => {
-    const bins = WM.STORAGE_BINS.filter((b) => b.storageType.id === s.id);
-    const occ = bins.filter((b) => b.status === 'Occupied').length;
-    const free = bins.filter((b) => b.status === 'Free').length;
-    const blocked = bins.filter((b) => b.status === 'Blocked').length;
-    return { type: s, bins, occ, free, blocked, pct: (occ / bins.length) * 100 };
-  });
+  const { data: binsResp } = useApi('/api/inventory/bins');
+  const { data: linesideResp } = useApi('/api/inventory/lineside');
 
-  const aged = WM.STORAGE_BINS.filter((b) => b.ageHours > 180 && b.status === 'Occupied').slice(0, 12);
-  const expiring = WM.STORAGE_BINS.filter((b) => b.batchExpiryDays < 30 && b.status === 'Occupied').slice(0, 10);
-  const blocked = WM.STORAGE_BINS.filter((b) => b.status === 'Blocked').slice(0, 8);
+  const allBins = React.useMemo(() => {
+    const api = binsResp?.bins ?? [];
+    return api.length > 0 ? api.map(normalizeBin) : WM.STORAGE_BINS;
+  }, [binsResp]);
+
+  const allLineside = React.useMemo(() => {
+    const api = linesideResp?.lineside ?? [];
+    return api.length > 0 ? api.map(normalizeLineside) : WM.LINE_SIDE;
+  }, [linesideResp]);
+
+  const byType = React.useMemo(() => {
+    const typeMap = {};
+    for (const b of allBins) {
+      const key = b.storageType.id;
+      if (!typeMap[key]) typeMap[key] = { type: b.storageType, bins: [] };
+      typeMap[key].bins.push(b);
+    }
+    return Object.values(typeMap).map(({ type, bins }) => {
+      const occ = bins.filter((b) => b.status === 'Occupied').length;
+      const free = bins.filter((b) => b.status === 'Free').length;
+      const blocked = bins.filter((b) => b.status === 'Blocked').length;
+      return { type, bins, occ, free, blocked, pct: bins.length > 0 ? (occ / bins.length) * 100 : 0 };
+    }).sort((a, b) => a.type.id < b.type.id ? -1 : 1);
+  }, [allBins]);
+
+  const aged = allBins.filter((b) => b.ageHours > 168 && b.status === 'Occupied').slice(0, 12);
+  const expiring = allBins.filter((b) => b.batchExpiryDays < 30 && b.status === 'Occupied').slice(0, 10);
+  const blocked = allBins.filter((b) => b.status === 'Blocked').slice(0, 8);
+
+  const binUtilPct = allBins.length > 0
+    ? Math.round(allBins.filter((b) => b.status === 'Occupied').length / allBins.length * 100)
+    : WM.KPIs.binUtil.value;
 
   return (
     <div className="page">
@@ -35,12 +92,12 @@ const Inventory = () => {
       </div>
 
       <div className="kpi-grid">
-        <KPI label="Bin utilisation" value={WM.KPIs.binUtil.value} unit="%" target="80%" tone="ok" barPct={WM.KPIs.binUtil.value} trend={WM.KPIs.binUtil.trend} trendLabel="pp"/>
+        <KPI label="Bin utilisation" value={binUtilPct} unit="%" target="80%" tone="ok" barPct={binUtilPct} trend={WM.KPIs.binUtil.trend} trendLabel="pp"/>
         <KPI label="Inventory accuracy" value={WM.KPIs.inventoryAccuracy.value} unit="%" target="99.5%" tone="ok" trend={WM.KPIs.inventoryAccuracy.trend} trendLabel="pp"/>
-        <KPI label="Blocked / QA" value={WM.STORAGE_BINS.filter((b) => b.status === 'Blocked').length} tone="warn"/>
+        <KPI label="Blocked / QA" value={allBins.filter((b) => b.status === 'Blocked').length} tone="warn"/>
         <KPI label="Expiring < 30d" value={expiring.length} tone="critical"/>
         <KPI label="Aged > 7d" value={aged.length} tone="warn"/>
-        <KPI label="Line-side below min" value={WM.LINE_SIDE.filter((l) => l.status === 'Below min').length} tone="critical"/>
+        <KPI label="Line-side below min" value={allLineside.filter((l) => l.status === 'Below min').length} tone="critical"/>
       </div>
 
       <div className="tabs">
@@ -75,7 +132,7 @@ const Inventory = () => {
               </div>
             </Card>
             <Card title="High-rack occupancy · storage type 001" subtitle="Hover a cell for material & age" eyebrow="Bin map">
-              <BinHeatmap bins={WM.STORAGE_BINS.filter((b) => b.storageType.id === '001').slice(0, 200)}/>
+              <BinHeatmap bins={allBins.filter((b) => b.storageType.id === '001').slice(0, 200)}/>
             </Card>
           </div>
 
@@ -84,12 +141,12 @@ const Inventory = () => {
               <table className="tbl">
                 <thead><tr><th>Material</th><th>Bin</th><th>Batch</th><th className="num">Qty</th><th className="num">Age</th><th>Expiry</th><th>Status</th></tr></thead>
                 <tbody>
-                  {WM.STORAGE_BINS.filter((b) => b.material).slice(0, 20).map((b, i) => (
+                  {allBins.filter((b) => b.material).slice(0, 20).map((b, i) => (
                     <tr key={i}>
                       <td><div style={{ fontSize: 12 }}>{b.material.name}</div><div className="muted" style={{ fontSize: 11 }}>{b.material.id}</div></td>
                       <td className="mono small">{b.id}</td>
                       <td className="mono small">B{String(300000 + i * 13).slice(0, 7)}</td>
-                      <td className="num">{Math.round(b.fillPct * 8)} {b.material.uom}</td>
+                      <td className="num">{b.qty != null ? Math.round(b.qty) : Math.round(b.fillPct * 8)} {b.material.uom}</td>
                       <td className="num">{b.ageHours}h</td>
                       <td><span className={b.batchExpiryDays < 30 ? 'red bold' : ''}>{b.batchExpiryDays}d</span></td>
                       <td><Pill tone={b.status === 'Occupied' ? 'sage' : b.status === 'Blocked' ? 'red' : 'grey'}>{b.status}</Pill></td>
@@ -107,7 +164,7 @@ const Inventory = () => {
           <table className="tbl">
             <thead><tr><th>Line</th><th>Material</th><th className="num">Current</th><th className="num">Min</th><th className="num">Max</th><th>Level</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>
-              {WM.LINE_SIDE.map((l, i) => {
+              {allLineside.map((l, i) => {
                 const pct = Math.min(100, (l.current / l.max) * 100);
                 const belowMin = l.current < l.min;
                 return (
@@ -135,7 +192,7 @@ const Inventory = () => {
               <thead><tr><th>Bin</th><th>Material</th><th className="num">Age</th><th className="num">Qty</th></tr></thead>
               <tbody>
                 {aged.map((b, i) => (
-                  <tr key={i}><td className="mono small">{b.id}</td><td style={{ fontSize: 12 }}>{b.material?.name || '—'}</td><td className="num amber bold">{b.ageHours}h</td><td className="num">{Math.round(b.fillPct * 6)}</td></tr>
+                  <tr key={i}><td className="mono small">{b.id}</td><td style={{ fontSize: 12 }}>{b.material?.name || '—'}</td><td className="num amber bold">{b.ageHours}h</td><td className="num">{b.qty != null ? Math.round(b.qty) : Math.round(b.fillPct * 6)}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -163,7 +220,7 @@ const Inventory = () => {
                   <td className="mono small">{b.id}</td>
                   <td style={{ fontSize: 12 }}>{b.material?.name || '—'}</td>
                   <td className="mono small">B{String(500000 + i).slice(0, 7)}</td>
-                  <td className="num">{Math.round(b.fillPct * 5)}</td>
+                  <td className="num">{b.qty != null ? Math.round(b.qty) : Math.round(b.fillPct * 5)}</td>
                   <td>{['QA sampling', 'Customer hold', 'Rework', 'Supplier claim', 'Allergen test', 'Pending release', 'Foreign body check', 'Re-analysis'][i % 8]}</td>
                   <td><div className="flex items-center gap-6"><span className="avatar sm slate">QA</span><span className="small">Quality Lab</span></div></td>
                 </tr>
@@ -178,7 +235,7 @@ const Inventory = () => {
           <table className="tbl">
             <thead><tr><th>Prio</th><th>Bin</th><th>Material</th><th className="num">Last count</th><th className="num">Δ expected</th><th>Assign</th></tr></thead>
             <tbody>
-              {WM.STORAGE_BINS.slice(0, 16).map((b, i) => (
+              {allBins.slice(0, 16).map((b, i) => (
                 <tr key={i}>
                   <td><Pill tone={i < 4 ? 'red' : i < 10 ? 'amber' : 'grey'}>{i < 4 ? 'P1' : i < 10 ? 'P2' : 'P3'}</Pill></td>
                   <td className="mono small">{b.id}</td>
@@ -203,10 +260,10 @@ const BinHeatmap = ({ bins }) => {
         let cls = 'heatcell ';
         if (b.status === 'Free') cls += 'empty';
         else if (b.status === 'Blocked') cls += 'warn';
-        else if (b.fillPct > 90) cls += 'h5';
-        else if (b.fillPct > 70) cls += 'h4';
-        else if (b.fillPct > 50) cls += 'h3';
-        else if (b.fillPct > 20) cls += 'h2';
+        else if (b.fillPct > 0.9) cls += 'h5';
+        else if (b.fillPct > 0.7) cls += 'h4';
+        else if (b.fillPct > 0.5) cls += 'h3';
+        else if (b.fillPct > 0.2) cls += 'h2';
         else cls += 'h1';
         return <div key={i} className={cls} title={`${b.id} · ${Math.round(b.fillPct)}%`}/>;
       })}
