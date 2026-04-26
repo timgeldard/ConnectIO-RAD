@@ -1,0 +1,306 @@
+# warehouse360_sap_sources.yaml
+# Raw SAP source table availability for the Warehouse 360° app.
+#
+# PURPOSE: Reference for data engineers building gold-layer views.
+#          These are raw extraction tables — NOT approved query targets.
+#          Agents must use entities.yaml (gold-layer views) for SQL.
+#
+# CATALOGS:
+#   connected_plant_uat.sap       — plant-specific SAP extractions (MANAGED tables)
+#   published_uat.central_services — cross-plant SAP extractions (VIEWs)
+#
+# NAMING CONVENTION: <business_object_name>_<SAP_TABLE_NAME>
+#   e.g.  transferorderobjects_ltak,  batches_mcha
+#
+# STATUS KEY:
+#   available — table confirmed present, full_name gives the exact Databricks table
+#   missing   — not found in either catalog; todo explains workaround / next step
+#
+# DISCOVERING NEW TABLES (agent instructions):
+#   See the `discovery` section at the bottom of this file.
+
+catalogs:
+  sap:
+    databricks_path: connected_plant_uat.sap
+    table_type: MANAGED
+    note: Plant-level SAP extractions for IE01. Lower-underscore naming.
+  central:
+    databricks_path: published_uat.central_services
+    table_type: VIEW
+    note: Cross-plant SAP extractions shared across ConnectIO apps.
+
+tables:
+
+  # ── PP — Production Planning ─────────────────────────────────────────────
+  - sap_table:  AFKO
+    module:     PP
+    desc:       Production order header
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.productionorderobject_afko
+
+  - sap_table:  AFPO
+    module:     PP
+    desc:       Production order item
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.productionorderobject_afpo
+
+  - sap_table:  RESB
+    module:     PP
+    desc:       Reservation / dependent requirements
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.reservationrequirement_resb
+
+  # ── WM — Warehouse Management ────────────────────────────────────────────
+  - sap_table:  LTAK
+    module:     WM
+    desc:       Transfer order header
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.transferorderobjects_ltak
+
+  - sap_table:  LTAP
+    module:     WM
+    desc:       Transfer order item
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.transferorderobjects_ltap
+
+  - sap_table:  LTBK
+    module:     WM
+    desc:       Transfer requirement header
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.transferrequirementobjects_ltbk
+
+  - sap_table:  LAGP
+    module:     WM
+    desc:       Storage bin master
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.storagebin_lagp
+
+  - sap_table:  LQUA
+    module:     WM
+    desc:       Quants (bin stock)
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.quant_lqua
+
+  - sap_table:  LINV
+    module:     WM
+    desc:       WM inventory document header
+    status:     missing
+    todo: >
+      Not found in connected_plant_uat.sap or published_uat.central_services.
+      published_uat.central_services has header_physical_inventory_doc_ikpf (IKPF)
+      and physical_inventory_doc_items_iseg (ISEG) which may cover this use case.
+      Confirm with SAP team before requesting a LINV extraction.
+
+  # ── LE/SD — Logistics Execution / Sales & Distribution ───────────────────
+  - sap_table:  LIKP
+    module:     LE/SD
+    desc:       Delivery header
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.deliveryobjects_likp
+
+  - sap_table:  LIPS
+    module:     LE/SD
+    desc:       Delivery item
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.deliveryobjects_lips
+
+  - sap_table:  VBFA
+    module:     LE/SD
+    desc:       Sales / delivery document flow
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.salesorderobject_vbfa
+
+  - sap_table:  VTFL
+    module:     LE/SD
+    desc:       Delivery / billing document flow
+    status:     missing
+    todo: >
+      Not found in either catalog. Used for the loading on-time KPI.
+      Possible substitute: LIKP.WADAT_IST (actual goods-issue date) already
+      available via deliveryobjects_likp. Confirm with SAP team whether
+      LIKP-WADAT_IST is sufficient before requesting VTFL extraction.
+
+  # ── MM — Materials Management ────────────────────────────────────────────
+  - sap_table:  EKKO
+    module:     MM
+    desc:       Purchase order header
+    status:     available
+    catalog:    central
+    full_name:  published_uat.central_services.procurementorderobject_ekko
+
+  - sap_table:  EKPO
+    module:     MM
+    desc:       Purchase order item
+    status:     available
+    catalog:    central
+    full_name:  published_uat.central_services.procurementorderobject_ekpo
+
+  - sap_table:  MKPF
+    module:     MM
+    desc:       Material document header
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.materialdocument_mkpf
+
+  - sap_table:  MSEG
+    module:     MM
+    desc:       Material document item (GR / GI movements)
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.inventorymovement_mseg
+
+  # ── Material master ───────────────────────────────────────────────────────
+  - sap_table:  MARA
+    module:     Material
+    desc:       Material master — general data
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.materialmaster_mara
+
+  - sap_table:  MARC
+    module:     Material
+    desc:       Material master — plant data
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.materialforplant_marc
+
+  - sap_table:  MARD
+    module:     Material
+    desc:       Storage location stock
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.storagelocationmaterial_mard
+
+  # ── Batch management ──────────────────────────────────────────────────────
+  - sap_table:  MCHA
+    module:     Batch
+    desc:       Batch master data
+    status:     available
+    catalog:    central
+    full_name:  published_uat.central_services.batches_mcha
+
+  - sap_table:  MCH1
+    module:     Batch
+    desc:       Cross-plant batch (batch + plant)
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.crossplantbatch_mch1
+
+  # ── HU — Handling Units ───────────────────────────────────────────────────
+  - sap_table:  VEKP
+    module:     HU
+    desc:       Handling unit header (SSCC)
+    status:     available
+    catalog:    central
+    full_name:  published_uat.central_services.handlingunit_vekp
+
+  - sap_table:  VEPO
+    module:     HU
+    desc:       Handling unit item (contents)
+    status:     available
+    catalog:    central
+    full_name:  published_uat.central_services.handlingunit_vepo
+
+  # ── QM — Quality Management ───────────────────────────────────────────────
+  - sap_table:  QALS
+    module:     QM
+    desc:       Inspection lot
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.inspection_qals
+
+  - sap_table:  QSSR
+    module:     QM
+    desc:       Quality certificate
+    status:     missing
+    todo: >
+      Required for QA release status display. Not found in either catalog.
+      Check whether QALS.VKDAT (usage-decision date) and QALS.ERDAT (created date)
+      fields from inspection_qals are sufficient before requesting QSSR extraction.
+
+  - sap_table:  QINF
+    module:     QM
+    desc:       Quality info record (vendor + material pairing)
+    status:     missing
+    todo: >
+      Used for QA hold turnaround KPI. Not found in either catalog.
+      Confirm with QA lead whether QALS status fields cover this use case
+      before requesting QINF extraction.
+
+# ── Discovery: finding tables in Databricks ──────────────────────────────────
+#
+# When a new SAP table is needed and its status above is `missing`, or when you
+# need to verify a table exists / find its exact name, use the Databricks CLI.
+# The CLI is available as `databricks` and is pre-authorised in this environment.
+#
+discovery:
+  note: >
+    Use these commands to search for tables before declaring a table missing or
+    requesting a new extraction from the SAP team. Always search both catalogs.
+
+  commands:
+
+    list_sap_schema:
+      desc: List all tables in connected_plant_uat.sap
+      command: databricks tables list --catalog connected_plant_uat --schema sap
+      output: JSON array; each object has a `full_name` and `table_type` field.
+
+    list_central_schema:
+      desc: List all tables in published_uat.central_services
+      command: databricks tables list --catalog published_uat --schema central_services
+      output: JSON array; each object has a `full_name` and `table_type` field.
+
+    search_by_sap_table_name:
+      desc: >
+        Filter both lists for a specific SAP table name (e.g. LINV).
+        Tables follow the pattern <business_object>_<SAP_TABLE> so grep for the
+        suffix, case-insensitive.
+      example: |
+        databricks tables list --catalog connected_plant_uat --schema sap \
+          | python3 -c "import sys,json; [print(t['full_name']) for t in json.load(sys.stdin)['tables'] if 'linv' in t['full_name'].lower()]"
+
+    describe_table:
+      desc: Get column names and data types for a specific table
+      command: databricks tables get --full-name <catalog.schema.table_name>
+      example: databricks tables get --full-name connected_plant_uat.sap.quant_lqua
+      output: JSON with `columns` array containing `name`, `type_name`, `nullable`.
+
+    list_all_schemas_in_catalog:
+      desc: Discover all schemas in a catalog (useful if a table may be in a different schema)
+      command: databricks schemas list --catalog <catalog_name>
+      example: databricks schemas list --catalog published_uat
+
+  search_strategy:
+    - step: 1
+      action: >
+        Search connected_plant_uat.sap using the SAP table name as a suffix
+        (e.g. grep for `_linv`). The naming convention is consistent but the
+        business-object prefix varies.
+    - step: 2
+      action: >
+        If not found in sap, search published_uat.central_services the same way.
+        central_services has broader cross-plant coverage and sometimes includes
+        tables not yet extracted to the plant-specific schema.
+    - step: 3
+      action: >
+        If still not found, check for functional equivalents. For inventory tables
+        in particular, SAP has overlapping tables (e.g. IKPF/ISEG cover physical
+        inventory; LQUA covers WM bin stock). Review the todo note on the missing
+        entry above for known alternatives.
+    - step: 4
+      action: >
+        If a table is genuinely absent from both schemas, add it to this file with
+        status: missing and a todo note, then raise a data engineering request to
+        schedule the SAP extraction. Do not build gold-layer views against tables
+        that do not yet exist.

@@ -1,0 +1,32 @@
+{
+  "enabledPlugins": {
+    "claude-code-setup@claude-plugins-official": true
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/block_app_yaml.py",
+            "statusMessage": "Checking file is not a generated config..."
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(databricks *)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npx *)",
+      "Bash(make *)",
+      "Bash(python3 *)",
+      "Bash(node *)",
+      "Bash(ls *)"
+    ]
+  }
+}

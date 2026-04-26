@@ -42,3 +42,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Claude Code — local settings are personal, not team-shared
+.claude/settings.local.json
