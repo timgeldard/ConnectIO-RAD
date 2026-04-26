@@ -7,20 +7,22 @@ import { Card } from './Shared.jsx';
 
 const OrderStagingDetail = ({ order }) => {
   if (!order) return null;
-  const tr = WM.TRs.filter((t) => t.po === order.id).slice(0, 10);
-  const to = WM.TOs.slice(0, 8);
-  const hu = WM.HUs.slice(order.id.charCodeAt(5) % 10, 5 + order.id.charCodeAt(5) % 10);
-  const disp = WM.DISP_TASKS.filter((d) => d.po === order.id).slice(0, 6);
+  const isApi = !!order._source;
+  const tr = isApi ? [] : WM.TRs.filter((t) => t.po === order.id).slice(0, 10);
+  const to = isApi ? [] : WM.TOs.slice(0, 8);
+  const huIdx = order.id.length > 5 ? order.id.charCodeAt(5) % 10 : 0;
+  const hu = isApi ? [] : WM.HUs.slice(huIdx, 5 + huIdx);
+  const disp = isApi ? [] : WM.DISP_TASKS.filter((d) => d.po === order.id).slice(0, 6);
 
-  const minsToStart = WM.minutesFromNow(order.start);
+  const minsToStart = order.start ? WM.minutesFromNow(order.start) : null;
   return (
     <>
       <div className="grid-2" style={{ marginBottom: 16 }}>
         <div className="scale-card">
           <div className="t-eyebrow">Start</div>
-          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, textTransform: 'uppercase', fontSize: 28, color: 'var(--forest)', lineHeight: 1, marginTop: 4 }}>{WM.fmtTime(order.start)}</div>
+          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, textTransform: 'uppercase', fontSize: 28, color: 'var(--forest)', lineHeight: 1, marginTop: 4 }}>{order.start ? WM.fmtTime(order.start) : '—'}</div>
           <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-            {minsToStart < 0 ? Math.abs(minsToStart) + ' min in production' : 'starts in ' + minsToStart + ' min'}
+            {minsToStart === null ? '—' : minsToStart < 0 ? Math.abs(minsToStart) + ' min in production' : 'starts in ' + minsToStart + ' min'}
           </div>
         </div>
         <div className="scale-card">
@@ -39,7 +41,7 @@ const OrderStagingDetail = ({ order }) => {
               ['Product', order.product],
               ['Line', order.line.name + ' · ' + order.line.area],
               ['Staging method', order.method.label],
-              ['Duration', order.duration + ' min'],
+              ['Duration', order.duration != null ? order.duration + ' min' : '—'],
               ['Shift', order.shift.label + ' ' + order.shift.hours],
               ['Pallets planned', order.pallets + ' pal'],
               ['Batch critical', order.batchCritical ? 'Yes — batch must match reservation' : 'No'],
@@ -164,7 +166,7 @@ const OrderStagingDetail = ({ order }) => {
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, lineHeight: 1.4, color: 'var(--forest)', marginTop: 6, maxWidth: 560 }}>
                 {order.risk === 'red'
                   ? 'Escalate to Shift Supervisor. Reassign 2 pickers from Line 3 (slack after 11:40) to complete staging within next 45 minutes.'
-                  : 'Confirm dispensary weighing starts by ' + WM.fmtTime(new Date(order.start.getTime() - 30 * 60000)) + ' to stay on track. Check bulk drop 02-BLK01 is cleared.'}
+                  : order.start ? 'Confirm dispensary weighing starts by ' + WM.fmtTime(new Date(order.start.getTime() - 30 * 60000)) + ' to stay on track. Check bulk drop 02-BLK01 is cleared.' : 'Confirm dispensary weighing is on schedule to stay on track. Check bulk drop 02-BLK01 is cleared.'}
               </div>
               <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
                 <button className="btn btn-primary btn-sm"><Icon name="check" size={12}/> Acknowledge</button>

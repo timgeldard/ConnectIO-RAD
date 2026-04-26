@@ -1,5 +1,6 @@
 import React from 'react';
 import WM from '../data/mockData.js';
+import { useApi } from '../hooks/useApi.js';
 import { Icon, Pill, Progress, RiskDot } from './Primitives.jsx';
 import { FilterBar, Card, KPI } from './Shared.jsx';
 
@@ -24,26 +25,69 @@ const StagingMethodChip = ({ id }) => {
   return <span className="tag tag-slate">{m.label}</span>;
 };
 
+const normalizeOrder = (o) => {
+  if (!o.order_id) return o;
+  const startDate = o.sched_start ? new Date(o.sched_start) : null;
+  const endDate = o.sched_finish
+    ? new Date(o.sched_finish)
+    : startDate ? new Date(startDate.getTime() + 8 * 3600000) : null;
+  return {
+    _source: 'api',
+    id: o.order_id,
+    sapOrder: o.sap_order ?? o.order_id,
+    product: o.material_name ?? o.material_id ?? '—',
+    material: { id: o.material_id ?? '—', name: o.material_name ?? '—' },
+    line: { id: '—', name: '—', area: '—' },
+    method: { id: 'all', label: '—' },
+    start: startDate,
+    end: endDate,
+    stagingPct: Math.round(o.staging_pct ?? 0),
+    risk: o.risk ?? 'grey',
+    pallets: 0,
+    palletsStaged: 0,
+    bomCount: o.to_items_total ?? 0,
+    bomPicked: o.to_items_done ?? 0,
+    status: o.risk === 'red' || o.risk === 'amber' ? 'Staging' : o.risk === 'green' ? 'Staged' : 'Open',
+    dispensaryRequired: false,
+    batchCritical: false,
+    duration: null,
+    shift: { id: null, label: '—', hours: '—' },
+    notes: null,
+  };
+};
+
 const ProductionStaging = ({ onOpenOrder }) => {
   const [tab, setTab] = React.useState('all');
   const [filters, setFilters] = React.useState({ risk: 'all', shift: 'all', line: 'all', window: 'today' });
   const [sort, setSort] = React.useState({ key: 'start', dir: 'asc' });
 
+  const { data: ordersResp } = useApi('/api/process-orders');
+  const allOrders = React.useMemo(() => {
+    const api = ordersResp?.orders ?? [];
+    return api.length > 0 ? api.map(normalizeOrder) : WM.PROCESS_ORDERS;
+  }, [ordersResp]);
+
   const rows = React.useMemo(() => {
-    let r = WM.PROCESS_ORDERS;
+    let r = allOrders;
     if (tab !== 'all') r = r.filter((o) => o.method.id === tab);
     if (filters.risk !== 'all') r = r.filter((o) => o.risk === filters.risk);
     if (filters.shift !== 'all') r = r.filter((o) => o.shift.id === filters.shift);
     if (filters.line !== 'all') r = r.filter((o) => o.line.id === filters.line);
     if (filters.window === 'today') r = r.filter((o) => {
+      if (!o.start) return false;
       const today = new Date(WM.NOW); today.setHours(0, 0, 0, 0);
       const end = new Date(today); end.setDate(end.getDate() + 1);
       return o.start >= today && o.start < end;
     });
-    if (filters.window === '8h') r = r.filter((o) => WM.minutesFromNow(o.start) >= -60 && WM.minutesFromNow(o.start) <= 8 * 60);
+    if (filters.window === '8h') r = r.filter((o) => o.start && WM.minutesFromNow(o.start) >= -60 && WM.minutesFromNow(o.start) <= 8 * 60);
     r = [...r].sort((a, b) => {
       const mul = sort.dir === 'asc' ? 1 : -1;
-      if (sort.key === 'start') return (a.start - b.start) * mul;
+      if (sort.key === 'start') {
+        if (!a.start && !b.start) return 0;
+        if (!a.start) return 1;
+        if (!b.start) return -1;
+        return (a.start - b.start) * mul;
+      }
       if (sort.key === 'risk') {
         const rm = { red: 0, amber: 1, green: 2 };
         return (rm[a.risk] - rm[b.risk]) * mul;
@@ -52,21 +96,21 @@ const ProductionStaging = ({ onOpenOrder }) => {
       return 0;
     });
     return r;
-  }, [tab, filters, sort]);
+  }, [allOrders, tab, filters, sort]);
 
   const counts = React.useMemo(() => {
-    const c = { all: WM.PROCESS_ORDERS.length };
+    const c = { all: allOrders.length };
     for (const m of WM.STAGING_METHODS) {
-      c[m.id] = WM.PROCESS_ORDERS.filter((o) => o.method.id === m.id).length;
+      c[m.id] = allOrders.filter((o) => o.method.id === m.id).length;
     }
     return c;
-  }, []);
+  }, [allOrders]);
 
   const riskCounts = React.useMemo(() => ({
-    red: WM.PROCESS_ORDERS.filter((o) => o.risk === 'red').length,
-    amber: WM.PROCESS_ORDERS.filter((o) => o.risk === 'amber').length,
-    green: WM.PROCESS_ORDERS.filter((o) => o.risk === 'green').length,
-  }), []);
+    red: allOrders.filter((o) => o.risk === 'red').length,
+    amber: allOrders.filter((o) => o.risk === 'amber').length,
+    green: allOrders.filter((o) => o.risk === 'green').length,
+  }), [allOrders]);
 
   return (
     <div className="page">
@@ -176,7 +220,7 @@ const ProductionStaging = ({ onOpenOrder }) => {
 };
 
 const StagingRow = ({ o, onClick }) => {
-  const minsToStart = WM.minutesFromNow(o.start);
+  const minsToStart = o.start ? WM.minutesFromNow(o.start) : null;
   return (
     <tr className={`is-risk-${o.risk}`} onClick={onClick}>
       <td><RiskDot risk={o.risk}/></td>
@@ -196,8 +240,8 @@ const StagingRow = ({ o, onClick }) => {
         </div>
       </td>
       <td>
-        <div className="mono bold" style={{ fontSize: 12 }}>{WM.fmtTime(o.start)}</div>
-        <div className="muted" style={{ fontSize: 11 }}>{minsToStart < 0 ? Math.abs(minsToStart) + 'm ago' : minsToStart < 60 ? 'in ' + minsToStart + 'm' : 'in ' + (minsToStart / 60).toFixed(1) + 'h'}</div>
+        <div className="mono bold" style={{ fontSize: 12 }}>{o.start ? WM.fmtTime(o.start) : '—'}</div>
+        <div className="muted" style={{ fontSize: 11 }}>{minsToStart === null ? '—' : minsToStart < 0 ? Math.abs(minsToStart) + 'm ago' : minsToStart < 60 ? 'in ' + minsToStart + 'm' : 'in ' + (minsToStart / 60).toFixed(1) + 'h'}</div>
       </td>
       <td className="num" style={{ minWidth: 140 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
