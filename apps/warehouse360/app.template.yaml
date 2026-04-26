@@ -12,3 +12,7 @@ command:
 env:
   - name: DATABRICKS_WAREHOUSE_HTTP_PATH
     value: "${DATABRICKS_WAREHOUSE_HTTP_PATH}"
+  - name: TRACE_CATALOG
+    value: "connected_plant_uat"
+  - name: TRACE_SCHEMA
+    value: "wh360"
