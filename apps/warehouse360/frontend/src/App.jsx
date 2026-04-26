@@ -54,18 +54,24 @@ const WarehouseApp = () => {
   if (drawer?.type === 'order') {
     drawerContent = <OrderStagingDetail order={drawer.entity}/>;
     drawerTitle = drawer.entity.id + ' · ' + drawer.entity.product.split(' · ')[0];
-    drawerSubtitle = drawer.entity.line.name + ' · ' + drawer.entity.method.label + ' · starts ' + WM.fmtTime(drawer.entity.start);
+    drawerSubtitle = (drawer.entity.line?.name ?? '—') + ' · ' + (drawer.entity.method?.label ?? '—') + ' · starts ' + (drawer.entity.start ? WM.fmtTime(drawer.entity.start) : '—');
     drawerActions = <Pill tone={drawer.entity.risk === 'red' ? 'red' : drawer.entity.risk === 'amber' ? 'amber' : 'green'}>
       {drawer.entity.risk === 'red' ? 'Critical' : drawer.entity.risk === 'amber' ? 'At risk' : 'On track'}
     </Pill>;
   } else if (drawer?.type === 'delivery') {
     drawerContent = <DeliveryDetail delivery={drawer.entity}/>;
-    drawerTitle = drawer.entity.id + ' · ' + drawer.entity.customer.name;
-    drawerSubtitle = 'Cut-off ' + WM.fmtTime(drawer.entity.cutoff) + ' · Dock ' + drawer.entity.dock.id + ' · ' + drawer.entity.carrier;
+    const d = drawer.entity;
+    drawerTitle = (d.delivery_id ?? d.id) + ' · ' + (d.customer_name ?? d.customer?.name ?? '');
+    drawerSubtitle = d.delivery_id
+      ? 'GI date ' + (d.planned_gi_date ?? '—') + ' · ' + (d.carrier ?? '—')
+      : 'Cut-off ' + WM.fmtTime(d.cutoff) + ' · Dock ' + d.dock.id + ' · ' + d.carrier;
   } else if (drawer?.type === 'receipt') {
     drawerContent = <ReceiptDetail receipt={drawer.entity}/>;
-    drawerTitle = drawer.entity.id + ' · ' + drawer.entity.vendor.name;
-    drawerSubtitle = drawer.entity.type + ' · ETA ' + WM.fmtTime(drawer.entity.eta) + ' · Dock ' + drawer.entity.dock.id;
+    const r = drawer.entity;
+    drawerTitle = (r.po_id ?? r.id) + ' · ' + (r.vendor_name ?? r.vendor?.name ?? '');
+    drawerSubtitle = r.po_id
+      ? 'PO · Due ' + (r.delivery_date ?? '—')
+      : r.type + ' · ETA ' + WM.fmtTime(r.eta) + ' · Dock ' + r.dock.id;
   }
 
   return (

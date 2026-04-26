@@ -1,5 +1,6 @@
 import React from 'react';
 import WM from '../data/mockData.js';
+import { useApi } from '../hooks/useApi.js';
 import { Icon, Pill, Progress, RiskDot, Hbar } from './Primitives.jsx';
 import { KPI, Card } from './Shared.jsx';
 import { StagingTimeline } from './ProductionStaging.jsx';
@@ -7,6 +8,9 @@ import { StagingTimeline } from './ProductionStaging.jsx';
 /* Control Tower — warehouse manager's landing page */
 
 const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
+  const { data: kpiResp } = useApi('/api/kpis');
+  const kpis = kpiResp?.kpis ?? null;
+
   const redOrders = WM.PROCESS_ORDERS.filter((o) => o.risk === 'red').slice(0, 5);
   const amberOrders = WM.PROCESS_ORDERS.filter((o) => o.risk === 'amber').slice(0, 4);
   const criticalEx = WM.EXCEPTIONS.filter((e) => e.type.severity === 'critical').slice(0, 5);
@@ -31,12 +35,12 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
 
       {/* Top KPI strip */}
       <div className="kpi-grid">
-        <KPI label="Orders at risk" value={WM.PROCESS_ORDERS.filter((o) => o.risk === 'red').length} tone="critical" trend={+2} trendLabel=" since 08:00"/>
-        <KPI label="Staging SLA 24h" value={WM.KPIs.stagingSLA.value} unit="%" target="95%" tone="warn" barPct={WM.KPIs.stagingSLA.value} barTone="amber" trend={WM.KPIs.stagingSLA.trend} trendLabel="pp"/>
-        <KPI label="Inbound adherence" value={WM.KPIs.inboundAdherence.value} unit="%" target="90%" tone="warn" barPct={WM.KPIs.inboundAdherence.value} barTone="amber" trend={WM.KPIs.inboundAdherence.trend} trendLabel="pp"/>
-        <KPI label="Outbound ready" value={WM.KPIs.outboundReady.value} unit="%" target="98%" tone="ok" barPct={WM.KPIs.outboundReady.value} trend={WM.KPIs.outboundReady.trend} trendLabel="pp"/>
-        <KPI label="Open warehouse tasks" value={WM.TOs.filter((t) => t.status !== 'Confirmed').length} unit=" TOs" tone="ok" trend={-8} trendLabel=" in 1h"/>
-        <KPI label="Dispensary ready" value={WM.KPIs.dispensaryReady.value} unit="%" target="95%" tone="warn" barPct={WM.KPIs.dispensaryReady.value} barTone="amber" trend={WM.KPIs.dispensaryReady.trend} trendLabel="pp"/>
+        <KPI label="Orders at risk" value={kpis?.orders_red ?? '…'} tone={kpis?.orders_red > 0 ? 'critical' : 'ok'}/>
+        <KPI label="Orders amber" value={kpis?.orders_amber ?? '…'} tone={kpis?.orders_amber > 0 ? 'warn' : 'ok'}/>
+        <KPI label="Open TOs" value={kpis?.tos_open ?? '…'} unit=" TOs" tone="ok"/>
+        <KPI label="Deliveries at risk" value={kpis?.deliveries_at_risk ?? '…'} tone={kpis?.deliveries_at_risk > 0 ? 'warn' : 'ok'}/>
+        <KPI label="Open inbound" value={kpis?.inbound_open ?? '…'} unit=" lines" tone="ok"/>
+        <KPI label="Bin utilisation" value={kpis?.bin_util_pct ?? '…'} unit="%" tone={kpis?.bin_util_pct > 92 ? 'critical' : kpis?.bin_util_pct > 80 ? 'warn' : 'ok'} barPct={kpis?.bin_util_pct ?? 0} barTone={kpis?.bin_util_pct > 92 ? 'red' : kpis?.bin_util_pct > 80 ? 'amber' : ''}/>
       </div>
 
       {/* Today's run sheet + Critical exceptions */}

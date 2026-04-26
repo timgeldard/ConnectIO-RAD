@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { Inbound } from '../Inbound'
 import { Outbound } from '../Outbound'
 import { Inventory } from '../Inventory'
@@ -11,17 +11,21 @@ import { Sidebar, TopBar } from '../Shell'
 import { OrderStagingDetail } from '../OrderDetail'
 import { DocsPage } from '../Docs'
 
+vi.mock('../../hooks/useApi.js', () => ({
+  useApi: () => ({ data: null, loading: false, error: null }),
+}))
+
 describe('Warehouse Operations Pages', () => {
   it('renders Inbound page and KPIs', () => {
     render(<Inbound />)
     expect(screen.getByText('Inbound')).toBeInTheDocument()
-    expect(screen.getByText('Receipts due today')).toBeInTheDocument()
+    expect(screen.getByText('Open PO lines')).toBeInTheDocument()
   })
 
   it('renders Outbound page and KPIs', () => {
     render(<Outbound />)
     expect(screen.getByText('Outbound Deliveries')).toBeInTheDocument()
-    expect(screen.getByText('Deliveries today')).toBeInTheDocument()
+    expect(screen.getByText('At cut-off risk')).toBeInTheDocument()
   })
 
   it('renders Inventory page and KPIs', () => {
