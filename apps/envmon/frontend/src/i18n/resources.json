@@ -1,0 +1,42 @@
+{
+  "en": {
+    "shared.language.label": "Language",
+    "envmon.product.tag": "Kerry",
+    "envmon.nav.allPlants": "All plants",
+    "envmon.nav.portfolio": "Portfolio overview",
+    "envmon.nav.adminMapper": "Admin · Coordinate Mapper",
+    "envmon.readonly": "Read-only · 90d window",
+    "envmon.action.exitAdmin": "Exit admin",
+    "envmon.action.admin": "Admin"
+  },
+  "fr": {
+    "shared.language.label": "Langue",
+    "envmon.product.tag": "Kerry",
+    "envmon.nav.allPlants": "Tous les sites",
+    "envmon.nav.portfolio": "Vue portefeuille",
+    "envmon.nav.adminMapper": "Admin · Cartographie des coordonnées",
+    "envmon.readonly": "Lecture seule · fenêtre 90 j",
+    "envmon.action.exitAdmin": "Quitter admin",
+    "envmon.action.admin": "Admin"
+  },
+  "es": {
+    "shared.language.label": "Idioma",
+    "envmon.product.tag": "Kerry",
+    "envmon.nav.allPlants": "Todas las plantas",
+    "envmon.nav.portfolio": "Resumen del portafolio",
+    "envmon.nav.adminMapper": "Admin · Mapeador de coordenadas",
+    "envmon.readonly": "Solo lectura · ventana 90 d",
+    "envmon.action.exitAdmin": "Salir de admin",
+    "envmon.action.admin": "Admin"
+  },
+  "de": {
+    "shared.language.label": "Sprache",
+    "envmon.product.tag": "Kerry",
+    "envmon.nav.allPlants": "Alle Werke",
+    "envmon.nav.portfolio": "Portfolioübersicht",
+    "envmon.nav.adminMapper": "Admin · Koordinatenzuordnung",
+    "envmon.readonly": "Nur Lesen · 90-Tage-Fenster",
+    "envmon.action.exitAdmin": "Admin verlassen",
+    "envmon.action.admin": "Admin"
+  }
+}

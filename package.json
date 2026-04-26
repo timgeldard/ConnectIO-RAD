@@ -5,6 +5,7 @@
   "workspaces": [
     "apps/*/frontend",
     "libs/shared-frontend-api",
+    "libs/shared-frontend-i18n",
     "libs/shared-ui"
   ],
   "scripts": {
@@ -15,6 +16,9 @@
     "lint": "nx run-many -t lint",
     "test": "nx run-many -t test",
     "typecheck": "nx run-many -t typecheck",
+    "check:repo": "python3 scripts/validate_repo_contract.py && python3 scripts/validate_i18n.py",
+    "check:i18n": "python3 scripts/validate_i18n.py",
+    "render:app-configs": "python3 scripts/render_app_configs.py",
     "check:app-configs": "python3 scripts/validate_app_configs.py",
     "graph": "nx graph"
   },

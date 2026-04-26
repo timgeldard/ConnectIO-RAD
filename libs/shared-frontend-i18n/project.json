@@ -1,0 +1,17 @@
+{
+  "name": "shared-frontend-i18n",
+  "projectType": "library",
+  "root": "libs/shared-frontend-i18n",
+  "tags": ["scope:shared", "type:lib"],
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p tsconfig.json",
+        "cwd": "libs/shared-frontend-i18n"
+      },
+      "inputs": ["tsFiles", "sharedGlobals"],
+      "cache": true
+    }
+  }
+}

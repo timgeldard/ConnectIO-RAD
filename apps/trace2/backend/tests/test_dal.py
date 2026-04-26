@@ -53,7 +53,7 @@ async def test_fetch_recall_readiness():
         # Default header-like response
         return [{"material_id": "M1", "batch_id": "B1"}]
 
-    with patch("backend.dal.trace_dal.run_sql_async", side_effect=mock_sql_fn) as mock_sql:
+    with patch("backend.dal.trace_dal.run_sql_async", side_effect=mock_sql_fn):
         result = await dal.fetch_recall_readiness("fake-token", "M1", "B1")
         
         assert "header" in result

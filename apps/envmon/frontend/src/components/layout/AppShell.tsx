@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import { I18nProvider, LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n';
 import { useEM } from '~/context/EMContext';
 import { usePlants } from '~/api/client';
 import PersonaSwitcher, { PERSONAS } from '~/components/ui/PersonaSwitcher';
@@ -8,8 +9,10 @@ import SiteView from '~/views/SiteView';
 import FloorView from '~/views/FloorView';
 import CoordinateMapper from '~/components/admin/CoordinateMapper';
 import type { ViewState } from '~/types';
+import resources from '../../i18n/resources.json';
 
-export default function AppShell() {
+function AppShellContent() {
+  const { t } = useI18n();
   const { view, setView, personaId, setPersonaId, adminMode, setAdminMode } = useEM();
   const { data: plants = [] } = usePlants();
 
@@ -40,7 +43,7 @@ export default function AppShell() {
     crumbs.push(
       <button key="all" className="btn btn-ghost btn-sm"
         style={{ color: 'rgba(255,255,255,0.75)', borderColor: 'transparent', padding: '2px 6px' }}
-        onClick={navToGlobal}>All plants</button>,
+        onClick={navToGlobal}>{t('envmon.nav.allPlants')}</button>,
       <span key="s1" className="sep">/</span>,
     );
   }
@@ -60,7 +63,7 @@ export default function AppShell() {
     );
   }
   if (view.level === 'admin') {
-    crumbs.push(<span key="admin" className="cur">Admin · Coordinate Mapper</span>);
+    crumbs.push(<span key="admin" className="cur">{t('envmon.nav.adminMapper')}</span>);
   }
 
   return (
@@ -69,16 +72,17 @@ export default function AppShell() {
       <header className="topbar">
         <span className="product">
           EnvMon
-          <span className="tag">Kerry</span>
+          <span className="tag">{t('envmon.product.tag')}</span>
         </span>
         <span className="divider" />
         <nav className="crumbs">
-          {crumbs.length > 0 ? crumbs : <span className="cur">Portfolio overview</span>}
+          {crumbs.length > 0 ? crumbs : <span className="cur">{t('envmon.nav.portfolio')}</span>}
         </nav>
         <div className="right">
+          <LanguageSelector compact />
           {isReadOnly && (
             <span className="readonly-banner" style={{ fontSize: 11, padding: '3px 10px', borderRadius: 4 }}>
-              ⚠ Read-only · 90d window
+              {t('envmon.readonly')}
             </span>
           )}
           {isAdmin && (
@@ -92,7 +96,7 @@ export default function AppShell() {
               }}
             >
               <IconSettings size={13} />
-              {adminMode ? 'Exit admin' : 'Admin'}
+              {adminMode ? t('envmon.action.exitAdmin') : t('envmon.action.admin')}
             </button>
           )}
           <PersonaSwitcher personaId={personaId} onChange={handlePersonaChange} />
@@ -126,5 +130,13 @@ export default function AppShell() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function AppShell() {
+  return (
+    <I18nProvider appName="envmon" resources={resources}>
+      <AppShellContent />
+    </I18nProvider>
   );
 }

@@ -13,6 +13,7 @@
   },
   "dependencies": {
 "@connectio/shared-frontend-api": "file:../../../libs/shared-frontend-api",
+    "@connectio/shared-frontend-i18n": "file:../../../libs/shared-frontend-i18n",
     "@tanstack/react-query": "^5.99.0",
     "maplibre-gl": "^4.7.0",
     "react": "^18.3.1",

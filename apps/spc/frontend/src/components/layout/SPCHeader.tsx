@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n'
 import { Icon } from '../ui/Icon'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from '../../spc/SPCContext'
 
@@ -8,6 +9,7 @@ interface SPCHeaderProps {
 }
 
 export function SPCHeader({ dark = false, onToggleDark }: SPCHeaderProps) {
+  const { t } = useI18n()
   const dispatch = useSPCDispatch()
   const { globalSearch, savedViews, selectedMaterial, selectedMIC, dateFrom, dateTo, activeTab } =
     useSPCSelector(
@@ -52,11 +54,11 @@ export function SPCHeader({ dark = false, onToggleDark }: SPCHeaderProps) {
 
   const dateLabel = dateFrom && dateTo
     ? `${dateFrom.slice(5)} → ${dateTo.slice(5)}`
-    : 'Last 12 months'
+    : t('spc.header.last12')
 
   return (
     <header
-      aria-label="SPC Workspace"
+      aria-label={t('spc.workspace')}
       style={{
         height: 'var(--header-h)',
         borderBottom: '1px solid var(--line-1)',
@@ -73,7 +75,7 @@ export function SPCHeader({ dark = false, onToggleDark }: SPCHeaderProps) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-3)', flexShrink: 0 }}>
         <Icon name="home" size={13} />
         <Icon name="chevron-right" size={11} />
-        <span>Quality · SPC Workspace</span>
+        <span>{t('spc.header.breadcrumb')}</span>
       </div>
 
       {/* Search */}
@@ -87,7 +89,7 @@ export function SPCHeader({ dark = false, onToggleDark }: SPCHeaderProps) {
           type="search"
           value={globalSearch}
           onChange={e => dispatch({ type: 'SET_GLOBAL_SEARCH', payload: e.target.value })}
-          placeholder="Search materials, characteristics, batches…"
+          placeholder={t('spc.header.search')}
           style={{
             width: '100%',
             height: 34,
@@ -124,7 +126,7 @@ export function SPCHeader({ dark = false, onToggleDark }: SPCHeaderProps) {
         <button
           className="btn btn-ghost btn-sm"
           style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.01em' }}
-          aria-label="Date range"
+          aria-label={t('spc.header.dateRange')}
         >
           <Icon name="calendar" size={13} />
           {dateLabel}
@@ -134,8 +136,8 @@ export function SPCHeader({ dark = false, onToggleDark }: SPCHeaderProps) {
 
         <button
           className="icon-btn"
-          title="Save current view"
-          aria-label="Save current view"
+          title={t('spc.header.saveCurrentView')}
+          aria-label={t('spc.header.saveCurrentView')}
           onClick={handleSaveView}
         >
           <Icon name="copy" size={15} />
@@ -143,8 +145,8 @@ export function SPCHeader({ dark = false, onToggleDark }: SPCHeaderProps) {
 
         <button
           className="icon-btn"
-          title="Saved views"
-          aria-label={`Saved views (${savedViews.length})`}
+          title={t('spc.header.savedViews')}
+          aria-label={`${t('spc.header.savedViews')} (${savedViews.length})`}
           aria-pressed={savedViewsOpen}
           onClick={() => setSavedViewsOpen(o => !o)}
         >
@@ -162,9 +164,11 @@ export function SPCHeader({ dark = false, onToggleDark }: SPCHeaderProps) {
           </button>
         )}
 
-        <button className="btn btn-subtle btn-sm" aria-label="Export">
+        <LanguageSelector compact />
+
+        <button className="btn btn-subtle btn-sm" aria-label={t('spc.header.export')}>
           <Icon name="download" size={13} />
-          Export
+          {t('spc.header.export')}
         </button>
       </div>
 
@@ -184,10 +188,10 @@ export function SPCHeader({ dark = false, onToggleDark }: SPCHeaderProps) {
             padding: 16,
           }}
         >
-          <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>Saved Views</p>
+          <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{t('spc.header.savedViews')}</p>
           {savedViews.length === 0 ? (
             <p style={{ margin: 0, fontSize: 12, color: 'var(--text-3)' }}>
-              No saved views yet. Click the copy icon to save the current scope.
+              {t('spc.header.noSavedViews')}
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -217,7 +221,7 @@ export function SPCHeader({ dark = false, onToggleDark }: SPCHeaderProps) {
             style={{ marginTop: 12 }}
             onClick={() => setSavedViewsOpen(false)}
           >
-            Close
+            {t('spc.header.close')}
           </button>
         </div>
       )}

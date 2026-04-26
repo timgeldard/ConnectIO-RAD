@@ -99,6 +99,28 @@ class CachePolicy:
         return cls(tuple(tiers))
 
 
+@dataclass(frozen=True)
+class SqlRuntimeConfig:
+    run_sql: RunSql
+    cache_maxsize: int = 100
+    cache_ttl_seconds: int = 300
+    cache_row_limit: int = 1000
+    cache_policy: CachePolicy | None = None
+    audit_hook: AuditHook | None = None
+    audit_in_background: bool = False
+
+    def build(self) -> "SqlRuntime":
+        return SqlRuntime(
+            run_sql=self.run_sql,
+            cache_maxsize=self.cache_maxsize,
+            cache_ttl_seconds=self.cache_ttl_seconds,
+            cache_row_limit=self.cache_row_limit,
+            cache_policy=self.cache_policy,
+            audit_hook=self.audit_hook,
+            audit_in_background=self.audit_in_background,
+        )
+
+
 class SqlRuntime:
     def __init__(
         self,

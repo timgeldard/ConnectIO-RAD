@@ -1,7 +1,15 @@
 import asyncio
 
 from shared_db.freshness import DataFreshnessRuntime
-from shared_db.runtime import CachePolicy, CacheTier, SqlRuntime, is_read_only_statement, is_write_statement, sql_cache_key
+from shared_db.runtime import (
+    CachePolicy,
+    CacheTier,
+    SqlRuntime,
+    SqlRuntimeConfig,
+    is_read_only_statement,
+    is_write_statement,
+    sql_cache_key,
+)
 
 
 def test_statement_classification():
@@ -119,6 +127,27 @@ def test_sql_runtime_supports_pattern_matched_cache_tiers_and_invalidation_opt_o
 
     assert first == second == third
     assert calls == ["SELECT * FROM spc_quality_metrics", "INSERT INTO spc_query_audit SELECT 1"]
+
+
+def test_sql_runtime_config_builds_runtime_with_policy_and_audit_options():
+    audit_events = []
+
+    def run_sql(_token, statement, _params=None):
+        return [{"statement": statement}]
+
+    async def audit_hook(**event):
+        audit_events.append(event)
+
+    runtime = SqlRuntimeConfig(
+        run_sql=run_sql,
+        cache_policy=CachePolicy.tiered(CacheTier("reads")),
+        audit_hook=audit_hook,
+    ).build()
+
+    rows = asyncio.run(runtime.run_sql_async("token", "SELECT 1", endpoint_hint="config-test"))
+
+    assert rows == [{"statement": "SELECT 1"}]
+    assert audit_events[0]["endpoint_hint"] == "config-test"
 
 
 def test_data_freshness_runtime_filters_views_and_caches():

@@ -18,6 +18,15 @@
       },
       "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
       "cache": true
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --no-sync ruff check apps/warehouse360/backend",
+        "cwd": "{workspaceRoot}"
+      },
+      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "cache": true
     }
   }
 }

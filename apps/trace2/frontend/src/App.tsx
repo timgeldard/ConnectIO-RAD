@@ -1,4 +1,5 @@
 import { CSSProperties, ReactNode, useEffect, useState } from "react";
+import { I18nProvider, LanguageSelector, useI18n } from "@connectio/shared-frontend-i18n";
 import type { Batch, DemoState, PageId, Tweaks } from "./types";
 import { BATCH, BATCH_FAIL, BATCH_RECALL } from "./data/mock";
 import { fetchBatchHeader } from "./data/api";
@@ -14,6 +15,7 @@ import { PageSupplierRisk } from "./pages/SupplierRisk";
 import { PageCoA } from "./pages/CoA";
 import { PageOverview } from "./pages/Overview";
 import { PageCustomersDeliveries } from "./pages/CustomersDeliveries";
+import resources from "./i18n/resources.json";
 
 export type PageProps = {
   batch: Batch;
@@ -29,26 +31,26 @@ type PageComponent = (props: PageProps) => JSX.Element;
 
 interface PageDef {
   id: PageId;
-  label: string;
+  labelKey: string;
   component: PageComponent;
   num: string;
-  group: string;
+  groupKey: string;
 }
 
-const NAV_GROUPS = ["360°", "Lineage", "Quality & production", "Readiness"] as const;
+const NAV_GROUPS = ["trace.nav.group.360", "trace.nav.group.lineage", "trace.nav.group.quality", "trace.nav.group.readiness"] as const;
 
 const PAGES: PageDef[] = [
-  { id: "overview",             label: "Overview",               component: PageOverview as unknown as PageComponent,             num: "01", group: "360°" },
-  { id: "mass_balance",         label: "Mass Balance",           component: PageMassBalance as unknown as PageComponent,         num: "02", group: "360°" },
-  { id: "bottom_up",            label: "Bottom-Up Trace",        component: PageBottomUp as unknown as PageComponent,            num: "03", group: "Lineage" },
-  { id: "top_down",             label: "Top-Down Trace",         component: PageTopDown as unknown as PageComponent,             num: "04", group: "Lineage" },
-  { id: "customers_deliveries", label: "Customers & Deliveries", component: PageCustomersDeliveries as unknown as PageComponent, num: "05", group: "Lineage" },
-  { id: "quality",              label: "Quality",                component: PageQuality as unknown as PageComponent,             num: "06", group: "Quality & production" },
-  { id: "production_history",   label: "Production History",     component: PageProductionHistory as unknown as PageComponent,   num: "07", group: "Quality & production" },
-  { id: "batch_comparison",     label: "Batch Comparison",       component: PageBatchCompare as unknown as PageComponent,        num: "08", group: "Quality & production" },
-  { id: "supplier_risk",        label: "Suppliers",              component: PageSupplierRisk as unknown as PageComponent,        num: "09", group: "Quality & production" },
-  { id: "recall_readiness",     label: "Issue Readiness",        component: PageRecallReadiness as unknown as PageComponent,     num: "10", group: "Readiness" },
-  { id: "coa",                  label: "Certificate of Analysis",component: PageCoA as unknown as PageComponent,                 num: "11", group: "Readiness" },
+  { id: "overview",             labelKey: "trace.page.overview",             component: PageOverview as unknown as PageComponent,             num: "01", groupKey: "trace.nav.group.360" },
+  { id: "mass_balance",         labelKey: "trace.page.massBalance",          component: PageMassBalance as unknown as PageComponent,         num: "02", groupKey: "trace.nav.group.360" },
+  { id: "bottom_up",            labelKey: "trace.page.bottomUp",             component: PageBottomUp as unknown as PageComponent,            num: "03", groupKey: "trace.nav.group.lineage" },
+  { id: "top_down",             labelKey: "trace.page.topDown",              component: PageTopDown as unknown as PageComponent,             num: "04", groupKey: "trace.nav.group.lineage" },
+  { id: "customers_deliveries", labelKey: "trace.page.customersDeliveries",  component: PageCustomersDeliveries as unknown as PageComponent, num: "05", groupKey: "trace.nav.group.lineage" },
+  { id: "quality",              labelKey: "trace.page.quality",              component: PageQuality as unknown as PageComponent,             num: "06", groupKey: "trace.nav.group.quality" },
+  { id: "production_history",   labelKey: "trace.page.productionHistory",    component: PageProductionHistory as unknown as PageComponent,   num: "07", groupKey: "trace.nav.group.quality" },
+  { id: "batch_comparison",     labelKey: "trace.page.batchComparison",      component: PageBatchCompare as unknown as PageComponent,        num: "08", groupKey: "trace.nav.group.quality" },
+  { id: "supplier_risk",        labelKey: "trace.page.supplierRisk",         component: PageSupplierRisk as unknown as PageComponent,        num: "09", groupKey: "trace.nav.group.quality" },
+  { id: "recall_readiness",     labelKey: "trace.page.recallReadiness",      component: PageRecallReadiness as unknown as PageComponent,     num: "10", groupKey: "trace.nav.group.readiness" },
+  { id: "coa",                  labelKey: "trace.page.coa",                  component: PageCoA as unknown as PageComponent,                 num: "11", groupKey: "trace.nav.group.readiness" },
 ];
 
 const TWEAK_DEFAULTS: Tweaks = {
@@ -123,6 +125,7 @@ const DARK_THEME: Record<string, string> = {
 
 function NavLink({ page, active, onClick }: { page: PageDef; active: boolean; onClick: () => void }) {
   const [hover, setHover] = useState(false);
+  const { t } = useI18n();
   return (
     <div
       onClick={onClick}
@@ -156,14 +159,15 @@ function NavLink({ page, active, onClick }: { page: PageDef; active: boolean; on
         color: active ? "#fff" : "rgba(255,255,255,0.78)",
         fontWeight: active ? 500 : 400,
       }}>
-        {page.label}
+        {t(page.labelKey)}
       </span>
     </div>
   );
 }
 
 function Sidebar({ active, onNavigate }: { active: PageId; onNavigate: (id: PageId) => void }) {
-  const groups = NAV_GROUPS.map((g) => ({ label: g, pages: PAGES.filter((p) => p.group === g) }));
+  const { t } = useI18n();
+  const groups = NAV_GROUPS.map((g) => ({ labelKey: g, pages: PAGES.filter((p) => p.groupKey === g) }));
   return (
     <aside style={{
       width: 248,
@@ -185,19 +189,19 @@ function Sidebar({ active, onNavigate }: { active: PageId; onNavigate: (id: Page
           fontSize: 9.5, color: "rgba(255,255,255,0.5)",
           textTransform: "uppercase", letterSpacing: "0.14em",
         }}>
-          Global Ops · Batch Traceability
+          {t("trace.product.subtitle")}
         </div>
       </div>
 
       <nav style={{ padding: "14px 8px", flex: 1, overflowY: "auto" }}>
         {groups.map((g) => (
-          <div key={g.label} style={{ marginBottom: 16 }}>
+          <div key={g.labelKey} style={{ marginBottom: 16 }}>
             <div style={{
               fontFamily: "var(--font-mono)",
               fontSize: 9, color: "rgba(255,255,255,0.45)",
               letterSpacing: "0.18em", padding: "2px 14px 6px",
               textTransform: "uppercase",
-            }}>{g.label}</div>
+            }}>{t(g.labelKey)}</div>
             {g.pages.map((p) => (
               <NavLink key={p.id} page={p} active={active === p.id} onClick={() => onNavigate(p.id)} />
             ))}
@@ -207,7 +211,7 @@ function Sidebar({ active, onNavigate }: { active: PageId; onNavigate: (id: Page
 
       <div style={{ padding: "12px 20px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: "rgba(255,255,255,0.38)", letterSpacing: "0.08em" }}>
-          Batch Traceability · v2
+          {t("trace.footer.version")}
         </div>
       </div>
     </aside>
@@ -237,6 +241,7 @@ function GhostIconButton({ children, title, onClick }: { children: ReactNode; ti
 }
 
 function TopBar({ batch }: { batch: Batch }) {
+  const { t } = useI18n();
   return (
     <div style={{
       height: 64,
@@ -257,7 +262,7 @@ function TopBar({ batch }: { batch: Batch }) {
         whiteSpace: "nowrap",
         flexShrink: 0,
       }}>
-        Global Ops{" "}
+        {t("trace.top.globalOps")}{" "}
         <span style={{ opacity: 0.5 }}>/</span>{" "}
         <span style={{ color: "var(--brand)", fontWeight: 500 }}>{batch.batch_id}</span>
       </div>
@@ -272,19 +277,20 @@ function TopBar({ batch }: { batch: Batch }) {
           maxWidth: 860, overflow: "hidden",
         }}>
           <img src="/kerry-k.png" alt="" style={{ height: 20, display: "block", flexShrink: 0 }} />
-          <ParamField label="Material" value={batch.material_id} />
+          <ParamField label={t("trace.field.material")} value={batch.material_id} />
           <div style={{ width: 1, height: 26, background: "var(--line-2)", flexShrink: 0 }} />
-          <ParamField label="Description" value={batch.material_desc40} mono={false} />
+          <ParamField label={t("trace.field.description")} value={batch.material_desc40} mono={false} />
           <div style={{ width: 1, height: 26, background: "var(--line-2)", flexShrink: 0 }} />
-          <ParamField label="Batch" value={batch.batch_id} emphasize />
+          <ParamField label={t("trace.field.batch")} value={batch.batch_id} emphasize />
           <div style={{ width: 1, height: 26, background: "var(--line-2)", flexShrink: 0 }} />
-          <ParamField label="Plant" value={batch.plant_name || batch.plant_id} mono={false} />
+          <ParamField label={t("trace.field.plant")} value={batch.plant_name || batch.plant_id} mono={false} />
           <StatusPill status={batch.batch_status} size="sm" />
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-        <GhostIconButton title="Refresh" onClick={() => window.location.reload()}>↻</GhostIconButton>
+        <LanguageSelector compact />
+        <GhostIconButton title={t("trace.action.refresh")} onClick={() => window.location.reload()}>↻</GhostIconButton>
       </div>
     </div>
   );
@@ -328,6 +334,7 @@ function BatchPicker({
   onMaterialChange: (v: string) => void; onBatchChange: (v: string) => void;
   onApply: () => void; dirty: boolean;
 }) {
+  const { t } = useI18n();
   const inputStyle: CSSProperties = {
     padding: "5px 9px",
     border: "1px solid var(--line-2)",
@@ -352,14 +359,14 @@ function BatchPicker({
         fontFamily: "var(--font-mono)", fontSize: 9.5,
         color: "var(--ink-3)", letterSpacing: "0.14em",
         textTransform: "uppercase",
-      }}>Live batch</span>
+      }}>{t("trace.batch.live")}</span>
       <label style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-2)", fontFamily: "var(--font-sans)", fontSize: 11.5 }}>
-        Material
-        <input value={materialDraft} onChange={(e) => onMaterialChange(e.target.value)} onKeyDown={handleKey} style={inputStyle} placeholder="Material ID" />
+        {t("trace.field.material")}
+        <input value={materialDraft} onChange={(e) => onMaterialChange(e.target.value)} onKeyDown={handleKey} style={inputStyle} placeholder={t("trace.placeholder.materialId")} />
       </label>
       <label style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-2)", fontFamily: "var(--font-sans)", fontSize: 11.5 }}>
-        Batch
-        <input value={batchDraft} onChange={(e) => onBatchChange(e.target.value)} onKeyDown={handleKey} style={inputStyle} placeholder="Batch ID" />
+        {t("trace.field.batch")}
+        <input value={batchDraft} onChange={(e) => onBatchChange(e.target.value)} onKeyDown={handleKey} style={inputStyle} placeholder={t("trace.placeholder.batchId")} />
       </label>
       <button
         onClick={onApply}
@@ -372,7 +379,7 @@ function BatchPicker({
           cursor: dirty ? "pointer" : "not-allowed",
           fontFamily: "var(--font-sans)",
         }}
-      >Load</button>
+      >{t("trace.action.load")}</button>
     </div>
   );
 }
@@ -383,6 +390,7 @@ function TweaksPanel({
   open: boolean; tweaks: Tweaks; setTweaks: (patch: Partial<Tweaks>) => void;
   demoState: DemoState; setDemoState: (v: DemoState) => void;
 }) {
+  const { t } = useI18n();
   if (!open) return null;
   return (
     <div style={{
@@ -395,34 +403,34 @@ function TweaksPanel({
         padding: "14px 18px", borderBottom: "1px solid var(--line)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
-        <span style={{ fontFamily: "var(--font-sans)", fontSize: 14, fontWeight: 600, color: "var(--forest)" }}>Design controls</span>
+        <span style={{ fontFamily: "var(--font-sans)", fontSize: 14, fontWeight: 600, color: "var(--forest)" }}>{t("trace.controls.title")}</span>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--ink-3)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
           Ctrl+.
         </span>
       </div>
       <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
-        <TweakRow label="Theme">
+        <TweakRow label={t("trace.controls.theme")}>
           <Segmented<Tweaks["theme"]>
             options={[{ k: "light", l: "Light" }, { k: "dark", l: "Dark" }]}
             value={tweaks.theme}
             onChange={(v) => setTweaks({ theme: v })}
           />
         </TweakRow>
-        <TweakRow label="Density">
+        <TweakRow label={t("trace.controls.density")}>
           <Segmented<Tweaks["density"]>
             options={[{ k: "comfortable", l: "Comfortable" }, { k: "compact", l: "Compact" }]}
             value={tweaks.density}
             onChange={(v) => setTweaks({ density: v })}
           />
         </TweakRow>
-        <TweakRow label="Demo state">
+        <TweakRow label={t("trace.controls.demoState")}>
           <Segmented<DemoState>
             options={[{ k: "default", l: "Released" }, { k: "qi", l: "In QI" }, { k: "recall", l: "Blocked" }]}
             value={demoState}
             onChange={setDemoState}
           />
         </TweakRow>
-        <TweakRow label="Brand name">
+        <TweakRow label={t("trace.controls.brandName")}>
           <input
             value={tweaks.brandName}
             onChange={(e) => setTweaks({ brandName: e.target.value })}
@@ -452,7 +460,7 @@ function loadPage(): PageId {
   return "overview";
 }
 
-export default function App() {
+function TraceApp() {
   const [page, setPage] = useState<PageId>(loadPage);
   const [maxLevels, setMaxLevels] = useState(3);
   const [maxInputDepth, setMaxInputDepth] = useState(3);
@@ -555,5 +563,13 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <I18nProvider appName="trace2" resources={resources}>
+      <TraceApp />
+    </I18nProvider>
   );
 }

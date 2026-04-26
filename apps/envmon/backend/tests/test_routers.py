@@ -1,8 +1,7 @@
 import pytest
-import re
 from fastapi.testclient import TestClient
 from backend.main import app
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 client = TestClient(app)
 

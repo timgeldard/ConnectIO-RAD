@@ -1,27 +1,28 @@
+import { useI18n } from '@connectio/shared-frontend-i18n'
 import { Icon } from '../ui/Icon'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from '../../spc/SPCContext'
 import type { SPCTabId } from '../../spc/types'
 
 interface NavItem {
   id: string
-  label: string
+  labelKey: string
   icon: string
   accent?: boolean
 }
 
 const PRIMARY_NAV: NavItem[] = [
-  { id: 'overview',  label: 'Overview',        icon: 'home'       },
-  { id: 'flow',      label: 'Process Flow',     icon: 'git-branch' },
-  { id: 'charts',    label: 'Control Charts',   icon: 'activity'   },
-  { id: 'scorecard', label: 'Scorecard',        icon: 'layout'     },
+  { id: 'overview',  labelKey: 'spc.nav.overview',  icon: 'home'       },
+  { id: 'flow',      labelKey: 'spc.nav.flow',      icon: 'git-branch' },
+  { id: 'charts',    labelKey: 'spc.nav.charts',    icon: 'activity'   },
+  { id: 'scorecard', labelKey: 'spc.nav.scorecard', icon: 'layout'     },
 ]
 
 const ADVANCED_NAV: NavItem[] = [
-  { id: 'compare',      label: 'Compare',          icon: 'bar-chart' },
-  { id: 'msa',          label: 'MSA',              icon: 'target'    },
-  { id: 'correlation',  label: 'Correlation',      icon: 'grid'      },
-  { id: 'multivariate', label: 'Multivariate',     icon: 'layers'    },
-  { id: 'genie',        label: 'Ask Genie',        icon: 'sparkles', accent: true },
+  { id: 'compare',      labelKey: 'spc.nav.compare',      icon: 'bar-chart' },
+  { id: 'msa',          labelKey: 'spc.nav.msa',          icon: 'target'    },
+  { id: 'correlation',  labelKey: 'spc.nav.correlation',  icon: 'grid'      },
+  { id: 'multivariate', labelKey: 'spc.nav.multivariate', icon: 'layers'    },
+  { id: 'genie',        labelKey: 'spc.nav.genie',        icon: 'sparkles', accent: true },
 ]
 
 interface SidebarProps {
@@ -29,6 +30,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ dark = false }: SidebarProps) {
+  const { t } = useI18n()
   const dispatch = useSPCDispatch()
   const { activeTab, roleMode } = useSPCSelector(
     s => ({ activeTab: s.activeTab, roleMode: s.roleMode }),
@@ -81,16 +83,16 @@ export function Sidebar({ dark = false }: SidebarProps) {
         borderBottom: '1px solid var(--line-1)',
         flexShrink: 0,
       }}>
-        <div className="eyebrow" style={{ fontSize: 9, marginBottom: 3 }}>Role</div>
+        <div className="eyebrow" style={{ fontSize: 9, marginBottom: 3 }}>{t('spc.role.label')}</div>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: 6 }}>
           <span className="dot dot-ok" />
-          {roleMode === 'operator' ? 'Plant Operator' : 'Quality Analyst'}
+          {roleMode === 'operator' ? t('spc.role.operator') : t('spc.role.analyst')}
         </div>
       </div>
 
       {/* Nav */}
       <div style={{ padding: '10px 8px', flex: 1, overflowY: 'auto' }} className="scroll">
-        <div className="eyebrow" style={{ padding: '4px 10px 6px' }}>Primary</div>
+        <div className="eyebrow" style={{ padding: '4px 10px 6px' }}>{t('spc.nav.primary')}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 4px' }}>
           {PRIMARY_NAV.map(item => (
             <NavButton
@@ -104,7 +106,7 @@ export function Sidebar({ dark = false }: SidebarProps) {
 
         {roleMode !== 'operator' && (
           <>
-            <div className="eyebrow" style={{ padding: '16px 10px 6px' }}>Advanced</div>
+            <div className="eyebrow" style={{ padding: '16px 10px 6px' }}>{t('spc.nav.advanced')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 4px' }}>
               {ADVANCED_NAV.map(item => (
                 <NavButton
@@ -145,10 +147,10 @@ export function Sidebar({ dark = false }: SidebarProps) {
         </div>
         <div style={{ fontSize: 11.5, lineHeight: 1.3, minWidth: 0, flex: 1 }}>
           <div style={{ fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            SPC Workspace
+            {t('spc.workspace')}
           </div>
           <div style={{ color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {roleMode === 'operator' ? 'Operator view' : 'Analyst view'}
+            {roleMode === 'operator' ? t('spc.view.operator') : t('spc.view.analyst')}
           </div>
         </div>
         <button
@@ -165,6 +167,7 @@ export function Sidebar({ dark = false }: SidebarProps) {
 }
 
 function NavButton({ item, active, onClick }: { item: NavItem; active: boolean; onClick: () => void }) {
+  const { t } = useI18n()
   return (
     <button
       type="button"
@@ -203,7 +206,7 @@ function NavButton({ item, active, onClick }: { item: NavItem; active: boolean; 
         }} />
       )}
       <Icon name={item.icon} size={16} />
-      <span style={{ flex: 1 }}>{item.label}</span>
+      <span style={{ flex: 1 }}>{t(item.labelKey)}</span>
       {item.accent && (
         <span style={{
           fontSize: 9,

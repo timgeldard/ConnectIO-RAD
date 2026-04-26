@@ -42,11 +42,11 @@ from shared_db.executors import (
 from shared_db.runtime import (
     CachePolicy,
     CacheTier,
+    SqlRuntimeConfig,
     is_read_only_statement as _shared_is_read_only_statement,
     is_write_statement as _shared_is_write_statement,
     sql_cache_key as _shared_sql_cache_key,
     statement_prefix as _shared_statement_prefix,
-    SqlRuntime,
 )
 
 try:
@@ -196,7 +196,7 @@ async def _spc_query_audit_hook(
         logger.warning("sql.query_audit_insert_failed endpoint=%s", endpoint_hint, exc_info=True)
 
 
-_sql_runtime = SqlRuntime(
+_sql_runtime_config = SqlRuntimeConfig(
     run_sql=lambda token, statement, params=None: run_sql(token, statement, params),
     cache_policy=CachePolicy.tiered(
         CacheTier(
@@ -225,6 +225,7 @@ _sql_runtime = SqlRuntime(
     audit_hook=_spc_query_audit_hook,
     audit_in_background=True,
 )
+_sql_runtime = _sql_runtime_config.build()
 
 _metadata_cache = _sql_runtime._tier_caches["metadata"]
 _metadata_cache_lock = _sql_runtime.cache_lock

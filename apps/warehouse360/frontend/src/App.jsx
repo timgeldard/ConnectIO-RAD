@@ -1,4 +1,5 @@
 import React from 'react';
+import { I18nProvider, useI18n } from '@connectio/shared-frontend-i18n';
 import WM from './data/mockData.js';
 import { Pill } from './components/Primitives.jsx';
 import { Sidebar, TopBar, MobileNav } from './components/Shell.jsx';
@@ -12,8 +13,10 @@ import { Inventory } from './components/Inventory.jsx';
 import { Dispensary } from './components/Dispensary.jsx';
 import { Exceptions, Performance } from './components/ExceptionsPerf.jsx';
 import { DocsPage } from './components/Docs.jsx';
+import resources from './i18n/resources.json';
 
-const App = () => {
+const WarehouseApp = () => {
+  const { t } = useI18n();
   const [route, setRoute] = React.useState('today');
   const [drawer, setDrawer] = React.useState(null);
   const shift = WM.SHIFTS[1];
@@ -24,15 +27,15 @@ const App = () => {
   const closeDrawer  = () => setDrawer(null);
 
   const titles = {
-    today:       ['Control Tower',      'Live operations — ' + WM.fmtTime(WM.NOW)],
-    staging:     ['Production Staging', 'Materials staged for process orders'],
-    inbound:     ['Inbound',            'Purchase orders & stock transport receipts'],
-    outbound:    ['Outbound',           'Customer deliveries — pick, stage, load'],
-    inventory:   ['Inventory & Bins',   'Bin health, line-side stock, batch expiry'],
-    dispensary:  ['Dispensary',         'Weighed micro ingredients'],
-    exceptions:  ['Exceptions',         'Prioritised operational risk'],
-    performance: ['Performance',        '14-day KPIs across staging, inbound, outbound'],
-    docs:        ['Concept & Specs',    'Product concept · KPI catalogue · data model'],
+    today:       [t('warehouse.title.today'),       t('warehouse.subtitle.today', { time: WM.fmtTime(WM.NOW) })],
+    staging:     [t('warehouse.title.staging'),     t('warehouse.subtitle.staging')],
+    inbound:     [t('warehouse.title.inbound'),     t('warehouse.subtitle.inbound')],
+    outbound:    [t('warehouse.title.outbound'),    t('warehouse.subtitle.outbound')],
+    inventory:   [t('warehouse.title.inventory'),   t('warehouse.subtitle.inventory')],
+    dispensary:  [t('warehouse.title.dispensary'),  t('warehouse.subtitle.dispensary')],
+    exceptions:  [t('warehouse.title.exceptions'),  t('warehouse.subtitle.exceptions')],
+    performance: [t('warehouse.title.performance'), t('warehouse.subtitle.performance')],
+    docs:        [t('warehouse.title.docs'),        t('warehouse.subtitle.docs')],
   };
   const [title, subtitle] = titles[route] || ['', ''];
 
@@ -79,5 +82,11 @@ const App = () => {
     </div>
   );
 };
+
+const App = () => (
+  <I18nProvider appName="warehouse360" resources={resources}>
+    <WarehouseApp />
+  </I18nProvider>
+);
 
 export default App;
