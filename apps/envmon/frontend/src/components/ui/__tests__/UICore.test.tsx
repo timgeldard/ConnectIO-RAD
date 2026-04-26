@@ -12,22 +12,28 @@ describe('UI Core Components', () => {
     expect(screen.getByText(/↑ 5%/i)).toBeInTheDocument()
   })
 
-  it('renders StatusPill', () => {
+  it('renders StatusPill with translated status key', () => {
+    // The mock t() returns the key, so PASS renders as 'envmon.status.PASS'
     render(<StatusPill status="PASS" />)
-    expect(screen.getByText(/Pass/i)).toBeInTheDocument()
+    expect(screen.getByText('envmon.status.PASS')).toBeInTheDocument()
+  })
+
+  it('StatusPill respects explicit label override', () => {
+    render(<StatusPill status="PASS" label="Custom" />)
+    expect(screen.getByText('Custom')).toBeInTheDocument()
   })
 
   it('PersonaSwitcher opens menu and calls onChange', async () => {
     const onChange = vi.fn()
     render(<PersonaSwitcher personaId="regional" onChange={onChange} />)
-    
-    // Initial state: menu closed
-    expect(screen.queryByText(/Switch persona/i)).not.toBeInTheDocument()
-    
+
+    // Initial state: menu closed — translated key not rendered
+    expect(screen.queryByText('envmon.persona.switchLabel')).not.toBeInTheDocument()
+
     // Click to open
     fireEvent.click(screen.getByRole('button'))
-    expect(screen.getByText(/Switch persona/i)).toBeInTheDocument()
-    
+    expect(screen.getByText('envmon.persona.switchLabel')).toBeInTheDocument()
+
     // Click a persona
     fireEvent.click(screen.getByText(/Miguel Ortiz/i).closest('button')!)
     expect(onChange).toHaveBeenCalledWith('site')

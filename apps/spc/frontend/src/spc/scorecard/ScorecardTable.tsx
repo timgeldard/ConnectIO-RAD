@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import { useI18n } from '@connectio/shared-frontend-i18n'
 import { Icon } from '../../components/ui/Icon'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from '../SPCContext'
 import { useExport } from '../hooks/useExport'
@@ -65,14 +66,6 @@ function statusTone(status: string | null | undefined): string {
   return 'neutral'
 }
 
-function statusLabel(status: string | null | undefined, unstable: boolean): string {
-  if (unstable && STABILITY_GUARD_ENABLED) return 'Unstable'
-  if (status === 'excellent') return 'Excellent'
-  if (status === 'good') return 'Capable'
-  if (status === 'marginal') return 'Marginal'
-  if (status === 'poor' || status === 'out_of_spec_mean') return 'Not capable'
-  return 'No data'
-}
 
 interface ScorecardTableProps {
   rows: ScorecardRow[]
@@ -81,6 +74,18 @@ interface ScorecardTableProps {
 
 export default function ScorecardTable({ rows, material }: ScorecardTableProps) {
   const dispatch = useSPCDispatch()
+  const { t } = useI18n()
+
+  /** Returns a translated status label for a scorecard row. */
+  const getStatusLabel = (status: string | null | undefined, unstable: boolean): string => {
+    if (unstable && STABILITY_GUARD_ENABLED) return t('spc.scorecardTable.status.unstable')
+    if (status === 'excellent') return t('spc.scorecardTable.status.excellent')
+    if (status === 'good') return t('spc.scorecardTable.status.capable')
+    if (status === 'marginal') return t('spc.scorecardTable.status.marginal')
+    if (status === 'poor' || status === 'out_of_spec_mean') return t('spc.scorecardTable.status.notCapable')
+    return t('spc.scorecardTable.status.noData')
+  }
+
   const state = useSPCSelector(
     current => ({
       selectedMaterial: current.selectedMaterial,
@@ -158,7 +163,11 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
     const trendColor = unstable ? 'var(--status-risk)'
       : r.is_stable === true ? 'var(--status-ok)'
       : 'var(--text-3)'
-    const trendLabel = unstable ? 'Degrading' : r.is_stable === true ? 'Stable' : 'Flat'
+    const trendLabel = unstable
+      ? t('spc.scorecardTable.trend.degrading')
+      : r.is_stable === true
+      ? t('spc.scorecardTable.trend.stable')
+      : t('spc.scorecardTable.trend.flat')
 
     return (
       <tr
@@ -173,7 +182,7 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
       >
         <td style={{ padding: cellPad }}>
           <span className={chipClass} style={{ fontSize: 10.5 }}>
-            {statusLabel(r.capability_status, unstable)}
+            {getStatusLabel(r.capability_status, unstable)}
           </span>
         </td>
         <td style={{ padding: cellPad }}>

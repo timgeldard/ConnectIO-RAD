@@ -25,10 +25,20 @@ vi.mock('~/api/client', () => ({
 }))
 
 describe('FilterBar', () => {
-  it('renders filter options', () => {
+  it('renders time window options and heatmap mode buttons', () => {
     render(<FilterBar />)
-    expect(screen.getByText('30 days')).toBeInTheDocument()
-    expect(screen.getByText(/deterministic/i)).toBeInTheDocument()
-    expect(screen.getByText(/continuous/i)).toBeInTheDocument()
+    // Time window options: mock t('envmon.filterBar.days', { n: 30 }) returns 'envmon.filterBar.days'
+    // (key has no {{n}} in it, so all options have the same key text)
+    expect(screen.getAllByText('envmon.filterBar.days').length).toBeGreaterThan(0)
+    // Heatmap mode buttons
+    expect(screen.getByText('envmon.filterBar.deterministic')).toBeInTheDocument()
+    expect(screen.getByText('envmon.filterBar.continuous')).toBeInTheDocument()
+  })
+
+  it('renders time travel controls', () => {
+    render(<FilterBar />)
+    expect(screen.getByText('envmon.filterBar.timeTravel')).toBeInTheDocument()
+    // Today label: sliderValue is 0, so 'envmon.filterBar.today'
+    expect(screen.getByText('envmon.filterBar.today')).toBeInTheDocument()
   })
 })

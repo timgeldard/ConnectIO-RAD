@@ -26,23 +26,26 @@ describe('SidePanel Components', () => {
   it('renders LocationPanel with header and tabs', () => {
     render(<LocationPanel />)
     expect(screen.getByText('Loc Name')).toBeInTheDocument()
-    expect(screen.getByText('trend')).toBeInTheDocument()
-    expect(screen.getByText('lots')).toBeInTheDocument()
+    // Tabs now render translated keys via mock t()
+    expect(screen.getByText('envmon.tab.trend')).toBeInTheDocument()
+    expect(screen.getByText('envmon.tab.lots')).toBeInTheDocument()
   })
 
   it('renders TrendTab with chart', () => {
     render(<TrendTab plantId="P1" funcLocId="L1" />)
-    expect(screen.getByText(/MIC · MIC1/i)).toBeInTheDocument()
+    // Chart title uses key + active MIC name: 'envmon.trend.micLabel · MIC1'
+    expect(screen.getByText(/envmon\.trend\.micLabel · MIC1/i)).toBeInTheDocument()
     expect(document.querySelector('svg.trend-chart')).toBeInTheDocument()
   })
 
   it('renders LotsTab and expands a lot row', () => {
     render(<LotsTab plantId="P1" funcLocId="L1" />)
     expect(screen.getByText('LOT1')).toBeInTheDocument()
-    
+
     // Click to expand
     fireEvent.click(screen.getByText('LOT1'))
-    expect(screen.getByText('MIC results')).toBeInTheDocument()
+    // Expanded row shows MIC results section (translated key)
+    expect(screen.getByText('envmon.lots.mic.title')).toBeInTheDocument()
     expect(screen.getByText('MIC 1')).toBeInTheDocument()
   })
 })

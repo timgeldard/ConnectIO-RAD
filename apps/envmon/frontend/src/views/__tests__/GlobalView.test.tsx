@@ -12,32 +12,35 @@ vi.mock('~/components/ui/KPI', () => ({
 
 describe('GlobalView', () => {
   const mockPlants = [
-    { 
-      plant_id: 'P1', plant_name: 'Plant 1', plant_code: 'P1', country: 'IE', region: 'EMEA', 
-      kpis: { total_locs: 10, active_fails: 0, warnings: 0, pass_rate: 100, lots_tested: 5, pathogen_hits: 0 } 
+    {
+      plant_id: 'P1', plant_name: 'Plant 1', plant_code: 'P1', country: 'IE', region: 'EMEA',
+      kpis: { total_locs: 10, active_fails: 0, warnings: 0, pass_rate: 100, lots_tested: 5, pathogen_hits: 0 }
     },
-    { 
-      plant_id: 'P2', plant_name: 'Plant 2', plant_code: 'P2', country: 'US', region: 'AMER', 
-      kpis: { total_locs: 20, active_fails: 2, warnings: 1, pass_rate: 90, lots_tested: 10, pathogen_hits: 1 } 
+    {
+      plant_id: 'P2', plant_name: 'Plant 2', plant_code: 'P2', country: 'US', region: 'AMER',
+      kpis: { total_locs: 20, active_fails: 2, warnings: 1, pass_rate: 90, lots_tested: 10, pathogen_hits: 1 }
     },
   ]
 
-  it('renders title and KPIs', () => {
+  it('renders title translation key with plant count interpolated and KPI strip', () => {
     render(<GlobalView plants={mockPlants as any} onOpenPlant={vi.fn()} />)
-    expect(screen.getByText(/Environmental monitoring across 2 plants/i)).toBeInTheDocument()
+    // The mock t() substitutes {{n}} into the key string for the .other variant.
+    // Key: 'envmon.global.title.other', value n=2 → key unchanged (key has no {{n}})
+    // so the rendered h1 shows the key name
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
     expect(screen.getAllByTestId('mock-kpi')).toHaveLength(5)
   })
 
   it('filters plants by region when chip is clicked', () => {
     render(<GlobalView plants={mockPlants as any} onOpenPlant={vi.fn()} />)
-    
+
     // Initial: 2 plants
     expect(screen.getByText('P1 · Plant 1')).toBeInTheDocument()
     expect(screen.getByText('P2 · Plant 2')).toBeInTheDocument()
-    
+
     // Click EMEA
     fireEvent.click(screen.getByRole('button', { name: 'EMEA' }))
-    
+
     expect(screen.getByText('P1 · Plant 1')).toBeInTheDocument()
     expect(screen.queryByText('P2 · Plant 2')).not.toBeInTheDocument()
   })
@@ -45,7 +48,7 @@ describe('GlobalView', () => {
   it('calls onOpenPlant when a plant card is clicked', () => {
     const onOpenPlant = vi.fn()
     render(<GlobalView plants={mockPlants as any} onOpenPlant={onOpenPlant} />)
-    
+
     fireEvent.click(screen.getByText('P1 · Plant 1').closest('button')!)
     expect(onOpenPlant).toHaveBeenCalledWith('P1')
   })

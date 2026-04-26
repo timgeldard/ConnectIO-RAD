@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import { IconChevronDown } from './Icons';
 import type { PersonaId, Persona } from '~/types';
 
@@ -55,7 +56,9 @@ interface Props {
   onChange: (id: PersonaId) => void;
 }
 
+/** Dropdown menu for switching between demo personas. */
 export default function PersonaSwitcher({ personaId, onChange }: Props) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const current = PERSONAS.find((p) => p.id === personaId)!;
 
@@ -79,8 +82,8 @@ export default function PersonaSwitcher({ personaId, onChange }: Props) {
       {open && (
         <div className="menu fade-in">
           <div style={{ padding: '10px 14px 8px', borderBottom: '1px solid var(--stroke-soft)', background: 'var(--stone)' }}>
-            <div className="eyebrow">Switch persona</div>
-            <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 4 }}>Demo only — role gates what you see.</div>
+            <div className="eyebrow">{t('envmon.persona.switchLabel')}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 4 }}>{t('envmon.persona.demoNote')}</div>
           </div>
           {PERSONAS.map((p) => (
             <button

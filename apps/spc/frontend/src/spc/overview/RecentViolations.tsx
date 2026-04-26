@@ -1,3 +1,4 @@
+import { useI18n } from '@connectio/shared-frontend-i18n'
 import { Icon } from '../../components/ui/Icon'
 import { useSPCDispatch } from '../SPCContext'
 import type { RecentViolationItem } from '../types'
@@ -9,6 +10,7 @@ interface RecentViolationsProps {
 
 export default function RecentViolations({ hasMaterial, violations }: RecentViolationsProps) {
   const dispatch = useSPCDispatch()
+  const { t } = useI18n()
 
   return (
     <div className="card" style={{ overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -22,15 +24,15 @@ export default function RecentViolations({ hasMaterial, violations }: RecentViol
           <Icon name="alert-triangle" size={15} />
         </div>
         <div>
-          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-1)' }}>Priority signals</div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Sorted by severity × recency</div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-1)' }}>{t('spc.violations.title')}</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>{t('spc.violations.subtitle')}</div>
         </div>
         <button
           className="btn-link"
           style={{ marginLeft: 'auto', fontSize: 12 }}
           onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: 'charts' })}
         >
-          View all →
+          {t('spc.violations.viewAll')}
         </button>
       </div>
 
@@ -79,8 +81,8 @@ export default function RecentViolations({ hasMaterial, violations }: RecentViol
         ) : (
           <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
             {hasMaterial
-              ? 'No active signals for this scope.'
-              : 'Select a material to see priority signals.'}
+              ? t('spc.violations.emptyData')
+              : t('spc.violations.emptyMaterial')}
           </div>
         )}
       </div>

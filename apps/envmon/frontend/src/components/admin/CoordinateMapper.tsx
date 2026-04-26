@@ -7,6 +7,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import { IconTrash, IconMove, IconPlus, IconX, IconSearch } from '~/components/ui/Icons';
 import { useEM } from '~/context/EMContext';
 import {
@@ -53,7 +54,9 @@ function levelsAt(ids: string[], idx: number): string[] {
 // ---------------------------------------------------------------------------
 // Add-floor inline form
 // ---------------------------------------------------------------------------
+/** Inline form for adding a new floor to a plant in admin mode. */
 function AddFloorForm({ plantId, onDone }: { plantId: string; onDone: () => void }) {
+  const { t } = useI18n();
   const { mutate: addFloor, isPending } = useAddFloor();
   const [floorId,   setFloorId]   = useState('');
   const [floorName, setFloorName] = useState('');
@@ -71,7 +74,7 @@ function AddFloorForm({ plantId, onDone }: { plantId: string; onDone: () => void
 
   return (
     <form onSubmit={handleSubmit} style={{ padding: '12px 0', borderBottom: '1px solid var(--stroke-soft)' }}>
-      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--forest)' }}>Add floor</div>
+      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--forest)' }}>{t('envmon.admin.floor.addFloor')}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <input placeholder="Floor ID (e.g. F1)" value={floorId} onChange={(e) => setFloorId(e.target.value)}
           style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--stroke)', borderRadius: 4 }} />
@@ -81,9 +84,9 @@ function AddFloorForm({ plantId, onDone }: { plantId: string; onDone: () => void
           style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--stroke)', borderRadius: 4 }} />
         <div style={{ display: 'flex', gap: 6 }}>
           <button className="btn btn-primary btn-sm" type="submit" disabled={isPending || !floorId.trim() || !floorName.trim()}>
-            {isPending ? 'Saving…' : 'Add'}
+            {isPending ? t('envmon.admin.floor.adding') : t('envmon.admin.floor.add')}
           </button>
-          <button className="btn btn-ghost btn-sm" type="button" onClick={onDone}>Cancel</button>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={onDone}>{t('envmon.admin.floor.cancel')}</button>
         </div>
       </div>
     </form>
@@ -93,7 +96,9 @@ function AddFloorForm({ plantId, onDone }: { plantId: string; onDone: () => void
 // ---------------------------------------------------------------------------
 // Plant geo editor
 // ---------------------------------------------------------------------------
+/** Table editor for setting WGS-84 lat/lon coordinates for each plant (global map pin positions). */
 function PlantGeoPanel() {
+  const { t } = useI18n();
   const { data: plants = [] } = usePlants();
   const { data: saved = [] } = usePlantGeoConfig();
   const { mutate: upsert, isPending } = useUpsertPlantGeo();
@@ -131,16 +136,16 @@ function PlantGeoPanel() {
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: 720 }}>
-      <div className="eyebrow" style={{ marginBottom: 4 }}>Map pin coordinates</div>
+      <div className="eyebrow" style={{ marginBottom: 4 }}>{t('envmon.admin.geo.eyebrow')}</div>
       <p style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 0, marginBottom: 16 }}>
         Set WGS-84 latitude / longitude for each plant. These are used as map pin positions on the global view.
       </p>
       <table className="tbl">
         <thead>
           <tr>
-            <th>Plant</th>
-            <th>Latitude</th>
-            <th>Longitude</th>
+            <th>{t('envmon.admin.geo.col.plant')}</th>
+            <th>{t('envmon.admin.geo.col.lat')}</th>
+            <th>{t('envmon.admin.geo.col.lon')}</th>
             <th></th>
           </tr>
         </thead>
@@ -173,14 +178,14 @@ function PlantGeoPanel() {
               </td>
               <td>
                 {savedFlags[p.plant_id] ? (
-                  <span style={{ fontSize: 12, color: 'var(--jade)', fontFamily: 'var(--font-mono)' }}>Saved</span>
+                  <span style={{ fontSize: 12, color: 'var(--jade)', fontFamily: 'var(--font-mono)' }}>{t('envmon.admin.geo.saved')}</span>
                 ) : (
                   <button
                     className="btn btn-primary btn-sm"
                     disabled={isPending}
                     onClick={() => handleSave(p.plant_id)}
                   >
-                    Save
+                    {t('envmon.admin.geo.save')}
                   </button>
                 )}
               </td>
@@ -188,7 +193,7 @@ function PlantGeoPanel() {
           ))}
           {plants.length === 0 && (
             <tr>
-              <td colSpan={4} style={{ color: 'var(--fg-muted)', fontStyle: 'italic' }}>No active plants found.</td>
+              <td colSpan={4} style={{ color: 'var(--fg-muted)', fontStyle: 'italic' }}>{t('envmon.admin.geo.noPlants')}</td>
             </tr>
           )}
         </tbody>
@@ -200,7 +205,9 @@ function PlantGeoPanel() {
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
+/** Admin spatial authoring tool for mapping functional locations onto floor plans. */
 export default function CoordinateMapper() {
+  const { t } = useI18n();
   const [adminTab, setAdminTab] = React.useState<'floor' | 'geo'>('floor');
   const [locationTab, setLocationTab] = useState<'unmapped' | 'mapped'>('unmapped');
   const { timeWindow } = useEM();
@@ -329,12 +336,15 @@ export default function CoordinateMapper() {
       saveCoordinate(
         { plant_id: plantId, func_loc_id: dragging.funcLocId, floor_id: activeFloor, ...pos },
         {
-          onSuccess: () => { notify('success', `${dragging.funcLocId} → ${activeFloor}`); setDragging(null); },
+          onSuccess: () => {
+            notify('success', t('envmon.admin.notify.placed', { id: dragging.funcLocId, floor: activeFloor }));
+            setDragging(null);
+          },
           onError: (err) => { notify('error', err.message); setDragging(null); },
         },
       );
     },
-    [dragging, plantId, activeFloor, saveCoordinate, screenToSvgPct],
+    [dragging, plantId, activeFloor, saveCoordinate, screenToSvgPct, t],
   );
 
   const handleDragOver = (e: React.DragEvent<SVGSVGElement>) => {
@@ -366,14 +376,14 @@ export default function CoordinateMapper() {
         saveCoordinate(
           { plant_id: plantId, func_loc_id: pointerDragging, floor_id: activeFloor, ...pos },
           {
-            onSuccess: () => notify('success', `${pointerDragging} repositioned`),
+            onSuccess: () => notify('success', t('envmon.admin.notify.repositioned', { id: pointerDragging })),
             onError:   (err) => notify('error', err.message),
           },
         );
       }
       setPointerDragging(null); setPreviewPos(null);
     },
-    [pointerDragging, plantId, activeFloor, saveCoordinate, screenToSvgPct],
+    [pointerDragging, plantId, activeFloor, saveCoordinate, screenToSvgPct, t],
   );
 
   const handleUnmap = (funcLocId: string) => {
@@ -381,7 +391,7 @@ export default function CoordinateMapper() {
     deleteCoordinate(
       { plantId, funcLocId },
       {
-        onSuccess: () => notify('success', `${funcLocId} removed`),
+        onSuccess: () => notify('success', t('envmon.admin.notify.removed', { id: funcLocId })),
         onError:   (err) => notify('error', err.message),
       },
     );
@@ -397,13 +407,13 @@ export default function CoordinateMapper() {
           className={`tab${adminTab === 'floor' ? ' active' : ''}`}
           onClick={() => setAdminTab('floor')}
         >
-          Floor plan
+          {t('envmon.admin.tab.floorPlan')}
         </button>
         <button
           className={`tab${adminTab === 'geo' ? ' active' : ''}`}
           onClick={() => setAdminTab('geo')}
         >
-          Map pins
+          {t('envmon.admin.tab.mapPins')}
         </button>
       </div>
 
@@ -419,13 +429,13 @@ export default function CoordinateMapper() {
       <div className="em-mapper-sidebar">
         {/* Plant selector */}
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--stroke-soft)' }}>
-          <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginBottom: 4 }}>Plant</div>
+          <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginBottom: 4 }}>{t('envmon.admin.plant.label')}</div>
           <select
             value={plantId ?? ''}
             onChange={(e) => { setSelectedPlantId(e.target.value); setActiveFloor(null); }}
             style={{ fontSize: 12, padding: '4px 8px' }}
           >
-            {plantsLoading && <option value="">Loading plants…</option>}
+            {plantsLoading && <option value="">{t('envmon.admin.loading')}</option>}
             {plants.map((p) => (
               <option key={p.plant_id} value={p.plant_id}>{p.plant_id} · {p.plant_name}</option>
             ))}
@@ -435,18 +445,18 @@ export default function CoordinateMapper() {
         {/* Floor management */}
         <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--stroke-soft)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-muted)' }}>Floors</span>
+            <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-muted)' }}>{t('envmon.admin.floor.floors')}</span>
             <button className="btn btn-icon btn-ghost btn-sm" type="button"
-              onClick={() => setShowAddFloor((v) => !v)} title="Add floor">
+              onClick={() => setShowAddFloor((v) => !v)} title={t('envmon.admin.floor.addFloor')}>
               <IconPlus size={12} />
             </button>
           </div>
           {showAddFloor && plantId && (
             <AddFloorForm plantId={plantId} onDone={() => setShowAddFloor(false)} />
           )}
-          {floorsLoading && <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Loading…</span>}
+          {floorsLoading && <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{t('envmon.admin.loading')}</span>}
           {!floorsLoading && floors.length === 0 && (
-            <p style={{ fontSize: 12, color: 'var(--fg-muted)' }}>No floors configured. Add one above.</p>
+            <p style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{t('envmon.admin.floor.noFloors')}</p>
           )}
           {floors.map((f) => (
             <div key={f.floor_id} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
@@ -480,13 +490,13 @@ export default function CoordinateMapper() {
                 className={`tab${locationTab === 'unmapped' ? ' active' : ''}`}
                 onClick={() => setLocationTab('unmapped')}
               >
-                Unmapped ({filteredUnmapped.length})
+                {t('envmon.admin.loc.tab.unmapped', { n: filteredUnmapped.length })}
               </button>
               <button
                 className={`tab${locationTab === 'mapped' ? ' active' : ''}`}
                 onClick={() => setLocationTab('mapped')}
               >
-                Mapped ({filteredMapped.length})
+                {t('envmon.admin.loc.tab.mapped', { n: filteredMapped.length })}
               </button>
             </div>
 
@@ -495,13 +505,13 @@ export default function CoordinateMapper() {
               <div style={{ padding: 12, overflowY: 'auto', flex: 1 }}>
                 <div className="em-hierarchy-filters">
                   {[
-                    { id: 'filter-l1', label: 'Level 1', value: l1, options: l1Options, onChange: handleL1, disabled: false },
-                    { id: 'filter-l2', label: 'Level 2', value: l2, options: l2Options, onChange: handleL2, disabled: !l1 },
-                    { id: 'filter-l3', label: 'Level 3', value: l3, options: l3Options, onChange: handleL3, disabled: !l2 },
-                    { id: 'filter-l4', label: 'Level 4', value: l4, options: l4Options, onChange: setL4, disabled: !l3 },
-                  ].map(({ id, label, value, options, onChange, disabled }) => (
+                    { id: 'filter-l1', n: 1, value: l1, options: l1Options, onChange: handleL1, disabled: false },
+                    { id: 'filter-l2', n: 2, value: l2, options: l2Options, onChange: handleL2, disabled: !l1 },
+                    { id: 'filter-l3', n: 3, value: l3, options: l3Options, onChange: handleL3, disabled: !l2 },
+                    { id: 'filter-l4', n: 4, value: l4, options: l4Options, onChange: setL4, disabled: !l3 },
+                  ].map(({ id, n, value, options, onChange, disabled }) => (
                     <div key={id}>
-                      <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginBottom: 2 }}>{label}</div>
+                      <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginBottom: 2 }}>{t('envmon.admin.filter.level', { n })}</div>
                       <select id={id} value={value} disabled={disabled}
                         onChange={(e) => onChange(e.target.value)}
                         style={{ fontSize: 12, padding: '4px 8px' }}>
@@ -518,7 +528,7 @@ export default function CoordinateMapper() {
                     </span>
                     <input
                       type="text"
-                      placeholder="Search by ID…"
+                      placeholder={t('envmon.admin.loc.search')}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       style={{ paddingLeft: 28, paddingRight: searchQuery ? 28 : undefined, fontSize: 12, padding: '5px 28px' }}
@@ -531,11 +541,20 @@ export default function CoordinateMapper() {
                     )}
                   </div>
                 </div>
-                <div className="em-hierarchy-count">{filteredUnmapped.length} location{filteredUnmapped.length !== 1 ? 's' : ''}</div>
-                {loadingUnmapped && <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Loading…</span>}
+                <div className="em-hierarchy-count">
+                  {t(
+                    filteredUnmapped.length === 1
+                      ? 'envmon.admin.loc.unmapped.one'
+                      : 'envmon.admin.loc.unmapped.other',
+                    { n: filteredUnmapped.length },
+                  )}
+                </div>
+                {loadingUnmapped && <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{t('envmon.admin.loading')}</span>}
                 {!loadingUnmapped && filteredUnmapped.length === 0 && (
                   <p style={{ color: 'var(--fg-muted)', fontSize: '0.75rem' }}>
-                    {unmapped.length === 0 ? 'All locations are mapped.' : 'No locations match the selected filters.'}
+                    {unmapped.length === 0
+                      ? t('envmon.admin.loc.allMapped')
+                      : t('envmon.admin.loc.noMatch')}
                   </p>
                 )}
                 {filteredUnmapped.map((loc) => (
@@ -553,10 +572,12 @@ export default function CoordinateMapper() {
             {/* Mapped panel */}
             {locationTab === 'mapped' && (
               <div style={{ padding: 12, overflowY: 'auto', flex: 1 }}>
-                {loadingMapped && <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Loading…</span>}
+                {loadingMapped && <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{t('envmon.admin.loading')}</span>}
                 {!loadingMapped && filteredMapped.length === 0 && (
                   <p style={{ color: 'var(--fg-muted)', fontSize: '0.75rem', marginTop: 8 }}>
-                    {mapped.length === 0 ? 'No locations mapped yet.' : 'No mapped locations match the search.'}
+                    {mapped.length === 0
+                      ? t('envmon.admin.loc.noneMapped')
+                      : t('envmon.admin.loc.noMappedMatch')}
                   </p>
                 )}
                 {filteredMapped.map((loc) => (
@@ -595,11 +616,16 @@ export default function CoordinateMapper() {
             onChange={(e) => setActiveFloor(e.target.value)}
             style={{ width: 160, fontSize: 12, padding: '4px 8px' }}
           >
-            {floors.length === 0 && <option value="">No floors configured</option>}
+            {floors.length === 0 && <option value="">{t('envmon.admin.canvas.noFloors')}</option>}
             {floors.map((f) => <option key={f.floor_id} value={f.floor_id}>{f.floor_name}</option>)}
           </select>
           <span className="em-mapper-floor-count">
-            {floorMapped.length} location{floorMapped.length !== 1 ? 's' : ''} on this floor
+            {t(
+              floorMapped.length === 1
+                ? 'envmon.admin.loc.floorCount.one'
+                : 'envmon.admin.loc.floorCount.other',
+              { n: floorMapped.length },
+            )}
           </span>
         </div>
 
@@ -658,7 +684,7 @@ export default function CoordinateMapper() {
         {(isSaving || isDeleting) && (
           <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'rgba(0, 0, 0, 0.5)',
             display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ color: 'white', fontSize: 13, fontFamily: 'var(--font-mono)' }}>Saving…</span>
+            <span style={{ color: 'white', fontSize: 13, fontFamily: 'var(--font-mono)' }}>{t('envmon.admin.floor.adding')}</span>
           </div>
         )}
 
@@ -671,7 +697,10 @@ export default function CoordinateMapper() {
             border: `1px solid ${notification.kind === 'success' ? 'var(--jade)' : 'var(--sunset)'}`,
             color: 'var(--forest)',
           }}>
-            <strong>{notification.kind === 'success' ? 'Saved' : 'Error'}:</strong> {notification.message}
+            <strong>
+              {notification.kind === 'success' ? t('envmon.admin.notify.saved') : t('envmon.admin.notify.error')}:
+            </strong>{' '}
+            {notification.message}
           </div>
         )}
 
@@ -682,8 +711,8 @@ export default function CoordinateMapper() {
             background: 'var(--valentia-slate)', color: 'white', whiteSpace: 'nowrap',
           }}>
             {dragging
-              ? `Drop to place ${dragging.funcLocId} on ${currentFloor?.floor_name || activeFloor}`
-              : `Drag to reposition ${pointerDragging}`}
+              ? t('envmon.admin.drag.place', { id: dragging.funcLocId, floor: currentFloor?.floor_name || activeFloor || '' })
+              : t('envmon.admin.drag.reposition', { id: pointerDragging || '' })}
           </div>
         )}
       </div>

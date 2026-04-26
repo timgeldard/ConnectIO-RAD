@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import { useEM } from '~/context/EMContext';
 import { useLocationSummary } from '~/api/client';
 import StatusPill from '~/components/ui/StatusPill';
@@ -9,7 +10,9 @@ import LotsTab from './LotsTab';
 const TABS = ['trend', 'lots'] as const;
 type Tab = typeof TABS[number];
 
+/** Side panel that shows detail for a selected functional location — trend chart and lots list. */
 export default function LocationPanel() {
+  const { t } = useI18n();
   const { view, selectedLocId, setSelectedLocId } = useEM();
   const plantId = view.plantId;
   const [tab, setTab] = useState<Tab>('trend');
@@ -20,13 +23,17 @@ export default function LocationPanel() {
   const meta = summary?.meta;
   const recentLot = summary?.recent_lots?.[0];
 
+  /** Returns the translated label for the given tab identifier. */
+  const tabLabel = (t_: Tab): string =>
+    t_ === 'trend' ? t('envmon.tab.trend') : t('envmon.tab.lots');
+
   return (
     <div className="side-panel">
       {/* Header */}
       <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--stroke-soft)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ minWidth: 0 }}>
-            <div className="eyebrow">Functional location</div>
+            <div className="eyebrow">{t('envmon.panel.funcLoc')}</div>
             <div className="mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--valentia-slate)', marginTop: 2 }}>
               {selectedLocId}
             </div>
@@ -36,10 +43,10 @@ export default function LocationPanel() {
               </div>
             )}
             <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 2 }}>
-              {meta?.plant_id ?? ''}{meta?.floor_id ? ` · Floor ${meta.floor_id}` : ''}
+              {meta?.plant_id ?? ''}{meta?.floor_id ? ` · ${t('envmon.panel.floor', { id: meta.floor_id })}` : ''}
             </div>
           </div>
-          <button className="btn btn-icon btn-ghost" onClick={() => setSelectedLocId(null)} title="Close">
+          <button className="btn btn-icon btn-ghost" onClick={() => setSelectedLocId(null)} title={t('envmon.panel.close')}>
             <IconX size={14} />
           </button>
         </div>
@@ -59,15 +66,15 @@ export default function LocationPanel() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 2, padding: '0 20px', borderBottom: '1px solid var(--stroke-soft)' }}>
-        {TABS.map((t) => (
-          <button key={t} onClick={() => setTab(t)}
+        {TABS.map((tabId) => (
+          <button key={tabId} onClick={() => setTab(tabId)}
             style={{
               padding: '10px 12px', fontSize: 12,
-              borderBottom: tab === t ? '2px solid var(--valentia-slate)' : '2px solid transparent',
-              color: tab === t ? 'var(--valentia-slate)' : 'var(--fg-muted)',
-              fontWeight: 500, textTransform: 'capitalize', marginBottom: -1,
+              borderBottom: tab === tabId ? '2px solid var(--valentia-slate)' : '2px solid transparent',
+              color: tab === tabId ? 'var(--valentia-slate)' : 'var(--fg-muted)',
+              fontWeight: 500, marginBottom: -1,
             }}>
-            {t}
+            {tabLabel(tabId)}
           </button>
         ))}
       </div>

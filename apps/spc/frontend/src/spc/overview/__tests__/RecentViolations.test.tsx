@@ -1,7 +1,8 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import RecentViolations from '../RecentViolations'
 import { SPCProvider } from '../../SPCContext'
+import { renderWithI18n } from '../../__tests__/test-utils'
 import React from 'react'
 
 // Mock Icon
@@ -15,21 +16,21 @@ describe('RecentViolations', () => {
   ]
 
   it('renders priority signals and responds to click', () => {
-    render(
+    renderWithI18n(
       <SPCProvider>
         <RecentViolations hasMaterial={true} violations={violations} />
       </SPCProvider>
     )
     expect(screen.getByText('Priority signals')).toBeInTheDocument()
     expect(screen.getByText('X-Bar')).toBeInTheDocument()
-    
+
     fireEvent.click(screen.getByText('X-Bar').closest('button')!)
-    // We check for SET_ACTIVE_TAB in a more integrated test if needed, 
+    // We check for SET_ACTIVE_TAB in a more integrated test if needed,
     // but here we just confirm it renders and is clickable.
   })
 
   it('renders empty state when no material', () => {
-    render(
+    renderWithI18n(
       <SPCProvider>
         <RecentViolations hasMaterial={false} violations={[]} />
       </SPCProvider>

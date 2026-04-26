@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import EnvMonGlobalMap from '~/map/EnvMonGlobalMap';
 import { usePlantMapData } from '~/map/usePlantMapData';
 import KPI from '~/components/ui/KPI';
@@ -11,7 +12,9 @@ interface Props {
 
 const REGIONS = ['ALL', 'EMEA', 'AMER', 'APMEA'];
 
+/** Portfolio-level view showing risk map, KPI strip, and plant ranking list. */
 export default function GlobalView({ plants, onOpenPlant }: Props) {
+  const { t } = useI18n();
   const [region, setRegion] = useState('ALL');
   const [sortBy, setSortBy] = useState<'risk' | 'fails' | 'rate' | 'name'>('risk');
 
@@ -50,12 +53,12 @@ export default function GlobalView({ plants, onOpenPlant }: Props) {
         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20 }}
       >
         <div>
-          <div className="eyebrow">Portfolio overview · 30 day window</div>
+          <div className="eyebrow">{t('envmon.global.eyebrow')}</div>
           <h1 className="h-display" style={{ margin: '6px 0 0', fontSize: 32 }}>
-            Environmental monitoring across {totals.plants} plant{totals.plants !== 1 ? 's' : ''}
+            {t(totals.plants === 1 ? 'envmon.global.title.one' : 'envmon.global.title.other', { n: totals.plants })}
           </h1>
           <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 6 }}>
-            Regional helicopter view · risk-ranked · drill into any plant for its full heatmap.
+            {t('envmon.global.subtitle')}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -65,7 +68,7 @@ export default function GlobalView({ plants, onOpenPlant }: Props) {
               className={`chip${region === r ? ' active' : ''}`}
               onClick={() => setRegion(r)}
             >
-              {r === 'ALL' ? 'All regions' : r}
+              {r === 'ALL' ? t('envmon.global.allRegions') : r}
             </button>
           ))}
         </div>
@@ -75,16 +78,16 @@ export default function GlobalView({ plants, onOpenPlant }: Props) {
       <div
         style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}
       >
-        <KPI label="Active FAILs" value={totals.active_fails} accent="fail" />
-        <KPI label="Trending up (WARN)" value={totals.warnings} accent="warn" />
-        <KPI label="Pass rate (30d)" value={totals.pass_rate.toFixed(1)} unit="%" accent="ok" />
+        <KPI label={t('envmon.global.kpi.activeFails')} value={totals.active_fails} accent="fail" />
+        <KPI label={t('envmon.global.kpi.trendingWarn')} value={totals.warnings} accent="warn" />
+        <KPI label={t('envmon.global.kpi.passRate')} value={totals.pass_rate.toFixed(1)} unit="%" accent="ok" />
         <KPI
-          label="Lots tested / planned"
+          label={t('envmon.global.kpi.lotsTested')}
           value={totals.lots_tested}
           unit={`/ ${totals.lots_planned}`}
           accent="info"
         />
-        <KPI label="Pathogen hits" value={totals.pathogen_hits} accent="fail" />
+        <KPI label={t('envmon.global.kpi.pathogenHits')} value={totals.pathogen_hits} accent="fail" />
       </div>
 
       <div
@@ -94,20 +97,20 @@ export default function GlobalView({ plants, onOpenPlant }: Props) {
         <div className="card" style={{ padding: 0, position: 'relative' }}>
           <div className="card-hd">
             <div>
-              <h3>Risk map</h3>
+              <h3>{t('envmon.global.map.title')}</h3>
               <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 2 }}>
-                Colour = risk tier · cluster expands on click
+                {t('envmon.global.map.subtitle')}
               </div>
             </div>
             <div className="legend">
               <span className="item">
-                <span className="sw" style={{ background: 'var(--sunset)' }} />High
+                <span className="sw" style={{ background: 'var(--sunset)' }} />{t('envmon.global.legend.high')}
               </span>
               <span className="item">
-                <span className="sw" style={{ background: 'var(--sunrise)' }} />Medium
+                <span className="sw" style={{ background: 'var(--sunrise)' }} />{t('envmon.global.legend.medium')}
               </span>
               <span className="item">
-                <span className="sw" style={{ background: 'var(--jade)' }} />Low
+                <span className="sw" style={{ background: 'var(--jade)' }} />{t('envmon.global.legend.low')}
               </span>
             </div>
           </div>
@@ -124,7 +127,7 @@ export default function GlobalView({ plants, onOpenPlant }: Props) {
         {/* Plant ranking list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="eyebrow">Plant ranking</div>
+            <div className="eyebrow">{t('envmon.global.ranking')}</div>
             <div style={{ display: 'flex', gap: 4 }}>
               {(['risk', 'fails', 'rate', 'name'] as const).map((s) => (
                 <button
@@ -133,7 +136,13 @@ export default function GlobalView({ plants, onOpenPlant }: Props) {
                   style={{ fontSize: 11, padding: '2px 8px' }}
                   onClick={() => setSortBy(s)}
                 >
-                  {s === 'risk' ? 'Risk' : s === 'fails' ? 'FAILs' : s === 'rate' ? 'Pass %' : 'A-Z'}
+                  {s === 'risk'
+                    ? t('envmon.global.sort.risk')
+                    : s === 'fails'
+                    ? t('envmon.global.sort.fails')
+                    : s === 'rate'
+                    ? t('envmon.global.sort.rate')
+                    : t('envmon.global.sort.name')}
                 </button>
               ))}
             </div>
@@ -149,6 +158,7 @@ export default function GlobalView({ plants, onOpenPlant }: Props) {
   );
 }
 
+/** Individual plant card in the ranking list — shows risk indicator and KPI summary row. */
 function PlantCard({ plant, onClick }: { plant: PlantInfo; onClick: () => void }) {
   const { kpis } = plant;
   const riskCol =

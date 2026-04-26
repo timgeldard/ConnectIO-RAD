@@ -29,6 +29,7 @@ describe('AppShell', () => {
   it('renders GlobalView when level is global', () => {
     render(<AppShell />)
     expect(screen.getByTestId('global-view')).toBeInTheDocument()
-    expect(screen.getByText('Portfolio overview')).toBeInTheDocument()
+    // Nav label uses i18n — mock t() returns the key string
+    expect(screen.getByText('envmon.nav.portfolio')).toBeInTheDocument()
   })
 })

@@ -1,3 +1,4 @@
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import KPI from '~/components/ui/KPI';
 import { useFloors } from '~/api/client';
 import type { PlantInfo, FloorInfo } from '~/types';
@@ -8,15 +9,24 @@ interface Props {
   onBack: () => void;
 }
 
+/** Plant-level dashboard showing KPI strip and floor cards. */
 export default function SiteView({ plant, onOpenFloor, onBack }: Props) {
+  const { t } = useI18n();
   const { data: floors = [] } = useFloors(plant.plant_id);
   const { kpis } = plant;
+
+  const lotsDelta = t(
+    kpis.lots_tested === 1
+      ? 'envmon.site.kpi.planCompletion.delta.one'
+      : 'envmon.site.kpi.planCompletion.delta.other',
+    { tested: kpis.lots_tested, planned: kpis.lots_planned },
+  );
 
   return (
     <div className="scroll-y" style={{ height: '100%', padding: '20px 28px 40px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-        <button className="btn btn-ghost btn-sm" onClick={onBack}>← Portfolio</button>
-        <span className="eyebrow">Plant dashboard · 30 day window</span>
+        <button className="btn btn-ghost btn-sm" onClick={onBack}>{t('envmon.site.back')}</button>
+        <span className="eyebrow">{t('envmon.site.eyebrow')}</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20 }}>
         <div>
@@ -31,23 +41,23 @@ export default function SiteView({ plant, onOpenFloor, onBack }: Props) {
 
       {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 24 }}>
-        <KPI label="Active FAILs" value={kpis.active_fails} accent="fail" delta="Require immediate action" />
-        <KPI label="WARNING (SPC)" value={kpis.warnings} accent="warn" delta="3+ rising results" />
-        <KPI label="PENDING lots" value={kpis.pending} accent="info" delta="Open in QM" />
-        <KPI label="Pass rate" value={kpis.pass_rate.toFixed(1)} unit="%" accent="ok" />
+        <KPI label={t('envmon.site.kpi.activeFails')} value={kpis.active_fails} accent="fail" delta={t('envmon.site.kpi.activeFails.delta')} />
+        <KPI label={t('envmon.site.kpi.warnings')} value={kpis.warnings} accent="warn" delta={t('envmon.site.kpi.warnings.delta')} />
+        <KPI label={t('envmon.site.kpi.pending')} value={kpis.pending} accent="info" delta={t('envmon.site.kpi.pending.delta')} />
+        <KPI label={t('envmon.site.kpi.passRate')} value={kpis.pass_rate.toFixed(1)} unit="%" accent="ok" />
         <KPI
-          label="Plan completion"
+          label={t('envmon.site.kpi.planCompletion')}
           value={kpis.lots_planned > 0 ? Math.round(kpis.lots_tested / kpis.lots_planned * 100) : 100}
           unit="%"
           accent="info"
-          delta={`${kpis.lots_tested}/${kpis.lots_planned} lots`}
+          delta={lotsDelta}
         />
       </div>
 
       {/* Floor cards */}
-      <h3 style={{ margin: '8px 0 12px', fontSize: 15, fontWeight: 600 }}>Floors</h3>
+      <h3 style={{ margin: '8px 0 12px', fontSize: 15, fontWeight: 600 }}>{t('envmon.site.floors')}</h3>
       {floors.length === 0 ? (
-        <div style={{ color: 'var(--fg-muted)', fontSize: 13 }}>Loading floor data…</div>
+        <div style={{ color: 'var(--fg-muted)', fontSize: 13 }}>{t('envmon.site.loading')}</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: 14 }}>
           {floors.map((f) => (
@@ -59,7 +69,9 @@ export default function SiteView({ plant, onOpenFloor, onBack }: Props) {
   );
 }
 
+/** Card thumbnail for a single floor — shows a mini SVG preview and metadata. */
 function FloorCard({ floor, onClick }: { floor: FloorInfo; onClick: () => void }) {
+  const { t } = useI18n();
   const DEFAULT_W = 1021.6, DEFAULT_H = 722.48;
   const w = floor.svg_width ?? DEFAULT_W;
   const h = floor.svg_height ?? DEFAULT_H;
@@ -69,7 +81,7 @@ function FloorCard({ floor, onClick }: { floor: FloorInfo; onClick: () => void }
       style={{ padding: 0, cursor: 'pointer', textAlign: 'left', display: 'block', width: '100%' }}>
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--stroke-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div className="eyebrow">Floor {floor.floor_id}</div>
+          <div className="eyebrow">{t('envmon.site.floor.prefix', { id: floor.floor_id })}</div>
           <div style={{ fontWeight: 600, fontSize: 14, marginTop: 2 }}>{floor.floor_name}</div>
         </div>
         <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-muted)' }}>
@@ -91,8 +103,8 @@ function FloorCard({ floor, onClick }: { floor: FloorInfo; onClick: () => void }
         </svg>
       </div>
       <div style={{ padding: '10px 16px', fontSize: 12, color: 'var(--fg-muted)', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span>{floor.location_count} mapped swab points</span>
-        <span style={{ marginLeft: 'auto', color: 'var(--valentia-slate)', fontWeight: 500 }}>View heatmap →</span>
+        <span>{floor.location_count} {t('envmon.site.floor.swabPoints')}</span>
+        <span style={{ marginLeft: 'auto', color: 'var(--valentia-slate)', fontWeight: 500 }}>{t('envmon.site.floor.viewHeatmap')}</span>
       </div>
     </button>
   );

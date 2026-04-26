@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
+import { useI18n } from '@connectio/shared-frontend-i18n'
 import '../charts/ensureEChartsTheme'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from '../SPCContext'
 import { useSPCScorecard } from '../hooks/useSPCScorecard'
@@ -28,6 +29,7 @@ function ScorecardSkeleton() {
 
 export default function ScorecardView() {
   const dispatch = useSPCDispatch()
+  const { t } = useI18n()
   const state = useSPCSelector(
     current => ({
       roleMode: current.roleMode,
@@ -54,8 +56,8 @@ export default function ScorecardView() {
     return (
       <div style={{ padding: '48px 20px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
         <div style={{ fontSize: 32, marginBottom: 12 }}>▦</div>
-        <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-2)', marginBottom: 6 }}>No material selected</div>
-        <div>Select a material above to view the SPC scorecard with Cpk for all characteristics.</div>
+        <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-2)', marginBottom: 6 }}>{t('spc.scorecard.emptyMaterial.title')}</div>
+        <div>{t('spc.scorecard.emptyMaterial.body')}</div>
       </div>
     )
   }
@@ -80,7 +82,7 @@ export default function ScorecardView() {
         background: 'var(--status-risk-bg)', border: '1px solid var(--status-risk)',
         color: 'var(--status-risk)', fontSize: 13,
       }}>
-        <strong>Failed to load scorecard</strong> — {String(error)}
+        <strong>{t('spc.scorecard.error')}</strong> — {String(error)}
       </div>
     )
   }
@@ -88,8 +90,8 @@ export default function ScorecardView() {
   if (!scorecard.length) {
     return (
       <div style={{ padding: '48px 20px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
-        <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-2)', marginBottom: 6 }}>No scorecard data</div>
-        <div>No data found for {state.selectedMaterial.material_name ?? state.selectedMaterial.material_id}. At least 3 batches with quantitative results are required.</div>
+        <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-2)', marginBottom: 6 }}>{t('spc.scorecard.emptyData.title')}</div>
+        <div>{t('spc.scorecard.emptyData.body', { material: state.selectedMaterial.material_name ?? state.selectedMaterial.material_id })}</div>
       </div>
     )
   }
@@ -107,34 +109,34 @@ export default function ScorecardView() {
       {/* KPI row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         <KPICard
-          label="Characteristics"
+          label={t('spc.scorecard.kpi.characteristics')}
           value={scorecard.length}
-          unit="monitored"
+          unit={t('spc.scorecard.kpi.characteristics.unit')}
           tone="neutral"
           icon="beaker"
-          delta="All active"
+          delta={t('spc.scorecard.kpi.characteristics.delta')}
         />
         <KPICard
-          label="Capable"
+          label={t('spc.scorecard.kpi.capable')}
           value={capable}
-          unit={`of ${scorecard.length}`}
+          unit={t('spc.scorecard.kpi.capable.unit', { total: scorecard.length })}
           tone="ok"
           icon="check-circle"
-          delta="Cpk ≥ 1.33"
+          delta={t('spc.scorecard.kpi.capable.delta')}
         />
         <KPICard
-          label="Marginal"
+          label={t('spc.scorecard.kpi.marginal')}
           value={marginal}
           tone="warn"
           icon="alert-triangle"
-          delta="1.00 ≤ Cpk < 1.33"
+          delta={t('spc.scorecard.kpi.marginal.delta')}
         />
         <KPICard
-          label="Signals open"
+          label={t('spc.scorecard.kpi.signalsOpen')}
           value={withSignals}
           tone={withSignals > 0 ? 'risk' : 'ok'}
           icon="flag"
-          delta={withSignals > 0 ? 'MICs with OOC' : 'All clear'}
+          delta={withSignals > 0 ? t('spc.scorecard.kpi.signalsOpen.delta.ooc') : t('spc.scorecard.kpi.signalsOpen.delta.clear')}
         />
       </div>
 

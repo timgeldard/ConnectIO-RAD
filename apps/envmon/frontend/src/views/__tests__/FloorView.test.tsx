@@ -37,7 +37,7 @@ describe('FloorView', () => {
 
   it('calls onBack when Portfolio is clicked', () => {
     render(<FloorView {...defaultProps} />)
-    fireEvent.click(screen.getByText(/Portfolio/i))
+    fireEvent.click(screen.getByText('envmon.site.back'))
     expect(defaultProps.onBack).toHaveBeenCalled()
   })
 })

@@ -1,3 +1,4 @@
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import type { HeatmapStatus } from '~/types';
 
 interface StatusPillProps {
@@ -5,19 +6,13 @@ interface StatusPillProps {
   label?: string;
 }
 
-const STATUS_LABELS: Record<HeatmapStatus, string> = {
-  PASS:    'Pass',
-  FAIL:    'Fail',
-  WARNING: 'Warning',
-  PENDING: 'Pending',
-  NO_DATA: 'No data',
-};
-
+/** Displays a coloured pill badge for a heatmap inspection status value. */
 export default function StatusPill({ status, label }: StatusPillProps) {
+  const { t } = useI18n();
   return (
     <span className={`pill status-${status}`}>
       <span className="dot" />
-      {label ?? STATUS_LABELS[status] ?? status}
+      {label ?? t(`envmon.status.${status}`)}
     </span>
   );
 }

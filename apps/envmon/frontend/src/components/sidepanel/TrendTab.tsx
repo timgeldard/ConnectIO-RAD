@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import { useTrends, useMics } from '~/api/client';
 import { useEM } from '~/context/EMContext';
 import type { TimeWindow } from '~/types';
@@ -14,6 +15,7 @@ const VALUATION_COLOR: Record<string, string> = {
   W: '#F9C20A',
 };
 
+/** Compact window selector options — short numeric codes, locale-invariant. */
 const WINDOWS: { value: TimeWindow; label: string }[] = [
   { value: 30,  label: '30d' },
   { value: 60,  label: '60d' },
@@ -21,7 +23,9 @@ const WINDOWS: { value: TimeWindow; label: string }[] = [
   { value: 180, label: '180d' },
 ];
 
+/** Trend chart tab showing result values over time for a selected MIC at a functional location. */
 export default function TrendTab({ plantId, funcLocId }: Props) {
+  const { t } = useI18n();
   const { timeWindow } = useEM();
   const [selectedMic, setSelectedMic] = useState<string | null>(null);
   const [windowDays, setWindowDays] = useState<TimeWindow>(timeWindow);
@@ -44,8 +48,8 @@ export default function TrendTab({ plantId, funcLocId }: Props) {
   const maxVal  = Math.max(upperLimit ?? 0, ...values, 1);
   const minVal  = Math.min(0, ...values);
 
-  const scaleX = (t: number) =>
-    maxDate === minDate ? PAD.l + innerW / 2 : PAD.l + ((t - minDate) / (maxDate - minDate)) * innerW;
+  const scaleX = (t_: number) =>
+    maxDate === minDate ? PAD.l + innerW / 2 : PAD.l + ((t_ - minDate) / (maxDate - minDate)) * innerW;
   const scaleY = (v: number) =>
     CHART_H - PAD.b - ((v - minVal) / (maxVal - minVal)) * innerH;
 
@@ -63,14 +67,14 @@ export default function TrendTab({ plantId, funcLocId }: Props) {
       {/* Controls */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div style={{ flex: 1, minWidth: 130 }}>
-          <div className="eyebrow" style={{ marginBottom: 4 }}>MIC</div>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>{t('envmon.trend.micLabel')}</div>
           <select value={activeMic ?? ''} onChange={(e) => setSelectedMic(e.target.value || null)} style={{ width: '100%' }}>
-            <option value="">Select MIC…</option>
+            <option value="">{t('envmon.trend.selectMic')}</option>
             {micNames.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
         <div>
-          <div className="eyebrow" style={{ marginBottom: 4 }}>Window</div>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>{t('envmon.trend.windowLabel')}</div>
           <div style={{ display: 'inline-flex', background: 'var(--stone)', borderRadius: 999, padding: 2 }}>
             {WINDOWS.map(({ value, label }) => (
               <button key={value} onClick={() => setWindowDays(value)}
@@ -84,26 +88,26 @@ export default function TrendTab({ plantId, funcLocId }: Props) {
         </div>
       </div>
 
-      {micsLoading && <div style={{ color: 'var(--fg-muted)', fontSize: 12 }}>Loading MICs…</div>}
-      {!micsLoading && !activeMic && <div style={{ color: 'var(--fg-muted)', fontSize: 12 }}>Select a MIC to view the trend.</div>}
-      {activeMic && !isLoading && points.length === 0 && <div style={{ color: 'var(--fg-muted)', fontSize: 12 }}>No data in this window.</div>}
-      {isLoading && <div style={{ color: 'var(--fg-muted)', fontSize: 12 }}>Loading trend…</div>}
+      {micsLoading && <div style={{ color: 'var(--fg-muted)', fontSize: 12 }}>{t('envmon.trend.loadingMics')}</div>}
+      {!micsLoading && !activeMic && <div style={{ color: 'var(--fg-muted)', fontSize: 12 }}>{t('envmon.trend.promptSelectMic')}</div>}
+      {activeMic && !isLoading && points.length === 0 && <div style={{ color: 'var(--fg-muted)', fontSize: 12 }}>{t('envmon.trend.noData')}</div>}
+      {isLoading && <div style={{ color: 'var(--fg-muted)', fontSize: 12 }}>{t('envmon.trend.loading')}</div>}
 
       {activeMic && !isLoading && points.length > 0 && (
         <>
-          <div className="eyebrow" style={{ marginBottom: 4 }}>MIC · {activeMic}</div>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>{t('envmon.trend.micLabel')} · {activeMic}</div>
           {upperLimit != null && (
             <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginBottom: 8 }}>
-              Upper tolerance limit: {upperLimit}
+              {t('envmon.trend.upperLimit', { n: upperLimit })}
             </div>
           )}
           <svg className="trend-chart" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="xMidYMid meet"
             style={{ background: 'var(--stone)', borderRadius: 4, overflow: 'visible' }}>
             {/* Grid lines */}
-            {[0, 0.25, 0.5, 0.75, 1].map((t, i) => (
+            {[0, 0.25, 0.5, 0.75, 1].map((v, i) => (
               <line key={i} className="grid"
-                x1={PAD.l} y1={PAD.t + t * innerH}
-                x2={CHART_W - PAD.r} y2={PAD.t + t * innerH} />
+                x1={PAD.l} y1={PAD.t + v * innerH}
+                x2={CHART_W - PAD.r} y2={PAD.t + v * innerH} />
             ))}
             {/* Upper limit */}
             {upperLimit != null && (
@@ -147,9 +151,9 @@ export default function TrendTab({ plantId, funcLocId }: Props) {
             })}
           </svg>
           <div style={{ marginTop: 10, display: 'flex', gap: 10, fontSize: 11.5, color: 'var(--fg-muted)' }}>
-            <span style={{ color: '#44CF93' }}>● A (accept)</span>
-            <span style={{ color: '#F9C20A' }}>● W (warn)</span>
-            <span style={{ color: '#F24A00' }}>● R (reject)</span>
+            <span style={{ color: '#44CF93' }}>{t('envmon.trend.legend.accept')}</span>
+            <span style={{ color: '#F9C20A' }}>{t('envmon.trend.legend.warn')}</span>
+            <span style={{ color: '#F24A00' }}>{t('envmon.trend.legend.reject')}</span>
           </div>
         </>
       )}

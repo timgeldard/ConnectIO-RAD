@@ -1,3 +1,4 @@
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import { useEM } from '~/context/EMContext';
 import { useFloors } from '~/api/client';
 import FilterBar from '~/components/controls/FilterBar';
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function FloorView({ plantId, floorId, personaId, onBack, onBackToSite, onChangeFloor }: Props) {
+  const { t } = useI18n();
   const { selectedLocId } = useEM();
   const { data: floors = [] } = useFloors(plantId);
 
@@ -24,7 +26,7 @@ export default function FloorView({ plantId, floorId, personaId, onBack, onBackT
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Sub-nav with breadcrumbs + floor switcher chips */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 24px', background: 'white', borderBottom: '1px solid var(--stroke-soft)' }}>
-        <button className="btn btn-ghost btn-sm" onClick={onBack}>← Portfolio</button>
+        <button className="btn btn-ghost btn-sm" onClick={onBack}>{t('envmon.site.back')}</button>
         <span style={{ color: 'var(--stroke)' }}>/</span>
         <button className="btn btn-ghost btn-sm" onClick={onBackToSite}>{plantId}</button>
         <span style={{ color: 'var(--stroke)' }}>/</span>
