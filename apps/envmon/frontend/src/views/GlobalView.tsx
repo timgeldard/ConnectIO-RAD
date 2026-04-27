@@ -114,7 +114,7 @@ export default function GlobalView({ plants, onOpenPlant }: Props) {
               </span>
             </div>
           </div>
-          <div style={{ height: 320, borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
+          <div style={{ height: 640, borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
             <EnvMonGlobalMap
               featureCollection={featureCollection}
               plants={scopedPlants}
