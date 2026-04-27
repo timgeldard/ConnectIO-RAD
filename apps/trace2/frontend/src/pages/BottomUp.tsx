@@ -6,6 +6,9 @@ import { LoadFrame, EmptyBlock } from "../components/LoadFrame";
 import { LineageGraph, NodeDetailPanel } from "../components/LineageGraph";
 import { CytoscapeGraph, type CytoscapeMode } from "../components/CytoscapeGraph";
 import { GraphViewToggle, type GraphViewMode } from "../components/GraphViewToggle";
+import { usePersistentMode } from "../hooks/usePersistentMode";
+
+const BOTTOM_UP_VIEWS: GraphViewMode[] = ["lineage", "tree", "network"];
 import { Card, DataTable, DepthControl, KPI, SectionHeader, StatusPill, fmtN } from "../ui";
 import { useI18n } from "@connectio/shared-frontend-i18n";
 import { plural, template, traceCopy } from "../i18n/pageCopy";
@@ -63,7 +66,11 @@ function BottomUpBody({
   setMaxInputDepth?: (v: number) => void;
 }) {
   const [selected, setSelected] = useState<LineageNode | null>(null);
-  const [graphView, setGraphView] = useState<GraphViewMode>("lineage");
+  const [graphView, setGraphView] = usePersistentMode<GraphViewMode>(
+    "trace2:graphView:bottomUp",
+    "lineage",
+    BOTTOM_UP_VIEWS,
+  );
   const { language } = useI18n();
   const copy = traceCopy(language);
   const focal = focalFromBatch(batch);
@@ -104,7 +111,7 @@ function BottomUpBody({
 
       <Card title={copy.line.materialLineageInputs} subtitle={copy.line.graphHelp} noPad style={{ marginBottom: 20 }}>
         <div style={{ padding: "10px 14px 0" }}>
-          <GraphViewToggle value={graphView} onChange={setGraphView} />
+          <GraphViewToggle value={graphView} onChange={setGraphView} modes={BOTTOM_UP_VIEWS} />
         </div>
         {graphView === "lineage" ? (
           <LineageGraph

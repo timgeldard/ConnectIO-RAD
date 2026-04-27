@@ -13,7 +13,7 @@ if (!_coseBilkentRegistered) {
   _coseBilkentRegistered = true;
 }
 
-export type CytoscapeMode = "tree" | "network";
+export type CytoscapeMode = "tree" | "network" | "radial";
 
 interface Props {
   focal: FocalNode;
@@ -62,6 +62,8 @@ function buildElements(
   const upFiltered = upstream.filter((n) => n.id !== focal.id);
   const dnFiltered = downstream.filter((n) => n.id !== focal.id);
 
+  // Plant clustering only makes visual sense in cose-bilkent's force-directed
+  // layout. Tree/breadthfirst and concentric/radial both fight compound parents.
   const usePlantParents = mode === "network";
   const plants = new Set<string>();
   if (usePlantParents) {
@@ -216,9 +218,12 @@ function styleSheet(): cytoscape.StylesheetCSS[] {
     {
       selector: "node[kind = 'plant']",
       css: {
+        // Kerry secondary palette — sage at 35% over stone reads as a soft
+        // "this is a grouping, not a primary node" cue
         "background-color": "#FBF8F1",
         "background-opacity": 0.55,
-        "border-color": "#C8D8C0",
+        "border-color": "#289BA2",
+        "border-opacity": 0.45,
         "border-width": 1,
         "border-style": "dashed",
         "padding-top": "12px",
@@ -434,26 +439,47 @@ function runLayout(cy: Core, mode: CytoscapeMode, focalId: string): void {
       spacingFactor: 1.2,
       animate: false,
     } as cytoscape.LayoutOptions).run();
-  } else {
-    cy.layout({
-      name: "cose-bilkent",
-      // Tuning chosen so plant clusters stay visually distinct without
-      // losing the focal node in a wide swirl
-      idealEdgeLength: 110,
-      nodeRepulsion: 6500,
-      edgeElasticity: 0.45,
-      nestingFactor: 0.1,
-      gravity: 0.3,
-      gravityRangeCompound: 1.5,
-      gravityCompound: 1.0,
-      numIter: 2500,
-      tile: true,
-      animate: "end",
-      animationDuration: 600,
-      randomize: true,
-      padding: 24,
-    } as unknown as cytoscape.LayoutOptions).run();
+    return;
   }
+  if (mode === "radial") {
+    // "Recall blast radius" — focal node sits dead-centre; nodes at L1 form
+    // the inner ring (direct customers/inputs), L2 forms the next ring out,
+    // and so on. Visualises how far the impact has spread.
+    cy.layout({
+      name: "concentric",
+      concentric: (node: cytoscape.NodeSingular) => {
+        if (node.data("kind") === "focal") return 1000;
+        const lvl = (node.data("level") as number) || 1;
+        return Math.max(0, 1000 - lvl * 100);
+      },
+      levelWidth: () => 1,
+      spacingFactor: 1.4,
+      minNodeSpacing: 36,
+      avoidOverlap: true,
+      animate: false,
+      padding: 24,
+      startAngle: -Math.PI / 2,
+    } as unknown as cytoscape.LayoutOptions).run();
+    return;
+  }
+  cy.layout({
+    name: "cose-bilkent",
+    // Tuning chosen so plant clusters stay visually distinct without
+    // losing the focal node in a wide swirl
+    idealEdgeLength: 110,
+    nodeRepulsion: 6500,
+    edgeElasticity: 0.45,
+    nestingFactor: 0.1,
+    gravity: 0.3,
+    gravityRangeCompound: 1.5,
+    gravityCompound: 1.0,
+    numIter: 2500,
+    tile: true,
+    animate: "end",
+    animationDuration: 600,
+    randomize: true,
+    padding: 24,
+  } as unknown as cytoscape.LayoutOptions).run();
 }
 
 function applyCollapsedState(

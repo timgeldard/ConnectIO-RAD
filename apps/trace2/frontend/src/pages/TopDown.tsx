@@ -6,6 +6,11 @@ import { LoadFrame, EmptyBlock } from "../components/LoadFrame";
 import { LineageGraph, NodeDetailPanel } from "../components/LineageGraph";
 import { CytoscapeGraph, type CytoscapeMode } from "../components/CytoscapeGraph";
 import { GraphViewToggle, type GraphViewMode } from "../components/GraphViewToggle";
+import { usePersistentMode } from "../hooks/usePersistentMode";
+
+// TopDown adds the "Blast radius" radial layout for recall impact analysis;
+// BottomUp omits it (radial blast radius doesn't map to upstream auditing).
+const TOP_DOWN_VIEWS: GraphViewMode[] = ["lineage", "tree", "network", "radial"];
 import { Card, DataTable, DepthControl, KPI, SectionHeader, fmtN, fmtInt } from "../ui";
 import { useI18n } from "@connectio/shared-frontend-i18n";
 import { plural, template, traceCopy } from "../i18n/pageCopy";
@@ -63,7 +68,11 @@ function TopDownBody({
   setMaxInputDepth?: (v: number) => void;
 }) {
   const [selected, setSelected] = useState<LineageNode | null>(null);
-  const [graphView, setGraphView] = useState<GraphViewMode>("lineage");
+  const [graphView, setGraphView] = usePersistentMode<GraphViewMode>(
+    "trace2:graphView:topDown",
+    "lineage",
+    TOP_DOWN_VIEWS,
+  );
   const { language } = useI18n();
   const copy = traceCopy(language);
   const focal = focalFromBatch(batch);
@@ -99,7 +108,7 @@ function TopDownBody({
 
       <Card title={copy.line.materialLineageOutputs} subtitle={copy.line.graphHelp} noPad style={{ marginBottom: 20 }}>
         <div style={{ padding: "10px 14px 0" }}>
-          <GraphViewToggle value={graphView} onChange={setGraphView} />
+          <GraphViewToggle value={graphView} onChange={setGraphView} modes={TOP_DOWN_VIEWS} />
         </div>
         {graphView === "lineage" ? (
           <LineageGraph
