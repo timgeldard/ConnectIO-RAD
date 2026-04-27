@@ -21,7 +21,7 @@ POINT_TBL_NAME  = os.environ.get("EM_POINT_TABLE",  f"{TRACE_CATALOG}.{TRACE_SCH
 RESULT_TBL_NAME = os.environ.get("EM_RESULT_TABLE", f"{TRACE_CATALOG}.{TRACE_SCHEMA}.gold_batch_quality_result_v")
 COORD_TBL_NAME  = os.environ.get("EM_COORD_TABLE",  f"{TRACE_CATALOG}.{TRACE_SCHEMA}.em_location_coordinates")
 FLOOR_TBL_NAME  = os.environ.get("EM_FLOOR_TABLE",  f"{TRACE_CATALOG}.{TRACE_SCHEMA}.em_plant_floor")
-PLANT_TBL_NAME  = os.environ.get("EM_PLANT_TABLE",  f"{TRACE_CATALOG}.{TRACE_SCHEMA}.vw_gold_plant")
+PLANT_TBL_NAME  = os.environ.get("EM_PLANT_TABLE",  f"{TRACE_CATALOG}.{TRACE_SCHEMA}.gold_plant")
 # Internal config table — replaces the external epmplantconfiguration_zepm_plant_conf join
 PLANT_GEO_TBL_NAME = f"{TRACE_CATALOG}.{TRACE_SCHEMA}.em_plant_geo"
 

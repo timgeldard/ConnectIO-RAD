@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import WM from '../data/mockData.js';
 import { useApi } from '../hooks/useApi.js';
 import { Icon, Pill, Progress, RiskDot } from './Primitives.jsx';
@@ -15,6 +16,7 @@ const deliveryStatus = (d) => {
 };
 
 const Outbound = ({ onOpen }) => {
+  const { t } = useI18n();
   const [tab, setTab] = React.useState('all');
   const [filters, setFilters] = React.useState({ risk: 'all' });
   const { data: resp, loading } = useApi('/api/deliveries');
@@ -49,50 +51,50 @@ const Outbound = ({ onOpen }) => {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">Outbound · Customer deliveries</div>
-          <h1 className="page-title">Outbound Deliveries</h1>
+          <h1 className="page-title">{t('warehouse.title.outbound')}</h1>
           <div className="page-desc">Pick · stage · load · ship. Red where cut-off is within 2 hours and pick is incomplete.</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-secondary"><Icon name="download" size={14}/> Manifest</button>
-          <button className="btn btn-primary"><Icon name="truckOut" size={14}/> Schedule load</button>
+          <button className="btn btn-secondary"><Icon name="download" size={14}/> {t('warehouse.outbound.btn.manifest')}</button>
+          <button className="btn btn-primary"><Icon name="truckOut" size={14}/> {t('warehouse.outbound.btn.scheduleLoad')}</button>
         </div>
       </div>
 
       <div className="kpi-grid">
-        <KPI label="Deliveries" value={v(counts.all)} tone="ok"/>
-        <KPI label="At cut-off risk" value={v(counts.risk)} tone={counts.risk > 0 ? 'critical' : 'ok'}/>
-        <KPI label="Open / Picking" value={v(counts.picking)} tone="ok"/>
-        <KPI label="Staged" value={v(counts.staged)} tone="ok"/>
-        <KPI label="Shipped" value={v(counts.shipped)} tone="ok"/>
-        <KPI label="Total packages" value={v(allDeliveries.reduce((a, d) => a + (d.packages || 0), 0))} unit=" pkg" tone="ok"/>
+        <KPI label={t('warehouse.outbound.kpi.deliveries')} value={v(counts.all)} tone="ok"/>
+        <KPI label={t('warehouse.outbound.kpi.cutoffRisk')} value={v(counts.risk)} tone={counts.risk > 0 ? 'critical' : 'ok'}/>
+        <KPI label={t('warehouse.outbound.kpi.openPicking')} value={v(counts.picking)} tone="ok"/>
+        <KPI label={t('warehouse.outbound.kpi.staged')} value={v(counts.staged)} tone="ok"/>
+        <KPI label={t('warehouse.outbound.kpi.shipped')} value={v(counts.shipped)} tone="ok"/>
+        <KPI label={t('warehouse.outbound.kpi.packages')} value={v(allDeliveries.reduce((a, d) => a + (d.packages || 0), 0))} unit=" pkg" tone="ok"/>
       </div>
 
-      <Card title="Outbound dock schedule" subtitle="Cut-off times · red = missed or imminent"
+      <Card title={t('warehouse.outbound.card.dockSchedule')} subtitle="Cut-off times · red = missed or imminent"
         eyebrow="Docks" style={{ marginBottom: 16 }}>
         <DockSchedule type="Outbound" onOpen={onOpen}/>
       </Card>
 
       <div className="tabs">
         {[
-          { id: 'all',     label: 'All deliveries' },
-          { id: 'picking', label: 'Open / Picking' },
-          { id: 'staged',  label: 'Staged' },
-          { id: 'shipped', label: 'Shipped' },
-          { id: 'risk',    label: 'Cut-off risk' },
-        ].map((t) => (
-          <button key={t.id} className={`tab ${tab === t.id ? 'is-active' : ''}`} onClick={() => setTab(t.id)}>
-            {t.label}<span className="tab-count">{counts[t.id]}</span>
+          { id: 'all',     label: t('warehouse.outbound.tab.all') },
+          { id: 'picking', label: t('warehouse.outbound.tab.picking') },
+          { id: 'staged',  label: t('warehouse.outbound.tab.staged') },
+          { id: 'shipped', label: t('warehouse.outbound.tab.shipped') },
+          { id: 'risk',    label: t('warehouse.outbound.tab.risk') },
+        ].map((tabDef) => (
+          <button key={tabDef.id} className={`tab ${tab === tabDef.id ? 'is-active' : ''}`} onClick={() => setTab(tabDef.id)}>
+            {tabDef.label}<span className="tab-count">{counts[tabDef.id]}</span>
           </button>
         ))}
       </div>
 
       <FilterBar
         filters={[
-          { key: 'risk', label: 'Risk', chips: [
-            { value: 'all',   label: 'All' },
-            { value: 'red',   label: 'Critical', dot: 'red' },
-            { value: 'amber', label: 'At risk',  dot: 'amber' },
-            { value: 'green', label: 'On track' },
+          { key: 'risk', label: t('warehouse.common.filter.risk'), chips: [
+            { value: 'all',   label: t('warehouse.common.all') },
+            { value: 'red',   label: t('warehouse.common.risk.critical'), dot: 'red' },
+            { value: 'amber', label: t('warehouse.common.risk.atRisk'),  dot: 'amber' },
+            { value: 'green', label: t('warehouse.common.risk.onTrack') },
           ] },
         ]}
         values={filters}
@@ -104,8 +106,14 @@ const Outbound = ({ onOpen }) => {
           <table className="tbl">
             <thead>
               <tr>
-                <th></th><th>Delivery</th><th>Customer</th><th>Carrier</th><th>GI date</th>
-                <th className="num">Pick</th><th className="num">Pkg</th><th>Status</th>
+                <th></th>
+                <th>{t('warehouse.common.col.delivery')}</th>
+                <th>{t('warehouse.common.col.customer')}</th>
+                <th>{t('warehouse.outbound.col.carrier')}</th>
+                <th>{t('warehouse.outbound.col.giDate')}</th>
+                <th className="num">{t('warehouse.ct.col.pick')}</th>
+                <th className="num">{t('warehouse.outbound.col.pkg')}</th>
+                <th>{t('warehouse.common.col.status')}</th>
               </tr>
             </thead>
             <tbody>
