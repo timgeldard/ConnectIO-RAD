@@ -4,3 +4,4 @@ databricks-sdk>=0.25.0
 databricks-sql-connector>=3.3.0
 cachetools>=5.3.3
 slowapi>=0.1.9
+pgeocode>=0.5.0

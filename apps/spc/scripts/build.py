@@ -16,7 +16,7 @@ from pathlib import Path
 APP_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = APP_DIR.parents[1]
 
-SHARED_LIBS = ["shared-db", "shared-api", "shared-trace"]
+SHARED_LIBS = ["shared-db", "shared-api", "shared-geo", "shared-trace"]
 
 
 def copy_shared_libs() -> None:

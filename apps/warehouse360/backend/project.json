@@ -2,6 +2,7 @@
   "name": "warehouse360-backend",
   "projectType": "application",
   "tags": ["scope:warehouse360", "type:backend"],
+  "implicitDependencies": ["shared-geo"],
   "targets": {
     "sync": {
       "executor": "nx:run-commands",
@@ -13,7 +14,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/warehouse360 uv run --no-sync --package warehouse360-backend python -m pytest apps/warehouse360/backend/tests",
+        "command": "PYTHONPATH=apps/warehouse360:libs/shared-geo/src uv run --no-sync --package warehouse360-backend python -m pytest apps/warehouse360/backend/tests",
         "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],

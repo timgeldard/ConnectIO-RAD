@@ -19,6 +19,7 @@ node_modules/
 apps/*/shared_api/
 apps/*/shared_auth/
 apps/*/shared_db/
+apps/*/shared_geo/
 apps/*/shared_trace/
 
 # Nx

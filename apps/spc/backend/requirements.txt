@@ -12,3 +12,4 @@ cachetools>=5.3.0
 pypika>=0.51.1
 databricks-sql-connector>=4.0.0
 orjson>=3.9.0
+pgeocode>=0.5.0

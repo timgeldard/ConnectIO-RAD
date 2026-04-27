@@ -1,0 +1,32 @@
+{
+  "name": "shared-geo",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:backend"],
+  "targets": {
+    "sync": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync --package shared-geo",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "PYTHONPATH=libs/shared-geo/src uv run --no-sync --package shared-geo python -m pytest libs/shared-geo/tests",
+        "cwd": "{workspaceRoot}"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --no-sync ruff check .",
+        "cwd": "libs/shared-geo"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    }
+  }
+}

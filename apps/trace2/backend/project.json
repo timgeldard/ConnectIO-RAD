@@ -2,7 +2,7 @@
   "name": "trace2-backend",
   "projectType": "application",
   "tags": ["scope:trace2", "type:backend"],
-  "implicitDependencies": ["shared-db", "shared-api", "shared-trace"],
+  "implicitDependencies": ["shared-db", "shared-api", "shared-geo", "shared-trace"],
   "targets": {
     "sync": {
       "executor": "nx:run-commands",
@@ -14,14 +14,14 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/trace2:libs/shared-db/src:libs/shared-api/src:libs/shared-trace/src uv run --no-sync --package trace2-backend uvicorn backend.main:app --reload --port 8002",
+        "command": "PYTHONPATH=apps/trace2:libs/shared-db/src:libs/shared-api/src:libs/shared-geo/src:libs/shared-trace/src uv run --no-sync --package trace2-backend uvicorn backend.main:app --reload --port 8002",
         "cwd": "{workspaceRoot}"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/trace2:libs/shared-db/src:libs/shared-api/src:libs/shared-trace/src uv run --no-sync --package trace2-backend python -m pytest apps/trace2/backend/tests",
+        "command": "PYTHONPATH=apps/trace2:libs/shared-db/src:libs/shared-api/src:libs/shared-geo/src:libs/shared-trace/src uv run --no-sync --package trace2-backend python -m pytest apps/trace2/backend/tests",
         "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
@@ -30,7 +30,7 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/trace2:libs/shared-db/src:libs/shared-api/src:libs/shared-trace/src uv run --no-sync ruff check apps/trace2/backend",
+        "command": "PYTHONPATH=apps/trace2:libs/shared-db/src:libs/shared-api/src:libs/shared-geo/src:libs/shared-trace/src uv run --no-sync ruff check apps/trace2/backend",
         "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],

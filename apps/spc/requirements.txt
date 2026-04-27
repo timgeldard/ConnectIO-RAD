@@ -8,3 +8,4 @@ scipy>=1.13.0
 cachetools>=5.3.0
 pypika>=0.51.1
 databricks-sql-connector>=4.0.0
+pgeocode>=0.5.0

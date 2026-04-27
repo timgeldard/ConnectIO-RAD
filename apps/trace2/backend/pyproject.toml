@@ -10,6 +10,7 @@ dependencies = [
   "pypika>=0.51",
   "shared-db",
   "shared-api",
+  "shared-geo",
   "shared-trace",
 ]
 
