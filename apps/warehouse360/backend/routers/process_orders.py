@@ -21,12 +21,13 @@ _DETAIL_FRESHNESS_SOURCES = [
 @router.get("/process-orders")
 async def list_process_orders(
     request: Request,
+    plant_id: Optional[str] = None,
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
-    rows = await fetch_process_orders(token)
+    rows = await fetch_process_orders(token, plant_id=plant_id)
     return await attach_data_freshness(
         {"orders": rows},
         token,

@@ -5,15 +5,18 @@ import asyncio
 from backend.utils.db import run_sql_async, sql_param, tbl
 
 
-async def fetch_process_orders(token: str) -> list[dict]:
+async def fetch_process_orders(token: str, plant_id: str | None = None) -> list[dict]:
     """Return current process orders ordered by scheduled start time."""
+    params = [sql_param("plant_id", plant_id)] if plant_id else []
+    plant_filter = "WHERE plant_id = :plant_id" if plant_id else ""
     q = f"""
         SELECT *
         FROM {tbl('wh360_process_orders_v')}
+        {plant_filter}
         ORDER BY sched_start
         LIMIT 500
     """
-    return await run_sql_async(token, q, [], endpoint_hint="wh360.process_orders")
+    return await run_sql_async(token, q, params, endpoint_hint="wh360.process_orders")
 
 
 async def fetch_order_detail(token: str, order_id: str) -> dict:

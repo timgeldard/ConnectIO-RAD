@@ -1,6 +1,7 @@
 import React from 'react';
 import { I18nProvider, LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n';
 import { Icon } from './Primitives.jsx';
+import { usePlantSelection } from '../context/PlantContext.jsx';
 import resources from '../i18n/resources.json';
 
 /* Sidebar + Top bar */
@@ -18,6 +19,7 @@ const NAV = [
 
 const SidebarContent = ({ current, onNav, shift }) => {
   const { t } = useI18n();
+  const { selectedPlant } = usePlantSelection();
   let lastSection = null;
   return (
     <aside className="sidebar">
@@ -27,8 +29,8 @@ const SidebarContent = ({ current, onNav, shift }) => {
       </div>
       <div className="sidebar-site">
         <div>
-          <div className="sidebar-site-name nav-label">{t('warehouse.site.name')}</div>
-          <div className="sidebar-site-meta nav-label">IE01 · WH NS01 · {shift.id}</div>
+          <div className="sidebar-site-name nav-label">{selectedPlant.plant_name || t('warehouse.site.name')}</div>
+          <div className="sidebar-site-meta nav-label">{selectedPlant.plant_id} · WH NS01 · {shift.id}</div>
         </div>
       </div>
       <nav className="sidebar-nav">
@@ -60,6 +62,7 @@ const SidebarContent = ({ current, onNav, shift }) => {
 
 const TopBarContent = ({ title, subtitle, onSearch, onMobileNav }) => {
   const { t } = useI18n();
+  const { plants, selectedPlantId, setSelectedPlantId, loading } = usePlantSelection();
   return (
     <header className="topbar">
       <button className="icon-btn" onClick={onMobileNav} style={{ display: 'none' }} id="mobile-menu-btn">
@@ -70,6 +73,23 @@ const TopBarContent = ({ title, subtitle, onSearch, onMobileNav }) => {
         {subtitle && <div className="topbar-sub">{subtitle}</div>}
       </div>
       <div className="topbar-spacer"/>
+      <label className="plant-select" title={t('warehouse.plant.selector')}>
+        <Icon name="factory" size={15}/>
+        <select
+          aria-label={t('warehouse.plant.selector')}
+          value={selectedPlantId}
+          disabled={loading || plants.length < 2}
+          onChange={(event) => setSelectedPlantId(event.target.value)}
+        >
+          {plants.map((plant) => (
+            <option key={plant.plant_id} value={plant.plant_id}>
+              {plant.plant_name && plant.plant_name !== plant.plant_id
+                ? `${plant.plant_name} · ${plant.plant_id}`
+                : plant.plant_id}
+            </option>
+          ))}
+        </select>
+      </label>
       <LanguageSelector compact />
       <div className="topbar-search">
         <Icon name="search" size={15}/>

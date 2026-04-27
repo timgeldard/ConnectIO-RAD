@@ -65,6 +65,7 @@ describe('Warehouse Operations Pages', () => {
   it('renders TopBar', () => {
     render(<TopBar title="Test Title" />)
     expect(screen.getByText('Test Title')).toBeInTheDocument()
+    expect(screen.getByLabelText('Plant')).toBeInTheDocument()
   })
 
   it('renders OrderStagingDetail', () => {

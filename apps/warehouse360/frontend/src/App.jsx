@@ -13,6 +13,7 @@ import { Inventory } from './components/Inventory.jsx';
 import { Dispensary } from './components/Dispensary.jsx';
 import { Exceptions, Performance } from './components/ExceptionsPerf.jsx';
 import { DocsPage } from './components/Docs.jsx';
+import { PlantProvider } from './context/PlantContext.jsx';
 import resources from './i18n/resources.json';
 
 const WarehouseApp = () => {
@@ -91,7 +92,9 @@ const WarehouseApp = () => {
 
 const App = () => (
   <I18nProvider appName="warehouse360" resources={resources}>
-    <WarehouseApp />
+    <PlantProvider>
+      <WarehouseApp />
+    </PlantProvider>
   </I18nProvider>
 );
 

@@ -5,15 +5,18 @@ import asyncio
 from backend.utils.db import run_sql_async, sql_param, tbl
 
 
-async def fetch_deliveries(token: str) -> list[dict]:
+async def fetch_deliveries(token: str, plant_id: str | None = None) -> list[dict]:
     """Return outbound deliveries ordered by planned goods-issue date."""
+    params = [sql_param("plant_id", plant_id)] if plant_id else []
+    plant_filter = "WHERE plant_id = :plant_id" if plant_id else ""
     q = f"""
         SELECT *
         FROM {tbl('wh360_deliveries_v')}
+        {plant_filter}
         ORDER BY planned_gi_date
         LIMIT 500
     """
-    return await run_sql_async(token, q, [], endpoint_hint="wh360.deliveries")
+    return await run_sql_async(token, q, params, endpoint_hint="wh360.deliveries")
 
 
 async def fetch_delivery_detail(token: str, delivery_id: str) -> dict:

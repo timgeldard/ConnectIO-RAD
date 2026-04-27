@@ -33,12 +33,13 @@ async def list_bins(
 @router.get("/inventory/lineside")
 async def list_lineside(
     request: Request,
+    plant_id: Optional[str] = None,
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
-    rows = await fetch_lineside(token)
+    rows = await fetch_lineside(token, plant_id=plant_id)
     return await attach_data_freshness(
         {"lineside": rows},
         token,

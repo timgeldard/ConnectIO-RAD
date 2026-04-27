@@ -15,6 +15,7 @@ from backend.routers.inbound import router as inbound_router
 from backend.routers.inventory import router as inventory_router
 from backend.routers.dispensary import router as dispensary_router
 from backend.routers.kpis import router as kpis_router
+from backend.routers.plants import router as plants_router
 
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 
@@ -42,5 +43,6 @@ app.include_router(inbound_router, prefix="/api")
 app.include_router(inventory_router, prefix="/api")
 app.include_router(dispensary_router, prefix="/api")
 app.include_router(kpis_router, prefix="/api")
+app.include_router(plants_router, prefix="/api")
 
 register_spa_routes(app, static_dir_getter=lambda: STATIC_DIR)

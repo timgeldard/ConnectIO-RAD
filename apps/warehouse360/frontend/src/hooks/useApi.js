@@ -1,4 +1,12 @@
 import { useState, useEffect } from 'react';
+import { usePlantSelection } from '../context/PlantContext.jsx';
+
+const withPlantId = (path, plantId) => {
+  if (!plantId || !path.startsWith('/api/') || path.startsWith('/api/plants')) return path;
+  const url = new URL(path, window.location.origin);
+  if (!url.searchParams.has('plant_id')) url.searchParams.set('plant_id', plantId);
+  return `${url.pathname}${url.search}`;
+};
 
 /**
  * Fetches a backend API endpoint and returns reactive { data, loading, error }.
@@ -9,6 +17,8 @@ import { useState, useEffect } from 'react';
  * @param {Array}  deps - Extra useEffect dependencies (re-fetch when these change)
  */
 export function useApi(path, deps = []) {
+  const { selectedPlantId } = usePlantSelection();
+  const requestPath = withPlantId(path, selectedPlantId);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,7 +28,7 @@ export function useApi(path, deps = []) {
     setLoading(true);
     setError(null);
 
-    fetch(path)
+    fetch(requestPath)
       .then((res) => {
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
         return res.json();
@@ -38,7 +48,7 @@ export function useApi(path, deps = []) {
 
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path, ...deps]);
+  }, [requestPath, ...deps]);
 
   return { data, loading, error };
 }
