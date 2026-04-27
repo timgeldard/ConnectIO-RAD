@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Batch, CustomerRow, Delivery, PageId } from "../types";
 import { fetchTopDown } from "../data/api";
 import { useBatchData } from "../data/useBatchData";
 import { LoadFrame } from "../components/LoadFrame";
+import { CustomerMap, type CustomerMapMarker } from "../components/CustomerMap";
+import { useGeocode, type GeocodeQuery } from "../hooks/useGeocode";
 import {
   BarChart, Card, DataTable, Donut, KPI,
   SectionHeader, StatusPill, fmtN, fmtInt, flag,
@@ -122,7 +124,13 @@ function CustomersDeliveriesBody({
       </div>
 
       {activeTab === "customers" && (
-        <CustomersTab customers={customers} totalQty={totalQty} batch={batch} sim={sim} />
+        <CustomersTab
+          customers={customers}
+          deliveries={deliveries}
+          totalQty={totalQty}
+          batch={batch}
+          sim={sim}
+        />
       )}
       {activeTab === "deliveries" && (
         <DeliveriesTab deliveries={deliveries} batch={batch} sim={sim} />
@@ -132,9 +140,10 @@ function CustomersDeliveriesBody({
 }
 
 function CustomersTab({
-  customers, totalQty, batch, sim,
+  customers, deliveries, totalQty, batch, sim,
 }: {
   customers: CustomerRow[];
+  deliveries: Delivery[];
   totalQty: number;
   batch: Batch;
   sim: boolean;
@@ -143,8 +152,49 @@ function CustomersTab({
   const { language } = useI18n();
   const copy = traceCopy(language);
 
+  // Aggregate deliveries by destination + country so each map marker reflects
+  // a real shipping location (a customer can have multiple sites; multiple
+  // customers can share a city — both cases are handled here).
+  const aggregations = useMemo(() => aggregateLocations(deliveries, batch.uom), [deliveries, batch.uom]);
+  const queries: GeocodeQuery[] = useMemo(
+    () => aggregations.map((a) => ({ key: a.key, destination: a.destination, country: a.country })),
+    [aggregations],
+  );
+  const { locations, loading: geocoding } = useGeocode(queries);
+
+  const markers: CustomerMapMarker[] = useMemo(
+    () =>
+      aggregations
+        .map((a) => {
+          const ll = locations.get(a.key);
+          if (!ll) return null;
+          return { ...a, lat: ll.lat, lon: ll.lon };
+        })
+        .filter((m): m is CustomerMapMarker => m !== null),
+    [aggregations, locations],
+  );
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <Card
+        title="Customer locations"
+        subtitle={`${markers.length}/${aggregations.length} located${geocoding ? " (locating remaining…)" : ""}`}
+        noPad
+      >
+        <div style={{ height: 420, borderRadius: "0 0 8px 8px", overflow: "hidden" }}>
+          <CustomerMap
+            markers={markers}
+            geocoding={geocoding}
+            geocodingMessage="Locating customer addresses…"
+            emptyMessage={
+              aggregations.length === 0
+                ? "No deliveries on this batch."
+                : "No customer locations could be resolved."
+            }
+          />
+        </div>
+      </Card>
+      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20 }}>
       <Card title={copy.customers.shareByCustomer}>
         <div style={{ padding: "12px 0", display: "flex", justifyContent: "center" }}>
           <Donut
@@ -193,8 +243,49 @@ function CustomersTab({
           emphasize={(r) => sim && r.share > 20}
         />
       </Card>
+      </div>
     </div>
   );
+}
+
+interface LocationAggregation extends Omit<CustomerMapMarker, "lat" | "lon"> {}
+
+function aggregateLocations(deliveries: Delivery[], uom: string): LocationAggregation[] {
+  const byKey = new Map<
+    string,
+    { destination: string; country: string; customers: Set<string>; qty: number; deliveryCount: number }
+  >();
+
+  for (const d of deliveries) {
+    const destination = (d.destination ?? "").trim();
+    const country = (d.country ?? "").trim();
+    if (!destination && !country) continue;
+    const key = `${destination}|${country}`;
+    const entry = byKey.get(key);
+    if (entry) {
+      entry.qty += d.qty;
+      entry.deliveryCount += 1;
+      if (d.customer) entry.customers.add(d.customer);
+    } else {
+      byKey.set(key, {
+        destination,
+        country,
+        customers: new Set(d.customer ? [d.customer] : []),
+        qty: d.qty,
+        deliveryCount: 1,
+      });
+    }
+  }
+
+  return Array.from(byKey.entries()).map(([key, v]) => ({
+    key,
+    destination: v.destination,
+    country: v.country,
+    customers: Array.from(v.customers).sort(),
+    qty: v.qty,
+    deliveryCount: v.deliveryCount,
+    uom,
+  }));
 }
 
 function DeliveriesTab({
