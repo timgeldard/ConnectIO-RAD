@@ -233,31 +233,43 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
             style={{ fontSize: 12 }}
             onClick={() => openChart(r)}
           >
-            Open →
+            {t('spc.scorecardTable.open')}
           </button>
         </td>
       </tr>
     )
   }
 
-  const TABLE_HEADERS = ['Status', 'Characteristic', 'Chart', 'Spec', 'Mean', 'σ', 'Capability (Cpk)', 'Ppk', 'Trend', 'Signals', 'Last']
+  const TABLE_HEADERS = [
+    t('spc.scorecardTable.col.status'),
+    t('spc.scorecardTable.col.characteristic'),
+    t('spc.scorecardTable.col.chart'),
+    t('spc.scorecardTable.col.spec'),
+    t('spc.scorecardTable.col.mean'),
+    'σ',
+    t('spc.scorecardTable.col.capabilityCpk'),
+    'Ppk',
+    t('spc.scorecardTable.col.trend'),
+    t('spc.scorecardTable.col.signals'),
+    t('spc.scorecardTable.col.last'),
+  ]
 
   return (
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
       {/* Toolbar */}
       <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--line-1)', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-1)' }}>Characteristic scorecard</div>
+        <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-1)' }}>{t('spc.scorecardTable.toolbar')}</div>
         {material && <span className="chip chip-slate">{material}</span>}
         <input
           className="field"
           type="search"
-          placeholder="Filter characteristics…"
+          placeholder={t('spc.scorecardTable.filter')}
           value={searchTerm}
           onChange={e => { setSearchTerm(e.target.value); setPage(1) }}
           style={{ width: 200, marginLeft: 8 }}
         />
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
-          <div className="eyebrow" style={{ marginRight: 4 }}>Sort</div>
+          <div className="eyebrow" style={{ marginRight: 4 }}>{t('spc.scorecardTable.sort')}</div>
           {(['status', 'cpk', 'ooc'] as const).map(v => (
             <button
               key={v}
@@ -271,13 +283,13 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
                 cursor: 'pointer', fontWeight: 500,
               }}
             >
-              {v === 'status' ? 'Status' : v === 'cpk' ? 'Cpk' : 'OOC'}
+              {v === 'status' ? t('spc.scorecardTable.col.status') : v === 'cpk' ? 'Cpk' : 'OOC'}
             </button>
           ))}
           <div style={{ width: 1, height: 20, background: 'var(--line-1)', margin: '0 4px' }} />
           <button
             className="icon-btn"
-            title="Toggle density"
+            title={t('spc.scorecardTable.toggleDensity')}
             onClick={() => setDensity(d => d === 'compact' ? 'regular' : 'compact')}
           >
             <Icon name={density === 'compact' ? 'layout' : 'grid'} size={14} />
@@ -297,7 +309,7 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
           </button>
           {filteredRows.length > VIRTUALIZATION_THRESHOLD && !virtualize && (
             <button className="btn btn-subtle btn-sm" onClick={() => setVirtualize(true)}>
-              All {filteredRows.length}
+              {t('spc.scorecardTable.showAll', { count: filteredRows.length })}
             </button>
           )}
         </div>
@@ -306,8 +318,8 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
       {/* Virtualized mode */}
       {virtualize ? (
         <div style={{ padding: '8px 18px 4px', borderBottom: '1px solid var(--line-1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{filteredRows.length} characteristics (virtualized)</span>
-          <button className="btn-link" style={{ fontSize: 12 }} onClick={() => setVirtualize(false)}>Use paginated view</button>
+          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{t('spc.scorecardTable.virtualized', { count: filteredRows.length })}</span>
+          <button className="btn-link" style={{ fontSize: 12 }} onClick={() => setVirtualize(false)}>{t('spc.scorecardTable.paginatedView')}</button>
         </div>
       ) : null}
 
@@ -330,7 +342,7 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
               rows={filteredRows}
               rowHeightPx={density === 'compact' ? 40 : 56}
               viewportHeightPx={560}
-              ariaLabel="Scorecard characteristics"
+              ariaLabel={t('spc.scorecardTable.aria.characteristics')}
               renderRow={(row, i) => (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <tbody>{renderRow(row, i, true)}</tbody>
@@ -355,7 +367,7 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
               ) : (
                 <tr>
                   <td colSpan={TABLE_HEADERS.length} style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
-                    No characteristics match this filter.
+                    {t('spc.scorecardTable.noMatch')}
                   </td>
                 </tr>
               )}
@@ -368,8 +380,8 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
       {!virtualize && totalPages > 1 && (
         <div style={{ padding: '10px 18px', borderTop: '1px solid var(--line-1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
-            {filteredRows.length} characteristic{filteredRows.length !== 1 ? 's' : ''}
-            {' · '}page {page} of {totalPages}
+            {t(filteredRows.length === 1 ? 'spc.scorecardTable.pagination.one' : 'spc.scorecardTable.pagination.other', { count: filteredRows.length })}
+            {' · '}{t('spc.scorecardTable.pagination.page', { page, total: totalPages })}
           </span>
           <div style={{ display: 'flex', gap: 6 }}>
             <button
@@ -377,14 +389,14 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
               disabled={page <= 1}
               onClick={() => setPage(p => p - 1)}
             >
-              ← Prev
+              {t('spc.scorecardTable.pagination.prev')}
             </button>
             <button
               className="btn btn-subtle btn-sm"
               disabled={page >= totalPages}
               onClick={() => setPage(p => p + 1)}
             >
-              Next →
+              {t('spc.scorecardTable.pagination.next')}
             </button>
           </div>
         </div>

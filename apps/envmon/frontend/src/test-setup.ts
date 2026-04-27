@@ -19,12 +19,19 @@ vi.mock('@connectio/shared-frontend-i18n', async (importOriginal) => {
       language: 'en' as const,
       languages: [{ code: 'en' as const, label: 'English', nativeLabel: 'English', enabled: true }],
       setLanguage: vi.fn(),
-      /** Passthrough: returns the key with any interpolation values appended for easy assertion. */
+      /** Lightweight test translations for accessibility-sensitive strings, with key fallback. */
       t: (key: string, values?: Record<string, string | number | boolean | null | undefined>) => {
-        if (!values) return key
+        const translations: Record<string, string> = {
+          'envmon.floorPlan.markersAria': 'Heatmap markers for floor {{floor}}',
+          'envmon.floorPlan.alt': 'Floor plan for {{floor}}',
+          'envmon.floorPlan.loading': 'Loading...',
+          'envmon.floorPlan.error': 'Failed to load heatmap:',
+        }
+        const template = translations[key] ?? key
+        if (!values) return template
         return Object.entries(values).reduce(
           (acc, [k, v]) => acc.replace(new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`, 'g'), String(v ?? '')),
-          key,
+          template,
         )
       },
       formatNumber: (v: number) => String(v),

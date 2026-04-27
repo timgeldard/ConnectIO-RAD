@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useI18n } from "@connectio/shared-frontend-i18n";
 import type { LoadState } from "../data/useBatchData";
 
 interface Props<T> {
@@ -10,6 +11,7 @@ interface Props<T> {
 }
 
 export function LoadFrame<T>({ state, eyebrow, loadingTitle, loadingSubtitle, children }: Props<T>) {
+  const { t } = useI18n();
   if (state.kind === "loading") {
     return (
       <MessageBlock eyebrow={eyebrow} title={loadingTitle} subtitle={loadingSubtitle} />
@@ -20,7 +22,7 @@ export function LoadFrame<T>({ state, eyebrow, loadingTitle, loadingSubtitle, ch
     return (
       <MessageBlock
         eyebrow={eyebrow}
-        title={isNotFound ? "No data for this batch" : "Couldn't load page data"}
+        title={isNotFound ? t("trace.load.notFound") : t("trace.load.error")}
         subtitle={state.message}
       />
     );

@@ -25,7 +25,7 @@ const WINDOWS: { value: TimeWindow; label: string }[] = [
 
 /** Trend chart tab showing result values over time for a selected MIC at a functional location. */
 export default function TrendTab({ plantId, funcLocId }: Props) {
-  const { t } = useI18n();
+  const { t, formatDate } = useI18n();
   const { timeWindow } = useEM();
   const [selectedMic, setSelectedMic] = useState<string | null>(null);
   const [windowDays, setWindowDays] = useState<TimeWindow>(timeWindow);
@@ -144,7 +144,7 @@ export default function TrendTab({ plantId, funcLocId }: Props) {
                 <g key={i}>
                   <line x1={tx} y1={CHART_H - PAD.b} x2={tx} y2={CHART_H - PAD.b + 4} stroke="var(--stroke)" />
                   <text className="axis" x={tx} y={CHART_H - PAD.b + 14} textAnchor="middle">
-                    {new Date(p.inspection_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                    {formatDate(p.inspection_date, { day: '2-digit', month: 'short' })}
                   </text>
                 </g>
               );

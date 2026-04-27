@@ -7,7 +7,7 @@ No env-var config required — the list is fully DB-driven.
 
 import asyncio
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Header
 
@@ -38,44 +38,77 @@ async def _fetch_active_plant_ids(token: str) -> list[str]:
     return [r["PLANT_ID"] for r in rows if r.get("PLANT_ID")]
 
 
+def _row_get(row: dict[str, Any], *keys: str, default: Any = None) -> Any:
+    for key in keys:
+        if key in row:
+            return row[key]
+    lowered = {str(k).lower(): v for k, v in row.items()}
+    for key in keys:
+        if key.lower() in lowered:
+            return lowered[key.lower()]
+    return default
+
+
 async def _fetch_plant_metadata(token: str, plant_ids: list[str]) -> dict[str, dict]:
-    """Fetch name, region, country, city from gold_plant + lat/lon from geo table."""
+    """Fetch plant metadata and coordinates without letting metadata failures hide map pins."""
     if not plant_ids:
         return {}
 
     id_list = ", ".join(f"'{pid}'" for pid in plant_ids)
+    metadata: dict[str, dict] = {
+        pid: {
+            "plant_name": pid,
+            "country": "",
+            "region": "EMEA",
+            "city": "",
+            "lat": 0.0,
+            "lon": 0.0,
+        }
+        for pid in plant_ids
+    }
 
-    sql = f"""
-        SELECT
-            p.PLANT_ID,
-            p.PLANT_NAME,
-            p.COUNTRY_ID,
-            p.REGION,
-            p.CITY,
-            COALESCE(g.lat, 0.0) AS lat,
-            COALESCE(g.lon, 0.0) AS lon
-        FROM {PLANT_TBL} p
-        LEFT JOIN {PLANT_GEO_TBL} g ON g.plant_id = p.PLANT_ID
-        WHERE p.PLANT_ID IN ({id_list})
+    geo_sql = f"""
+        SELECT plant_id, lat, lon
+        FROM {PLANT_GEO_TBL}
+        WHERE plant_id IN ({id_list})
     """
     try:
-        rows = await run_sql_async(token, sql)
+        rows = await run_sql_async(token, geo_sql)
+    except Exception as exc:
+        logging.warning(f"Plant geo query failed: {exc}")
+    else:
+        for r in rows:
+            plant_id = _row_get(r, "plant_id", "PLANT_ID")
+            if plant_id in metadata:
+                metadata[plant_id]["lat"] = float(_row_get(r, "lat", "LAT", default=0.0) or 0.0)
+                metadata[plant_id]["lon"] = float(_row_get(r, "lon", "LON", default=0.0) or 0.0)
+
+    plant_sql = f"""
+        SELECT
+            PLANT_ID,
+            PLANT_NAME,
+            COUNTRY_ID,
+            REGION,
+            CITY
+        FROM {PLANT_TBL}
+        WHERE PLANT_ID IN ({id_list})
+    """
+    try:
+        rows = await run_sql_async(token, plant_sql)
     except Exception as exc:
         logging.warning(f"Plant metadata query failed: {exc}")
-        return {}
+    else:
+        for r in rows:
+            plant_id = _row_get(r, "PLANT_ID", "plant_id")
+            if plant_id in metadata:
+                metadata[plant_id].update({
+                    "plant_name": _row_get(r, "PLANT_NAME", "plant_name", default=plant_id) or plant_id,
+                    "country": _row_get(r, "COUNTRY_ID", "country_id", default="") or "",
+                    "region": _row_get(r, "REGION", "region", default="EMEA") or "EMEA",
+                    "city": _row_get(r, "CITY", "city", default="") or "",
+                })
 
-    return {
-        r["PLANT_ID"]: {
-            "plant_name": r.get("PLANT_NAME") or r["PLANT_ID"],
-            "country":    r.get("COUNTRY_ID") or "",
-            "region":     r.get("REGION") or "EMEA",
-            "city":       r.get("CITY") or "",
-            "lat":        float(r.get("lat") or 0.0),
-            "lon":        float(r.get("lon") or 0.0),
-        }
-        for r in rows
-        if r.get("PLANT_ID")
-    }
+    return metadata
 
 
 async def _fetch_plant_kpis(token: str, plant_id: str) -> PlantKpis:

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   riskTier,
+  hasValidCoordinates,
   plantsToFeatureCollection,
   computeBounds,
   RISK_COLORS,
@@ -70,6 +71,15 @@ describe('plantsToFeatureCollection', () => {
     const plant = makePlant({ lat: 51.5, lon: 0 });
     const fc = plantsToFeatureCollection([plant]);
     expect(fc.features).toHaveLength(1);
+  });
+
+  it('excludes plants outside valid WGS-84 coordinate ranges', () => {
+    expect(hasValidCoordinates(makePlant({ lat: 95, lon: -6.2 }))).toBe(false);
+    expect(hasValidCoordinates(makePlant({ lat: 53.3, lon: -181 }))).toBe(false);
+    expect(plantsToFeatureCollection([
+      makePlant({ plant_id: 'P1', lat: 95, lon: -6.2 }),
+      makePlant({ plant_id: 'P2', lat: 53.3, lon: -181 }),
+    ]).features).toHaveLength(0);
   });
 
   it('stores coordinates as [lon, lat] (GeoJSON order)', () => {

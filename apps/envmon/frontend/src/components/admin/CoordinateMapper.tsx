@@ -76,11 +76,11 @@ function AddFloorForm({ plantId, onDone }: { plantId: string; onDone: () => void
     <form onSubmit={handleSubmit} style={{ padding: '12px 0', borderBottom: '1px solid var(--stroke-soft)' }}>
       <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--forest)' }}>{t('envmon.admin.floor.addFloor')}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <input placeholder="Floor ID (e.g. F1)" value={floorId} onChange={(e) => setFloorId(e.target.value)}
+        <input placeholder={t('envmon.admin.floor.placeholder.id')} value={floorId} onChange={(e) => setFloorId(e.target.value)}
           style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--stroke)', borderRadius: 4 }} />
-        <input placeholder="Floor name (e.g. Ground Floor)" value={floorName} onChange={(e) => setFloorName(e.target.value)}
+        <input placeholder={t('envmon.admin.floor.placeholder.name')} value={floorName} onChange={(e) => setFloorName(e.target.value)}
           style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--stroke)', borderRadius: 4 }} />
-        <input placeholder="SVG URL (optional)" value={svgUrl} onChange={(e) => setSvgUrl(e.target.value)}
+        <input placeholder={t('envmon.admin.floor.placeholder.svgUrl')} value={svgUrl} onChange={(e) => setSvgUrl(e.target.value)}
           style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--stroke)', borderRadius: 4 }} />
         <div style={{ display: 'flex', gap: 6 }}>
           <button className="btn btn-primary btn-sm" type="submit" disabled={isPending || !floorId.trim() || !floorName.trim()}>
@@ -138,7 +138,7 @@ function PlantGeoPanel() {
     <div style={{ padding: '20px 24px', maxWidth: 720 }}>
       <div className="eyebrow" style={{ marginBottom: 4 }}>{t('envmon.admin.geo.eyebrow')}</div>
       <p style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 0, marginBottom: 16 }}>
-        Set WGS-84 latitude / longitude for each plant. These are used as map pin positions on the global view.
+        {t('envmon.admin.geo.help')}
       </p>
       <table className="tbl">
         <thead>
@@ -473,7 +473,7 @@ export default function CoordinateMapper() {
               </button>
               <button className="btn btn-icon btn-ghost btn-sm" type="button"
                 style={{ color: 'var(--sunset)', flexShrink: 0 }}
-                title="Delete floor"
+                title={t('envmon.admin.floor.delete')}
                 onClick={() => plantId && deleteFloor({ plantId, floorId: f.floor_id })}>
                 <IconTrash size={14} />
               </button>
@@ -515,7 +515,7 @@ export default function CoordinateMapper() {
                       <select id={id} value={value} disabled={disabled}
                         onChange={(e) => onChange(e.target.value)}
                         style={{ fontSize: 12, padding: '4px 8px' }}>
-                        <option value="">All</option>
+                        <option value="">{t('envmon.admin.filter.all')}</option>
                         {options.map((v) => <option key={v} value={v}>{v}</option>)}
                       </select>
                     </div>
@@ -561,7 +561,7 @@ export default function CoordinateMapper() {
                   <div key={loc.func_loc_id} className="em-draggable-id" draggable
                     onDragStart={() => setDragging({ funcLocId: loc.func_loc_id })}
                     onDragEnd={() => setDragging(null)}
-                    title="Drag onto floor plan to map">
+                    title={t('envmon.admin.loc.dragToMap')}>
                     <IconMove size={12} style={{ marginRight: 4, verticalAlign: 'middle', flexShrink: 0 }} />
                     {loc.func_loc_id}
                   </div>
@@ -585,7 +585,7 @@ export default function CoordinateMapper() {
                     <div className="em-draggable-id em-mapped-draggable" draggable
                       onDragStart={() => setDragging({ funcLocId: loc.func_loc_id })}
                       onDragEnd={() => setDragging(null)}
-                      title={`Floor ${loc.floor_id} — drag to reposition`}
+                      title={t('envmon.admin.loc.dragToReposition', { floor: loc.floor_id })}
                       style={{ flex: 1, marginBottom: 0 }}>
                       <IconMove size={12} style={{ marginRight: 4, verticalAlign: 'middle', flexShrink: 0 }} />
                       <span style={{ flex: 1 }}>{loc.func_loc_id}</span>
@@ -593,7 +593,7 @@ export default function CoordinateMapper() {
                     </div>
                     <button className="btn btn-icon btn-ghost btn-sm" type="button"
                       style={{ color: 'var(--sunset)', flexShrink: 0 }}
-                      title="Remove mapping"
+                      title={t('envmon.admin.loc.removeMapping')}
                       onClick={() => handleUnmap(loc.func_loc_id)}
                       disabled={isDeleting}>
                       <IconTrash size={14} />
@@ -631,7 +631,7 @@ export default function CoordinateMapper() {
 
         {currentFloor?.svg_url && (
           <img key={currentFloor.svg_url} src={currentFloor.svg_url}
-            alt={`${currentFloor.floor_name} plan`}
+            alt={t('envmon.admin.canvas.floorPlanAlt', { floor: currentFloor.floor_name })}
             style={{ position: 'absolute', top: 48, left: 0, right: 0, bottom: 0,
               width: '100%', height: 'calc(100% - 48px)', objectFit: 'contain',
               objectPosition: 'center', display: 'block', pointerEvents: 'none' }} />

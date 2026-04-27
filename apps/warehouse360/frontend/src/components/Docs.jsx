@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import { Icon, RiskDot } from './Primitives.jsx';
 import { Card } from './Shared.jsx';
 
@@ -6,12 +7,14 @@ import { Card } from './Shared.jsx';
    Written artefacts from the Warehouse Manager 360° brief.
 */
 
-const DocsTabs = ({ current, onChange }) => (
-  <div className="docs-tabs">
-    {[
-      { id: 'concept', label: 'Product Concept', icon: 'lightning' },
-      { id: 'kpis',    label: 'KPI Catalogue',   icon: 'chart' },
-      { id: 'data',    label: 'Data Model',      icon: 'layers' },
+const DocsTabs = ({ current, onChange }) => {
+  const { t } = useI18n();
+  return (
+    <div className="docs-tabs">
+      {[
+      { id: 'concept', label: t('warehouse.docs.tab.concept'), icon: 'lightning' },
+      { id: 'kpis',    label: t('warehouse.docs.tab.kpis'),    icon: 'chart' },
+      { id: 'data',    label: t('warehouse.docs.tab.data'),    icon: 'layers' },
     ].map((t) => (
       <button key={t.id}
         className={`docs-tab ${current === t.id ? 'is-active' : ''}`}
@@ -20,32 +23,33 @@ const DocsTabs = ({ current, onChange }) => (
         <span>{t.label}</span>
       </button>
     ))}
-  </div>
-);
+    </div>
+  );
+};
 
 /* ================================================================
    1. Product Concept
    ================================================================ */
-const DocConcept = () => (
-  <div className="doc stack-16">
+const DocConcept = () => {
+  const { t } = useI18n();
+  return (
+    <div className="doc stack-16">
     <div className="doc-hero">
-      <div className="t-eyebrow">Product Concept · v0.4 draft</div>
-      <h2 className="doc-hero-title">One pane of glass for the people who run the warehouse floor.</h2>
+      <div className="t-eyebrow">{t('warehouse.docs.concept.eyebrow')}</div>
+      <h2 className="doc-hero-title">{t('warehouse.docs.concept.title')}</h2>
       <p className="doc-hero-lede">
-        Warehouse Manager 360° is a live operational cockpit for Kerry site managers. It consolidates production staging,
-        inbound receipts, outbound deliveries, inventory health and exceptions into a single surface — so the next
-        decision is never more than two clicks away.
+        {t('warehouse.docs.concept.lede')}
       </p>
       <div className="doc-hero-meta">
-        <div><div className="t-eyebrow">Pilot site</div><div>Kerry Naas · IE01 · WH NS01</div></div>
-        <div><div className="t-eyebrow">Source of truth</div><div>SAP ECC · EWM · MII</div></div>
-        <div><div className="t-eyebrow">Refresh</div><div>30 s soft · 2 min hard</div></div>
-        <div><div className="t-eyebrow">Users</div><div>Site Mgr · Shift Lead · Dock Lead · Dispensary Lead</div></div>
+        <div><div className="t-eyebrow">{t('warehouse.docs.concept.meta.pilot')}</div><div>Kerry Naas · IE01 · WH NS01</div></div>
+        <div><div className="t-eyebrow">{t('warehouse.docs.concept.meta.source')}</div><div>SAP ECC · EWM · MII</div></div>
+        <div><div className="t-eyebrow">{t('warehouse.docs.concept.meta.refresh')}</div><div>{t('warehouse.docs.concept.meta.refreshValue')}</div></div>
+        <div><div className="t-eyebrow">{t('warehouse.docs.concept.meta.users')}</div><div>{t('warehouse.docs.concept.meta.usersValue')}</div></div>
       </div>
     </div>
 
     <div className="grid-2">
-      <Card title="The problem" eyebrow="Why now">
+      <Card title={t('warehouse.docs.concept.problem.title')} eyebrow={t('warehouse.docs.concept.problem.eyebrow')}>
         <p>Today a Kerry warehouse manager holds the operational picture in their head plus five tools: SAP GUI,
           the MII shop-floor dashboard, a Power&nbsp;BI report, WhatsApp, and a paper A3 on the wall.</p>
         <ul className="doc-list">
@@ -55,7 +59,7 @@ const DocConcept = () => (
           <li><b>Mobile supervision is broken.</b> SAP GUI on a tablet is unusable; nobody does it.</li>
         </ul>
       </Card>
-      <Card title="The thesis" eyebrow="What changes">
+      <Card title={t('warehouse.docs.concept.thesis.title')} eyebrow={t('warehouse.docs.concept.thesis.eyebrow')}>
         <p>Put every operational signal on one screen, keyed to the <b>process order</b>, the <b>delivery</b> or the
           <b>bin</b> — whichever the user is thinking about right now — and surface <b>risk before it becomes failure</b>.</p>
         <ul className="doc-list">
@@ -67,7 +71,7 @@ const DocConcept = () => (
       </Card>
     </div>
 
-    <Card title="Who it's for" eyebrow="Personas">
+    <Card title={t('warehouse.docs.concept.personas.title')} eyebrow={t('warehouse.docs.concept.personas.eyebrow')}>
       <div className="persona-grid">
         {[
           { name: 'Niamh Murphy', role: 'Warehouse Manager', initials: 'NM', tone: 'slate',
@@ -101,7 +105,7 @@ const DocConcept = () => (
       </div>
     </Card>
 
-    <Card title="Core principles" eyebrow="How we build it">
+    <Card title={t('warehouse.docs.concept.principles.title')} eyebrow={t('warehouse.docs.concept.principles.eyebrow')}>
       <div className="principle-grid">
         {[
           { n: '01', h: 'Risk first, detail second',
@@ -127,7 +131,7 @@ const DocConcept = () => (
     </Card>
 
     <div className="grid-asym">
-      <Card title="Scope — v1 (pilot, Naas)" eyebrow="In" >
+      <Card title={t('warehouse.docs.concept.scope.in.title')} eyebrow={t('warehouse.docs.concept.scope.in.eyebrow')} >
         <ul className="doc-list tight">
           <li>Control Tower: shift-level KPIs, live schedule, exception feed, dock board</li>
           <li>Production Staging: process orders 24h horizon, staging progress, dispensary link</li>
@@ -139,7 +143,7 @@ const DocConcept = () => (
           <li>Performance: 14-day rolling KPIs, per-shift / per-line break-down</li>
         </ul>
       </Card>
-      <Card title="Out of scope" eyebrow="Not v1">
+      <Card title={t('warehouse.docs.concept.scope.out.title')} eyebrow={t('warehouse.docs.concept.scope.out.eyebrow')}>
         <ul className="doc-list tight">
           <li>Execution — UI does not post to SAP; read-mostly with assign/acknowledge writes</li>
           <li>Operator handhelds (RF) — covered by existing SAPConsole</li>
@@ -151,7 +155,7 @@ const DocConcept = () => (
       </Card>
     </div>
 
-    <Card title="Release plan" eyebrow="Rollout">
+    <Card title={t('warehouse.docs.concept.release.title')} eyebrow={t('warehouse.docs.concept.release.eyebrow')}>
       <div className="roadmap">
         {[
           { phase: 'M0', name: 'Design partner', when: 'Q2', what: 'Naas shift leads co-design. 3 screens shippable.', tone: 'slate' },
@@ -168,8 +172,9 @@ const DocConcept = () => (
         ))}
       </div>
     </Card>
-  </div>
-);
+    </div>
+  );
+};
 
 /* ================================================================
    2. KPI Catalogue

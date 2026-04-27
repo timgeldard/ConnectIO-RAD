@@ -26,6 +26,18 @@ export interface PlantFeatureProps {
   radius: number;
 }
 
+export function hasValidCoordinates(plant: PlantInfo): boolean {
+  return (
+    Number.isFinite(plant.lat) &&
+    Number.isFinite(plant.lon) &&
+    plant.lat >= -90 &&
+    plant.lat <= 90 &&
+    plant.lon >= -180 &&
+    plant.lon <= 180 &&
+    (plant.lat !== 0 || plant.lon !== 0)
+  );
+}
+
 export function riskTier(riskIndex: number): RiskTier {
   if (riskIndex > RISK_HIGH_THRESHOLD) return 'high';
   if (riskIndex > RISK_MED_THRESHOLD) return 'med';
@@ -36,7 +48,7 @@ export function plantsToFeatureCollection(
   plants: PlantInfo[],
 ): FeatureCollection<Point, PlantFeatureProps> {
   const features: Feature<Point, PlantFeatureProps>[] = plants
-    .filter((p) => p.lat !== 0 || p.lon !== 0)
+    .filter(hasValidCoordinates)
     .map((p) => {
       const tier = riskTier(p.kpis.risk_index);
       return {
@@ -64,7 +76,7 @@ export function plantsToFeatureCollection(
 export function computeBounds(
   plants: PlantInfo[],
 ): [[number, number], [number, number]] | null {
-  const valid = plants.filter((p) => p.lat !== 0 || p.lon !== 0);
+  const valid = plants.filter(hasValidCoordinates);
   if (valid.length === 0) return null;
   const lons = valid.map((p) => p.lon);
   const lats = valid.map((p) => p.lat);

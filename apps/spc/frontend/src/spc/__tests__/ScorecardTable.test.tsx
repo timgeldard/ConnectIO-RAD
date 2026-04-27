@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import ScorecardTable from '../scorecard/ScorecardTable'
 import React from 'react'
 import type { ScorecardRow } from '../types'
+import { renderWithI18n } from './test-utils'
 
 // Mock the context hooks
 vi.mock('../SPCContext', async (importOriginal) => {
@@ -46,7 +47,7 @@ describe('ScorecardTable', () => {
     })
     ;(useSPCDispatch as any).mockReturnValue(vi.fn())
 
-    render(
+    renderWithI18n(
       <ScorecardTable rows={mockRows} loading={false} />
     )
 
@@ -60,7 +61,7 @@ describe('ScorecardTable', () => {
     })
     ;(useSPCDispatch as any).mockReturnValue(vi.fn())
 
-    render(
+    renderWithI18n(
       <ScorecardTable rows={[]} loading={true} />
     )
     

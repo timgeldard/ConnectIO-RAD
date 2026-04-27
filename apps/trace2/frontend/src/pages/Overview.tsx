@@ -6,6 +6,7 @@ import type {
   MassBalanceEvent,
   PageId,
 } from "../types";
+import { useI18n } from "@connectio/shared-frontend-i18n";
 import { fetchOverview, fetchMassBalance } from "../data/api";
 import { useBatchData } from "../data/useBatchData";
 import { LoadFrame } from "../components/LoadFrame";
@@ -24,14 +25,18 @@ export function PageOverview({
   sim?: boolean;
   onSim?: (v: boolean) => void;
 }) {
+  const { t } = useI18n();
   const state = useBatchData(fetchOverview, headerBatch.material_id, headerBatch.batch_id);
   const mbState = useBatchData(fetchMassBalance, headerBatch.material_id, headerBatch.batch_id);
   return (
     <LoadFrame
       state={state}
-      eyebrow="01 — OVERVIEW"
-      loadingTitle="Loading batch overview…"
-      loadingSubtitle={`Material ${headerBatch.material_id} · Batch ${headerBatch.batch_id}`}
+      eyebrow={t("trace.overview.eyebrow")}
+      loadingTitle={t("trace.overview.loadingTitle")}
+      loadingSubtitle={t("trace.overview.loadingSubtitle", {
+        material: headerBatch.material_id,
+        batch: headerBatch.batch_id,
+      })}
     >
       {({ batch, countries, customers, deliveries }) => (
         <OverviewBody
@@ -90,6 +95,7 @@ function OverviewBody({
   sim: boolean;
   onSim: (v: boolean) => void;
 }) {
+  const { t } = useI18n();
   const recentDeliveries = [...deliveries]
     .sort((a, b) => (a.date < b.date ? 1 : -1))
     .slice(0, 8);
@@ -101,19 +107,24 @@ function OverviewBody({
   return (
     <div>
       <SectionHeader
-        eyebrow="Batch 360°"
-        title="One batch. Every movement, mass-balance and downstream exposure."
-        subtitle={`Batch ${batch.batch_id} · ${batch.material_desc40} · ${batch.plant_name || batch.plant_id} · Manufactured ${batch.manufacture_date}`}
+        eyebrow={t("trace.overview.header.eyebrow")}
+        title={t("trace.overview.header.title")}
+        subtitle={t("trace.overview.header.subtitle", {
+          batch: batch.batch_id,
+          material: batch.material_desc40,
+          plant: batch.plant_name || batch.plant_id,
+          date: batch.manufacture_date,
+        })}
         action={
           <div style={{ display: "flex", gap: 8 }}>
-            <Button variant="ghost" size="md">Print 360° brief</Button>
+            <Button variant="ghost" size="md">{t("trace.overview.action.print")}</Button>
             <Button
               variant="danger"
               size="md"
               active={sim}
               onClick={() => onSim(!sim)}
             >
-              {sim ? "Exit simulation" : "Simulate recall"}
+              {sim ? t("trace.overview.action.exitSimulation") : t("trace.overview.action.simulateRecall")}
             </Button>
           </div>
         }
@@ -122,38 +133,38 @@ function OverviewBody({
       {/* 6-KPI row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 28 }}>
         <KPI
-          label="Qty produced"
+          label={t("trace.metric.qtyProduced")}
           value={fmtInt(batch.qty_produced)}
           unit={batch.uom}
           tone="brand"
         />
         <KPI
-          label="Unrestricted"
+          label={t("trace.metric.unrestricted")}
           value={fmtInt(batch.unrestricted)}
           unit={batch.uom}
           tone="good"
         />
         <KPI
-          label="Qty shipped"
+          label={t("trace.metric.qtyShipped")}
           value={fmtInt(batch.qty_shipped)}
           unit={batch.uom}
           tone="default"
         />
         <KPI
-          label="Qty consumed"
+          label={t("trace.metric.qtyConsumed")}
           value={fmtInt(batch.qty_consumed)}
           unit={batch.uom}
           tone="default"
         />
         <KPI
-          label="Customers exposed"
+          label={t("trace.metric.customersExposed")}
           value={fmtInt(batch.customers_affected)}
           tone={sim ? "bad" : "warn"}
-          sub={`${batch.countries_affected} countr${batch.countries_affected === 1 ? "y" : "ies"}`}
+          sub={t(batch.countries_affected === 1 ? "trace.metric.country.one" : "trace.metric.country.other", { count: batch.countries_affected })}
         />
         <KPI
-          label="Days to expiry"
-          value={batch.days_to_expiry >= 0 ? fmtInt(batch.days_to_expiry) : "Expired"}
+          label={t("trace.metric.daysToExpiry")}
+          value={batch.days_to_expiry >= 0 ? fmtInt(batch.days_to_expiry) : t("trace.metric.expired")}
           tone={batch.days_to_expiry < 0 ? "bad" : batch.days_to_expiry < 30 ? "warn" : "good"}
           sub={batch.expiry_date}
         />
@@ -161,11 +172,11 @@ function OverviewBody({
 
       {/* Mass balance chart + Batch identity card */}
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 20 }}>
-        <Card title="Mass balance timeline" subtitle="Running inventory balance across production, shipments and consumption">
+        <Card title={t("trace.overview.massBalance.title")} subtitle={t("trace.overview.massBalance.subtitle")}>
           <div style={{ padding: "12px 16px 16px" }}>
             {mbEvents.length < 2 ? (
               <div style={{ height: 170, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)" }}>
-                No movement data
+                {t("trace.overview.massBalance.noData")}
               </div>
             ) : (
               <MiniInventoryChart data={mbEvents} height={170} />
@@ -173,17 +184,17 @@ function OverviewBody({
           </div>
         </Card>
 
-        <Card title="Batch identity">
+        <Card title={t("trace.overview.identity.title")}>
           <div style={{ padding: "4px 0" }}>
             {[
-              { k: "Material ID", v: batch.material_id, mono: true },
-              { k: "Material", v: batch.material_name || batch.material_id, mono: false },
-              { k: "Batch", v: batch.batch_id, mono: true },
-              { k: "Process order", v: batch.process_order || "—", mono: true },
-              { k: "Plant", v: `${batch.plant_id} · ${batch.plant_name}`, mono: false },
-              { k: "Manufactured", v: batch.manufacture_date, mono: true },
-              { k: "Expiry", v: batch.expiry_date, mono: true },
-              { k: "Status", v: <StatusPill status={batch.batch_status} size="sm" />, mono: false },
+              { k: t("trace.field.materialId"), v: batch.material_id, mono: true },
+              { k: t("trace.field.material"), v: batch.material_name || batch.material_id, mono: false },
+              { k: t("trace.field.batch"), v: batch.batch_id, mono: true },
+              { k: t("trace.field.processOrder"), v: batch.process_order || "—", mono: true },
+              { k: t("trace.field.plant"), v: `${batch.plant_id} · ${batch.plant_name}`, mono: false },
+              { k: t("trace.field.manufactured"), v: batch.manufacture_date, mono: true },
+              { k: t("trace.field.expiry"), v: batch.expiry_date, mono: true },
+              { k: t("trace.field.status"), v: <StatusPill status={batch.batch_status} size="sm" />, mono: false },
             ].map(({ k, v, mono }) => (
               <div key={k} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -200,7 +211,7 @@ function OverviewBody({
 
       {/* Country + customer bar charts */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
-        <Card title="Countries reached" subtitle={`${countries.length} countr${countries.length === 1 ? "y" : "ies"} across ${batch.total_deliveries} deliveries`}>
+        <Card title={t("trace.overview.countries.title")} subtitle={t(countries.length === 1 ? "trace.overview.countries.subtitle.one" : "trace.overview.countries.subtitle.other", { countries: countries.length, deliveries: batch.total_deliveries })}>
           <div style={{ padding: "12px 18px" }}>
             <BarChart
               data={countries}
@@ -214,7 +225,7 @@ function OverviewBody({
           </div>
         </Card>
 
-        <Card title="Top customers" subtitle={`${customers.length} customer${customers.length === 1 ? "" : "s"} · ${fmtN(batch.total_shipped_kg)} ${batch.uom} total`}>
+        <Card title={t("trace.overview.customers.title")} subtitle={t(customers.length === 1 ? "trace.overview.customers.subtitle.one" : "trace.overview.customers.subtitle.other", { customers: customers.length, quantity: fmtN(batch.total_shipped_kg), uom: batch.uom })}>
           <div style={{ padding: "12px 18px" }}>
             <BarChart
               data={topCustomers}
@@ -230,16 +241,16 @@ function OverviewBody({
       </div>
 
       {/* Recent deliveries */}
-      <Card title="Recent deliveries" subtitle="Last 8 deliveries by date">
+      <Card title={t("trace.overview.deliveries.title")} subtitle={t("trace.overview.deliveries.subtitle")}>
         <DataTable
           columns={[
-            { header: "Delivery", key: "delivery", mono: true, width: 120 },
-            { header: "Customer", key: "customer" },
-            { header: "Destination", key: "destination" },
-            { header: "Country", render: (r) => <span>{flag(r.country)} {r.country}</span>, width: 80 },
-            { header: "Date", key: "date", mono: true },
-            { header: `Qty (${batch.uom})`, key: "qty", align: "right", num: true, render: (r) => `${fmtN(r.qty)} ${batch.uom}` },
-            { header: "Status", render: (r) => <StatusPill status={r.status} size="sm" />, width: 130 },
+            { header: t("trace.field.delivery"), key: "delivery", mono: true, width: 120 },
+            { header: t("trace.field.customer"), key: "customer" },
+            { header: t("trace.field.destination"), key: "destination" },
+            { header: t("trace.field.country"), render: (r) => <span>{flag(r.country)} {r.country}</span>, width: 80 },
+            { header: t("trace.field.date"), key: "date", mono: true },
+            { header: t("trace.field.qtyWithUom", { uom: batch.uom }), key: "qty", align: "right", num: true, render: (r) => `${fmtN(r.qty)} ${batch.uom}` },
+            { header: t("trace.field.status"), render: (r) => <StatusPill status={r.status} size="sm" />, width: 130 },
           ]}
           rows={recentDeliveries}
           rowKey={(r) => r.delivery}

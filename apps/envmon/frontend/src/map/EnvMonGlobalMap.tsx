@@ -2,13 +2,23 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import type { FeatureCollection, Point as GeoPoint } from 'geojson';
 import type { PlantFeatureProps } from './mapUtils';
-import { computeBounds } from './mapUtils';
+import { computeBounds, hasValidCoordinates } from './mapUtils';
 import type { PlantInfo } from '~/types';
 
 const SOURCE_ID = 'plants';
-const MAP_STYLE: string =
+const MAP_STYLE: string | maplibregl.StyleSpecification =
   (import.meta.env.VITE_MAP_STYLE_URL as string | undefined) ??
-  'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+  {
+    version: 8,
+    sources: {},
+    layers: [
+      {
+        id: 'background',
+        type: 'background',
+        paint: { 'background-color': '#eef3ef' },
+      },
+    ],
+  };
 
 interface TooltipState {
   x: number;
@@ -203,7 +213,7 @@ export default function EnvMonGlobalMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const valid = plants.filter((p) => p.lat !== 0 || p.lon !== 0);
+    const valid = plants.filter(hasValidCoordinates);
     if (valid.length === 0) return;
 
     const moveCam = () => {
@@ -231,7 +241,7 @@ export default function EnvMonGlobalMap({
     );
   }, [selectedPlantId]);
 
-  const hasLocations = plants.some((p) => p.lat !== 0 || p.lon !== 0);
+  const hasLocations = plants.some(hasValidCoordinates);
 
   return (
     <div style={{ position: 'relative', height: '100%' }}>

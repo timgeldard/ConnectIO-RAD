@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -11,10 +12,15 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_LANGUAGES = ("en", "fr", "es", "de")
+PLACEHOLDER_RE = re.compile(r"\{\{\s*([A-Za-z0-9_]+)\s*\}\}")
 
 
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def placeholders(value: str) -> set[str]:
+    return set(PLACEHOLDER_RE.findall(value))
 
 
 def validate_resource(path: Path) -> list[str]:
@@ -26,6 +32,11 @@ def validate_resource(path: Path) -> list[str]:
         return errors
 
     english_keys = set(data["en"])
+    english_placeholders = {
+        key: placeholders(value)
+        for key, value in data["en"].items()
+        if isinstance(value, str)
+    }
     for language in REQUIRED_LANGUAGES:
         values = data.get(language, {})
         if not isinstance(values, dict):
@@ -35,12 +46,19 @@ def validate_resource(path: Path) -> list[str]:
         missing = sorted(english_keys - keys)
         extra = sorted(keys - english_keys)
         empty = sorted(key for key, value in values.items() if not isinstance(value, str) or not value.strip())
+        placeholder_drift = sorted(
+            key
+            for key, value in values.items()
+            if isinstance(value, str) and placeholders(value) != english_placeholders.get(key, set())
+        )
         if missing:
             errors.append(f"{path.relative_to(ROOT)} `{language}` missing keys: {', '.join(missing)}")
         if extra:
             errors.append(f"{path.relative_to(ROOT)} `{language}` has extra keys: {', '.join(extra)}")
         if empty:
             errors.append(f"{path.relative_to(ROOT)} `{language}` has empty/non-string values: {', '.join(empty)}")
+        if placeholder_drift:
+            errors.append(f"{path.relative_to(ROOT)} `{language}` has placeholder drift: {', '.join(placeholder_drift)}")
     return errors
 
 

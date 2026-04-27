@@ -411,21 +411,25 @@ function TweaksPanel({
       <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
         <TweakRow label={t("trace.controls.theme")}>
           <Segmented<Tweaks["theme"]>
-            options={[{ k: "light", l: "Light" }, { k: "dark", l: "Dark" }]}
+            options={[{ k: "light", l: t("trace.controls.theme.light") }, { k: "dark", l: t("trace.controls.theme.dark") }]}
             value={tweaks.theme}
             onChange={(v) => setTweaks({ theme: v })}
           />
         </TweakRow>
         <TweakRow label={t("trace.controls.density")}>
           <Segmented<Tweaks["density"]>
-            options={[{ k: "comfortable", l: "Comfortable" }, { k: "compact", l: "Compact" }]}
+            options={[{ k: "comfortable", l: t("trace.controls.density.comfortable") }, { k: "compact", l: t("trace.controls.density.compact") }]}
             value={tweaks.density}
             onChange={(v) => setTweaks({ density: v })}
           />
         </TweakRow>
         <TweakRow label={t("trace.controls.demoState")}>
           <Segmented<DemoState>
-            options={[{ k: "default", l: "Released" }, { k: "qi", l: "In QI" }, { k: "recall", l: "Blocked" }]}
+            options={[
+              { k: "default", l: t("trace.controls.demoState.released") },
+              { k: "qi", l: t("trace.controls.demoState.inQi") },
+              { k: "recall", l: t("trace.controls.demoState.blocked") },
+            ]}
             value={demoState}
             onChange={setDemoState}
           />

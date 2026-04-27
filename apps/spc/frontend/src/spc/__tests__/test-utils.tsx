@@ -1,7 +1,7 @@
 import { render, type RenderOptions } from '@testing-library/react'
 import { I18nProvider } from '@connectio/shared-frontend-i18n'
 import type { ReactElement } from 'react'
-import resources from '../../../i18n/resources.json'
+import resources from '../../i18n/resources.json'
 
 /**
  * Renders a component wrapped in an I18nProvider with English forced.

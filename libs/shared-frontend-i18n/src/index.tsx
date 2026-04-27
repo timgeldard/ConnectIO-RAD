@@ -55,8 +55,12 @@ function normalizeLanguage(language: string | undefined, available: LanguageCode
 
 function detectInitialLanguage(storageKey: string, available: LanguageCode[]): LanguageCode {
   if (typeof window === 'undefined') return DEFAULT_LANGUAGE
-  const saved = window.localStorage.getItem(storageKey)
-  if (saved) return normalizeLanguage(saved, available)
+  try {
+    const saved = window.localStorage.getItem(storageKey)
+    if (saved) return normalizeLanguage(saved, available)
+  } catch {
+    // Storage access can be blocked; language detection should still render.
+  }
   return normalizeLanguage(window.navigator.language, available)
 }
 

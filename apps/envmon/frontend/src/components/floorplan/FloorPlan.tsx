@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import { useEM } from '~/context/EMContext';
 import { useHeatmap, useFloors } from '~/api/client';
 import Marker from './Marker';
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export default function FloorPlan({ personaId }: Props) {
+  const { t } = useI18n();
   const { view, activeFloor, heatmapMode, timeWindow, setSelectedLocId, historicalDate, decayLambda, selectedMics } = useEM();
   const plantId = view.plantId;
   const { data: floors = [] } = useFloors(plantId);
@@ -60,7 +62,7 @@ export default function FloorPlan({ personaId }: Props) {
       {isLoading && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(241,241,229,0.7)' }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Loading…
+            {t('envmon.floorPlan.loading')}
           </div>
         </div>
       )}
@@ -68,7 +70,7 @@ export default function FloorPlan({ personaId }: Props) {
       {/* Error banner */}
       {isError && (
         <div style={{ position: 'absolute', top: 16, left: 16, right: 16, zIndex: 10, background: 'color-mix(in srgb, var(--sunset) 12%, white)', border: '1px solid var(--sunset)', borderRadius: 6, padding: '10px 14px', fontSize: 13, color: 'var(--forest)' }}>
-          <strong>Failed to load heatmap:</strong> {(error as Error).message}
+          <strong>{t('envmon.floorPlan.error')}</strong> {(error as Error).message}
         </div>
       )}
 
@@ -77,7 +79,7 @@ export default function FloorPlan({ personaId }: Props) {
         <img
           key={svgUrl}
           src={svgUrl}
-          alt={`Floor plan for ${activeFloor}`}
+          alt={t('envmon.floorPlan.alt', { floor: activeFloor ?? '' })}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', display: 'block' }}
         />
       ) : (
@@ -102,7 +104,7 @@ export default function FloorPlan({ personaId }: Props) {
       <svg
         viewBox={`0 0 ${viewWidth} ${viewHeight}`}
         preserveAspectRatio="xMidYMid meet"
-        aria-label={`Heatmap markers for floor ${activeFloor}`}
+        aria-label={t('envmon.floorPlan.markersAria', { floor: activeFloor ?? '' })}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}
       >
         {/* Blast radius halos — sanitation persona only */}
