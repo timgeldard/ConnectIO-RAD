@@ -3,6 +3,8 @@ import { fetchProductionHistory } from "../data/api";
 import { useBatchData } from "../data/useBatchData";
 import { LoadFrame, EmptyBlock } from "../components/LoadFrame";
 import { Card, KPI, SectionHeader, fmtN } from "../ui";
+import { useI18n } from "@connectio/shared-frontend-i18n";
+import { template, traceCopy } from "../i18n/pageCopy";
 
 function BatchHistoryChart({ data, highlightId }: { data: ProductionEntry[]; highlightId: string }) {
   if (data.length === 0) return null;
@@ -101,13 +103,15 @@ function BatchTrendChart({ data }: { data: ProductionEntry[] }) {
 }
 
 export function PageProductionHistory({ batch: headerBatch }: { batch: Batch }) {
+  const { language } = useI18n();
+  const copy = traceCopy(language);
   const state = useBatchData(fetchProductionHistory, headerBatch.material_id, headerBatch.batch_id);
   return (
     <LoadFrame
       state={state}
-      eyebrow="07 — PRODUCTION HISTORY"
-      loadingTitle="Loading production history…"
-      loadingSubtitle={`Material ${headerBatch.material_id}`}
+      eyebrow={copy.production.eyebrow}
+      loadingTitle={copy.production.loading}
+      loadingSubtitle={template(copy.common.loadingMaterial, { material: headerBatch.material_id })}
     >
       {({ batch, batches }) => {
         const trendOrder = [...batches].reverse();
@@ -118,26 +122,26 @@ export function PageProductionHistory({ batch: headerBatch }: { batch: Batch }) 
         return (
           <div>
             <SectionHeader
-              eyebrow="07 — PRODUCTION HISTORY"
-              title="All batches of this material"
-              subtitle={`Production history for material ${batch.material_id} (${batch.material_name}). Batch ID filter does not apply to this page.`}
+              eyebrow={copy.production.eyebrow}
+              title={copy.production.title}
+              subtitle={template(copy.production.subtitle, { material: batch.material_id, name: batch.material_name })}
             />
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
-              <KPI label="Total batches" value={batches.length} />
-              <KPI label="Avg batch size" value={fmtN(avg, 0)} unit="KG" sub="size vs avg is computed against this" />
-              <KPI label="Released" value={released} tone="good" />
-              <KPI label="Blocked / QI" value={flagged} tone={flagged > 0 ? "warn" : "muted"} />
+              <KPI label={copy.production.totalBatches} value={batches.length} />
+              <KPI label={copy.production.avgBatchSize} value={fmtN(avg, 0)} unit={copy.common.kg} sub={copy.production.avgBatchSub} />
+              <KPI label={copy.production.released} value={released} tone="good" />
+              <KPI label={copy.production.blockedQi} value={flagged} tone={flagged > 0 ? "warn" : "muted"} />
             </div>
             {batches.length === 0 ? (
-              <Card title="Production volume">
-                <EmptyBlock message="No production history recorded for this material." />
+              <Card title={copy.production.volume}>
+                <EmptyBlock message={copy.production.empty} />
               </Card>
             ) : (
               <>
-                <Card title="Batch size by process order" subtitle="Highlighted bar is the currently selected batch" style={{ marginBottom: 20 }}>
+                <Card title={copy.production.sizeTitle} subtitle={copy.production.sizeSubtitle} style={{ marginBottom: 20 }}>
                   <BatchHistoryChart data={trendOrder} highlightId={batch.batch_id} />
                 </Card>
-                <Card title="Production volume trend" subtitle="Chronological (oldest → newest)">
+                <Card title={copy.production.trendTitle} subtitle={copy.production.trendSubtitle}>
                   <BatchTrendChart data={trendOrder} />
                 </Card>
               </>

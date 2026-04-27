@@ -1,4 +1,6 @@
 import React, { CSSProperties, ReactNode, useState } from "react";
+import { useI18n } from "@connectio/shared-frontend-i18n";
+import { traceCopy } from "./i18n/pageCopy";
 
 // ---------------------------------------------------------------------------
 // Status tokens — Kerry palette
@@ -32,6 +34,8 @@ export const STATUS_TOKENS: Record<TokenKey, { label: string; fg: string; bg: st
 };
 
 export function StatusPill({ status, children, size = "md" }: { status: string; children?: ReactNode; size?: "sm" | "md" }) {
+  const { language } = useI18n();
+  const copy = traceCopy(language);
   const t = STATUS_TOKENS[status] ?? { label: status, fg: "#31421F", bg: "#EDEDE2", border: "#D9D9CB", dot: "#8A9E6A" };
   const pad = size === "sm" ? "2px 7px" : "3px 9px";
   const fs = size === "sm" ? 9.5 : 10.5;
@@ -47,7 +51,7 @@ export function StatusPill({ status, children, size = "md" }: { status: string; 
       whiteSpace: "nowrap",
     }}>
       <span style={{ width: 6, height: 6, borderRadius: 3, background: t.dot, opacity: 0.85 }} />
-      {children || t.label}
+      {children || copy.status[status as keyof typeof copy.status] || t.label}
     </span>
   );
 }
@@ -363,6 +367,8 @@ export function Donut<T extends Record<string, any>>({
 // ---------------------------------------------------------------------------
 
 export function SimBanner({ batchId, onClear }: { batchId: string; onClear: () => void }) {
+  const { language } = useI18n();
+  const copy = traceCopy(language);
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 14,
@@ -383,12 +389,12 @@ export function SimBanner({ batchId, onClear }: { batchId: string; onClear: () =
         flexShrink: 0,
       }}>!</div>
       <div style={{ flex: 1 }}>
-        <strong>Recall simulation active.</strong> Scope locked to batch{" "}
+        <strong>{copy.sim.active}</strong> {copy.sim.scope.split("{{batch}}")[0]}
         <span style={{ fontFamily: "var(--font-mono)", background: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 11.5 }}>{batchId}</span>
-        {" "}· downstream and customer impact is highlighted across every view.
+        {copy.sim.scope.split("{{batch}}")[1]}
       </div>
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "var(--sunset)", textTransform: "uppercase" }}>Simulation</span>
-      <Button variant="ghost" size="sm" onClick={onClear}>Exit simulation</Button>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "var(--sunset)", textTransform: "uppercase" }}>{copy.sim.label}</span>
+      <Button variant="ghost" size="sm" onClick={onClear}>{copy.sim.exit}</Button>
     </div>
   );
 }

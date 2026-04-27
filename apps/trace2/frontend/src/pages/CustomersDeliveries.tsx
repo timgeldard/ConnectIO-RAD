@@ -7,6 +7,8 @@ import {
   BarChart, Card, DataTable, Donut, KPI,
   SectionHeader, StatusPill, fmtN, fmtInt, flag,
 } from "../ui";
+import { useI18n } from "@connectio/shared-frontend-i18n";
+import { plural, template, traceCopy } from "../i18n/pageCopy";
 
 export function PageCustomersDeliveries({
   batch: headerBatch,
@@ -16,13 +18,15 @@ export function PageCustomersDeliveries({
   navigate: (id: PageId) => void;
   sim?: boolean;
 }) {
+  const { language } = useI18n();
+  const copy = traceCopy(language);
   const state = useBatchData(fetchTopDown, headerBatch.material_id, headerBatch.batch_id);
   return (
     <LoadFrame
       state={state}
-      eyebrow="05 — CUSTOMERS & DELIVERIES"
-      loadingTitle="Loading customers and deliveries…"
-      loadingSubtitle={`Material ${headerBatch.material_id} · Batch ${headerBatch.batch_id}`}
+      eyebrow={copy.customers.eyebrow}
+      loadingTitle={copy.customers.loading}
+      loadingSubtitle={template(copy.common.loadingSubtitle, { material: headerBatch.material_id, batch: headerBatch.batch_id })}
     >
       {({ batch, countries, customers, deliveries }) => (
         <CustomersDeliveriesBody
@@ -45,37 +49,45 @@ function CustomersDeliveriesBody({
   sim: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<"customers" | "deliveries">("customers");
+  const { language } = useI18n();
+  const copy = traceCopy(language);
 
   const totalQty = customers.reduce((s, c) => s + c.qty, 0);
 
   return (
     <div>
       <SectionHeader
-        eyebrow="Customers & Deliveries"
-        title="Where did this batch go?"
-        subtitle={`${batch.customers_affected} customer${batch.customers_affected === 1 ? "" : "s"} across ${batch.countries_affected} countr${batch.countries_affected === 1 ? "y" : "ies"} · ${fmtN(batch.total_shipped_kg)} ${batch.uom} shipped in ${batch.total_deliveries} deliveries`}
+        eyebrow={copy.customers.eyebrow}
+        title={copy.customers.title}
+        subtitle={template(copy.customers.subtitle, {
+          customers: plural(copy.common.oneCustomer, copy.common.manyCustomers, batch.customers_affected),
+          countries: plural(copy.common.oneCountry, copy.common.manyCountries, batch.countries_affected),
+          qty: fmtN(batch.total_shipped_kg),
+          uom: batch.uom,
+          deliveries: plural(copy.common.oneDelivery, copy.common.manyDeliveries, batch.total_deliveries),
+        })}
       />
 
       {/* 4-KPI row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
         <KPI
-          label="Countries reached"
+          label={copy.customers.countriesReached}
           value={fmtInt(batch.countries_affected)}
           tone={sim ? "bad" : "brand"}
         />
         <KPI
-          label="Customers"
+          label={copy.common.customers}
           value={fmtInt(batch.customers_affected)}
           tone={sim ? "bad" : "default"}
         />
         <KPI
-          label="Total shipped"
+          label={copy.top.totalShipped}
           value={fmtN(batch.total_shipped_kg)}
           unit={batch.uom}
           tone="default"
         />
         <KPI
-          label="Total deliveries"
+          label={copy.customers.totalDeliveries}
           value={fmtInt(batch.total_deliveries)}
           tone="default"
         />
@@ -101,7 +113,9 @@ function CustomersDeliveriesBody({
                 textTransform: "capitalize",
               }}
             >
-              {tab === "customers" ? `Customers (${customers.length})` : `Deliveries (${deliveries.length})`}
+              {tab === "customers"
+                ? template(copy.customers.customersTab, { count: customers.length })
+                : template(copy.customers.deliveriesTab, { count: deliveries.length })}
             </button>
           ))}
         </div>
@@ -126,16 +140,18 @@ function CustomersTab({
   sim: boolean;
 }) {
   const donutData = customers.slice(0, 10);
+  const { language } = useI18n();
+  const copy = traceCopy(language);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20 }}>
-      <Card title="Share by customer">
+      <Card title={copy.customers.shareByCustomer}>
         <div style={{ padding: "12px 0", display: "flex", justifyContent: "center" }}>
           <Donut
             data={donutData}
             valueKey="qty"
             size={200}
-            centerLabel="total shipped"
+            centerLabel={copy.customers.totalShippedCenter}
             centerValue={`${fmtInt(customers.length)}`}
           />
         </div>
@@ -154,15 +170,15 @@ function CustomersTab({
         </div>
       </Card>
 
-      <Card title={`${customers.length} customer${customers.length === 1 ? "" : "s"}`}>
+      <Card title={template(copy.customers.customerCountTitle, { count: customers.length })}>
         <DataTable
           columns={[
-            { header: "Customer", key: "name" },
-            { header: "Country", render: (r) => <span>{flag(r.country)} {r.country}</span> },
-            { header: "Qty", key: "qty", align: "right", num: true, render: (r) => `${fmtN(r.qty)} ${batch.uom}` },
-            { header: "Deliveries", key: "deliveries", align: "right", num: true, mono: true },
+            { header: copy.common.customer, key: "name" },
+            { header: copy.common.country, render: (r) => <span>{flag(r.country)} {r.country}</span> },
+            { header: copy.common.qty, key: "qty", align: "right", num: true, render: (r) => `${fmtN(r.qty)} ${batch.uom}` },
+            { header: copy.common.deliveries, key: "deliveries", align: "right", num: true, mono: true },
             {
-              header: "Share %",
+              header: copy.common.sharePercent,
               align: "right",
               num: true,
               render: (r) => (
@@ -189,19 +205,21 @@ function DeliveriesTab({
   sim: boolean;
 }) {
   const sorted = [...deliveries].sort((a, b) => (a.date < b.date ? 1 : -1));
+  const { language } = useI18n();
+  const copy = traceCopy(language);
 
   return (
-    <Card title={`${deliveries.length} deliveries`}>
+    <Card title={template(copy.customers.deliveryCountTitle, { count: deliveries.length })}>
       <DataTable
         columns={[
-          { header: "Delivery", key: "delivery", mono: true, width: 120 },
-          { header: "Customer", key: "customer" },
-          { header: "Destination", key: "destination" },
-          { header: "Country", render: (r) => <span>{flag(r.country)} {r.country}</span>, width: 90 },
-          { header: "Date", key: "date", mono: true },
-          { header: "Qty", align: "right", num: true, render: (r) => `${fmtN(r.qty)} ${batch.uom}` },
-          { header: "Status", render: (r) => <StatusPill status={r.status} size="sm" />, width: 130 },
-          { header: "Doc", key: "doc", mono: true, muted: true },
+          { header: copy.common.delivery, key: "delivery", mono: true, width: 120 },
+          { header: copy.common.customer, key: "customer" },
+          { header: copy.common.destination, key: "destination" },
+          { header: copy.common.country, render: (r) => <span>{flag(r.country)} {r.country}</span>, width: 90 },
+          { header: copy.common.date, key: "date", mono: true },
+          { header: copy.common.qty, align: "right", num: true, render: (r) => `${fmtN(r.qty)} ${batch.uom}` },
+          { header: copy.common.status, render: (r) => <StatusPill status={r.status} size="sm" />, width: 130 },
+          { header: copy.common.doc, key: "doc", mono: true, muted: true },
         ]}
         rows={sorted}
         rowKey={(r) => r.delivery}

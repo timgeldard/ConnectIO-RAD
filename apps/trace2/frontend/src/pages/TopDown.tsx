@@ -5,6 +5,8 @@ import { useBatchData } from "../data/useBatchData";
 import { LoadFrame, EmptyBlock } from "../components/LoadFrame";
 import { LineageGraph, NodeDetailPanel } from "../components/LineageGraph";
 import { Card, DataTable, DepthControl, KPI, SectionHeader, fmtN, fmtInt } from "../ui";
+import { useI18n } from "@connectio/shared-frontend-i18n";
+import { plural, template, traceCopy } from "../i18n/pageCopy";
 
 export function PageTopDown({
   batch: headerBatch,
@@ -22,13 +24,15 @@ export function PageTopDown({
   maxInputDepth?: number;
   setMaxInputDepth?: (v: number) => void;
 }) {
+  const { language } = useI18n();
+  const copy = traceCopy(language);
   const state = useBatchData(fetchTopDown, headerBatch.material_id, headerBatch.batch_id);
   return (
     <LoadFrame
       state={state}
-      eyebrow="04 — TOP-DOWN TRACEABILITY"
-      loadingTitle="Loading downstream trace…"
-      loadingSubtitle={`Material ${headerBatch.material_id} · Batch ${headerBatch.batch_id}`}
+      eyebrow={copy.top.eyebrow}
+      loadingTitle={copy.top.loading}
+      loadingSubtitle={template(copy.common.loadingSubtitle, { material: headerBatch.material_id, batch: headerBatch.batch_id })}
     >
       {({ batch, lineage }) => (
         <TopDownBody
@@ -57,38 +61,40 @@ function TopDownBody({
   setMaxInputDepth?: (v: number) => void;
 }) {
   const [selected, setSelected] = useState<LineageNode | null>(null);
+  const { language } = useI18n();
+  const copy = traceCopy(language);
   const focal = focalFromBatch(batch);
   const maxLevel = lineage.reduce((m, n) => Math.max(m, n.level), 0);
 
   return (
     <div>
       <SectionHeader
-        eyebrow="04 — TOP-DOWN TRACEABILITY"
-        title="Where did this batch go?"
-        subtitle={`From this batch forward: consumed by internal process orders, transferred across plants, and delivered to customer. Graph walks up to ${Math.max(maxLevel, 1)} level${maxLevel === 1 ? "" : "s"} downstream.`}
+        eyebrow={copy.top.eyebrow}
+        title={copy.top.title}
+        subtitle={template(copy.top.subtitle, { levels: plural(copy.common.oneLevel, copy.common.manyLevels, Math.max(maxLevel, 1)) })}
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
-        <KPI label="Distinct customers" value={fmtInt(batch.customers_affected)} tone={sim ? "bad" : "default"} />
-        <KPI label="Distinct countries" value={fmtInt(batch.countries_affected)} tone={sim ? "bad" : "default"} />
-        <KPI label="Total shipped" value={fmtN(batch.total_shipped_kg, 1)} unit={batch.uom} />
-        <KPI label="Deliveries" value={fmtInt(batch.total_deliveries)} />
-        <KPI label="Output tiers" value={maxLevel} sub={`${lineage.length} downstream nodes`} tone="brand" />
+        <KPI label={copy.top.distinctCustomers} value={fmtInt(batch.customers_affected)} tone={sim ? "bad" : "default"} />
+        <KPI label={copy.top.distinctCountries} value={fmtInt(batch.countries_affected)} tone={sim ? "bad" : "default"} />
+        <KPI label={copy.top.totalShipped} value={fmtN(batch.total_shipped_kg, 1)} unit={batch.uom} />
+        <KPI label={copy.common.deliveries} value={fmtInt(batch.total_deliveries)} />
+        <KPI label={copy.top.outputTiers} value={maxLevel} sub={template(copy.top.outputSub, { count: lineage.length })} tone="brand" />
       </div>
 
       {/* Depth toolbar */}
       {(setMaxLevels || setMaxInputDepth) && (
         <div style={{ display: "flex", gap: 20, marginBottom: 12, alignItems: "flex-end" }}>
           {setMaxInputDepth && (
-            <DepthControl label="Input depth ↑" value={maxInputDepth} onChange={setMaxInputDepth} />
+            <DepthControl label={copy.line.inputDepth} value={maxInputDepth} onChange={setMaxInputDepth} />
           )}
           {setMaxLevels && (
-            <DepthControl label="Trace depth ↓" value={maxLevels} onChange={setMaxLevels} />
+            <DepthControl label={copy.line.traceDepth} value={maxLevels} onChange={setMaxLevels} />
           )}
         </div>
       )}
 
-      <Card title="Material lineage — outputs" subtitle="Drag to pan · scroll to zoom · click any node" noPad style={{ marginBottom: 20 }}>
+      <Card title={copy.line.materialLineageOutputs} subtitle={copy.line.graphHelp} noPad style={{ marginBottom: 20 }}>
         <LineageGraph
           focal={focal}
           upstream={[]}
@@ -108,22 +114,22 @@ function TopDownBody({
 
       <NodeDetailPanel node={selected} onClose={() => setSelected(null)} />
 
-      <Card title="Distribution trace" subtitle={`${lineage.length} downstream links`} noPad>
+      <Card title={copy.top.distributionTitle} subtitle={template(copy.top.distributionSubtitle, { count: lineage.length })} noPad>
         {lineage.length === 0 ? (
-          <EmptyBlock message="No downstream consumption or transfers recorded." />
+          <EmptyBlock message={copy.top.empty} />
         ) : (
           <DataTable<LineageNode>
             columns={[
-              { header: "Level", render: (r) => "L" + r.level, mono: true, align: "center" },
-              { header: "Direction", render: () => "↓ Downstream" },
-              { header: "Material ID", key: "material_id", mono: true },
-              { header: "Material", key: "material" },
-              { header: "Batch", key: "batch", mono: true },
-              { header: "Plant", key: "plant", muted: true },
-              { header: "Customer", render: (r) => r.customer ?? "—" },
-              { header: "Qty", render: (r) => fmtN(r.qty, 1) + " " + r.uom, align: "right", mono: true, num: true },
+              { header: copy.common.level, render: (r) => "L" + r.level, mono: true, align: "center" },
+              { header: copy.common.direction, render: () => copy.top.direction },
+              { header: copy.common.materialId, key: "material_id", mono: true },
+              { header: copy.common.material, key: "material" },
+              { header: copy.common.batch, key: "batch", mono: true },
+              { header: copy.common.plant, key: "plant", muted: true },
+              { header: copy.common.customer, render: (r) => r.customer ?? "—" },
+              { header: copy.common.qty, render: (r) => fmtN(r.qty, 1) + " " + r.uom, align: "right", mono: true, num: true },
               {
-                header: "Link type",
+                header: copy.common.linkType,
                 render: (r) => (
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--ink-3)" }}>
                     {r.link}

@@ -15,6 +15,8 @@ import {
   BarChart, Button, Card, DataTable, Donut, KPI,
   SectionHeader, StatusPill, flag, fmtN,
 } from "../ui";
+import { useI18n } from "@connectio/shared-frontend-i18n";
+import { template, traceCopy } from "../i18n/pageCopy";
 
 export function PageRecallReadiness({
   batch: headerBatch,
@@ -26,13 +28,15 @@ export function PageRecallReadiness({
   sim?: boolean;
   onSim?: (v: boolean) => void;
 }) {
+  const { language } = useI18n();
+  const copy = traceCopy(language);
   const state = useBatchData(fetchRecallReadiness, headerBatch.material_id, headerBatch.batch_id);
   return (
     <LoadFrame
       state={state}
-      eyebrow="10 — ISSUE READINESS"
-      loadingTitle="Loading batch exposure…"
-      loadingSubtitle={`Material ${headerBatch.material_id} · Batch ${headerBatch.batch_id}`}
+      eyebrow={copy.recall.eyebrow}
+      loadingTitle={copy.recall.loading}
+      loadingSubtitle={template(copy.common.loadingSubtitle, { material: headerBatch.material_id, batch: headerBatch.batch_id })}
     >
       {({ batch, countries, customers, deliveries, exposure, events }) => (
         <RecallReadinessBody
@@ -70,6 +74,8 @@ function RecallReadinessBody({
   onSim: (v: boolean) => void;
 }) {
   const [riskFilter, setRiskFilter] = useState<"ALL" | "CRITICAL" | "HIGH" | "MEDIUM">("ALL");
+  const { language } = useI18n();
+  const copy = traceCopy(language);
 
   const filteredExposure = riskFilter === "ALL" ? exposure : exposure.filter((e) => e.risk === riskFilter);
   const exposedBatches = exposure.length;
@@ -83,41 +89,41 @@ function RecallReadinessBody({
   return (
     <div>
       <SectionHeader
-        eyebrow="10 — ISSUE READINESS"
-        title="If this batch were recalled today, where would it land?"
-        subtitle="All downstream consumption, transfers and customer shipments that inherit material from this batch, with risk-tiered exposure and a reconstructable event timeline."
+        eyebrow={copy.recall.eyebrow}
+        title={copy.recall.title}
+        subtitle={copy.recall.subtitle}
         action={
           <div style={{ display: "flex", gap: 8 }}>
-            <Button variant="ghost" size="md" icon={<span>⎙</span>}>Export dossier</Button>
+            <Button variant="ghost" size="md" icon={<span>⎙</span>}>{copy.recall.exportDossier}</Button>
             <Button variant="danger" size="md" onClick={() => onSim(!sim)} active={sim}>
-              {sim ? "Cancel simulation" : "Simulate recall"}
+              {sim ? copy.recall.cancelSimulation : copy.recall.simulateRecall}
             </Button>
           </div>
         }
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 12 }}>
-        <KPI label="Batch status" value={<StatusPill status={batch.batch_status} />} />
-        <KPI label="Days to expiry" value={batch.days_to_expiry} unit="days" sub={batch.manufacture_date + " → " + batch.expiry_date} />
-        <KPI label="Unrestricted" value={fmtN(batch.unrestricted, 1)} unit="KG" tone="good" />
-        <KPI label="Blocked" value={fmtN(batch.blocked, 0)} unit="KG" tone={batch.blocked > 0 ? "bad" : "muted"} />
-        <KPI label="Quality inspection" value={fmtN(batch.qi, 0)} unit="KG" tone={batch.qi > 0 ? "warn" : "muted"} />
-        <KPI label="Process order" value={<span style={{ fontFamily: "var(--font-mono)", fontSize: 15 }}>{batch.process_order || "—"}</span>} sub={batch.plant_name} />
+        <KPI label={copy.bottom.batchStatus} value={<StatusPill status={batch.batch_status} />} />
+        <KPI label={copy.bottom.daysToExpiry} value={batch.days_to_expiry} unit={copy.common.days} sub={batch.manufacture_date + " → " + batch.expiry_date} />
+        <KPI label={copy.status.UNRESTRICTED} value={fmtN(batch.unrestricted, 1)} unit={copy.common.kg} tone="good" />
+        <KPI label={copy.recall.blocked} value={fmtN(batch.blocked, 0)} unit={copy.common.kg} tone={batch.blocked > 0 ? "bad" : "muted"} />
+        <KPI label={copy.recall.qi} value={fmtN(batch.qi, 0)} unit={copy.common.kg} tone={batch.qi > 0 ? "warn" : "muted"} />
+        <KPI label={copy.common.processOrder} value={<span style={{ fontFamily: "var(--font-mono)", fontSize: 15 }}>{batch.process_order || "—"}</span>} sub={batch.plant_name} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 28 }}>
-        <KPI label="Customers affected" value={batch.customers_affected} tone={sim ? "bad" : "default"} />
-        <KPI label="Countries affected" value={batch.countries_affected} tone={sim ? "bad" : "default"} />
-        <KPI label="Total shipped" value={fmtN(batch.total_shipped_kg, 1)} unit="KG" tone={sim ? "bad" : "default"} />
-        <KPI label="Deliveries" value={batch.total_deliveries} />
-        <KPI label="Consumed internally" value={fmtN(batch.total_consumed, 1)} unit="KG" />
-        <KPI label="Consuming POs" value={batch.consuming_pos} />
+        <KPI label={copy.recall.customersAffected} value={batch.customers_affected} tone={sim ? "bad" : "default"} />
+        <KPI label={copy.recall.countriesAffected} value={batch.countries_affected} tone={sim ? "bad" : "default"} />
+        <KPI label={copy.top.totalShipped} value={fmtN(batch.total_shipped_kg, 1)} unit={copy.common.kg} tone={sim ? "bad" : "default"} />
+        <KPI label={copy.common.deliveries} value={batch.total_deliveries} />
+        <KPI label={copy.recall.consumedInternally} value={fmtN(batch.total_consumed, 1)} unit={copy.common.kg} />
+        <KPI label={copy.recall.consumingPos} value={batch.consuming_pos} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
-        <Card title="Shipped volume by country" subtitle="Where material from this batch has landed">
+        <Card title={copy.recall.byCountry} subtitle={copy.recall.byCountrySub}>
           {countries.length === 0 ? (
-            <EmptyBlock message="No customer shipments recorded for this batch." />
+            <EmptyBlock message={copy.recall.noShipments} />
           ) : (
             <BarChart
               data={countries}
@@ -130,9 +136,9 @@ function RecallReadinessBody({
           )}
         </Card>
 
-        <Card title="Despatched by customer" subtitle="Share of total shipped quantity">
+        <Card title={copy.recall.byCustomer} subtitle={copy.recall.byCustomerSub}>
           {customers.length === 0 ? (
-            <EmptyBlock message="No customer-level despatch data available." />
+            <EmptyBlock message={copy.recall.noCustomerData} />
           ) : (
             <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
               <Donut
@@ -141,7 +147,7 @@ function RecallReadinessBody({
                 labelKey="name"
                 size={200}
                 centerValue={fmtN(batch.total_shipped_kg, 0)}
-                centerLabel="KG DESPATCHED"
+                centerLabel={copy.recall.kgDespatched}
               />
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
                 {customers.slice(0, 8).map((c, i) => (
@@ -157,19 +163,19 @@ function RecallReadinessBody({
         </Card>
       </div>
 
-      <Card title="Customer shipment events" subtitle={`${deliveries.length} deliveries · sorted by date`} noPad style={{ marginBottom: 28 }}>
+      <Card title={copy.recall.shipmentEvents} subtitle={`${template(copy.common.manyDeliveries, { count: deliveries.length })} · ${copy.common.sortedByDate}`} noPad style={{ marginBottom: 28 }}>
         {deliveries.length === 0 ? (
-          <EmptyBlock message="No deliveries have been posted for this batch." />
+          <EmptyBlock message={copy.recall.noDeliveries} />
         ) : (
           <DataTable columns={[
-            { header: "Delivery", key: "delivery", mono: true },
-            { header: "Customer", key: "customer" },
-            { header: "Destination", key: "destination", muted: true },
-            { header: "Country", mono: true, render: (r) => <span>{r.country ? `${flag(r.country)} ${r.country}` : "—"}</span> },
-            { header: "Date", key: "date", mono: true, muted: true },
-            { header: `Qty (${batch.uom})`, align: "right", mono: true, num: true, render: (r) => fmtN(r.qty, 1) },
-            { header: "Status", render: (r) => <StatusPill status={r.status} size="sm" /> },
-            { header: "Doc", key: "doc", mono: true, muted: true },
+            { header: copy.common.delivery, key: "delivery", mono: true },
+            { header: copy.common.customer, key: "customer" },
+            { header: copy.common.destination, key: "destination", muted: true },
+            { header: copy.common.country, mono: true, render: (r) => <span>{r.country ? `${flag(r.country)} ${r.country}` : "—"}</span> },
+            { header: copy.common.date, key: "date", mono: true, muted: true },
+            { header: `${copy.common.qty} (${batch.uom})`, align: "right", mono: true, num: true, render: (r) => fmtN(r.qty, 1) },
+            { header: copy.common.status, render: (r) => <StatusPill status={r.status} size="sm" /> },
+            { header: copy.common.doc, key: "doc", mono: true, muted: true },
           ]} rows={deliveries}
             emphasize={(r) => sim && r.status !== "PLANNED"}
           />
@@ -177,21 +183,21 @@ function RecallReadinessBody({
       </Card>
 
       <SectionHeader
-        eyebrow="BLAST RADIUS"
-        title="Cross-batch exposure"
-        subtitle="All batches that consumed material from this one. Tier 1 are direct descendants; Tier 2 are finished goods already in market."
+        eyebrow={copy.recall.blastEyebrow}
+        title={copy.recall.blastTitle}
+        subtitle={copy.recall.blastSubtitle}
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 16 }}>
-        <KPI label="Exposed batches" value={exposedBatches} tone={sim ? "bad" : "default"} />
-        <KPI label="Critical tier" value={criticalBatches} tone={sim ? "bad" : "warn"} />
-        <KPI label="High-risk shipped" value={fmtN(highRiskShipped, 0)} unit="KG" tone={sim ? "bad" : "warn"} />
-        <KPI label="Exposed stock" value={fmtN(exposedStock, 0)} unit="KG" />
-        <KPI label="Exposed customers" value={exposedCustomers} />
+        <KPI label={copy.recall.exposedBatches} value={exposedBatches} tone={sim ? "bad" : "default"} />
+        <KPI label={copy.recall.criticalTier} value={criticalBatches} tone={sim ? "bad" : "warn"} />
+        <KPI label={copy.recall.highRiskShipped} value={fmtN(highRiskShipped, 0)} unit={copy.common.kg} tone={sim ? "bad" : "warn"} />
+        <KPI label={copy.recall.exposedStock} value={fmtN(exposedStock, 0)} unit={copy.common.kg} />
+        <KPI label={copy.recall.exposedCustomers} value={exposedCustomers} />
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--ink-3)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Filter by risk:</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--ink-3)", letterSpacing: "0.12em", textTransform: "uppercase" }}>{copy.recall.filterRisk}</span>
         {(["ALL", "CRITICAL", "HIGH", "MEDIUM"] as const).map((r) => (
           <Button key={r} variant="ghost" size="sm" active={riskFilter === r} onClick={() => setRiskFilter(r)}>{r}</Button>
         ))}
@@ -199,27 +205,27 @@ function RecallReadinessBody({
 
       <Card noPad style={{ marginBottom: 28 }}>
         {filteredExposure.length === 0 ? (
-          <EmptyBlock message={exposure.length === 0 ? "No downstream batches inherit material from this batch." : "No batches match the current risk filter."} />
+          <EmptyBlock message={exposure.length === 0 ? copy.recall.noExposure : copy.recall.noRiskMatch} />
         ) : (
           <DataTable columns={[
-            { header: "Material", key: "material" },
-            { header: "Batch", key: "batch", mono: true },
-            { header: "Plant", key: "plant", mono: true, muted: true },
-            { header: "Qty", align: "right", mono: true, num: true, render: (r) => fmtN(r.qty, 0) + " KG" },
-            { header: "In stock", align: "right", mono: true, num: true, render: (r) => fmtN(r.stock, 0) },
-            { header: "Shipped", align: "right", mono: true, num: true, render: (r) => fmtN(r.shipped, 0) },
-            { header: "Depth", align: "center", mono: true, render: (r) => "L" + r.path_depth },
-            { header: "Status", render: (r) => <StatusPill status={r.status} size="sm" /> },
-            { header: "Risk", render: (r) => <StatusPill status={r.risk} size="sm" /> },
+            { header: copy.common.material, key: "material" },
+            { header: copy.common.batch, key: "batch", mono: true },
+            { header: copy.common.plant, key: "plant", mono: true, muted: true },
+            { header: copy.common.qty, align: "right", mono: true, num: true, render: (r) => fmtN(r.qty, 0) + ` ${copy.common.kg}` },
+            { header: copy.common.inStock, align: "right", mono: true, num: true, render: (r) => fmtN(r.stock, 0) },
+            { header: copy.common.shipped, align: "right", mono: true, num: true, render: (r) => fmtN(r.shipped, 0) },
+            { header: copy.common.depth, align: "center", mono: true, render: (r) => "L" + r.path_depth },
+            { header: copy.common.status, render: (r) => <StatusPill status={r.status} size="sm" /> },
+            { header: copy.common.risk, render: (r) => <StatusPill status={r.risk} size="sm" /> },
           ]} rows={filteredExposure}
             emphasize={(r) => sim && (r.risk === "CRITICAL" || r.risk === "HIGH")}
           />
         )}
       </Card>
 
-      <Card title="Batch movement timeline" subtitle="Reconstructs every posting that moved material from this batch — ready for regulatory submission">
+      <Card title={copy.recall.movementTitle} subtitle={copy.recall.movementSubtitle}>
         {events.length === 0 ? (
-          <EmptyBlock message="No postings recorded for this batch." />
+          <EmptyBlock message={copy.mass.noPostings} />
         ) : (
           <MovementTimeline events={events} sim={sim} batch={batch} />
         )}

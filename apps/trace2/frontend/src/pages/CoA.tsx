@@ -4,6 +4,8 @@ import { useBatchData } from "../data/useBatchData";
 import { LoadFrame, EmptyBlock } from "../components/LoadFrame";
 import { Button, DataTable, HexMark, SectionHeader, StatusPill } from "../ui";
 import type { ReactNode } from "react";
+import { useI18n } from "@connectio/shared-frontend-i18n";
+import { template, traceCopy } from "../i18n/pageCopy";
 
 function CoaField({ label, value, mono = true }: { label: ReactNode; value: ReactNode; mono?: boolean }) {
   return (
@@ -22,13 +24,15 @@ function CoaField({ label, value, mono = true }: { label: ReactNode; value: Reac
 }
 
 export function PageCoA({ batch: headerBatch }: { batch: Batch }) {
+  const { language } = useI18n();
+  const copy = traceCopy(language);
   const state = useBatchData(fetchCoa, headerBatch.material_id, headerBatch.batch_id);
   return (
     <LoadFrame
       state={state}
-      eyebrow="11 — CERTIFICATE OF ANALYSIS"
-      loadingTitle="Loading CoA…"
-      loadingSubtitle={`Material ${headerBatch.material_id} · Batch ${headerBatch.batch_id}`}
+      eyebrow={copy.coa.eyebrow}
+      loadingTitle={copy.coa.loading}
+      loadingSubtitle={template(copy.common.loadingSubtitle, { material: headerBatch.material_id, batch: headerBatch.batch_id })}
     >
       {({ batch, mics }) => <CoaBody batch={batch} mics={mics} />}
     </LoadFrame>
@@ -36,13 +40,16 @@ export function PageCoA({ batch: headerBatch }: { batch: Batch }) {
 }
 
 function CoaBody({ batch, mics }: { batch: Batch; mics: MIC[] }) {
+  const { language } = useI18n();
+  const copy = traceCopy(language);
+  const rejectedCount = mics.filter((m) => m.result === "REJECTED").length;
   return (
     <div>
       <SectionHeader
-        eyebrow="11 — CERTIFICATE OF ANALYSIS"
-        title="Release documentation"
-        subtitle="Formal CoA for this batch: inspection results, usage decision, and release signature."
-        action={<Button variant="primary" icon={<span>⎙</span>}>Generate PDF</Button>}
+        eyebrow={copy.coa.eyebrow}
+        title={copy.coa.title}
+        subtitle={copy.coa.subtitle}
+        action={<Button variant="primary" icon={<span>⎙</span>}>{copy.coa.generate}</Button>}
       />
 
       <div style={{
@@ -76,15 +83,15 @@ function CoaBody({ batch, mics }: { batch: Batch; mics: MIC[] }) {
               textTransform: "uppercase",
               lineHeight: 1.1,
             }}>
-              Certificate of Analysis
+              {copy.coa.certificate}
             </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>
-              Document {batch.process_order || "—"} / CoA-{batch.batch_id}
+              {template(copy.coa.document, { document: batch.process_order || "—", batch: batch.batch_id })}
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontFamily: "var(--font-sans)", fontSize: 16, fontWeight: 600, color: "#fff" }}>
-              {batch.plant_name || "Plant"}
+              {batch.plant_name || copy.common.plant}
             </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 3 }}>
               {batch.plant_id}
@@ -94,32 +101,32 @@ function CoaBody({ batch, mics }: { batch: Batch; mics: MIC[] }) {
 
         <div style={{ padding: "28px 32px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, marginBottom: 24 }}>
-            <CoaField label="Material ID" value={batch.material_id} />
-            <CoaField label="Batch ID" value={batch.batch_id} />
-            <CoaField label="Status" value={<StatusPill status={batch.batch_status} size="sm" />} />
-            <CoaField label="Material name" value={batch.material_name} mono={false} />
-            <CoaField label="Process order" value={batch.process_order || "—"} />
-            <CoaField label="Plant" value={`${batch.plant_id} ${batch.plant_name}`} mono={false} />
-            <CoaField label="Date of manufacture" value={batch.manufacture_date} />
-            <CoaField label="Expiry date" value={batch.expiry_date} />
-            <CoaField label="UOM" value={batch.uom} />
+            <CoaField label={copy.common.materialId} value={batch.material_id} />
+            <CoaField label={copy.common.batchId} value={batch.batch_id} />
+            <CoaField label={copy.common.status} value={<StatusPill status={batch.batch_status} size="sm" />} />
+            <CoaField label={copy.coa.materialName} value={batch.material_name} mono={false} />
+            <CoaField label={copy.common.processOrder} value={batch.process_order || "—"} />
+            <CoaField label={copy.common.plant} value={`${batch.plant_id} ${batch.plant_name}`} mono={false} />
+            <CoaField label={copy.coa.manufactureDate} value={batch.manufacture_date} />
+            <CoaField label={copy.coa.expiryDate} value={batch.expiry_date} />
+            <CoaField label={copy.common.uom} value={batch.uom} />
           </div>
 
           <div style={{ fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 600, color: "var(--forest)", marginBottom: 10, marginTop: 8 }}>
-            Inspection results
+            {copy.coa.inspectionResults}
           </div>
           {mics.length === 0 ? (
-            <EmptyBlock message="No CoA results recorded for this batch." />
+            <EmptyBlock message={copy.coa.empty} />
           ) : (
             <DataTable<MIC>
               dense
               columns={[
-                { header: "MIC", key: "id", mono: true },
-                { header: "Characteristic", key: "name" },
-                { header: "Target", render: (r) => r.target + (r.tol ? " " + r.tol : ""), mono: true, muted: true },
-                { header: "UOM", key: "uom", mono: true, muted: true },
+                { header: copy.common.mic, key: "id", mono: true },
+                { header: copy.common.characteristic, key: "name" },
+                { header: copy.common.target, render: (r) => r.target + (r.tol ? " " + r.tol : ""), mono: true, muted: true },
+                { header: copy.common.uom, key: "uom", mono: true, muted: true },
                 {
-                  header: "Result",
+                  header: copy.common.result,
                   render: (r) => (
                     <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500 }}>
                       {r.value || r.qual || "—"}
@@ -127,7 +134,7 @@ function CoaBody({ batch, mics }: { batch: Batch; mics: MIC[] }) {
                   ),
                   align: "right",
                 },
-                { header: "Decision", render: (r) => <StatusPill status={r.result} size="sm" /> },
+                { header: copy.common.decision, render: (r) => <StatusPill status={r.result} size="sm" /> },
               ]}
               rows={mics}
             />
@@ -146,22 +153,20 @@ function CoaBody({ batch, mics }: { batch: Batch; mics: MIC[] }) {
               textTransform: "uppercase", letterSpacing: "0.14em",
               marginBottom: 6,
             }}>
-              Usage Decision
+              {copy.coa.usageDecision}
             </div>
             <div style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: 15, color: "var(--ink)" }}>
               {batch.batch_status === "BLOCKED"
-                ? "Blocked — not released"
+                ? copy.coa.decisionBlocked
                 : batch.batch_status === "QUALITY_INSPECTION"
-                ? "In quality inspection — not yet released"
+                ? copy.coa.decisionQi
                 : batch.batch_status === "RESTRICTED"
-                ? "Restricted use"
-                : "Accepted — released for unrestricted use"}
+                ? copy.coa.decisionRestricted
+                : copy.coa.decisionAccepted}
             </div>
             <div style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink-2)", marginTop: 6 }}>
-              {mics.length} characteristic{mics.length === 1 ? "" : "s"} recorded.{" "}
-              {mics.filter((m) => m.result === "REJECTED").length === 0
-                ? "No rejected results."
-                : `${mics.filter((m) => m.result === "REJECTED").length} rejected result(s).`}
+              {template(copy.coa.recorded, { count: mics.length })}{" "}
+              {rejectedCount === 0 ? copy.coa.noRejected : template(copy.coa.rejectedCount, { count: rejectedCount })}
             </div>
           </div>
         </div>

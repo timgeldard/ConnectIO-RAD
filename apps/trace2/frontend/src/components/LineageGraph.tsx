@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "@connectio/shared-frontend-i18n";
+import { traceCopy } from "../i18n/pageCopy";
 import { fmtN } from "../ui";
 import type { FocalNode, LineageNode } from "../types";
 
@@ -44,6 +46,8 @@ export function LineageGraph({
   onNodeClick,
   sim = false,
 }: Props) {
+  const { language } = useI18n();
+  const copy = traceCopy(language);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [view, setView] = useState({ x: 0, y: 0, k: 1 });
   const [dragging, setDragging] = useState<{
@@ -153,7 +157,7 @@ export function LineageGraph({
         padding: "48px 16px", textAlign: "center",
         fontFamily: "var(--font-sans)", fontSize: 12.5, color: "var(--ink-3)",
       }}>
-        No lineage edges recorded for this batch.
+        {copy.line.noEdges}
       </div>
     );
   }
@@ -178,10 +182,10 @@ export function LineageGraph({
     const batchLabel = isFocal ? (n as PlacedFocal).batch_id : lineageN.batch;
     const level = isFocal ? 0 : lineageN.level;
     const label = isFocal
-      ? "THIS BATCH"
+      ? copy.common.thisBatch.toUpperCase()
       : n.col < 0
-      ? `INPUT · L${level}`
-      : `OUTPUT · L${level}`;
+      ? `${copy.common.input.toUpperCase()} · L${level}`
+      : `${copy.common.output.toUpperCase()} · L${level}`;
     const accentColor = isFocal
       ? "#DFFF11"
       : (LINK_STYLE[lineageN.link]?.stroke ?? "var(--ink-3)");
@@ -279,10 +283,10 @@ export function LineageGraph({
 
   const columnLabels: { c: number; l: string }[] = [];
   for (let c = maxUp; c >= 1; c--) {
-    columnLabels.push({ c: -c, l: columnLabel("up", c, maxUp) });
+    columnLabels.push({ c: -c, l: columnLabel("up", c, maxUp, copy) });
   }
   for (let c = 1; c <= maxDn; c++) {
-    columnLabels.push({ c, l: columnLabel("down", c, maxDn) });
+    columnLabels.push({ c, l: columnLabel("down", c, maxDn, copy) });
   }
 
   const clampDepth = (v: number, max: number) => Math.max(1, Math.min(max, v));
@@ -316,27 +320,27 @@ export function LineageGraph({
         background: "var(--card)", borderBottom: "1px solid var(--line)",
         fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--ink-2)",
       }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.12em", color: "var(--ink-3)" }}>DEPTH</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.12em", color: "var(--ink-3)" }}>{copy.common.depth.toUpperCase()}</span>
         {rawMaxUp > 1 && (
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span>Upstream</span>
+            <span>{copy.common.up}</span>
             <button style={depthBtn} onClick={() => setDepthUp((d) => clampDepth(d - 1, rawMaxUp))}>−</button>
             <span style={{ fontFamily: "var(--font-mono)", minWidth: 36, textAlign: "center" }}>
               {Math.min(depthUp, rawMaxUp)} / {rawMaxUp}
             </span>
             <button style={depthBtn} onClick={() => setDepthUp((d) => clampDepth(d + 1, rawMaxUp))}>＋</button>
-            <button style={{ ...depthBtn, fontSize: 10 }} onClick={() => setDepthUp(99)}>All</button>
+            <button style={{ ...depthBtn, fontSize: 10 }} onClick={() => setDepthUp(99)}>{copy.common.all}</button>
           </div>
         )}
         {rawMaxDn > 1 && (
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span>Downstream</span>
+            <span>{copy.common.down}</span>
             <button style={depthBtn} onClick={() => setDepthDn((d) => clampDepth(d - 1, rawMaxDn))}>−</button>
             <span style={{ fontFamily: "var(--font-mono)", minWidth: 36, textAlign: "center" }}>
               {Math.min(depthDn, rawMaxDn)} / {rawMaxDn}
             </span>
             <button style={depthBtn} onClick={() => setDepthDn((d) => clampDepth(d + 1, rawMaxDn))}>＋</button>
-            <button style={{ ...depthBtn, fontSize: 10 }} onClick={() => setDepthDn(99)}>All</button>
+            <button style={{ ...depthBtn, fontSize: 10 }} onClick={() => setDepthDn(99)}>{copy.common.all}</button>
           </div>
         )}
       </div>
@@ -392,7 +396,7 @@ export function LineageGraph({
               textTransform: "uppercase",
             }}
           >
-            Same batch
+            {copy.common.thisBatch}
           </span>
           <span>
             {selfTransfers
@@ -431,7 +435,7 @@ export function LineageGraph({
           ))}
           <text x={0} y={viewCY - spanY + PADDING_Y - 10} textAnchor="middle"
             style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.14em", fill: "#005776" }}
-          >FOCAL BATCH</text>
+          >{copy.common.focalBatch.toUpperCase()}</text>
           {edges.map((e, i) => <EdgeEl key={i} e={e} />)}
           {allNodes.map((n) => <NodeEl key={n.id} n={n} />)}
         </g>
@@ -444,14 +448,14 @@ export function LineageGraph({
       }}>
         <button onClick={() => setView((v) => ({ ...v, k: Math.min(2.4, v.k * 1.2) }))} style={toolBtn}>＋</button>
         <button onClick={() => setView((v) => ({ ...v, k: Math.max(0.3, v.k / 1.2) }))} style={toolBtn}>−</button>
-        <button onClick={fitView} style={toolBtn}>Fit</button>
-        <button onClick={() => setView({ x: 0, y: 0, k: 1 })} style={toolBtn}>Reset</button>
+        <button onClick={fitView} style={toolBtn}>{copy.common.fit}</button>
+        <button onClick={() => setView({ x: 0, y: 0, k: 1 })} style={toolBtn}>{copy.common.reset}</button>
       </div>
       <div style={{
         position: "absolute", bottom: 14, left: 14,
         background: "var(--card)", border: "1px solid var(--line-2)", borderRadius: 2,
         overflow: "hidden",
-      }} title="Drag to pan · scroll to zoom · click a node">
+      }} title={copy.line.tooltip}>
         <svg width={MM_W} height={MM_H} style={{ display: "block" }}>
           <rect width={MM_W} height={MM_H} fill="var(--paper)" />
           {allNodes.map((n) => {
@@ -485,10 +489,12 @@ export function NodeDetailPanel({
   node: LineageNode | null;
   onClose: () => void;
 }) {
+  const { language } = useI18n();
+  const copy = traceCopy(language);
   if (!node) return null;
   const ls = LINK_STYLE[node.link];
   const accentColor = ls?.stroke ?? "var(--ink-3)";
-  const dir = node.level > 0 ? (node.link === "SALES_ORDER" ? "OUTPUT" : "INPUT") : "NODE";
+  const dir = node.level > 0 ? (node.link === "SALES_ORDER" ? copy.common.output : copy.common.input) : copy.common.node ?? "Node";
   const party = node.supplier || node.customer || null;
   return (
     <div style={{
@@ -510,7 +516,7 @@ export function NodeDetailPanel({
           background: "transparent", border: "none",
           cursor: "pointer", fontSize: 14, color: "var(--ink-3)", lineHeight: 1,
         }}
-        aria-label="Close"
+        aria-label={copy.common.close}
       >✕</button>
       <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "baseline", gap: 10, marginBottom: 2 }}>
         <span style={{
@@ -521,28 +527,28 @@ export function NodeDetailPanel({
         </span>
       </div>
       <div style={{ gridColumn: "1 / 3" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>MATERIAL</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>{copy.line.nodeMaterial.toUpperCase()}</div>
         <div style={{ fontFamily: "var(--font-sans)", fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>{node.material}</div>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--ink-2)", marginTop: 2 }}>{node.material_id}</div>
       </div>
       <div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>BATCH</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>{copy.line.nodeBatch.toUpperCase()}</div>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink)" }}>{node.batch}</div>
       </div>
       <div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>QTY</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>{copy.line.nodeQty.toUpperCase()}</div>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink)", fontVariantNumeric: "tabular-nums" }}>
           {fmtN(node.qty, 1)} {node.uom}
         </div>
       </div>
       <div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>PLANT</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>{copy.line.nodePlant.toUpperCase()}</div>
         <div style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink)" }}>{node.plant || "—"}</div>
       </div>
       {party && (
         <div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-3)", marginBottom: 2 }}>
-            {node.supplier ? "SUPPLIER" : "CUSTOMER"}
+            {node.supplier ? copy.line.nodeSupplier.toUpperCase() : copy.line.nodeCustomer.toUpperCase()}
           </div>
           <div style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink)" }}>{party}</div>
         </div>
@@ -551,15 +557,15 @@ export function NodeDetailPanel({
   );
 }
 
-function columnLabel(dir: "up" | "down", level: number, max: number): string {
+function columnLabel(dir: "up" | "down", level: number, max: number, copy: ReturnType<typeof traceCopy>): string {
   if (dir === "up") {
-    if (level === 1) return "L1 · INPUTS";
-    if (level === 2 && max === 2) return "L2 · RAW";
-    return `L${level} · UPSTREAM`;
+    if (level === 1) return `L1 · ${copy.common.inputs.toUpperCase()}`;
+    if (level === 2 && max === 2) return `L2 · ${copy.common.raw.toUpperCase()}`;
+    return `L${level} · ${copy.common.up.toUpperCase()}`;
   }
-  if (level === 1) return "L1 · OUTPUTS";
-  if (level === 2 && max === 2) return "L2 · FINISHED";
-  return `L${level} · DOWNSTREAM`;
+  if (level === 1) return `L1 · ${copy.common.outputs.toUpperCase()}`;
+  if (level === 2 && max === 2) return `L2 · ${copy.common.finished.toUpperCase()}`;
+  return `L${level} · ${copy.common.down.toUpperCase()}`;
 }
 
 function nodeColor(n: PlacedNode, sim = false): { fg: string; bg: string; border: string } {
