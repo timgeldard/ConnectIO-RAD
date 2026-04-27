@@ -16,6 +16,8 @@ English is the default language. The supported language set includes:
 - Gaeilge (`ga`)
 - Polish (`pl`)
 - Dutch (`nl`)
+- Ukrainian (`uk`)
+- Danish (`da`)
 
 Chinese support is split into Simplified and Traditional variants to ensure correct script rendering across different regions.
 

@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 
-export type LanguageCode = 'en' | 'fr' | 'es' | 'de' | 'zh-Hans' | 'zh-Hant' | 'ja' | 'pt' | 'id' | 'ms' | 'ga' | 'pl' | 'nl'
+export type LanguageCode = 'en' | 'fr' | 'es' | 'de' | 'zh-Hans' | 'zh-Hant' | 'ja' | 'pt' | 'id' | 'ms' | 'ga' | 'pl' | 'nl' | 'uk' | 'da'
 export type TranslationValues = Record<string, string | number | boolean | null | undefined>
 export type LocaleResources = Partial<Record<LanguageCode, Record<string, string>>>
 
@@ -34,6 +34,8 @@ export const supportedLanguages: LanguageOption[] = [
   { code: 'ga', label: 'Irish', nativeLabel: 'Gaeilge', enabled: true },
   { code: 'pl', label: 'Polish', nativeLabel: 'Polski', enabled: true },
   { code: 'nl', label: 'Dutch', nativeLabel: 'Nederlands', enabled: true },
+  { code: 'uk', label: 'Ukrainian', nativeLabel: 'Українська', enabled: true },
+  { code: 'da', label: 'Danish', nativeLabel: 'Dansk', enabled: true },
 ]
 
 const DEFAULT_LANGUAGE: LanguageCode = 'en'
