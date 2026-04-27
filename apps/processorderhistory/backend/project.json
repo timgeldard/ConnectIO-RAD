@@ -1,0 +1,40 @@
+{
+  "name": "processorderhistory-backend",
+  "projectType": "application",
+  "tags": ["scope:processorderhistory", "type:backend"],
+  "implicitDependencies": ["shared-api", "shared-db"],
+  "targets": {
+    "sync": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync --package processorderhistory-backend",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "PYTHONPATH=apps/processorderhistory:libs/shared-api/src:libs/shared-db/src uv run --no-sync --package processorderhistory-backend uvicorn backend.main:app --reload --port 8003",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "PYTHONPATH=apps/processorderhistory:libs/shared-api/src:libs/shared-db/src uv run --no-sync --package processorderhistory-backend python -m pytest apps/processorderhistory/backend/tests",
+        "cwd": "{workspaceRoot}"
+      },
+      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --no-sync ruff check apps/processorderhistory/backend",
+        "cwd": "{workspaceRoot}"
+      },
+      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "cache": true
+    }
+  }
+}

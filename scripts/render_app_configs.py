@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 from scripts import deploy_app
 
-DEFAULT_APPS = ("envmon", "spc", "trace2", "warehouse360")
+DEFAULT_APPS = ("envmon", "spc", "trace2", "warehouse360", "processorderhistory")
 
 
 def render_app(app_name: str, *, dry_run: bool, print_env: bool) -> None:

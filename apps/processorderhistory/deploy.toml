@@ -1,0 +1,27 @@
+[app]
+name = "processorderhistory"
+bundle_name = "processorderhistory"
+default_profile = "uat"
+default_target = "uat"
+template = "app.template.yaml"
+config_output = "app.yaml"
+
+[build]
+cwd = "."
+command = "python3 scripts/build.py"
+
+[bundle]
+include_target = true
+
+[post_deploy]
+enabled = true
+source_target = "target"
+repair_sql_scope = false
+
+[targets.uat.env]
+DATABRICKS_WAREHOUSE_ID = "e76480b94bea6ed5"
+DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/e76480b94bea6ed5"
+
+[targets.prod.env]
+DATABRICKS_WAREHOUSE_ID = ""
+DATABRICKS_WAREHOUSE_HTTP_PATH = ""

@@ -12,6 +12,7 @@
     "dev:spc": "nx run spc-frontend:dev",
     "dev:envmon": "nx run envmon-frontend:dev",
     "dev:trace2": "nx run trace2-frontend:dev",
+    "dev:processorderhistory": "nx run processorderhistory-frontend:dev",
     "build": "nx run-many -t build",
     "lint": "nx run-many -t lint",
     "test": "nx run-many -t test",

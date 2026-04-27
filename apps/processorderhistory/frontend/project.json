@@ -1,0 +1,41 @@
+{
+  "name": "processorderhistory-frontend",
+  "projectType": "application",
+  "tags": ["scope:processorderhistory", "type:frontend"],
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite",
+        "cwd": "apps/processorderhistory/frontend"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run build",
+        "cwd": "apps/processorderhistory/frontend"
+      },
+      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "outputs": ["{projectRoot}/dist"],
+      "cache": true
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run typecheck",
+        "cwd": "apps/processorderhistory/frontend"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run test:ci",
+        "cwd": "apps/processorderhistory/frontend"
+      },
+      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "outputs": ["{projectRoot}/coverage"],
+      "cache": true
+    }
+  }
+}

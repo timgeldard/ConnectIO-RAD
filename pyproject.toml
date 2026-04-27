@@ -4,6 +4,7 @@ members = [
   "apps/envmon/backend",
   "apps/trace2/backend",
   "apps/warehouse360/backend",
+  "apps/processorderhistory/backend",
   "libs/shared-api",
   "libs/shared-auth",
   "libs/shared-db",

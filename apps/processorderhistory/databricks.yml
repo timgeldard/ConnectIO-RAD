@@ -1,0 +1,32 @@
+bundle:
+  name: processorderhistory
+  databricks_cli_version: '>= 0.283.0'
+
+sync:
+  include:
+    - app.yaml
+    - frontend/dist/**
+    - shared_db/**
+    - shared_api/**
+
+variables:
+  app_name:
+    default: processorderhistory
+
+targets:
+  uat:
+    default: true
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+  prod:
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+
+resources:
+  apps:
+    processorderhistory:
+      name: ${var.app_name}
+      description: Process Order History — Plant-floor view of process order execution, pours, and planning
+      source_code_path: .
+      user_api_scopes:
+        - sql
