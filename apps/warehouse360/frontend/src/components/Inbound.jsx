@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import WM from '../data/mockData.js';
 import { useApi } from '../hooks/useApi.js';
 import { Icon, Pill, Progress, RiskDot, Hbar } from './Primitives.jsx';
@@ -7,6 +8,7 @@ import { FilterBar, Card, KPI } from './Shared.jsx';
 /* Inbound — PO + STO receipts, dock schedule, putaway backlog */
 
 const Inbound = ({ onOpen }) => {
+  const { t } = useI18n();
   const [tab, setTab] = React.useState('all');
   const [filters, setFilters] = React.useState({ risk: 'all' });
   const { data: resp, loading } = useApi('/api/inbound');
@@ -31,29 +33,29 @@ const Inbound = ({ onOpen }) => {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">Inbound · POs · STOs</div>
-          <h1 className="page-title">Inbound</h1>
+          <h1 className="page-title">{t('warehouse.title.inbound')}</h1>
           <div className="page-desc">Receipts against Purchase Orders and Stock Transport Orders. Red flags where materials are needed for today's production.</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-secondary"><Icon name="download" size={14}/> Receipt log</button>
-          <button className="btn btn-primary"><Icon name="truckIn" size={14}/> Book dock slot</button>
+          <button className="btn btn-secondary"><Icon name="download" size={14}/> {t('warehouse.inbound.btn.receiptLog')}</button>
+          <button className="btn btn-primary"><Icon name="truckIn" size={14}/> {t('warehouse.inbound.btn.bookDock')}</button>
         </div>
       </div>
 
       <div className="kpi-grid">
-        <KPI label="Open PO lines" value={v(counts.all)} tone="ok"/>
-        <KPI label="QA / Inspection" value={v(counts.qa)} tone={counts.qa > 0 ? 'warn' : 'ok'}/>
-        <KPI label="Putaway cycle" value={WM.KPIs.putawayCycle.value} unit=" min" tone="warn"/>
-        <KPI label="Receipts today" value="—" tone="ok"/>
-        <KPI label="Overdue" value="—" tone="ok"/>
-        <KPI label="Needed for today" value="—" tone="ok"/>
+        <KPI label={t('warehouse.inbound.kpi.openPOLines')} value={v(counts.all)} tone="ok"/>
+        <KPI label={t('warehouse.inbound.kpi.qaInspection')} value={v(counts.qa)} tone={counts.qa > 0 ? 'warn' : 'ok'}/>
+        <KPI label={t('warehouse.inbound.kpi.putawayCycle')} value={WM.KPIs.putawayCycle.value} unit=" min" tone="warn"/>
+        <KPI label={t('warehouse.inbound.kpi.receiptsToday')} value="—" tone="ok"/>
+        <KPI label={t('warehouse.inbound.kpi.overdue')} value="—" tone="ok"/>
+        <KPI label={t('warehouse.inbound.kpi.neededToday')} value="—" tone="ok"/>
       </div>
 
       <div className="grid-2" style={{ marginBottom: 16 }}>
-        <Card title="Dock schedule" subtitle="Inbound bays · next 10 hours" eyebrow="Docks">
+        <Card title={t('warehouse.inbound.card.dockSchedule')} subtitle="Inbound bays · next 10 hours" eyebrow="Docks">
           <DockSchedule type="Inbound" onOpen={onOpen}/>
         </Card>
-        <Card title="Putaway backlog by storage type" subtitle="Pallets on interim storage 915 waiting to be put away" eyebrow="Backlog">
+        <Card title={t('warehouse.inbound.card.putawayBacklog')} subtitle="Pallets on interim storage 915 waiting to be put away" eyebrow="Backlog">
           <div className="stack-8">
             {WM.STORAGE_TYPES.slice(0, 5).map((s, i) => {
               const val = [12, 8, 5, 3, 2][i];
@@ -69,22 +71,22 @@ const Inbound = ({ onOpen }) => {
 
       <div className="tabs">
         {[
-          { id: 'all', label: 'All receipts' },
-          { id: 'qa',  label: 'QA hold' },
-        ].map((t) => (
-          <button key={t.id} className={`tab ${tab === t.id ? 'is-active' : ''}`} onClick={() => setTab(t.id)}>
-            {t.label}<span className="tab-count">{counts[t.id] ?? ''}</span>
+          { id: 'all', label: t('warehouse.inbound.tab.all') },
+          { id: 'qa',  label: t('warehouse.inbound.tab.qa') },
+        ].map((tabDef) => (
+          <button key={tabDef.id} className={`tab ${tab === tabDef.id ? 'is-active' : ''}`} onClick={() => setTab(tabDef.id)}>
+            {tabDef.label}<span className="tab-count">{counts[tabDef.id] ?? ''}</span>
           </button>
         ))}
       </div>
 
       <FilterBar
         filters={[
-          { key: 'risk', label: 'Risk', chips: [
-            { value: 'all',   label: 'All' },
-            { value: 'red',   label: 'Critical', dot: 'red' },
-            { value: 'amber', label: 'At risk',  dot: 'amber' },
-            { value: 'green', label: 'On track' },
+          { key: 'risk', label: t('warehouse.common.filter.risk'), chips: [
+            { value: 'all',   label: t('warehouse.common.all') },
+            { value: 'red',   label: t('warehouse.common.risk.critical'), dot: 'red' },
+            { value: 'amber', label: t('warehouse.common.risk.atRisk'),  dot: 'amber' },
+            { value: 'green', label: t('warehouse.common.risk.onTrack') },
           ] },
         ]}
         values={filters}
@@ -97,9 +99,13 @@ const Inbound = ({ onOpen }) => {
           <table className="tbl">
             <thead>
               <tr>
-                <th>Doc</th><th>Vendor</th><th>Material</th>
-                <th className="num">Ordered</th><th className="num">Received</th>
-                <th>Due date</th><th>QA</th>
+                <th>{t('warehouse.inbound.col.doc')}</th>
+                <th>{t('warehouse.inbound.col.vendor')}</th>
+                <th>{t('warehouse.common.col.material')}</th>
+                <th className="num">{t('warehouse.inbound.col.ordered')}</th>
+                <th className="num">{t('warehouse.inbound.col.received')}</th>
+                <th>{t('warehouse.inbound.col.dueDate')}</th>
+                <th>{t('warehouse.inbound.col.qa')}</th>
               </tr>
             </thead>
             <tbody>
@@ -122,7 +128,7 @@ const Inbound = ({ onOpen }) => {
                   <td className="mono small">{r.delivery_date || '—'}</td>
                   <td>
                     <Pill tone={r.qa_status === 'inspection' ? 'amber' : r.qa_status === 'released' ? 'green' : 'grey'} noDot>
-                      {r.qa_status === 'inspection' ? 'Inspection' : r.qa_status === 'released' ? 'Released' : 'No lot'}
+                      {r.qa_status === 'inspection' ? t('warehouse.inbound.qa.inspection') : r.qa_status === 'released' ? t('warehouse.inbound.qa.released') : t('warehouse.inbound.qa.noLot')}
                     </Pill>
                   </td>
                 </tr>
@@ -163,8 +169,8 @@ const DockSchedule = ({ type, onOpen }) => {
             <div style={{ position: 'relative', height: 28, background: 'var(--stone)', borderRadius: 4, overflow: 'hidden' }}>
               <div style={{ position: 'absolute', left: nowX + '%', top: 0, bottom: 0, width: 2, background: 'var(--sunset)', zIndex: 2 }}/>
               {slots.slice(0, 4).map((s) => {
-                const t = type === 'Inbound' ? s.eta : s.cutoff;
-                const left = Math.max(0, Math.min(100, xAt(t)));
+                const slotTime = type === 'Inbound' ? s.eta : s.cutoff;
+                const left = Math.max(0, Math.min(100, xAt(slotTime)));
                 const colour = s.risk === 'red' ? 'var(--sunset)' : s.risk === 'amber' ? 'var(--sunrise)' : 'var(--valentia-slate)';
                 return (
                   <button key={s.id} onClick={() => onOpen?.(s)} style={{
@@ -241,14 +247,14 @@ const ReceiptDetail = ({ receipt }) => {
         <table className="tbl">
           <thead><tr><th>TO</th><th>SSCC</th><th>Src</th><th>Dst bin</th><th>Operator</th><th>Status</th></tr></thead>
           <tbody>
-            {WM.TOs.slice(0, 3).map((t, i) => (
+            {WM.TOs.slice(0, 3).map((to, i) => (
               <tr key={i}>
-                <td className="code">{t.id}</td>
-                <td className="mono small">{t.sscc.slice(0, 8)}â€¦{t.sscc.slice(-4)}</td>
+                <td className="code">{to.id}</td>
+                <td className="mono small">{to.sscc.slice(0, 8)}…{to.sscc.slice(-4)}</td>
                 <td className="mono small">915 · Interim</td>
-                <td className="mono small">{t.dstBin}</td>
-                <td className="small">{t.assignedTo || <span className="muted">unassigned</span>}</td>
-                <td><Pill tone={t.status === 'Confirmed' ? 'green' : 'amber'}>{t.status}</Pill></td>
+                <td className="mono small">{to.dstBin}</td>
+                <td className="small">{to.assignedTo || <span className="muted">unassigned</span>}</td>
+                <td><Pill tone={to.status === 'Confirmed' ? 'green' : 'amber'}>{to.status}</Pill></td>
               </tr>
             ))}
           </tbody>

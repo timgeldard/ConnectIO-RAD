@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import WM from '../data/mockData.js';
 import { useApi } from '../hooks/useApi.js';
 import { Icon, Pill, Progress, RiskDot } from './Primitives.jsx';
@@ -9,14 +10,14 @@ import { FilterBar, Card, KPI } from './Shared.jsx';
 */
 
 const STAGING_TABS = [
-  { id: 'all', label: 'All orders' },
-  { id: 'std', label: 'Standard' },
-  { id: 'cons', label: 'Consolidated' },
-  { id: 'bulk', label: 'Bulk drop' },
-  { id: 'camp', label: 'Campaign' },
-  { id: 'fast', label: 'Fast-mover replen' },
-  { id: 'sscc', label: 'SSCC pallet' },
-  { id: 'disp', label: 'Dispensary' },
+  { id: 'all',  label: 'warehouse.staging.tab.all' },
+  { id: 'std',  label: 'warehouse.staging.tab.std' },
+  { id: 'cons', label: 'warehouse.staging.tab.cons' },
+  { id: 'bulk', label: 'warehouse.staging.tab.bulk' },
+  { id: 'camp', label: 'warehouse.staging.tab.camp' },
+  { id: 'fast', label: 'warehouse.staging.tab.fast' },
+  { id: 'sscc', label: 'warehouse.staging.tab.sscc' },
+  { id: 'disp', label: 'warehouse.staging.tab.disp' },
 ];
 
 const StagingMethodChip = ({ id }) => {
@@ -57,6 +58,7 @@ const normalizeOrder = (o) => {
 };
 
 const ProductionStaging = ({ onOpenOrder }) => {
+  const { t } = useI18n();
   const [tab, setTab] = React.useState('all');
   const [filters, setFilters] = React.useState({ risk: 'all', shift: 'all', line: 'all', window: 'today' });
   const [sort, setSort] = React.useState({ key: 'start', dir: 'asc' });
@@ -117,28 +119,28 @@ const ProductionStaging = ({ onOpenOrder }) => {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">Operations · Today · Shift B</div>
-          <h1 className="page-title">Production Staging</h1>
+          <h1 className="page-title">{t('warehouse.title.staging')}</h1>
           <div className="page-desc">Across {WM.LINES.length} lines and 8 staging methods — highlighting orders whose raw materials are late, short or uncleared.</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-secondary"><Icon name="download" size={14}/> Export</button>
-          <button className="btn btn-secondary"><Icon name="flag" size={14}/> Prioritise</button>
-          <button className="btn btn-primary"><Icon name="plus" size={14}/> New staging run</button>
+          <button className="btn btn-secondary"><Icon name="download" size={14}/> {t('warehouse.common.btn.export')}</button>
+          <button className="btn btn-secondary"><Icon name="flag" size={14}/> {t('warehouse.staging.btn.prioritise')}</button>
+          <button className="btn btn-primary"><Icon name="plus" size={14}/> {t('warehouse.staging.btn.newRun')}</button>
         </div>
       </div>
 
       {/* KPI strip for this screen */}
       <div className="kpi-grid">
-        <KPI label="Orders at risk · next 8h" value={riskCounts.red + riskCounts.amber} tone="critical" trend={+3} trendLabel=" vs last shift"/>
-        <KPI label="Staging SLA · rolling 24h" value={WM.KPIs.stagingSLA.value} unit="%" tone="warn" barPct={WM.KPIs.stagingSLA.value} barTone="amber" target="95%" trend={WM.KPIs.stagingSLA.trend} trendLabel="pp"/>
-        <KPI label="Pallets staged · shift" value="184" unit="/ 240" tone="ok" barPct={76} trend={+12} trendLabel=" vs plan"/>
-        <KPI label="Line-side below min" value={WM.LINE_SIDE.filter((l) => l.status === 'Below min').length} tone="warn" trend={-1} trendLabel=" in 30m"/>
-        <KPI label="Bulk drops uncleared" value="3" tone="critical" trend={+1}/>
-        <KPI label="Dispensary tasks ready" value={WM.DISP_TASKS.filter((d) => d.status === 'Weighed').length} unit={'/ ' + WM.DISP_TASKS.length} tone="ok" barPct={WM.DISP_TASKS.filter((d) => d.status === 'Weighed').length / WM.DISP_TASKS.length * 100} barTone="slate"/>
+        <KPI label={t('warehouse.staging.kpi.ordersAtRisk')} value={riskCounts.red + riskCounts.amber} tone="critical" trend={+3} trendLabel=" vs last shift"/>
+        <KPI label={t('warehouse.staging.kpi.stagingSLA')} value={WM.KPIs.stagingSLA.value} unit="%" tone="warn" barPct={WM.KPIs.stagingSLA.value} barTone="amber" target="95%" trend={WM.KPIs.stagingSLA.trend} trendLabel="pp"/>
+        <KPI label={t('warehouse.staging.kpi.palletsStaged')} value="184" unit="/ 240" tone="ok" barPct={76} trend={+12} trendLabel=" vs plan"/>
+        <KPI label={t('warehouse.staging.kpi.linesideBelowMin')} value={WM.LINE_SIDE.filter((l) => l.status === 'Below min').length} tone="warn" trend={-1} trendLabel=" in 30m"/>
+        <KPI label={t('warehouse.staging.kpi.bulkDropsUncleared')} value="3" tone="critical" trend={+1}/>
+        <KPI label={t('warehouse.staging.kpi.dispensaryReady')} value={WM.DISP_TASKS.filter((d) => d.status === 'Weighed').length} unit={'/ ' + WM.DISP_TASKS.length} tone="ok" barPct={WM.DISP_TASKS.filter((d) => d.status === 'Weighed').length / WM.DISP_TASKS.length * 100} barTone="slate"/>
       </div>
 
       {/* Timeline */}
-      <Card title="Today's run sheet" subtitle="Rolling 24h window across lines · red = staging incomplete at required time" eyebrow="Schedule"
+      <Card title={t('warehouse.staging.card.runSheet')} subtitle="Rolling 24h window across lines · red = staging incomplete at required time" eyebrow="Schedule"
         actions={<div className="flex items-center gap-6">
           <span className="tag">6:00 – 06:00 next day</span>
           <button className="btn btn-sm btn-ghost">Zoom</button>
@@ -149,34 +151,34 @@ const ProductionStaging = ({ onOpenOrder }) => {
 
       {/* Method tabs */}
       <div className="tabs">
-        {STAGING_TABS.map((t) => (
-          <button key={t.id} className={`tab ${tab === t.id ? 'is-active' : ''}`} onClick={() => setTab(t.id)}>
-            {t.label}
-            <span className="tab-count">{counts[t.id] || 0}</span>
+        {STAGING_TABS.map((tabDef) => (
+          <button key={tabDef.id} className={`tab ${tab === tabDef.id ? 'is-active' : ''}`} onClick={() => setTab(tabDef.id)}>
+            {t(tabDef.label)}
+            <span className="tab-count">{counts[tabDef.id] || 0}</span>
           </button>
         ))}
       </div>
 
       <FilterBar
         filters={[
-          { key: 'risk', label: 'Risk', chips: [
-            { value: 'all', label: 'All' },
-            { value: 'red', label: 'Critical', dot: 'red', count: riskCounts.red },
-            { value: 'amber', label: 'At risk', dot: 'amber', count: riskCounts.amber },
-            { value: 'green', label: 'On track', dot: '', count: riskCounts.green },
+          { key: 'risk', label: t('warehouse.common.filter.risk'), chips: [
+            { value: 'all', label: t('warehouse.common.all') },
+            { value: 'red', label: t('warehouse.common.risk.critical'), dot: 'red', count: riskCounts.red },
+            { value: 'amber', label: t('warehouse.common.risk.atRisk'), dot: 'amber', count: riskCounts.amber },
+            { value: 'green', label: t('warehouse.common.risk.onTrack'), dot: '', count: riskCounts.green },
           ] },
-          { key: 'shift', label: 'Shift', chips: [
-            { value: 'all', label: 'All' },
+          { key: 'shift', label: t('warehouse.staging.filter.shift'), chips: [
+            { value: 'all', label: t('warehouse.common.all') },
             { value: 'A', label: 'A' }, { value: 'B', label: 'B' }, { value: 'C', label: 'C' },
           ] },
-          { key: 'line', label: 'Line', options: [
-            { value: 'all', label: 'All lines' },
+          { key: 'line', label: t('warehouse.staging.filter.line'), options: [
+            { value: 'all', label: t('warehouse.staging.filter.allLines') },
             ...WM.LINES.map((l) => ({ value: l.id, label: l.name })),
           ] },
-          { key: 'window', label: 'Window', chips: [
-            { value: '8h', label: 'Next 8h' },
-            { value: 'today', label: 'Today' },
-            { value: 'all', label: 'All' },
+          { key: 'window', label: t('warehouse.staging.filter.window'), chips: [
+            { value: '8h', label: t('warehouse.staging.filter.next8h') },
+            { value: 'today', label: t('warehouse.staging.filter.today') },
+            { value: 'all', label: t('warehouse.common.all') },
           ] },
         ]}
         values={filters}
@@ -186,9 +188,9 @@ const ProductionStaging = ({ onOpenOrder }) => {
       <Card title={`${rows.length} production orders`}
         subtitle="Sorted by start time · click a row for staging detail"
         actions={<div className="flex gap-6 items-center">
-          <button className={`btn btn-xs ${sort.key === 'start' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setSort({ key: 'start', dir: sort.dir === 'asc' ? 'desc' : 'asc' })}>Start {sort.key === 'start' ? (sort.dir === 'asc' ? '↑' : '↓') : ''}</button>
-          <button className={`btn btn-xs ${sort.key === 'risk' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setSort({ key: 'risk', dir: 'asc' })}>Risk</button>
-          <button className={`btn btn-xs ${sort.key === 'staging' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setSort({ key: 'staging', dir: 'asc' })}>Staging %</button>
+          <button className={`btn btn-xs ${sort.key === 'start' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setSort({ key: 'start', dir: sort.dir === 'asc' ? 'desc' : 'asc' })}>{t('warehouse.staging.sort.start')} {sort.key === 'start' ? (sort.dir === 'asc' ? '↑' : '↓') : ''}</button>
+          <button className={`btn btn-xs ${sort.key === 'risk' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setSort({ key: 'risk', dir: 'asc' })}>{t('warehouse.staging.sort.risk')}</button>
+          <button className={`btn btn-xs ${sort.key === 'staging' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setSort({ key: 'staging', dir: 'asc' })}>{t('warehouse.staging.sort.stagingPct')}</button>
         </div>}
         tight>
         <div className="scroll-x">
@@ -196,15 +198,15 @@ const ProductionStaging = ({ onOpenOrder }) => {
             <thead>
               <tr>
                 <th style={{ width: 36 }}></th>
-                <th>Process order</th>
-                <th>Product</th>
-                <th>Line · Method</th>
-                <th>Start</th>
-                <th className="num">Staging</th>
-                <th className="num">Pallets</th>
-                <th className="num">BOM</th>
-                <th>Status</th>
-                <th>Exceptions</th>
+                <th>{t('warehouse.staging.col.processOrder')}</th>
+                <th>{t('warehouse.staging.col.product')}</th>
+                <th>{t('warehouse.staging.col.lineMethod')}</th>
+                <th>{t('warehouse.common.col.start')}</th>
+                <th className="num">{t('warehouse.common.col.staging')}</th>
+                <th className="num">{t('warehouse.staging.col.pallets')}</th>
+                <th className="num">{t('warehouse.staging.col.bom')}</th>
+                <th>{t('warehouse.common.col.status')}</th>
+                <th>{t('warehouse.staging.col.exceptions')}</th>
               </tr>
             </thead>
             <tbody>

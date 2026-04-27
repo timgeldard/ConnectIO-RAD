@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import WM from '../data/mockData.js';
 import { Icon, Pill, RiskDot, SparkBars, Hbar } from './Primitives.jsx';
 import { FilterBar, Card, KPI } from './Shared.jsx';
@@ -6,6 +7,7 @@ import { FilterBar, Card, KPI } from './Shared.jsx';
 /* Exceptions Command Centre + Performance Analytics */
 
 const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
+  const { t } = useI18n();
   const [severity, setSeverity] = React.useState('all');
   const [domain, setDomain] = React.useState('all');
   const [acknowledged, setAcknowledged] = React.useState('open');
@@ -37,26 +39,26 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">Risk · Priority exceptions</div>
-          <h1 className="page-title">Exceptions</h1>
+          <h1 className="page-title">{t('warehouse.title.exceptions')}</h1>
           <div className="page-desc">Operational risk modelled from SAP events — staging delays, missed cut-offs, batch mismatches, aged tasks. Sorted by severity then age.</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-secondary"><Icon name="download" size={14}/> Incident log</button>
-          <button className="btn btn-primary"><Icon name="check" size={14}/> Bulk acknowledge</button>
+          <button className="btn btn-secondary"><Icon name="download" size={14}/> {t('warehouse.exceptions.btn.incidentLog')}</button>
+          <button className="btn btn-primary"><Icon name="check" size={14}/> {t('warehouse.exceptions.btn.bulkAck')}</button>
         </div>
       </div>
 
       <div className="kpi-grid">
-        <KPI label="Critical open" value={counts.critical} tone="critical"/>
-        <KPI label="High open" value={counts.high} tone="warn"/>
-        <KPI label="Medium open" value={counts.medium} tone="ok"/>
-        <KPI label="Acknowledged" value={WM.EXCEPTIONS.filter((e) => e.acknowledged).length} tone="ok"/>
-        <KPI label="Mean time to acknowledge" value="11" unit=" min" tone="ok" trend={-3} trendLabel="m vs yest"/>
-        <KPI label="Oldest open" value={Math.max(...WM.EXCEPTIONS.filter((e) => !e.acknowledged).map((e) => e.ageMin))} unit=" min" tone="warn"/>
+        <KPI label={t('warehouse.exceptions.kpi.criticalOpen')} value={counts.critical} tone="critical"/>
+        <KPI label={t('warehouse.exceptions.kpi.highOpen')} value={counts.high} tone="warn"/>
+        <KPI label={t('warehouse.exceptions.kpi.mediumOpen')} value={counts.medium} tone="ok"/>
+        <KPI label={t('warehouse.exceptions.kpi.acknowledged')} value={WM.EXCEPTIONS.filter((e) => e.acknowledged).length} tone="ok"/>
+        <KPI label={t('warehouse.exceptions.kpi.mtta')} value="11" unit=" min" tone="ok" trend={-3} trendLabel="m vs yest"/>
+        <KPI label={t('warehouse.exceptions.kpi.oldestOpen')} value={Math.max(...WM.EXCEPTIONS.filter((e) => !e.acknowledged).map((e) => e.ageMin))} unit=" min" tone="warn"/>
       </div>
 
       <div className="grid-asym" style={{ marginBottom: 16 }}>
-        <Card title="Severity breakdown" subtitle="By domain · last 8 hours" eyebrow="Breakdown">
+        <Card title={t('warehouse.exceptions.card.severityBreakdown')} subtitle="By domain · last 8 hours" eyebrow="Breakdown">
           <div className="stack-8">
             {domains.filter((d) => d !== 'all').map((d) => {
               const byDomain = WM.EXCEPTIONS.filter((e) => e.type.domain === d);
@@ -79,7 +81,7 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
           </div>
         </Card>
 
-        <Card title="Rule library" subtitle="13 active exception rules" eyebrow="Rules">
+        <Card title={t('warehouse.exceptions.card.ruleLibrary')} subtitle="13 active exception rules" eyebrow="Rules">
           <div className="stack-8" style={{ maxHeight: 300, overflowY: 'auto' }}>
             {[
               ['staging-late', 'Production starts < 2h · staging incomplete', 'critical'],
@@ -107,20 +109,24 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
       </div>
 
       <div className="tabs">
-        {[['all', 'All'], ['open', 'Open'], ['ack', 'Acknowledged']].map(([id, label]) => (
+        {[
+          ['all', t('warehouse.exceptions.tab.all')],
+          ['open', t('warehouse.exceptions.tab.open')],
+          ['ack', t('warehouse.exceptions.tab.acknowledged')],
+        ].map(([id, label]) => (
           <button key={id} className={`tab ${acknowledged === id ? 'is-active' : ''}`} onClick={() => setAcknowledged(id)}>{label}</button>
         ))}
       </div>
 
       <FilterBar
         filters={[
-          { key: 'severity', label: 'Severity', chips: [
-            { value: 'all', label: 'All' },
-            { value: 'critical', label: 'Critical', dot: 'red' },
-            { value: 'high', label: 'High', dot: 'amber' },
-            { value: 'medium', label: 'Medium', dot: 'slate' },
+          { key: 'severity', label: t('warehouse.exceptions.filter.severity'), chips: [
+            { value: 'all',      label: t('warehouse.common.all') },
+            { value: 'critical', label: t('warehouse.common.risk.critical'), dot: 'red' },
+            { value: 'high',     label: t('warehouse.exceptions.filter.high'), dot: 'amber' },
+            { value: 'medium',   label: t('warehouse.exceptions.filter.medium'), dot: 'slate' },
           ] },
-          { key: 'domain', label: 'Domain', options: domains.map((d) => ({ value: d, label: d === 'all' ? 'All domains' : d })) },
+          { key: 'domain', label: 'Domain', options: domains.map((d) => ({ value: d, label: d === 'all' ? t('warehouse.common.filter.allDomains') : d })) },
         ]}
         values={{ severity, domain }}
         onChange={(k, v) => k === 'severity' ? setSeverity(v) : setDomain(v)}
@@ -128,7 +134,7 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
 
       <Card title={`${rows.length} exceptions`} tight>
         <table className="tbl">
-          <thead><tr><th></th><th>Severity</th><th>Exception</th><th>Related</th><th>Detail</th><th className="num">Age</th><th>Owner</th><th>Action</th></tr></thead>
+          <thead><tr><th></th><th>{t('warehouse.exceptions.col.severity')}</th><th>{t('warehouse.exceptions.col.exception')}</th><th>{t('warehouse.exceptions.col.related')}</th><th>{t('warehouse.exceptions.col.detail')}</th><th className="num">{t('warehouse.common.col.age')}</th><th>{t('warehouse.exceptions.col.owner')}</th><th>{t('warehouse.exceptions.col.action')}</th></tr></thead>
           <tbody>
             {rows.map((e) => (
               <tr key={e.id} onClick={() => e.po && onOpenOrder(e.po)}>
@@ -142,9 +148,9 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
                 </td>
                 <td style={{ fontSize: 12 }}>{e.detail}</td>
                 <td className="num"><span className={e.ageMin > 120 ? 'red bold' : ''}>{e.ageMin}m</span></td>
-                <td className="small">{e.owner || <span className="muted">unassigned</span>}</td>
+                <td className="small">{e.owner || <span className="muted">{t('warehouse.common.unassigned')}</span>}</td>
                 <td>
-                  {e.acknowledged ? <Pill tone="green" noDot>Acknowledged</Pill> : <button className="btn btn-xs btn-primary">Acknowledge</button>}
+                  {e.acknowledged ? <Pill tone="green" noDot>{t('warehouse.exceptions.tab.acknowledged')}</Pill> : <button className="btn btn-xs btn-primary">{t('warehouse.common.btn.acknowledge')}</button>}
                 </td>
               </tr>
             ))}
@@ -156,42 +162,63 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
 };
 
 const Performance = () => {
+  const { t } = useI18n();
   const bars = [
     // last 14 days, normalised
     72, 78, 85, 82, 88, 92, 91, 94, 89, 87, 92, 90, 93, 92,
   ];
+
+  const kpiLabels = {
+    stagingSLA: t('warehouse.perf.kpi.stagingSLA'),
+    prodOnTime: t('warehouse.perf.kpi.prodOnTime'),
+    inboundAdherence: t('warehouse.perf.kpi.inboundAdherence'),
+    putawayCycle: t('warehouse.perf.kpi.putawayCycle'),
+    outboundReady: t('warehouse.perf.kpi.outboundReady'),
+    pickProd: t('warehouse.perf.kpi.pickProd'),
+    toAgeing: t('warehouse.perf.kpi.toAgeing'),
+    binUtil: t('warehouse.perf.kpi.binUtil'),
+    inventoryAccuracy: t('warehouse.perf.kpi.inventoryAccuracy'),
+    dispensaryReady: t('warehouse.perf.kpi.dispensaryReady'),
+    ssccCompliance: t('warehouse.perf.kpi.ssccCompliance'),
+    leftoverReturn: t('warehouse.perf.kpi.leftoverReturn'),
+    stockoutRate: t('warehouse.perf.kpi.stockoutRate'),
+  };
 
   return (
     <div className="page">
       <div className="page-header">
         <div>
           <div className="page-eyebrow">Analytics · Shift & 14-day</div>
-          <h1 className="page-title">Performance</h1>
+          <h1 className="page-title">{t('warehouse.title.performance')}</h1>
           <div className="page-desc">KPIs defined for the Warehouse Manager. Thirteen metrics spanning staging, receipt, dispatch, cycle time, accuracy and compliance.</div>
         </div>
         <div className="page-actions">
-          <select className="filter-select"><option>Last 14 days</option><option>Last 30 days</option><option>Last quarter</option></select>
-          <button className="btn btn-secondary"><Icon name="download" size={14}/> Export</button>
+          <select className="filter-select">
+            <option>{t('warehouse.perf.select.14d')}</option>
+            <option>{t('warehouse.perf.select.30d')}</option>
+            <option>{t('warehouse.perf.select.quarter')}</option>
+          </select>
+          <button className="btn btn-secondary"><Icon name="download" size={14}/> {t('warehouse.common.btn.export')}</button>
         </div>
       </div>
 
       <div className="grid-4" style={{ marginBottom: 16 }}>
-        <Card title="Staging SLA" subtitle="Orders staged on time" eyebrow="Target 95%">
+        <Card title={t('warehouse.perf.card.stagingSLA')} subtitle="Orders staged on time" eyebrow="Target 95%">
           <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{WM.KPIs.stagingSLA.value}<span style={{ fontSize: 16, color: 'var(--fg-muted)', fontFamily: 'var(--font-sans)' }}>%</span></div>
           <SparkBars data={bars} tone="slate"/>
           <div className="small muted" style={{ marginTop: 6 }}>14-day trend · <span className="red">−1.2pp</span> vs prior</div>
         </Card>
-        <Card title="Inbound adherence" subtitle="Receipts on scheduled day" eyebrow="Target 90%">
+        <Card title={t('warehouse.perf.card.inboundAdherence')} subtitle="Receipts on scheduled day" eyebrow="Target 90%">
           <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{WM.KPIs.inboundAdherence.value}<span style={{ fontSize: 16, color: 'var(--fg-muted)', fontFamily: 'var(--font-sans)' }}>%</span></div>
           <SparkBars data={[70, 72, 75, 78, 80, 84, 82, 86, 83, 85, 82, 84, 81, 84]} tone="sunset"/>
           <div className="small red" style={{ marginTop: 6 }}>Below target — vendor 0010142 slipping</div>
         </Card>
-        <Card title="Outbound ready" subtitle="Deliveries ready by cut-off" eyebrow="Target 98%">
+        <Card title={t('warehouse.perf.card.outboundReady')} subtitle="Deliveries ready by cut-off" eyebrow="Target 98%">
           <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{WM.KPIs.outboundReady.value}<span style={{ fontSize: 16, color: 'var(--fg-muted)', fontFamily: 'var(--font-sans)' }}>%</span></div>
           <SparkBars data={[92, 93, 94, 94, 95, 95, 96, 96, 97, 96, 96, 97, 97, 96]} tone="jade"/>
           <div className="small green" style={{ marginTop: 6 }}>+0.8pp vs prior</div>
         </Card>
-        <Card title="Pick productivity" subtitle="Lines per picker-hour" eyebrow="Target 130">
+        <Card title={t('warehouse.perf.card.pickProd')} subtitle="Lines per picker-hour" eyebrow="Target 130">
           <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{WM.KPIs.pickProd.value}</div>
           <SparkBars data={[120, 125, 128, 130, 132, 135, 138, 140, 139, 141, 140, 142, 141, 142]} tone="slate"/>
           <div className="small green" style={{ marginTop: 6 }}>+6 ln/h vs prior</div>
@@ -199,24 +226,15 @@ const Performance = () => {
       </div>
 
       <div className="grid-2" style={{ marginBottom: 16 }}>
-        <Card title="KPI catalogue" subtitle="Thirteen measures covering the manager's span of control" eyebrow="KPIs">
+        <Card title={t('warehouse.perf.card.kpiCatalogue')} subtitle="Thirteen measures covering the manager's span of control" eyebrow="KPIs">
           <table className="tbl">
-            <thead><tr><th>KPI</th><th className="num">Value</th><th className="num">Target</th><th>Δ</th></tr></thead>
+            <thead><tr><th>{t('warehouse.perf.col.kpi')}</th><th className="num">{t('warehouse.perf.col.value')}</th><th className="num">{t('warehouse.perf.col.target')}</th><th>Δ</th></tr></thead>
             <tbody>
               {Object.entries(WM.KPIs).map(([k, v]) => {
                 const meetsTarget = typeof v.target === 'number' ? (k.includes('put') || k === 'toAgeing' || k === 'leftoverReturn' || k === 'stockoutRate' ? v.value <= v.target : v.value >= v.target) : true;
-                const label = ({
-                  stagingSLA: 'Staging service level', prodOnTime: 'Production orders on time',
-                  inboundAdherence: 'Inbound adherence', putawayCycle: 'Putaway cycle time',
-                  outboundReady: 'Outbound dispatch readiness', pickProd: 'Pick productivity',
-                  toAgeing: 'Transfer order ageing', binUtil: 'Bin utilisation',
-                  inventoryAccuracy: 'Inventory accuracy', dispensaryReady: 'Dispensary readiness',
-                  ssccCompliance: 'SSCC scan compliance', leftoverReturn: 'Leftover return rate',
-                  stockoutRate: 'Fast-mover stockout rate',
-                })[k];
                 return (
                   <tr key={k}>
-                    <td style={{ fontSize: 12 }}>{label}</td>
+                    <td style={{ fontSize: 12 }}>{kpiLabels[k] ?? k}</td>
                     <td className="num bold">{v.value}{v.unit}</td>
                     <td className="num muted">{v.target}{v.unit}</td>
                     <td><Pill tone={meetsTarget ? 'green' : 'red'} noDot>{v.trend > 0 ? '+' : ''}{v.trend}</Pill></td>
@@ -227,14 +245,14 @@ const Performance = () => {
           </table>
         </Card>
 
-        <Card title="Workload heatmap · last 14 days × 24h" subtitle="Task-completion density by hour" eyebrow="Rhythm">
+        <Card title={t('warehouse.perf.card.workloadHeatmap')} subtitle="Task-completion density by hour" eyebrow="Rhythm">
           <div className="heatgrid" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
             {Array.from({ length: 14 * 24 }).map((_, i) => {
               const hour = i % 24;
               const busyness = (Math.sin((hour - 4) * 0.26) + 1) / 2;
               const noise = ((i * 13) % 11) / 20;
-              const v = Math.max(0, Math.min(1, busyness + noise));
-              const cls = v < 0.15 ? 'h1' : v < 0.35 ? 'h2' : v < 0.55 ? 'h3' : v < 0.8 ? 'h4' : 'h5';
+              const val = Math.max(0, Math.min(1, busyness + noise));
+              const cls = val < 0.15 ? 'h1' : val < 0.35 ? 'h2' : val < 0.55 ? 'h3' : val < 0.8 ? 'h4' : 'h5';
               return <div key={i} className={`heatcell ${cls}`}/>;
             })}
           </div>
@@ -242,7 +260,7 @@ const Performance = () => {
         </Card>
       </div>
 
-      <Card title="Staging method · leftover & return rate" subtitle="Bulk drops and consolidated staging remain the biggest sources of waste" eyebrow="Loss">
+      <Card title={t('warehouse.perf.card.leftovers')} subtitle="Bulk drops and consolidated staging remain the biggest sources of waste" eyebrow="Loss">
         <div className="stack-8">
           <Hbar label="Bulk drop" value={4.2} max={6} tone="red"/>
           <Hbar label="Consolidated" value={3.1} max={6} tone="amber"/>

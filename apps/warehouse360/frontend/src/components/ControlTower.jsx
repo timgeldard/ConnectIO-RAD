@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import WM from '../data/mockData.js';
 import { useApi } from '../hooks/useApi.js';
 import { Icon, Pill, Progress, RiskDot, Hbar } from './Primitives.jsx';
@@ -8,6 +9,7 @@ import { StagingTimeline } from './ProductionStaging.jsx';
 /* Control Tower — warehouse manager's landing page */
 
 const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
+  const { t } = useI18n();
   const { data: kpiResp } = useApi('/api/kpis');
   const kpis = kpiResp?.kpis ?? null;
 
@@ -16,7 +18,7 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
   const criticalEx = WM.EXCEPTIONS.filter((e) => e.type.severity === 'critical').slice(0, 5);
   const inboundToday = WM.INBOUND.filter((r) => WM.minutesFromNow(r.eta) < 8 * 60 && WM.minutesFromNow(r.eta) > -6 * 60).slice(0, 6);
   const outboundToday = WM.DELIVERIES.filter((d) => WM.minutesFromNow(d.cutoff) > -3 * 60 && WM.minutesFromNow(d.cutoff) < 10 * 60).slice(0, 6);
-  const ageingTOs = WM.TOs.filter((t) => t.status !== 'Confirmed' && t.ageMin > 120).slice(0, 5);
+  const ageingTOs = WM.TOs.filter((to) => to.status !== 'Confirmed' && to.ageMin > 120).slice(0, 5);
 
   return (
     <div className="page">
@@ -27,30 +29,30 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
           <div className="page-desc">Eight orders at risk, three critical. Dispensary is 2 weighings short for 11:30 campaign. Vendor Symrise slipped two hours on paprika.</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-secondary"><Icon name="download" size={14}/> Shift report</button>
-          <button className="btn btn-secondary"><Icon name="user" size={14}/> Hand over</button>
-          <button className="btn btn-primary"><Icon name="flag" size={14}/> Escalate to plant</button>
+          <button className="btn btn-secondary"><Icon name="download" size={14}/> {t('warehouse.ct.btn.shiftReport')}</button>
+          <button className="btn btn-secondary"><Icon name="user" size={14}/> {t('warehouse.ct.btn.handOver')}</button>
+          <button className="btn btn-primary"><Icon name="flag" size={14}/> {t('warehouse.ct.btn.escalate')}</button>
         </div>
       </div>
 
       {/* Top KPI strip */}
       <div className="kpi-grid">
-        <KPI label="Orders at risk" value={kpis?.orders_red ?? '…'} tone={kpis?.orders_red > 0 ? 'critical' : 'ok'}/>
-        <KPI label="Orders amber" value={kpis?.orders_amber ?? '…'} tone={kpis?.orders_amber > 0 ? 'warn' : 'ok'}/>
-        <KPI label="Open TOs" value={kpis?.tos_open ?? '…'} unit=" TOs" tone="ok"/>
-        <KPI label="Deliveries at risk" value={kpis?.deliveries_at_risk ?? '…'} tone={kpis?.deliveries_at_risk > 0 ? 'warn' : 'ok'}/>
-        <KPI label="Open inbound" value={kpis?.inbound_open ?? '…'} unit=" lines" tone="ok"/>
-        <KPI label="Bin utilisation" value={kpis?.bin_util_pct ?? '…'} unit="%" tone={kpis?.bin_util_pct > 92 ? 'critical' : kpis?.bin_util_pct > 80 ? 'warn' : 'ok'} barPct={kpis?.bin_util_pct ?? 0} barTone={kpis?.bin_util_pct > 92 ? 'red' : kpis?.bin_util_pct > 80 ? 'amber' : ''}/>
+        <KPI label={t('warehouse.ct.kpi.ordersAtRisk')} value={kpis?.orders_red ?? '…'} tone={kpis?.orders_red > 0 ? 'critical' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.ordersAmber')} value={kpis?.orders_amber ?? '…'} tone={kpis?.orders_amber > 0 ? 'warn' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.openTOs')} value={kpis?.tos_open ?? '…'} unit=" TOs" tone="ok"/>
+        <KPI label={t('warehouse.ct.kpi.deliveriesAtRisk')} value={kpis?.deliveries_at_risk ?? '…'} tone={kpis?.deliveries_at_risk > 0 ? 'warn' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.openInbound')} value={kpis?.inbound_open ?? '…'} unit=" lines" tone="ok"/>
+        <KPI label={t('warehouse.ct.kpi.binUtil')} value={kpis?.bin_util_pct ?? '…'} unit="%" tone={kpis?.bin_util_pct > 92 ? 'critical' : kpis?.bin_util_pct > 80 ? 'warn' : 'ok'} barPct={kpis?.bin_util_pct ?? 0} barTone={kpis?.bin_util_pct > 92 ? 'red' : kpis?.bin_util_pct > 80 ? 'amber' : ''}/>
       </div>
 
       {/* Today's run sheet + Critical exceptions */}
       <div className="grid-asym" style={{ marginBottom: 16 }}>
-        <Card title="Today's run sheet" subtitle="6 lines · click a bar to drill in" eyebrow="Schedule" tight
+        <Card title={t('warehouse.ct.card.runSheet')} subtitle="6 lines · click a bar to drill in" eyebrow="Schedule" tight
           actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('staging')}>Open staging <Icon name="arrowRight" size={12}/></button>}>
           <StagingTimeline onOpen={onOpenOrder}/>
         </Card>
 
-        <Card title="Critical exceptions" subtitle="Needs action now" eyebrow="Risk"
+        <Card title={t('warehouse.ct.card.criticalExceptions')} subtitle="Needs action now" eyebrow="Risk"
           actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('exceptions')}><Icon name="external" size={12}/></button>}>
           <div className="stack-8">
             {criticalEx.map((e, i) => (
@@ -72,7 +74,7 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
 
       {/* Workload + Production at risk */}
       <div className="grid-2" style={{ marginBottom: 16 }}>
-        <Card title="Workload by area" subtitle="Open · in progress · confirmed tasks this shift" eyebrow="Warehouse tasks">
+        <Card title={t('warehouse.ct.card.workload')} subtitle="Open · in progress · confirmed tasks this shift" eyebrow="Warehouse tasks">
           <div className="stack-8">
             {WM.WORKLOAD.map((w, i) => {
               const total = w.open + w.inProgress + w.confirmed;
@@ -92,16 +94,16 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
             })}
           </div>
           <div className="flex gap-12" style={{ marginTop: 12, fontSize: 11, color: 'var(--fg-muted)' }}>
-            <span className="flex items-center gap-4"><span style={{ width: 8, height: 8, background: 'var(--jade)', borderRadius: 2 }}/>Confirmed</span>
-            <span className="flex items-center gap-4"><span style={{ width: 8, height: 8, background: 'var(--valentia-slate)', borderRadius: 2 }}/>In progress</span>
-            <span className="flex items-center gap-4"><span style={{ width: 8, height: 8, background: 'var(--stone-300)', borderRadius: 2 }}/>Open</span>
+            <span className="flex items-center gap-4"><span style={{ width: 8, height: 8, background: 'var(--jade)', borderRadius: 2 }}/>{t('warehouse.common.legend.confirmed')}</span>
+            <span className="flex items-center gap-4"><span style={{ width: 8, height: 8, background: 'var(--valentia-slate)', borderRadius: 2 }}/>{t('warehouse.common.legend.inProgress')}</span>
+            <span className="flex items-center gap-4"><span style={{ width: 8, height: 8, background: 'var(--stone-300)', borderRadius: 2 }}/>{t('warehouse.common.legend.open')}</span>
           </div>
         </Card>
 
-        <Card title="Production lines at risk" subtitle={`${redOrders.length} critical · ${amberOrders.length} at risk`} eyebrow="Production staging"
+        <Card title={t('warehouse.ct.card.productionAtRisk')} subtitle={`${redOrders.length} critical · ${amberOrders.length} at risk`} eyebrow="Production staging"
           actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('staging')}>All <Icon name="arrowRight" size={12}/></button>} tight>
           <table className="tbl">
-            <thead><tr><th></th><th>Order</th><th>Line</th><th>Start</th><th className="num">Staging</th><th></th></tr></thead>
+            <thead><tr><th></th><th>{t('warehouse.common.col.order')}</th><th>{t('warehouse.common.col.line')}</th><th>{t('warehouse.common.col.start')}</th><th className="num">{t('warehouse.common.col.staging')}</th><th></th></tr></thead>
             <tbody>
               {[...redOrders, ...amberOrders].slice(0, 8).map((o) => (
                 <tr key={o.id} className={`is-risk-${o.risk}`} onClick={() => onOpenOrder(o)}>
@@ -125,11 +127,11 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
 
       {/* Inbound + Outbound due today */}
       <div className="grid-2" style={{ marginBottom: 16 }}>
-        <Card title="Inbound receipts due today" subtitle={`${inboundToday.filter((r) => r.status === 'Expected').length} expected · ${inboundToday.filter((r) => r.status === 'Overdue').length} overdue`}
+        <Card title={t('warehouse.ct.card.inboundToday')} subtitle={`${inboundToday.filter((r) => r.status === 'Expected').length} expected · ${inboundToday.filter((r) => r.status === 'Overdue').length} overdue`}
           eyebrow="PO / STO"
           actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('inbound')}>All <Icon name="arrowRight" size={12}/></button>} tight>
           <table className="tbl">
-            <thead><tr><th>Type</th><th>Doc</th><th>Vendor / Plant</th><th>Material</th><th>ETA</th><th>Status</th></tr></thead>
+            <thead><tr><th>{t('warehouse.common.col.type')}</th><th>Doc</th><th>{t('warehouse.ct.col.vendorPlant')}</th><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.ct.col.eta')}</th><th>{t('warehouse.common.col.status')}</th></tr></thead>
             <tbody>
               {inboundToday.map((r) => (
                 <tr key={r.id} onClick={() => onOpenReceipt(r)} className={`is-risk-${r.risk}`}>
@@ -145,11 +147,11 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
           </table>
         </Card>
 
-        <Card title="Outbound deliveries due today" subtitle={`${outboundToday.filter((d) => d.risk === 'red').length} cut-off risk`}
+        <Card title={t('warehouse.ct.card.outboundToday')} subtitle={`${outboundToday.filter((d) => d.risk === 'red').length} cut-off risk`}
           eyebrow="LIKP / LIPS"
           actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('outbound')}>All <Icon name="arrowRight" size={12}/></button>} tight>
           <table className="tbl">
-            <thead><tr><th>Delivery</th><th>Customer</th><th>Cut-off</th><th className="num">Pick</th><th>Status</th><th>Dock</th></tr></thead>
+            <thead><tr><th>{t('warehouse.common.col.delivery')}</th><th>{t('warehouse.common.col.customer')}</th><th>{t('warehouse.ct.col.cutOff')}</th><th className="num">{t('warehouse.ct.col.pick')}</th><th>{t('warehouse.common.col.status')}</th><th>{t('warehouse.ct.col.dock')}</th></tr></thead>
             <tbody>
               {outboundToday.map((d) => (
                 <tr key={d.id} onClick={() => onOpenDelivery(d)} className={`is-risk-${d.risk}`}>
@@ -173,25 +175,25 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
 
       {/* Ageing tasks + bin constraints */}
       <div className="grid-2">
-        <Card title="Ageing transfer orders" subtitle="Open > 2h — redistribute or escalate" eyebrow="LTAK" tight>
+        <Card title={t('warehouse.ct.card.ageingTOs')} subtitle="Open > 2h — redistribute or escalate" eyebrow="LTAK" tight>
           <table className="tbl">
-            <thead><tr><th>TO</th><th>Type</th><th>Material</th><th>Src → Dst</th><th className="num">Age</th><th>Operator</th></tr></thead>
+            <thead><tr><th>{t('warehouse.ct.col.to')}</th><th>{t('warehouse.common.col.type')}</th><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.ct.col.srcDst')}</th><th className="num">{t('warehouse.common.col.age')}</th><th>{t('warehouse.common.col.operator')}</th></tr></thead>
             <tbody>
-              {ageingTOs.map((t) => (
-                <tr key={t.id}>
-                  <td className="code">{t.id}</td>
-                  <td><span className="tag">{t.type}</span></td>
-                  <td><div style={{ fontSize: 12 }}>{t.material.name}</div></td>
-                  <td className="mono small">{t.srcBin} → {t.dstBin}</td>
-                  <td className="num amber bold">{Math.floor(t.ageMin / 60)}h {t.ageMin % 60}m</td>
-                  <td className="small">{t.assignedTo || <span className="muted">—</span>}</td>
+              {ageingTOs.map((to) => (
+                <tr key={to.id}>
+                  <td className="code">{to.id}</td>
+                  <td><span className="tag">{to.type}</span></td>
+                  <td><div style={{ fontSize: 12 }}>{to.material.name}</div></td>
+                  <td className="mono small">{to.srcBin} → {to.dstBin}</td>
+                  <td className="num amber bold">{Math.floor(to.ageMin / 60)}h {to.ageMin % 60}m</td>
+                  <td className="small">{to.assignedTo || <span className="muted">—</span>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </Card>
 
-        <Card title="Space & bin constraints" subtitle="Utilisation by storage type · click to drill" eyebrow="Inventory"
+        <Card title={t('warehouse.ct.card.spaceConstraints')} subtitle="Utilisation by storage type · click to drill" eyebrow="Inventory"
           actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('inventory')}>All <Icon name="arrowRight" size={12}/></button>}>
           <div className="stack-8">
             {WM.STORAGE_TYPES.slice(0, 6).map((s, i) => {

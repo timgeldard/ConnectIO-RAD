@@ -1,6 +1,6 @@
 """
 GET /api/em/plants  — discover plants that have type-14/Z14 inspection lots,
-enriched with metadata from vw_gold_plant and real lat/lon from the internal
+enriched with metadata from gold_plant and real lat/lon from the internal
 em_plant_geo config table (editable via the admin screen).
 No env-var config required — the list is fully DB-driven.
 """
@@ -39,7 +39,7 @@ async def _fetch_active_plant_ids(token: str) -> list[str]:
 
 
 async def _fetch_plant_metadata(token: str, plant_ids: list[str]) -> dict[str, dict]:
-    """Fetch name, region, country, city from vw_gold_plant + lat/lon from geo table."""
+    """Fetch name, region, country, city from gold_plant + lat/lon from geo table."""
     if not plant_ids:
         return {}
 
