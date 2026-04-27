@@ -32,7 +32,7 @@ describe('EM API Client Hooks', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toEqual(mockData)
-    expect(fetchJson).toHaveBeenCalledWith('/api/em/plants')
+    expect(fetchJson).toHaveBeenCalledWith('/api/em/plants?days=30')
   })
 
   it('useFloors returns data when plantId is provided', async () => {

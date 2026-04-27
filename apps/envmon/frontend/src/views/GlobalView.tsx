@@ -20,6 +20,7 @@ export default function GlobalView({ onOpenPlant }: Props) {
   const [region, setRegion] = useState('ALL');
   const [sortBy, setSortBy] = useState<'risk' | 'fails' | 'rate' | 'name'>('risk');
   const [portfolioDays, setPortfolioDays] = useState(30);
+  const [focusedPlantId, setFocusedPlantId] = useState<string | null>(null);
   const { data: plants = [] } = usePlants(portfolioDays);
 
   const { featureCollection, sortedPlants, scopedPlants } = usePlantMapData(
@@ -29,7 +30,10 @@ export default function GlobalView({ onOpenPlant }: Props) {
   );
 
   const handleOpenPlant = useCallback(
-    (plantId: string) => onOpenPlant(plantId),
+    (plantId: string) => {
+      setFocusedPlantId(plantId);
+      onOpenPlant(plantId);
+    },
     [onOpenPlant],
   );
 
@@ -119,13 +123,13 @@ export default function GlobalView({ onOpenPlant }: Props) {
             </div>
             <div className="legend">
               <span className="item">
-                <span className="sw" style={{ background: 'var(--sunset)' }} />{t('envmon.global.legend.high')}
+                <span className="sw" style={{ background: 'var(--sunset)' }} />{t('envmon.global.legend.critical')}
               </span>
               <span className="item">
-                <span className="sw" style={{ background: 'var(--sunrise)' }} />{t('envmon.global.legend.medium')}
+                <span className="sw" style={{ background: '#718096' }} />{t('envmon.global.legend.neglected')}
               </span>
               <span className="item">
-                <span className="sw" style={{ background: 'var(--jade)' }} />{t('envmon.global.legend.low')}
+                <span className="sw" style={{ background: 'var(--jade)' }} />{t('envmon.global.legend.safe')}
               </span>
             </div>
           </div>
@@ -133,7 +137,7 @@ export default function GlobalView({ onOpenPlant }: Props) {
             <EnvMonGlobalMap
               featureCollection={featureCollection}
               plants={scopedPlants}
-              selectedPlantId={null}
+              selectedPlantId={focusedPlantId}
               onOpenPlant={handleOpenPlant}
             />
           </div>
@@ -164,7 +168,12 @@ export default function GlobalView({ onOpenPlant }: Props) {
           </div>
           <div className="scroll-y" style={{ flex: 1 }}>
             {sortedPlants.map((p) => (
-              <PlantCard key={p.plant_id} plant={p} onClick={() => onOpenPlant(p.plant_id)} />
+              <PlantCard
+                key={p.plant_id}
+                plant={p}
+                onClick={() => handleOpenPlant(p.plant_id)}
+                onFocusChange={setFocusedPlantId}
+              />
             ))}
           </div>
         </div>
@@ -174,18 +183,29 @@ export default function GlobalView({ onOpenPlant }: Props) {
 }
 
 /** Individual plant card in the ranking list — shows risk indicator and KPI summary row. */
-function PlantCard({ plant, onClick }: { plant: PlantInfo; onClick: () => void }) {
+function PlantCard({
+  plant,
+  onClick,
+  onFocusChange,
+}: {
+  plant: PlantInfo;
+  onClick: () => void;
+  onFocusChange: (plantId: string | null) => void;
+}) {
   const { kpis } = plant;
   const riskCol =
     kpis.active_fails > 0
       ? 'var(--sunset)'
-      : kpis.warnings > 0
-      ? 'var(--sunrise)'
+      : kpis.lots_tested === 0 && (kpis.lots_planned ?? 0) > 0
+      ? '#718096'
       : 'var(--jade)';
   return (
     <button
       className="card"
       onClick={onClick}
+      onFocus={() => onFocusChange(plant.plant_id)}
+      onMouseEnter={() => onFocusChange(plant.plant_id)}
+      onMouseLeave={() => onFocusChange(null)}
       style={{
         width: '100%',
         textAlign: 'left',

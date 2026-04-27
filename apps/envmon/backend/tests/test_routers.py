@@ -64,6 +64,33 @@ async def test_list_plants_keeps_geo_when_gold_plant_query_fails():
             assert data[0]["lon"] == -5.9
 
 @pytest.mark.asyncio
+async def test_list_plants_accepts_lowercase_plant_id_rows():
+    async def mock_sql_fn(token, sql, params=None, **kwargs):
+        s = sql.strip().upper()
+        if "SELECT DISTINCT PLANT_ID" in s:
+            return [{"plant_id": "P225"}]
+        if "FROM" in s and "EM_PLANT_GEO" in s:
+            return [{"plant_id": "P225", "lat": 37.4, "lon": -5.9}]
+        if "FROM" in s and "GOLD_PLANT" in s:
+            return []
+        if "WITH BASE AS" in s:
+            return []
+        if "SELECT COUNT(*) AS N FROM" in s:
+            return [{"n": 0}]
+        return []
+
+    with patch("backend.routers.plants.run_sql_async", side_effect=mock_sql_fn):
+        with patch("backend.routers.plants.resolve_token", return_value="fake-token"):
+            response = client.get("/api/em/plants")
+
+            assert response.status_code == 200
+            data = response.json()
+            assert len(data) == 1
+            assert data[0]["plant_id"] == "P225"
+            assert data[0]["lat"] == 37.4
+            assert data[0]["lon"] == -5.9
+
+@pytest.mark.asyncio
 async def test_list_floors():
     async def mock_sql_fn(token, sql, params=None, **kwargs):
         s = sql.strip().upper()

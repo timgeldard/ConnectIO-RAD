@@ -20,6 +20,8 @@ export interface PlantFeatureProps {
   riskIndex: number;
   status: StatusTier;
   isNeglected: boolean;
+  complianceStatus: 'tested' | 'neglected' | 'not_planned';
+  riskTier: 'high' | 'neglect' | 'safe';
   lotsTested: number;
   lotsPlanned: number;
   color: string;
@@ -44,6 +46,12 @@ function plantStatus(plant: PlantInfo): StatusTier {
   return 'safe';
 }
 
+function complianceStatus(plant: PlantInfo): PlantFeatureProps['complianceStatus'] {
+  const planned = plant.kpis.lots_planned ?? 0;
+  if (planned === 0) return 'not_planned';
+  return plant.kpis.lots_tested === 0 ? 'neglected' : 'tested';
+}
+
 export function plantsToFeatureCollection(
   plants: PlantInfo[],
 ): FeatureCollection<Point, PlantFeatureProps> {
@@ -52,6 +60,7 @@ export function plantsToFeatureCollection(
     .map((p) => {
       const status = plantStatus(p);
       const isNeglected = status === 'neglected';
+      const compliance = complianceStatus(p);
       return {
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
@@ -66,6 +75,8 @@ export function plantsToFeatureCollection(
           riskIndex: p.kpis.risk_index,
           status,
           isNeglected,
+          complianceStatus: compliance,
+          riskTier: status === 'critical' ? 'high' : status === 'neglected' ? 'neglect' : 'safe',
           lotsTested: p.kpis.lots_tested,
           lotsPlanned: p.kpis.lots_planned ?? 0,
           color: STATUS_COLORS[status],

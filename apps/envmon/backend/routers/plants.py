@@ -35,7 +35,11 @@ async def _fetch_active_plant_ids(token: str) -> list[str]:
         ORDER BY PLANT_ID
     """
     rows = await run_sql_async(token, sql)
-    return [r["PLANT_ID"] for r in rows if r.get("PLANT_ID")]
+    return [
+        str(plant_id)
+        for r in rows
+        if (plant_id := _row_get(r, "PLANT_ID", "plant_id"))
+    ]
 
 
 def _row_get(row: dict[str, Any], *keys: str, default: Any = None) -> Any:

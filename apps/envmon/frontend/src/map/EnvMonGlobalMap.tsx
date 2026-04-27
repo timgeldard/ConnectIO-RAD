@@ -6,7 +6,18 @@ import { computeBounds, hasValidCoordinates } from './mapUtils';
 import type { PlantInfo } from '~/types';
 
 const SOURCE_ID = 'plants';
-const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
+const POSITRON_MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
+const FALLBACK_MAP_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {},
+  layers: [
+    {
+      id: 'background',
+      type: 'background',
+      paint: { 'background-color': '#edf2ef' },
+    },
+  ],
+};
 
 interface TooltipState {
   x: number;
@@ -18,6 +29,7 @@ interface TooltipState {
   passRate: number;
   lotsTested: number;
   lotsPlanned: number;
+  complianceStatus: PlantFeatureProps['complianceStatus'];
 }
 
 /**
@@ -48,11 +60,13 @@ export default function EnvMonGlobalMap({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const onOpenPlantRef = useRef(onOpenPlant);
   const fcRef = useRef(featureCollection);
+  const selectedPlantIdRef = useRef(selectedPlantId);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
   // Keep refs current to avoid stale closures in map event handlers
   useEffect(() => { onOpenPlantRef.current = onOpenPlant; }, [onOpenPlant]);
   useEffect(() => { fcRef.current = featureCollection; }, [featureCollection]);
+  useEffect(() => { selectedPlantIdRef.current = selectedPlantId; }, [selectedPlantId]);
 
   // Mount / destroy
   useEffect(() => {
@@ -60,7 +74,7 @@ export default function EnvMonGlobalMap({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: MAP_STYLE,
+      style: POSITRON_MAP_STYLE,
       center: [10, 20],
       zoom: 1.5,
       maxZoom: 8,
@@ -70,15 +84,21 @@ export default function EnvMonGlobalMap({
       attributionControl: false,
     });
 
-    map.dragRotate.disable();
-    map.touchZoomRotate.disableRotation();
+    map.dragRotate?.disable?.();
+    map.touchZoomRotate?.disableRotation?.();
 
     map.addControl(
       new maplibregl.NavigationControl({ showCompass: false }),
       'bottom-right',
     );
 
-    map.on('load', () => {
+    let fallbackApplied = false;
+    let layersRegistered = false;
+
+    const registerPlantLayers = () => {
+      if (layersRegistered || !map.isStyleLoaded()) return;
+      layersRegistered = true;
+
       map.addSource(SOURCE_ID, {
         type: 'geojson',
         data: fcRef.current,
@@ -86,9 +106,9 @@ export default function EnvMonGlobalMap({
         clusterMaxZoom: 6,
         clusterRadius: 40,
         clusterProperties: {
-          // Aggregate worst-case status across cluster members
-          max_fails:     ['max', ['get', 'activeFails']],
-          neglect_count: ['+', ['case', ['==', ['get', 'isNeglected'], true], 1, 0]],
+          // Aggregate worst-case status across cluster members.
+          has_fails: ['max', ['case', ['>', ['get', 'activeFails'], 0], 1, 0]],
+          has_neglect: ['max', ['case', ['==', ['get', 'isNeglected'], true], 1, 0]],
         },
       });
 
@@ -100,40 +120,42 @@ export default function EnvMonGlobalMap({
         paint: {
           'circle-color': [
             'case',
-            ['>', ['get', 'max_fails'], 0],     '#F24A00', // any critical → red
-            ['>', ['get', 'neglect_count'], 0],  '#718096', // any neglected → grey
-            '#005776',                                      // all safe → Valentia Slate
+            ['>', ['get', 'has_fails'], 0], '#F24A00',
+            ['>', ['get', 'has_neglect'], 0], '#718096',
+            '#005776',
           ],
           'circle-radius': ['step', ['get', 'point_count'], 18, 5, 22, 10, 28],
           'circle-opacity': 0.85,
         },
       });
 
-      map.addLayer({
-        id: 'cluster-count',
-        type: 'symbol',
-        source: SOURCE_ID,
-        filter: ['has', 'point_count'],
-        layout: {
-          'text-field': '{point_count_abbreviated}',
-          'text-font': ['Noto Sans Bold', 'Noto Sans Regular'],
-          'text-size': 12,
-        },
-        paint: { 'text-color': '#ffffff' },
-      });
+      if (map.getStyle().glyphs) {
+        map.addLayer({
+          id: 'cluster-count',
+          type: 'symbol',
+          source: SOURCE_ID,
+          filter: ['has', 'point_count'],
+          layout: {
+            'text-field': '{point_count_abbreviated}',
+            'text-font': ['Noto Sans Bold', 'Noto Sans Regular'],
+            'text-size': 12,
+          },
+          paint: { 'text-color': '#ffffff' },
+        });
+      }
 
       // Red glow beacon for critical plants (static blur — GL layers cannot animate)
       map.addLayer({
         id: 'risk-beacon',
         type: 'circle',
         source: SOURCE_ID,
-        filter: ['all', ['!', ['has', 'point_count']], ['>', ['get', 'activeFails'], 0]],
+        filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'riskTier'], 'high']],
         paint: {
           'circle-color': '#F24A00',
-          'circle-blur': 0.7,
-          'circle-opacity': 0.25,
+          'circle-blur': 0.8,
+          'circle-opacity': ['interpolate', ['linear'], ['zoom'], 1, 0.35, 5, 0.28, 8, 0.22],
           'circle-radius': ['+', ['get', 'radius'],
-            ['interpolate', ['linear'], ['zoom'], 1, 14, 4, 12, 6, 10, 8, 8],
+            ['interpolate', ['exponential', 1.6], ['zoom'], 1, 20, 4, 34, 7, 62, 8, 78],
           ],
         },
       });
@@ -147,9 +169,9 @@ export default function EnvMonGlobalMap({
         paint: {
           'circle-color': 'rgba(0,0,0,0)',
           'circle-radius': ['+', ['get', 'radius'],
-            ['interpolate', ['linear'], ['zoom'], 1, 8, 4, 6, 6, 5, 8, 4],
+            ['interpolate', ['exponential', 1.4], ['zoom'], 1, 12, 4, 17, 7, 24, 8, 30],
           ],
-          'circle-stroke-width': 1.5,
+          'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 1, 1.2, 8, 2.2],
           'circle-stroke-color': '#718096',
           'circle-stroke-opacity': 0.7,
         },
@@ -192,14 +214,17 @@ export default function EnvMonGlobalMap({
         id: 'selected-ring',
         type: 'circle',
         source: SOURCE_ID,
-        filter: ['==', ['get', 'plantId'], ''],
+        filter: selectedPlantIdRef.current
+          ? ['==', ['get', 'plantId'], selectedPlantIdRef.current]
+          : ['==', ['get', 'plantId'], ''],
         paint: {
           'circle-color': 'rgba(0,0,0,0)',
           'circle-radius': ['+', ['get', 'radius'],
             ['interpolate', ['linear'], ['zoom'], 1, 10, 4, 8, 6, 6, 8, 5],
           ],
-          'circle-stroke-width': 2.5,
+          'circle-stroke-width': 3,
           'circle-stroke-color': '#1E3A5F',
+          'circle-stroke-opacity': 0.95,
         },
       });
 
@@ -248,6 +273,7 @@ export default function EnvMonGlobalMap({
           passRate: props.passRate,
           lotsTested: props.lotsTested,
           lotsPlanned: props.lotsPlanned,
+          complianceStatus: props.complianceStatus,
         });
       });
 
@@ -262,6 +288,14 @@ export default function EnvMonGlobalMap({
         map.getCanvas().style.cursor = '';
         setTooltip(null);
       });
+    };
+
+    map.on('load', registerPlantLayers);
+    map.on('styledata', registerPlantLayers);
+    map.on('error', () => {
+      if (layersRegistered || fallbackApplied) return;
+      fallbackApplied = true;
+      map.setStyle(FALLBACK_MAP_STYLE);
     });
 
     mapRef.current = map;
@@ -275,9 +309,7 @@ export default function EnvMonGlobalMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map?.isStyleLoaded()) return;
-    (map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined)?.setData(
-      featureCollection,
-    );
+    (map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined)?.setData(featureCollection);
   }, [featureCollection]);
 
   // Camera: fit to visible plants
@@ -346,8 +378,15 @@ export default function EnvMonGlobalMap({
           </div>
           {tooltip.lotsPlanned > 0 && (
             <div style={{ fontSize: 11, marginTop: 2, fontFamily: 'var(--font-mono)' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>
-                {tooltip.lotsTested}/{tooltip.lotsPlanned} lots
+              <span
+                style={{
+                  color: tooltip.complianceStatus === 'neglected'
+                    ? 'var(--sunset)'
+                    : 'rgba(255,255,255,0.6)',
+                }}
+              >
+                {tooltip.lotsTested}/{tooltip.lotsPlanned} tests done
+                {tooltip.complianceStatus === 'neglected' ? ' - CRITICAL GAP' : ''}
               </span>
             </div>
           )}
