@@ -8,6 +8,40 @@ afterEach(() => {
   cleanup()
 })
 
+// cytoscape touches the DOM/Web APIs as soon as it constructs a Core. Stub
+// the surface area we use so the trace2 lineage pages can mount in jsdom.
+vi.mock('cytoscape', () => {
+  const mkCollection = () => ({
+    remove: vi.fn(),
+    removeClass: vi.fn(),
+    addClass: vi.fn(),
+    nonempty: vi.fn(() => false),
+    forEach: vi.fn(),
+    source: () => ({ id: () => '' }),
+    target: () => ({ id: () => '' }),
+    id: () => '',
+    data: vi.fn(),
+  })
+  const fakeCy = {
+    on: vi.fn(),
+    off: vi.fn(),
+    once: vi.fn(),
+    removeAllListeners: vi.fn(),
+    add: vi.fn(),
+    elements: vi.fn(() => mkCollection()),
+    edges: vi.fn(() => mkCollection()),
+    nodes: vi.fn(() => mkCollection()),
+    getElementById: vi.fn(() => mkCollection()),
+    layout: vi.fn(() => ({ run: vi.fn() })),
+    destroy: vi.fn(),
+  }
+  const fn = vi.fn(() => fakeCy) as unknown as { (): unknown; use: ReturnType<typeof vi.fn> }
+  fn.use = vi.fn()
+  return { default: fn }
+})
+
+vi.mock('cytoscape-cose-bilkent', () => ({ default: vi.fn() }))
+
 // maplibre-gl initializes a Web Worker via URL.createObjectURL at import time,
 // which jsdom doesn't implement. Stub the surface area we use so the
 // CustomerMap module can import cleanly during tests.

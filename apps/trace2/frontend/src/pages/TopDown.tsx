@@ -4,6 +4,8 @@ import { fetchTopDown, focalFromBatch } from "../data/api";
 import { useBatchData } from "../data/useBatchData";
 import { LoadFrame, EmptyBlock } from "../components/LoadFrame";
 import { LineageGraph, NodeDetailPanel } from "../components/LineageGraph";
+import { CytoscapeGraph, type CytoscapeMode } from "../components/CytoscapeGraph";
+import { GraphViewToggle, type GraphViewMode } from "../components/GraphViewToggle";
 import { Card, DataTable, DepthControl, KPI, SectionHeader, fmtN, fmtInt } from "../ui";
 import { useI18n } from "@connectio/shared-frontend-i18n";
 import { plural, template, traceCopy } from "../i18n/pageCopy";
@@ -61,6 +63,7 @@ function TopDownBody({
   setMaxInputDepth?: (v: number) => void;
 }) {
   const [selected, setSelected] = useState<LineageNode | null>(null);
+  const [graphView, setGraphView] = useState<GraphViewMode>("lineage");
   const { language } = useI18n();
   const copy = traceCopy(language);
   const focal = focalFromBatch(batch);
@@ -95,21 +98,44 @@ function TopDownBody({
       )}
 
       <Card title={copy.line.materialLineageOutputs} subtitle={copy.line.graphHelp} noPad style={{ marginBottom: 20 }}>
-        <LineageGraph
-          focal={focal}
-          upstream={[]}
-          downstream={lineage}
-          highlightMode="downstream"
-          selectedId={selected?.id}
-          sim={sim}
-          onNodeClick={(n) => {
-            if ("kind" in n && n.kind === "focal") {
-              setSelected(null);
-            } else {
-              setSelected(n as LineageNode);
-            }
-          }}
-        />
+        <div style={{ padding: "10px 14px 0" }}>
+          <GraphViewToggle value={graphView} onChange={setGraphView} />
+        </div>
+        {graphView === "lineage" ? (
+          <LineageGraph
+            focal={focal}
+            upstream={[]}
+            downstream={lineage}
+            highlightMode="downstream"
+            selectedId={selected?.id}
+            sim={sim}
+            onNodeClick={(n) => {
+              if ("kind" in n && n.kind === "focal") {
+                setSelected(null);
+              } else {
+                setSelected(n as LineageNode);
+              }
+            }}
+          />
+        ) : (
+          <div style={{ padding: "0 14px 14px" }}>
+            <CytoscapeGraph
+              focal={focal}
+              upstream={[]}
+              downstream={lineage}
+              mode={graphView as CytoscapeMode}
+              selectedId={selected?.id}
+              sim={sim}
+              onNodeClick={(n) => {
+                if ("kind" in n && n.kind === "focal") {
+                  setSelected(null);
+                } else {
+                  setSelected(n as LineageNode);
+                }
+              }}
+            />
+          </div>
+        )}
       </Card>
 
       <NodeDetailPanel node={selected} onClose={() => setSelected(null)} />
