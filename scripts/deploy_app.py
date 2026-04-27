@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -263,13 +264,29 @@ def run_sql_migrations(manifest: dict[str, Any], args: argparse.Namespace, env: 
 
 
 def run_hook_commands(manifest: dict[str, Any], args: argparse.Namespace, env: dict[str, str]) -> None:
+    """
+    Run after_bundle hooks. Each entry is either a plain string command or a
+    dict { command, requires_tool? }. When `requires_tool` is set and that
+    binary isn't on PATH, the hook is skipped with a warning (lets Windows
+    deploys complete without `make` while still failing loudly on CI when a
+    present tool errors).
+    """
     commands = manifest.get("commands", {}).get("after_bundle", [])
     if not commands:
         print("-> no after-bundle hook commands configured")
         return
     ctx = context(manifest, args)
     for command in commands:
-        run_command(format_value(str(command), ctx), cwd=app_path(args), env=env, dry_run=args.dry_run)
+        if isinstance(command, dict):
+            cmd_str = format_value(str(command["command"]), ctx)
+            required_tool = command.get("requires_tool")
+        else:
+            cmd_str = format_value(str(command), ctx)
+            required_tool = None
+        if required_tool and shutil.which(required_tool) is None:
+            print(f"-> SKIP (requires_tool='{required_tool}' not on PATH): {cmd_str}")
+            continue
+        run_command(cmd_str, cwd=app_path(args), env=env, dry_run=args.dry_run)
 
 
 def validate_config(manifest: dict[str, Any], args: argparse.Namespace, env: dict[str, str]) -> None:
