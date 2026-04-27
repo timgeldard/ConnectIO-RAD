@@ -6,41 +6,7 @@ import { computeBounds, hasValidCoordinates } from './mapUtils';
 import type { PlantInfo } from '~/types';
 
 const SOURCE_ID = 'plants';
-
-const KERRY_MAP_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: {
-    maplibre: {
-      type: 'vector',
-      url: 'https://demotiles.maplibre.org/tiles/tiles.json',
-    },
-  },
-  glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-  layers: [
-    { id: 'background', type: 'background',
-      paint: { 'background-color': '#eaeae2' } },
-    { id: 'coastline', type: 'line', source: 'maplibre', 'source-layer': 'countries',
-      paint: { 'line-color': '#c8cfc8', 'line-width': 0.5 } },
-    { id: 'countries-fill', type: 'fill', source: 'maplibre', 'source-layer': 'countries',
-      paint: { 'fill-color': '#f0f0e8', 'fill-opacity': 1 } },
-    { id: 'countries-boundary', type: 'line', source: 'maplibre', 'source-layer': 'countries',
-      paint: { 'line-color': '#005776', 'line-opacity': 0.18, 'line-width': 0.6 } },
-    { id: 'countries-label', type: 'symbol', source: 'maplibre', 'source-layer': 'centroids',
-      layout: {
-        'text-field': ['get', 'ADMIN'],
-        'text-font': ['Open Sans Semibold'],
-        'text-size': 10,
-        'text-max-width': 8,
-      },
-      paint: {
-        'text-color': '#143700',
-        'text-opacity': 0.35,
-        'text-halo-color': '#f0f0e8',
-        'text-halo-width': 1,
-      },
-    },
-  ],
-};
+const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
 interface TooltipState {
   x: number;
@@ -50,13 +16,15 @@ interface TooltipState {
   city: string;
   activeFails: number;
   passRate: number;
+  lotsTested: number;
+  lotsPlanned: number;
 }
 
 /**
  * Props for the Global Environment Monitoring Map.
  */
 interface Props {
-  /** GeoJSON FeatureCollection containing plant locations and risk metrics. */
+  /** GeoJSON FeatureCollection containing plant locations and status. */
   featureCollection: FeatureCollection<GeoPoint, PlantFeatureProps>;
   /** Raw plant data for filtering and camera movement. */
   plants: PlantInfo[];
@@ -68,7 +36,7 @@ interface Props {
 
 /**
  * Interactive world map component using MapLibre GL JS.
- * Visualizes global plant health and risk clusters.
+ * Visualizes global plant health with Critical / Neglected / Safe status states.
  */
 export default function EnvMonGlobalMap({
   featureCollection,
@@ -92,7 +60,7 @@ export default function EnvMonGlobalMap({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: KERRY_MAP_STYLE,
+      style: MAP_STYLE,
       center: [10, 20],
       zoom: 1.5,
       maxZoom: 8,
@@ -117,6 +85,11 @@ export default function EnvMonGlobalMap({
         cluster: true,
         clusterMaxZoom: 6,
         clusterRadius: 40,
+        clusterProperties: {
+          // Aggregate worst-case status across cluster members
+          max_fails:     ['max', ['get', 'activeFails']],
+          neglect_count: ['+', ['case', ['==', ['get', 'isNeglected'], true], 1, 0]],
+        },
       });
 
       map.addLayer({
@@ -125,7 +98,12 @@ export default function EnvMonGlobalMap({
         source: SOURCE_ID,
         filter: ['has', 'point_count'],
         paint: {
-          'circle-color': '#005776',
+          'circle-color': [
+            'case',
+            ['>', ['get', 'max_fails'], 0],     '#F24A00', // any critical → red
+            ['>', ['get', 'neglect_count'], 0],  '#718096', // any neglected → grey
+            '#005776',                                      // all safe → Valentia Slate
+          ],
           'circle-radius': ['step', ['get', 'point_count'], 18, 5, 22, 10, 28],
           'circle-opacity': 0.85,
         },
@@ -138,14 +116,46 @@ export default function EnvMonGlobalMap({
         filter: ['has', 'point_count'],
         layout: {
           'text-field': '{point_count_abbreviated}',
-          'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
+          'text-font': ['Noto Sans Bold', 'Noto Sans Regular'],
           'text-size': 12,
         },
         paint: { 'text-color': '#ffffff' },
       });
 
-      // White background disc + Valentia slate outline — grows at low zoom so plants are
-      // visible as distinct pins even on a world-scale view.
+      // Red glow beacon for critical plants (static blur — GL layers cannot animate)
+      map.addLayer({
+        id: 'risk-beacon',
+        type: 'circle',
+        source: SOURCE_ID,
+        filter: ['all', ['!', ['has', 'point_count']], ['>', ['get', 'activeFails'], 0]],
+        paint: {
+          'circle-color': '#F24A00',
+          'circle-blur': 0.7,
+          'circle-opacity': 0.25,
+          'circle-radius': ['+', ['get', 'radius'],
+            ['interpolate', ['linear'], ['zoom'], 1, 14, 4, 12, 6, 10, 8, 8],
+          ],
+        },
+      });
+
+      // Hollow grey ring for neglected plants (no lots tested despite plan)
+      map.addLayer({
+        id: 'neglect-ring',
+        type: 'circle',
+        source: SOURCE_ID,
+        filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'isNeglected'], true]],
+        paint: {
+          'circle-color': 'rgba(0,0,0,0)',
+          'circle-radius': ['+', ['get', 'radius'],
+            ['interpolate', ['linear'], ['zoom'], 1, 8, 4, 6, 6, 5, 8, 4],
+          ],
+          'circle-stroke-width': 1.5,
+          'circle-stroke-color': '#718096',
+          'circle-stroke-opacity': 0.7,
+        },
+      });
+
+      // White background disc + Valentia slate outline
       map.addLayer({
         id: 'plant-halo',
         type: 'circle',
@@ -236,6 +246,8 @@ export default function EnvMonGlobalMap({
           city: props.city,
           activeFails: props.activeFails,
           passRate: props.passRate,
+          lotsTested: props.lotsTested,
+          lotsPlanned: props.lotsPlanned,
         });
       });
 
@@ -277,7 +289,7 @@ export default function EnvMonGlobalMap({
 
     const moveCam = () => {
       if (valid.length === 1) {
-        map.flyTo({ center: [valid[0].lon, valid[0].lat], zoom: 5, duration: 800 });
+        map.flyTo({ center: [valid[0].lon, valid[0].lat], zoom: 7, duration: 800 });
       } else {
         const bounds = computeBounds(valid);
         if (bounds) map.fitBounds(bounds, { padding: 48, maxZoom: 6, duration: 800 });
@@ -332,6 +344,13 @@ export default function EnvMonGlobalMap({
             </span>
             <span>{tooltip.passRate.toFixed(1)}% pass</span>
           </div>
+          {tooltip.lotsPlanned > 0 && (
+            <div style={{ fontSize: 11, marginTop: 2, fontFamily: 'var(--font-mono)' }}>
+              <span style={{ color: 'rgba(255,255,255,0.6)' }}>
+                {tooltip.lotsTested}/{tooltip.lotsPlanned} lots
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>

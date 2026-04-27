@@ -1,16 +1,13 @@
 import type { Feature, FeatureCollection, Point } from 'geojson';
 import type { PlantInfo } from '~/types';
 
-export const RISK_HIGH_THRESHOLD = 30;
-export const RISK_MED_THRESHOLD = 15;
+export type StatusTier = 'critical' | 'neglected' | 'safe';
 
-export const RISK_COLORS = {
-  high: '#F24A00', // --sunset
-  med:  '#F9C20A', // --sunrise
-  low:  '#44CF93', // --jade
-} as const;
-
-export type RiskTier = 'high' | 'med' | 'low';
+export const STATUS_COLORS: Record<StatusTier, string> = {
+  critical:  '#F24A00', // Kerry sunset
+  neglected: '#718096', // Cool grey
+  safe:      '#44CF93', // Kerry jade
+};
 
 export interface PlantFeatureProps {
   plantId: string;
@@ -21,7 +18,10 @@ export interface PlantFeatureProps {
   activeFails: number;
   passRate: number;
   riskIndex: number;
-  riskTier: RiskTier;
+  status: StatusTier;
+  isNeglected: boolean;
+  lotsTested: number;
+  lotsPlanned: number;
   color: string;
   radius: number;
 }
@@ -38,10 +38,10 @@ export function hasValidCoordinates(plant: PlantInfo): boolean {
   );
 }
 
-export function riskTier(riskIndex: number): RiskTier {
-  if (riskIndex > RISK_HIGH_THRESHOLD) return 'high';
-  if (riskIndex > RISK_MED_THRESHOLD) return 'med';
-  return 'low';
+function plantStatus(plant: PlantInfo): StatusTier {
+  if (plant.kpis.active_fails > 0) return 'critical';
+  if (plant.kpis.lots_tested === 0 && (plant.kpis.lots_planned ?? 0) > 0) return 'neglected';
+  return 'safe';
 }
 
 export function plantsToFeatureCollection(
@@ -50,7 +50,8 @@ export function plantsToFeatureCollection(
   const features: Feature<Point, PlantFeatureProps>[] = plants
     .filter(hasValidCoordinates)
     .map((p) => {
-      const tier = riskTier(p.kpis.risk_index);
+      const status = plantStatus(p);
+      const isNeglected = status === 'neglected';
       return {
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
@@ -63,8 +64,11 @@ export function plantsToFeatureCollection(
           activeFails: p.kpis.active_fails,
           passRate: p.kpis.pass_rate,
           riskIndex: p.kpis.risk_index,
-          riskTier: tier,
-          color: RISK_COLORS[tier],
+          status,
+          isNeglected,
+          lotsTested: p.kpis.lots_tested,
+          lotsPlanned: p.kpis.lots_planned ?? 0,
+          color: STATUS_COLORS[status],
           radius: 5 + Math.min(7, p.kpis.active_fails * 0.6),
         },
       };
