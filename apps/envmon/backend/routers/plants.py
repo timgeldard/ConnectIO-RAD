@@ -20,6 +20,7 @@ from backend.utils.em_config import (
     PLANT_GEO_TBL,
     PLANT_TBL,
     POINT_TBL,
+    RESULT_TBL,
 )
 
 router = APIRouter()
@@ -119,15 +120,20 @@ async def _fetch_plant_kpis(token: str, plant_id: str, days: int = 30) -> PlantK
     sql = f"""
         WITH base AS (
             SELECT
-                ip.FUNCTIONAL_LOCATION AS func_loc_id,
-                ip.VALUATION_STRING    AS valuation,
-                ip.INSPECTION_LOT_ID   AS lot_id
+                ip.FUNCTIONAL_LOCATION          AS func_loc_id,
+                r.INSPECTION_RESULT_VALUATION   AS valuation,
+                lot.INSPECTION_LOT_ID           AS lot_id
             FROM {LOT_TBL} lot
-            JOIN {POINT_TBL} ip ON lot.INSPECTION_LOT_ID = ip.INSPECTION_LOT_ID
+            JOIN {POINT_TBL} ip
+                ON lot.INSPECTION_LOT_ID = ip.INSPECTION_LOT_ID
+            LEFT JOIN {RESULT_TBL} r
+                ON ip.INSPECTION_LOT_ID = r.INSPECTION_LOT_ID
+               AND ip.OPERATION_ID      = r.OPERATION_ID
+               AND ip.SAMPLE_ID         = r.SAMPLE_ID
             WHERE lot.PLANT_ID = :plant_id
               AND lot.INSPECTION_TYPE IN {INSP_TYPES_SQL}
               AND ip.FUNCTIONAL_LOCATION IS NOT NULL
-              AND lot.CREATED_ON >= DATEADD(DAY, -{days}, CURRENT_DATE)
+              AND lot.CREATED_DATE >= DATEADD(DAY, -{days}, CURRENT_DATE)
         ),
         loc_status AS (
             SELECT
