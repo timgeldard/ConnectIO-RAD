@@ -37,6 +37,7 @@ export const supportedLanguages: LanguageOption[] = [
 ]
 
 const DEFAULT_LANGUAGE: LanguageCode = 'en'
+const ALL_SUPPORTED_LANGUAGE_CODES: LanguageCode[] = supportedLanguages.map(l => l.code)
 const INTERPOLATION_RE = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g
 
 interface I18nContextValue {
@@ -90,7 +91,7 @@ export function I18nProvider({
   resources,
   children,
   defaultLanguage = DEFAULT_LANGUAGE,
-  availableLanguages = ['en', 'fr', 'es', 'de'],
+  availableLanguages = ALL_SUPPORTED_LANGUAGE_CODES,
 }: I18nProviderProps) {
   const parentContext = useContext(I18nContext)
   const available = availableLanguages.includes(defaultLanguage)
