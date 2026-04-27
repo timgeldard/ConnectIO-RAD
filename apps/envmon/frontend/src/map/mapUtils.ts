@@ -20,7 +20,7 @@ export interface PlantFeatureProps {
   riskIndex: number;
   status: StatusTier;
   isNeglected: boolean;
-  complianceStatus: 'tested' | 'neglected' | 'not_planned';
+  complianceStatus: 'tested' | 'neglected';
   riskTier: 'high' | 'neglect' | 'safe';
   lotsTested: number;
   lotsPlanned: number;
@@ -42,13 +42,11 @@ export function hasValidCoordinates(plant: PlantInfo): boolean {
 
 function plantStatus(plant: PlantInfo): StatusTier {
   if (plant.kpis.active_fails > 0) return 'critical';
-  if (plant.kpis.lots_tested === 0 && (plant.kpis.lots_planned ?? 0) > 0) return 'neglected';
+  if (plant.kpis.lots_tested === 0) return 'neglected';
   return 'safe';
 }
 
 function complianceStatus(plant: PlantInfo): PlantFeatureProps['complianceStatus'] {
-  const planned = plant.kpis.lots_planned ?? 0;
-  if (planned === 0) return 'not_planned';
   return plant.kpis.lots_tested === 0 ? 'neglected' : 'tested';
 }
 

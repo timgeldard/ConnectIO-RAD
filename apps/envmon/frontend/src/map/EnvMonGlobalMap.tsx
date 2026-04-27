@@ -7,6 +7,61 @@ import type { PlantInfo } from '~/types';
 
 const SOURCE_ID = 'plants';
 const POSITRON_MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
+const PERSISTENT_TOOLTIP_MIN_ZOOM = 5;
+
+function buildPersistentTooltipElement(props: PlantFeatureProps): HTMLDivElement {
+  const el = document.createElement('div');
+  el.className = 'tooltip envmon-persistent-tooltip';
+  el.style.pointerEvents = 'none';
+  el.style.maxWidth = '210px';
+
+  const code = document.createElement('div');
+  code.className = 'mono';
+  code.style.fontSize = '10.5px';
+  code.style.opacity = '0.75';
+  code.textContent = props.plantCode;
+  el.appendChild(code);
+
+  const name = document.createElement('div');
+  name.style.fontWeight = '600';
+  name.textContent = props.plantName;
+  el.appendChild(name);
+
+  if (props.city) {
+    const city = document.createElement('div');
+    city.style.fontSize = '11px';
+    city.style.color = 'rgba(255,255,255,0.7)';
+    city.textContent = props.city;
+    el.appendChild(city);
+  }
+
+  const failsRow = document.createElement('div');
+  failsRow.style.cssText = 'font-size:11px;margin-top:4px;font-family:var(--font-mono)';
+  const failSpan = document.createElement('span');
+  failSpan.style.cssText = 'color:var(--sunset);margin-right:8px';
+  failSpan.textContent = `${props.activeFails} FAIL`;
+  failsRow.appendChild(failSpan);
+  const passSpan = document.createElement('span');
+  passSpan.textContent = `${props.passRate.toFixed(1)}% pass`;
+  failsRow.appendChild(passSpan);
+  el.appendChild(failsRow);
+
+  const lotsRow = document.createElement('div');
+  lotsRow.style.cssText = 'font-size:11px;margin-top:2px;font-family:var(--font-mono)';
+  const lotsSpan = document.createElement('span');
+  if (props.complianceStatus === 'neglected') {
+    lotsSpan.style.color = 'var(--sunset)';
+    lotsSpan.textContent = 'No tests in window — NEGLECTED';
+  } else {
+    lotsSpan.style.color = 'rgba(255,255,255,0.6)';
+    const word = props.lotsTested === 1 ? 'test' : 'tests';
+    lotsSpan.textContent = `${props.lotsTested} ${word} in window`;
+  }
+  lotsRow.appendChild(lotsSpan);
+  el.appendChild(lotsRow);
+
+  return el;
+}
 const FALLBACK_MAP_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {},
@@ -61,6 +116,7 @@ export default function EnvMonGlobalMap({
   const onOpenPlantRef = useRef(onOpenPlant);
   const fcRef = useRef(featureCollection);
   const selectedPlantIdRef = useRef(selectedPlantId);
+  const persistentMarkersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
   // Keep refs current to avoid stale closures in map event handlers
@@ -95,6 +151,50 @@ export default function EnvMonGlobalMap({
     let fallbackApplied = false;
     let layersRegistered = false;
 
+    const syncPersistentTooltips = () => {
+      if (!map.isStyleLoaded() || !map.getLayer('unclustered-point')) return;
+      const markers = persistentMarkersRef.current;
+
+      if (map.getZoom() < PERSISTENT_TOOLTIP_MIN_ZOOM) {
+        markers.forEach((m) => m.remove());
+        markers.clear();
+        return;
+      }
+
+      const features = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+      const visibleIds = new Set<string>();
+
+      for (const f of features) {
+        const props = f.properties as PlantFeatureProps | undefined;
+        if (!props || visibleIds.has(props.plantId)) continue;
+        visibleIds.add(props.plantId);
+
+        const coords = (f.geometry as GeoPoint).coordinates as [number, number];
+        const existing = markers.get(props.plantId);
+        if (existing) {
+          existing.setLngLat(coords);
+        } else {
+          const el = buildPersistentTooltipElement(props);
+          const marker = new maplibregl.Marker({
+            element: el,
+            anchor: 'top-left',
+            offset: [12, -8],
+          })
+            .setLngLat(coords)
+            .addTo(map);
+          markers.set(props.plantId, marker);
+        }
+      }
+
+      // Remove markers no longer visible
+      markers.forEach((marker, id) => {
+        if (!visibleIds.has(id)) {
+          marker.remove();
+          markers.delete(id);
+        }
+      });
+    };
+
     const registerPlantLayers = () => {
       if (layersRegistered || !map.isStyleLoaded()) return;
       layersRegistered = true;
@@ -102,54 +202,14 @@ export default function EnvMonGlobalMap({
       map.addSource(SOURCE_ID, {
         type: 'geojson',
         data: fcRef.current,
-        cluster: true,
-        clusterMaxZoom: 6,
-        clusterRadius: 40,
-        clusterProperties: {
-          // Aggregate worst-case status across cluster members.
-          has_fails: ['max', ['case', ['>', ['get', 'activeFails'], 0], 1, 0]],
-          has_neglect: ['max', ['case', ['==', ['get', 'isNeglected'], true], 1, 0]],
-        },
       });
-
-      map.addLayer({
-        id: 'clusters',
-        type: 'circle',
-        source: SOURCE_ID,
-        filter: ['has', 'point_count'],
-        paint: {
-          'circle-color': [
-            'case',
-            ['>', ['get', 'has_fails'], 0], '#F24A00',
-            ['>', ['get', 'has_neglect'], 0], '#718096',
-            '#005776',
-          ],
-          'circle-radius': ['step', ['get', 'point_count'], 18, 5, 22, 10, 28],
-          'circle-opacity': 0.85,
-        },
-      });
-
-      if (map.getStyle().glyphs) {
-        map.addLayer({
-          id: 'cluster-count',
-          type: 'symbol',
-          source: SOURCE_ID,
-          filter: ['has', 'point_count'],
-          layout: {
-            'text-field': '{point_count_abbreviated}',
-            'text-font': ['Noto Sans Bold', 'Noto Sans Regular'],
-            'text-size': 12,
-          },
-          paint: { 'text-color': '#ffffff' },
-        });
-      }
 
       // Red glow beacon for critical plants (static blur — GL layers cannot animate)
       map.addLayer({
         id: 'risk-beacon',
         type: 'circle',
         source: SOURCE_ID,
-        filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'riskTier'], 'high']],
+        filter: ['==', ['get', 'riskTier'], 'high'],
         paint: {
           'circle-color': '#F24A00',
           'circle-blur': 0.8,
@@ -160,12 +220,12 @@ export default function EnvMonGlobalMap({
         },
       });
 
-      // Hollow grey ring for neglected plants (no lots tested despite plan)
+      // Hollow grey ring for neglected plants (no lots tested in window)
       map.addLayer({
         id: 'neglect-ring',
         type: 'circle',
         source: SOURCE_ID,
-        filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'isNeglected'], true]],
+        filter: ['==', ['get', 'isNeglected'], true],
         paint: {
           'circle-color': 'rgba(0,0,0,0)',
           'circle-radius': ['+', ['get', 'radius'],
@@ -182,7 +242,6 @@ export default function EnvMonGlobalMap({
         id: 'plant-halo',
         type: 'circle',
         source: SOURCE_ID,
-        filter: ['!', ['has', 'point_count']],
         paint: {
           'circle-color': '#ffffff',
           'circle-stroke-color': '#005776',
@@ -199,7 +258,6 @@ export default function EnvMonGlobalMap({
         id: 'unclustered-point',
         type: 'circle',
         source: SOURCE_ID,
-        filter: ['!', ['has', 'point_count']],
         paint: {
           'circle-color': ['get', 'color'],
           'circle-radius': ['get', 'radius'],
@@ -228,19 +286,6 @@ export default function EnvMonGlobalMap({
         },
       });
 
-      // Cluster click: expand
-      map.on('click', 'clusters', (e) => {
-        const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-        if (!features.length) return;
-        const clusterId = features[0].properties?.cluster_id as number;
-        const src = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource;
-        src.getClusterExpansionZoom(clusterId).then((zoom) => {
-          if (zoom == null) return;
-          const geom = features[0].geometry as GeoPoint;
-          map.easeTo({ center: geom.coordinates as [number, number], zoom });
-        });
-      });
-
       // Plant click: navigate (both halo ring and status dot are clickable)
       map.on('click', 'plant-halo', (e) => {
         const plantId = e.features?.[0]?.properties?.plantId as string | undefined;
@@ -251,16 +296,15 @@ export default function EnvMonGlobalMap({
         if (plantId) onOpenPlantRef.current(plantId);
       });
 
-      map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
-      map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
       map.on('mouseenter', 'plant-halo', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'plant-halo', () => { map.getCanvas().style.cursor = ''; });
 
-      const TOOLTIP_MIN_ZOOM = 5;
+      const HOVER_TOOLTIP_MIN_ZOOM = 3;
 
       map.on('mouseenter', 'unclustered-point', (e) => {
         map.getCanvas().style.cursor = 'pointer';
-        if (map.getZoom() < TOOLTIP_MIN_ZOOM) return;
+        if (map.getZoom() >= PERSISTENT_TOOLTIP_MIN_ZOOM) return;
+        if (map.getZoom() < HOVER_TOOLTIP_MIN_ZOOM) return;
         const props = e.features?.[0]?.properties as PlantFeatureProps | undefined;
         if (!props || !e.originalEvent) return;
         setTooltip({
@@ -278,7 +322,8 @@ export default function EnvMonGlobalMap({
       });
 
       map.on('mousemove', 'unclustered-point', (e) => {
-        if (!e.originalEvent || map.getZoom() < TOOLTIP_MIN_ZOOM) return;
+        if (!e.originalEvent || map.getZoom() >= PERSISTENT_TOOLTIP_MIN_ZOOM) return;
+        if (map.getZoom() < HOVER_TOOLTIP_MIN_ZOOM) return;
         setTooltip((t) =>
           t ? { ...t, x: e.originalEvent.clientX, y: e.originalEvent.clientY } : null,
         );
@@ -287,6 +332,17 @@ export default function EnvMonGlobalMap({
       map.on('mouseleave', 'unclustered-point', () => {
         map.getCanvas().style.cursor = '';
         setTooltip(null);
+      });
+
+      map.on('moveend', syncPersistentTooltips);
+      map.on('zoomend', syncPersistentTooltips);
+      map.on('sourcedata', (e) => {
+        if (e.sourceId === SOURCE_ID && e.isSourceLoaded) {
+          // Underlying data may have changed (filter/window) — rebuild tooltip HTML
+          persistentMarkersRef.current.forEach((m) => m.remove());
+          persistentMarkersRef.current.clear();
+          syncPersistentTooltips();
+        }
       });
     };
 
@@ -300,6 +356,8 @@ export default function EnvMonGlobalMap({
 
     mapRef.current = map;
     return () => {
+      persistentMarkersRef.current.forEach((m) => m.remove());
+      persistentMarkersRef.current.clear();
       map.remove();
       mapRef.current = null;
     };
@@ -376,20 +434,17 @@ export default function EnvMonGlobalMap({
             </span>
             <span>{tooltip.passRate.toFixed(1)}% pass</span>
           </div>
-          {tooltip.lotsPlanned > 0 && (
-            <div style={{ fontSize: 11, marginTop: 2, fontFamily: 'var(--font-mono)' }}>
-              <span
-                style={{
-                  color: tooltip.complianceStatus === 'neglected'
-                    ? 'var(--sunset)'
-                    : 'rgba(255,255,255,0.6)',
-                }}
-              >
-                {tooltip.lotsTested}/{tooltip.lotsPlanned} tests done
-                {tooltip.complianceStatus === 'neglected' ? ' - CRITICAL GAP' : ''}
+          <div style={{ fontSize: 11, marginTop: 2, fontFamily: 'var(--font-mono)' }}>
+            {tooltip.complianceStatus === 'neglected' ? (
+              <span style={{ color: 'var(--sunset)' }}>
+                No tests in window — NEGLECTED
               </span>
-            </div>
-          )}
+            ) : (
+              <span style={{ color: 'rgba(255,255,255,0.6)' }}>
+                {tooltip.lotsTested} {tooltip.lotsTested === 1 ? 'test' : 'tests'} in window
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

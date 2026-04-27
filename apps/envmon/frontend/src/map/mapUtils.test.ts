@@ -68,10 +68,11 @@ describe('plantsToFeatureCollection — status model', () => {
     expect(fc.features[0].properties.isNeglected).toBe(false);
   });
 
-  it('assigns safe status when lots_planned is 0 (no plan to neglect)', () => {
+  it('assigns neglected status when lots_tested is 0 regardless of lots_planned', () => {
     const plant = makePlant({ kpis: { ...makePlant().kpis, lots_tested: 0, lots_planned: 0 } });
     const fc = plantsToFeatureCollection([plant]);
-    expect(fc.features[0].properties.status).toBe('safe');
+    expect(fc.features[0].properties.status).toBe('neglected');
+    expect(fc.features[0].properties.isNeglected).toBe(true);
   });
 
   it('populates lotsTested and lotsPlanned on each feature', () => {
