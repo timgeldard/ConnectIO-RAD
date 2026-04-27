@@ -24,7 +24,7 @@ describe('Warehouse Operations Pages', () => {
 
   it('renders Outbound page and KPIs', () => {
     render(<Outbound />)
-    expect(screen.getByText('Outbound Deliveries')).toBeInTheDocument()
+    expect(screen.getByText('Outbound')).toBeInTheDocument()
     expect(screen.getByText('At cut-off risk')).toBeInTheDocument()
   })
 
@@ -54,7 +54,7 @@ describe('Warehouse Operations Pages', () => {
 
   it('renders Dispensary page', () => {
     render(<Dispensary />)
-    expect(screen.getByText('Dispensary Workbench')).toBeInTheDocument()
+    expect(screen.getByText('Dispensary')).toBeInTheDocument()
   })
 
   it('renders Sidebar', () => {

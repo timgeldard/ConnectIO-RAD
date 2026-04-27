@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import ScorecardView from '../scorecard/ScorecardView'
 import React from 'react'
+import { renderWithI18n } from './test-utils'
 
 // Mock context and hooks
 vi.mock('../SPCContext', async (importOriginal) => {
@@ -33,7 +34,7 @@ vi.mock('../scorecard/ScorecardTable', () => ({ default: () => <div data-testid=
 
 describe('ScorecardView', () => {
   it('renders KPIs and table when data is ready', async () => {
-    render(<ScorecardView />)
+    renderWithI18n(<ScorecardView />)
     expect(screen.getByText('Characteristics: 2')).toBeInTheDocument()
     expect(screen.getByText('Capable: 1')).toBeInTheDocument()
     expect(await screen.findByTestId('mock-table')).toBeInTheDocument()
