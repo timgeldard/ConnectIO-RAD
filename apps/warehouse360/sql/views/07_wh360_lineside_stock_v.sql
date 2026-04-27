@@ -2,9 +2,9 @@
 -- View : connected_plant_uat.wh360.wh360_lineside_stock_v
 -- Phase: 1 -- direct query on raw SAP table
 -- Sources: sap.quant_lqua (LQUA)
--- Filter : LQUA.WERKS = 'C061' AND q.GESME > 0
+-- Filter : LQUA.WERKS is populated and q.GESME > 0
 --          Storage types: all except 990 and 999 (interim/virtual types)
---          NOTE: Production supply types at C061 are typically KP, VB, PA.
+--          NOTE: Production supply types are typically KP, VB, PA.
 --          The LGTYP NOT IN ('990','999') filter is a safe starting point;
 --          refine to site-specific lineside types in Phase 2 configuration.
 -- Purpose: Live stock in production supply / lineside bins for replenishment view
@@ -54,6 +54,7 @@ LEFT JOIN connected_plant_uat.silver.silver_material_description AS md
   AND md.LANGUAGE_ID = 'E'
 
 
-WHERE q.WERKS = 'C061'
+WHERE q.WERKS IS NOT NULL
+  AND LENGTH(TRIM(q.WERKS)) > 0
   AND q.GESME > 0
   AND q.LGTYP NOT IN ('990', '999')

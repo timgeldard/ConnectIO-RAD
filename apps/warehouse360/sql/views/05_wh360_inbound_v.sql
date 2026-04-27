@@ -4,7 +4,7 @@
 -- Sources: published_uat.central_services.procurementorderobject_ekko (EKKO)
 --          published_uat.central_services.procurementorderobject_ekpo (EKPO)
 --          connected_plant_uat.sap.inspection_qals (QALS)
--- Filter : EKPO.WERKS = 'C061' AND EKPO.ELIKZ != 'X'
+-- Filter : EKPO.WERKS is populated and EKPO.ELIKZ != 'X'
 -- Purpose: Open inbound PO lines with GR progress and QA inspection status
 -- =============================================================================
 
@@ -70,5 +70,6 @@ LEFT JOIN connected_plant_uat.silver.silver_material_description AS md
   ON LPAD(md.MATERIAL_ID, 18, '0') = ep.MATNR
   AND md.LANGUAGE_ID = 'E'
 
-WHERE ep.WERKS = 'C061'
+WHERE ep.WERKS IS NOT NULL
+  AND LENGTH(TRIM(ep.WERKS)) > 0
   AND ep.ELIKZ != 'X'

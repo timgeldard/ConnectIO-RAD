@@ -2,7 +2,7 @@ import React from 'react';
 import { useI18n } from '@connectio/shared-frontend-i18n';
 import WM from '../data/mockData.js';
 import { useApi } from '../hooks/useApi.js';
-import { Icon, Pill, Progress, RiskDot, Hbar } from './Primitives.jsx';
+import { Icon, Pill, Progress, RiskDot } from './Primitives.jsx';
 import { FilterBar, Card, KPI } from './Shared.jsx';
 
 /* Inbound — PO + STO receipts, dock schedule, putaway backlog */
@@ -45,7 +45,7 @@ const Inbound = ({ onOpen }) => {
       <div className="kpi-grid">
         <KPI label={t('warehouse.inbound.kpi.openPOLines')} value={v(counts.all)} tone="ok"/>
         <KPI label={t('warehouse.inbound.kpi.qaInspection')} value={v(counts.qa)} tone={counts.qa > 0 ? 'warn' : 'ok'}/>
-        <KPI label={t('warehouse.inbound.kpi.putawayCycle')} value={WM.KPIs.putawayCycle.value} unit=" min" tone="warn"/>
+        <KPI label={t('warehouse.inbound.kpi.putawayCycle')} value="—" unit=" min" tone="ok"/>
         <KPI label={t('warehouse.inbound.kpi.receiptsToday')} value="—" tone="ok"/>
         <KPI label={t('warehouse.inbound.kpi.overdue')} value="—" tone="ok"/>
         <KPI label={t('warehouse.inbound.kpi.neededToday')} value="—" tone="ok"/>
@@ -53,18 +53,14 @@ const Inbound = ({ onOpen }) => {
 
       <div className="grid-2" style={{ marginBottom: 16 }}>
         <Card title={t('warehouse.inbound.card.dockSchedule')} subtitle="Inbound bays · next 10 hours" eyebrow="Docks">
-          <DockSchedule type="Inbound" onOpen={onOpen}/>
+          <DockSchedule type="Inbound" events={allReceipts} onOpen={onOpen}/>
         </Card>
         <Card title={t('warehouse.inbound.card.putawayBacklog')} subtitle="Pallets on interim storage 915 waiting to be put away" eyebrow="Backlog">
           <div className="stack-8">
-            {WM.STORAGE_TYPES.slice(0, 5).map((s, i) => {
-              const val = [12, 8, 5, 3, 2][i];
-              const tone = val > 10 ? 'red' : val > 6 ? 'amber' : 'jade';
-              return <Hbar key={i} label={`${s.id} · ${s.name}`} value={val} max={15} tone={tone}/>;
-            })}
+            <div className="muted small">No live putaway backlog endpoint is available yet.</div>
           </div>
           <div style={{ marginTop: 12, fontSize: 12, color: 'var(--fg-muted)' }}>
-            Target cycle time: <span className="mono forest bold">60m</span> · current <span className="mono amber bold">{WM.KPIs.putawayCycle.value}m</span>
+            Add an LTAP/LTAK putaway endpoint before showing cycle-time commitments here.
           </div>
         </Card>
       </div>
@@ -133,6 +129,9 @@ const Inbound = ({ onOpen }) => {
                   </td>
                 </tr>
               ))}
+              {!loading && rows.length === 0 && (
+                <tr><td colSpan={7} className="muted small">No live inbound receipts match this plant and filter set.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -141,14 +140,18 @@ const Inbound = ({ onOpen }) => {
   );
 };
 
-const DockSchedule = ({ type, onOpen }) => {
-  const docks = WM.DOCKS.filter((d) => d.type === type);
-  const events = type === 'Inbound' ? WM.INBOUND : WM.DELIVERIES;
+const DockSchedule = ({ type, events = [], onOpen }) => {
+  const liveEvents = events.filter((event) => event.dock_id || event.dock?.id);
+  const docks = Array.from(new Set(liveEvents.map((event) => event.dock_id ?? event.dock?.id))).map((id) => ({ id }));
   const startH = 6;
   const hours = 14;
-  const dayStart = (() => { const d = new Date(WM.NOW); d.setHours(startH, 0, 0, 0); return d; })();
+  const now = new Date();
+  const dayStart = (() => { const d = new Date(now); d.setHours(startH, 0, 0, 0); return d; })();
   const xAt = (d) => ((d - dayStart) / (hours * 3600000)) * 100;
-  const nowX = xAt(WM.NOW);
+  const nowX = xAt(now);
+  if (docks.length === 0) {
+    return <div className="muted small">No live dock allocation data is available for {type.toLowerCase()} movements.</div>;
+  }
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', marginBottom: 4 }}>
@@ -162,23 +165,24 @@ const DockSchedule = ({ type, onOpen }) => {
         </div>
       </div>
       {docks.map((dock) => {
-        const slots = events.filter((e) => e.dock.id === dock.id);
+        const slots = liveEvents.filter((e) => (e.dock_id ?? e.dock?.id) === dock.id);
         return (
           <div key={dock.id} style={{ display: 'grid', gridTemplateColumns: '60px 1fr', alignItems: 'center', marginBottom: 4 }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--forest)', fontWeight: 600 }}>{dock.id}</div>
             <div style={{ position: 'relative', height: 28, background: 'var(--stone)', borderRadius: 4, overflow: 'hidden' }}>
               <div style={{ position: 'absolute', left: nowX + '%', top: 0, bottom: 0, width: 2, background: 'var(--sunset)', zIndex: 2 }}/>
               {slots.slice(0, 4).map((s) => {
-                const slotTime = type === 'Inbound' ? s.eta : s.cutoff;
+                const slotTime = new Date(type === 'Inbound' ? s.delivery_date : s.planned_gi_date);
+                if (Number.isNaN(slotTime.getTime())) return null;
                 const left = Math.max(0, Math.min(100, xAt(slotTime)));
                 const colour = s.risk === 'red' ? 'var(--sunset)' : s.risk === 'amber' ? 'var(--sunrise)' : 'var(--valentia-slate)';
                 return (
-                  <button key={s.id} onClick={() => onOpen?.(s)} style={{
+                  <button key={s.po_id ?? s.delivery_id ?? s.id} onClick={() => onOpen?.(s)} style={{
                     position: 'absolute', left: left + '%', top: 3, bottom: 3, width: '6%', minWidth: 30,
                     background: colour, color: 'white', border: 'none', borderRadius: 3, fontSize: 9,
                     fontFamily: 'var(--font-mono)', padding: '2px 4px', cursor: 'pointer', overflow: 'hidden', textAlign: 'left',
-                  }} title={s.id}>
-                    {s.id.slice(-4)}
+                  }} title={s.po_id ?? s.delivery_id ?? s.id}>
+                    {String(s.po_id ?? s.delivery_id ?? s.id).slice(-4)}
                   </button>
                 );
               })}
@@ -247,16 +251,7 @@ const ReceiptDetail = ({ receipt }) => {
         <table className="tbl">
           <thead><tr><th>TO</th><th>SSCC</th><th>Src</th><th>Dst bin</th><th>Operator</th><th>Status</th></tr></thead>
           <tbody>
-            {WM.TOs.slice(0, 3).map((to, i) => (
-              <tr key={i}>
-                <td className="code">{to.id}</td>
-                <td className="mono small">{to.sscc.slice(0, 8)}…{to.sscc.slice(-4)}</td>
-                <td className="mono small">915 · Interim</td>
-                <td className="mono small">{to.dstBin}</td>
-                <td className="small">{to.assignedTo || <span className="muted">unassigned</span>}</td>
-                <td><Pill tone={to.status === 'Confirmed' ? 'green' : 'amber'}>{to.status}</Pill></td>
-              </tr>
-            ))}
+            <tr><td colSpan={6} className="muted small">No live putaway transfer-order detail endpoint is available yet.</td></tr>
           </tbody>
         </table>
       </Card>

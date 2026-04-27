@@ -15,12 +15,13 @@ _FRESHNESS_SOURCES = ["wh360_kpi_snapshot_v"]
 @router.get("/kpis")
 async def get_kpis(
     request: Request,
+    plant_id: Optional[str] = None,
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
-    snapshot = await fetch_kpi_snapshot(token)
+    snapshot = await fetch_kpi_snapshot(token, plant_id=plant_id)
     return await attach_data_freshness(
         {"kpis": snapshot},
         token,

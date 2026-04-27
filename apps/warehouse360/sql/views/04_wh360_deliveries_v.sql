@@ -3,7 +3,7 @@
 -- Phase: 1 -- direct join on raw SAP tables
 -- Sources: sap.deliveryobjects_likp (LIKP)
 --          sap.deliveryobjects_lips (LIPS)
--- Filter : LIKP.WERKS = 'C061'
+-- Filter : LIKP.WERKS is populated
 --          Planned GI date (WADAT) >= yesterday
 -- Purpose: Outbound delivery header with pick progress and shipment risk signal
 -- =============================================================================
@@ -100,5 +100,6 @@ LEFT JOIN pick_progress AS pp
 
 LEFT JOIN cust AS gc ON gc.CUSTOMER_ID = lk.KUNAG
 
-WHERE lk.WERKS = 'C061'
+WHERE lk.WERKS IS NOT NULL
+  AND LENGTH(TRIM(lk.WERKS)) > 0
   AND lk.WADAT >= date_format(date_add(current_date(), -30), 'yyyy-MM-dd')

@@ -29,10 +29,10 @@ const Dispensary = () => {
   const [tab, setTab] = React.useState('today');
   const [filters, setFilters] = React.useState({ status: 'all', scale: 'all' });
 
-  const { data: tasksResp } = useApi('/api/dispensary');
+  const { data: tasksResp, loading: tasksLoading, error: tasksError } = useApi('/api/dispensary');
   const allTasks = React.useMemo(() => {
     const api = tasksResp?.tasks ?? [];
-    return api.length > 0 ? api.map(normalizeTask) : WM.DISP_TASKS;
+    return api.map(normalizeTask);
   }, [tasksResp]);
 
   const rows = React.useMemo(() => {
@@ -57,20 +57,20 @@ const Dispensary = () => {
       </div>
 
       <div className="kpi-grid">
-        <KPI label={t('warehouse.dispensary.kpi.tasksToday')} value={allTasks.length} tone="ok"/>
+        <KPI label={t('warehouse.dispensary.kpi.tasksToday')} value={tasksLoading ? '...' : allTasks.length} tone="ok"/>
         <KPI label={t('warehouse.dispensary.kpi.weighed')} value={allTasks.filter((task) => task.status === 'Weighed').length} tone="ok" barPct={allTasks.length > 0 ? allTasks.filter((task) => task.status === 'Weighed').length / allTasks.length * 100 : 0}/>
         <KPI label={t('warehouse.dispensary.kpi.inProgress')} value={allTasks.filter((task) => task.status === 'Weighing').length} tone="ok"/>
         <KPI label={t('warehouse.dispensary.kpi.todoCritical')} value={allTasks.filter((task) => task.status === 'To Do' && task.requiredBy && WM.minutesFromNow(task.requiredBy) < 60).length} tone="critical"/>
-        <KPI label={t('warehouse.dispensary.kpi.readinessVsPlan')} value={WM.KPIs.dispensaryReady.value} unit="%" target="95%" tone="warn" barPct={WM.KPIs.dispensaryReady.value} barTone="amber"/>
-        <KPI label={t('warehouse.dispensary.kpi.toleranceBreaches')} value="0" tone="ok" trendLabel=" today"/>
+        <KPI label={t('warehouse.dispensary.kpi.readinessVsPlan')} value={allTasks.length > 0 ? Math.round(allTasks.filter((task) => task.status === 'Weighed').length / allTasks.length * 100) : 0} unit="%" target="95%" tone="warn" barPct={allTasks.length > 0 ? allTasks.filter((task) => task.status === 'Weighed').length / allTasks.length * 100 : 0} barTone="amber"/>
+        <KPI label={t('warehouse.dispensary.kpi.toleranceBreaches')} value="—" tone="ok"/>
       </div>
 
       {/* Scales grid */}
       <Card title={t('warehouse.dispensary.card.scales')} subtitle="Four certified scales · last stable reading" eyebrow="Scales" style={{ marginBottom: 16 }}>
         <div className="grid-4">
           {['SC-01', 'SC-02', 'SC-03', 'SC-04'].map((id, i) => {
-            const scaleTask = WM.DISP_TASKS.find((task) => task.scale === id && task.status === 'Weighing')
-              || WM.DISP_TASKS.find((task) => task.scale === id);
+            const scaleTask = allTasks.find((task) => task.scale === id && task.status === 'Weighing')
+              || allTasks.find((task) => task.scale === id);
             const inUse = scaleTask?.status === 'Weighing';
             return (
               <div key={id} className="scale-card" style={{ borderColor: inUse ? 'var(--valentia-slate)' : 'var(--stroke-soft)' }}>
@@ -87,7 +87,7 @@ const Dispensary = () => {
                 <div style={{ marginTop: 8 }}>
                   {inUse ? <Progress pct={(scaleTask.weighedQty || scaleTask.qty * 0.4) / scaleTask.qty * 100} tone="slate"/> : <Progress pct={100}/>}
                 </div>
-                {inUse && scaleTask && <div className="small muted" style={{ marginTop: 6 }}>{scaleTask.operator} · {scaleTask.material.name}</div>}
+                {inUse && scaleTask && <div className="small muted" style={{ marginTop: 6 }}>{scaleTask.operator || t('warehouse.common.unassigned')} · {scaleTask.material.name}</div>}
               </div>
             );
           })}
@@ -151,6 +151,12 @@ const Dispensary = () => {
                   </tr>
                 );
               })}
+              {!tasksLoading && rows.length === 0 && (
+                <tr><td colSpan={11} className="muted small">No live dispensary tasks match this plant and filter set.</td></tr>
+              )}
+              {tasksError && (
+                <tr><td colSpan={11} className="red small">Unable to load live dispensary tasks: {tasksError}</td></tr>
+              )}
             </tbody>
           </table>
         </div>

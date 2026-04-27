@@ -43,17 +43,17 @@ const Inventory = () => {
   const { t } = useI18n();
   const [tab, setTab] = React.useState('overview');
 
-  const { data: binsResp } = useApi('/api/inventory/bins');
-  const { data: linesideResp } = useApi('/api/inventory/lineside');
+  const { data: binsResp, loading: binsLoading, error: binsError } = useApi('/api/inventory/bins');
+  const { data: linesideResp, loading: linesideLoading, error: linesideError } = useApi('/api/inventory/lineside');
 
   const allBins = React.useMemo(() => {
     const api = binsResp?.bins ?? [];
-    return api.length > 0 ? api.map(normalizeBin) : WM.STORAGE_BINS;
+    return api.map(normalizeBin);
   }, [binsResp]);
 
   const allLineside = React.useMemo(() => {
     const api = linesideResp?.lineside ?? [];
-    return api.length > 0 ? api.map(normalizeLineside) : WM.LINE_SIDE;
+    return api.map(normalizeLineside);
   }, [linesideResp]);
 
   const byType = React.useMemo(() => {
@@ -77,7 +77,7 @@ const Inventory = () => {
 
   const binUtilPct = allBins.length > 0
     ? Math.round(allBins.filter((b) => b.status === 'Occupied').length / allBins.length * 100)
-    : WM.KPIs.binUtil.value;
+    : 0;
 
   return (
     <div className="page">
@@ -94,8 +94,8 @@ const Inventory = () => {
       </div>
 
       <div className="kpi-grid">
-        <KPI label={t('warehouse.inventory.kpi.binUtil')} value={binUtilPct} unit="%" target="80%" tone="ok" barPct={binUtilPct} trend={WM.KPIs.binUtil.trend} trendLabel="pp"/>
-        <KPI label={t('warehouse.inventory.kpi.inventoryAccuracy')} value={WM.KPIs.inventoryAccuracy.value} unit="%" target="99.5%" tone="ok" trend={WM.KPIs.inventoryAccuracy.trend} trendLabel="pp"/>
+        <KPI label={t('warehouse.inventory.kpi.binUtil')} value={binsLoading ? '...' : binUtilPct} unit="%" target="80%" tone="ok" barPct={binUtilPct}/>
+        <KPI label={t('warehouse.inventory.kpi.inventoryAccuracy')} value="—" unit="%" target="99.5%" tone="ok"/>
         <KPI label={t('warehouse.inventory.kpi.blockedQA')} value={allBins.filter((b) => b.status === 'Blocked').length} tone="warn"/>
         <KPI label={t('warehouse.inventory.kpi.expiring')} value={expiring.length} tone="critical"/>
         <KPI label={t('warehouse.inventory.kpi.aged')} value={aged.length} tone="warn"/>
@@ -131,6 +131,8 @@ const Inventory = () => {
                     </div>
                   </div>
                 ))}
+                {!binsLoading && byType.length === 0 && <div className="muted small">No live bin stock is available for this plant.</div>}
+                {binsError && <div className="red small">Unable to load live bin stock: {binsError}</div>}
               </div>
             </Card>
             <Card title={t('warehouse.inventory.card.binHeatmap')} subtitle="Hover a cell for material & age" eyebrow="Bin map">
@@ -154,6 +156,12 @@ const Inventory = () => {
                       <td><Pill tone={b.status === 'Occupied' ? 'sage' : b.status === 'Blocked' ? 'red' : 'grey'}>{b.status}</Pill></td>
                     </tr>
                   ))}
+                  {!binsLoading && allBins.filter((b) => b.material).length === 0 && (
+                    <tr><td colSpan={7} className="muted small">No live quant rows available for this plant.</td></tr>
+                  )}
+                  {binsError && (
+                    <tr><td colSpan={7} className="red small">Unable to load live quant rows: {binsError}</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -182,6 +190,12 @@ const Inventory = () => {
                   </tr>
                 );
               })}
+              {!linesideLoading && allLineside.length === 0 && (
+                <tr><td colSpan={8} className="muted small">No live line-side stock is available for this plant.</td></tr>
+              )}
+              {linesideError && (
+                <tr><td colSpan={8} className="red small">Unable to load live line-side stock: {linesideError}</td></tr>
+              )}
             </tbody>
           </table>
         </Card>
@@ -196,6 +210,7 @@ const Inventory = () => {
                 {aged.map((b, i) => (
                   <tr key={i}><td className="mono small">{b.id}</td><td style={{ fontSize: 12 }}>{b.material?.name || '—'}</td><td className="num amber bold">{b.ageHours}h</td><td className="num">{b.qty != null ? Math.round(b.qty) : Math.round(b.fillPct * 6)}</td></tr>
                 ))}
+                {!binsLoading && aged.length === 0 && <tr><td colSpan={4} className="muted small">No aged live stock is available for this plant.</td></tr>}
               </tbody>
             </table>
           </Card>
@@ -206,6 +221,7 @@ const Inventory = () => {
                 {expiring.map((b, i) => (
                   <tr key={i}><td className="mono small">{b.id}</td><td style={{ fontSize: 12 }}>{b.material?.name}</td><td className="mono small">B{String(400000 + i).slice(0, 7)}</td><td className="num red bold">{b.batchExpiryDays}d</td></tr>
                 ))}
+                {!binsLoading && expiring.length === 0 && <tr><td colSpan={4} className="muted small">No expiring live stock is available for this plant.</td></tr>}
               </tbody>
             </table>
           </Card>
@@ -227,6 +243,7 @@ const Inventory = () => {
                   <td><div className="flex items-center gap-6"><span className="avatar sm slate">QA</span><span className="small">Quality Lab</span></div></td>
                 </tr>
               ))}
+              {!binsLoading && blocked.length === 0 && <tr><td colSpan={6} className="muted small">No blocked live bins are available for this plant.</td></tr>}
             </tbody>
           </table>
         </Card>
@@ -247,6 +264,7 @@ const Inventory = () => {
                   <td><button className="btn btn-xs btn-secondary">{t('warehouse.inventory.col.assign')}</button></td>
                 </tr>
               ))}
+              {!binsLoading && allBins.length === 0 && <tr><td colSpan={6} className="muted small">No live bins are available for cycle-count prioritisation.</td></tr>}
             </tbody>
           </table>
         </Card>

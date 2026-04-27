@@ -22,19 +22,6 @@ const VIRTUALIZATION_THRESHOLD = 250
 
 interface ColumnSpec { key: string; label: string; value: (row: ScorecardRow) => string | number }
 
-const CSV_COLUMNS: ColumnSpec[] = [
-  { key: 'mic_name',          label: 'Characteristic', value: r => r.mic_name              },
-  { key: 'batch_count',       label: 'Batches',        value: r => r.batch_count            },
-  { key: 'mean_value',        label: 'Mean',           value: r => r.mean_value    ?? ''    },
-  { key: 'stddev_overall',    label: 'Std Dev',        value: r => r.stddev_overall ?? ''   },
-  { key: 'nominal_target',    label: 'Target',         value: r => r.nominal_target ?? ''   },
-  { key: 'pp',                label: 'Pp',             value: r => r.pp            ?? ''    },
-  { key: 'cpk',               label: 'Cpk',            value: r => r.cpk           ?? ''    },
-  { key: 'ppk',               label: 'Ppk',            value: r => r.ppk           ?? ''    },
-  { key: 'ooc_rate',          label: 'OOC Rate',       value: r => r.ooc_rate      ?? ''    },
-  { key: 'capability_status', label: 'Status',         value: r => r.capability_status ?? '' },
-]
-
 function downloadCsv(filename: string, columns: ColumnSpec[], rows: ScorecardRow[]) {
   const escapeCell = (value: string | number) => {
     const text = String(value ?? '')
@@ -105,6 +92,18 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
   const [virtualize, setVirtualize] = useState(false)
 
   const cellPad = density === 'compact' ? '8px 14px' : '14px 16px'
+  const csvColumns = useMemo<ColumnSpec[]>(() => [
+    { key: 'mic_name',          label: t('spc.scorecardTable.export.characteristic'), value: r => r.mic_name              },
+    { key: 'batch_count',       label: t('spc.scorecardTable.export.batches'),        value: r => r.batch_count            },
+    { key: 'mean_value',        label: t('spc.scorecardTable.export.mean'),           value: r => r.mean_value    ?? ''    },
+    { key: 'stddev_overall',    label: t('spc.scorecardTable.export.stdDev'),         value: r => r.stddev_overall ?? ''   },
+    { key: 'nominal_target',    label: t('spc.scorecardTable.export.target'),         value: r => r.nominal_target ?? ''   },
+    { key: 'pp',                label: t('spc.scorecardTable.export.pp'),             value: r => r.pp            ?? ''    },
+    { key: 'cpk',               label: t('spc.scorecardTable.export.cpk'),            value: r => r.cpk           ?? ''    },
+    { key: 'ppk',               label: t('spc.scorecardTable.export.ppk'),            value: r => r.ppk           ?? ''    },
+    { key: 'ooc_rate',          label: t('spc.scorecardTable.export.oocRate'),        value: r => r.ooc_rate      ?? ''    },
+    { key: 'capability_status', label: t('spc.scorecardTable.export.status'),         value: r => r.capability_status ?? '' },
+  ], [t])
 
   const openChart = useCallback((row: ScorecardRow) => {
     dispatch({ type: 'SET_MIC', payload: { mic_id: row.mic_id, mic_name: row.mic_name, chart_type: 'imr' } })
@@ -147,8 +146,8 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
   const totalPages = Math.ceil(filteredRows.length / pageSize)
 
   const exportCSV = useCallback(
-    () => downloadCsv('spc_scorecard.csv', CSV_COLUMNS, filteredRows),
-    [filteredRows],
+    () => downloadCsv('spc_scorecard.csv', csvColumns, filteredRows),
+    [csvColumns, filteredRows],
   )
 
   const renderRow = (r: ScorecardRow, i: number, isVirtualized = false) => {
@@ -283,7 +282,7 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
                 cursor: 'pointer', fontWeight: 500,
               }}
             >
-              {v === 'status' ? t('spc.scorecardTable.col.status') : v === 'cpk' ? 'Cpk' : 'OOC'}
+              {v === 'status' ? t('spc.scorecardTable.col.status') : v === 'cpk' ? t('spc.scorecardTable.sort.cpk') : t('spc.scorecardTable.sort.ooc')}
             </button>
           ))}
           <div style={{ width: 1, height: 20, background: 'var(--line-1)', margin: '0 4px' }} />
@@ -298,14 +297,14 @@ export default function ScorecardTable({ rows, material }: ScorecardTableProps) 
             className="btn btn-subtle btn-sm"
             onClick={exportCSV}
           >
-            <Icon name="download" size={12} /> CSV
+            <Icon name="download" size={12} /> {t('spc.scorecardTable.export.csv')}
           </button>
           <button
             className="btn btn-subtle btn-sm"
             onClick={exportExcel}
             disabled={exporting}
           >
-            <Icon name="download" size={12} /> Excel
+            <Icon name="download" size={12} /> {t('spc.scorecardTable.export.excel')}
           </button>
           {filteredRows.length > VIRTUALIZATION_THRESHOLD && !virtualize && (
             <button className="btn btn-subtle btn-sm" onClick={() => setVirtualize(true)}>

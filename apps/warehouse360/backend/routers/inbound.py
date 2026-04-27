@@ -12,7 +12,6 @@ router = APIRouter()
 _LIST_FRESHNESS_SOURCES = ["wh360_inbound_v"]
 _DETAIL_FRESHNESS_SOURCES = [
     "wh360_inbound_v",
-    "wh360_inbound_items_v",
 ]
 
 

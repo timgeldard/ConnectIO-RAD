@@ -23,9 +23,8 @@ async def fetch_delivery_detail(token: str, delivery_id: str) -> dict:
     """Return one delivery with its transfer orders and handling units fetched
     in parallel.
 
-    NOTE: Column name `delivery_id` on wh360_deliveries_v and `ref_doc` on
-    wh360_transfer_orders_v / wh360_handling_units_v are assumed from the SAP
-    WM domain model; adjust once the view DDL is available.
+    Detail views expose delivery_id and created_date; keep these queries aligned
+    with the committed wh360 SQL view schemas.
     """
     delivery_params = [sql_param("delivery_id", delivery_id)]
 
@@ -38,13 +37,13 @@ async def fetch_delivery_detail(token: str, delivery_id: str) -> dict:
     to_q = f"""
         SELECT *
         FROM {tbl('wh360_transfer_orders_v')}
-        WHERE ref_doc = :delivery_id
-        ORDER BY created_at
+        WHERE delivery_id = :delivery_id
+        ORDER BY created_date
     """
     hu_q = f"""
         SELECT *
         FROM {tbl('wh360_handling_units_v')}
-        WHERE ref_doc = :delivery_id
+        WHERE delivery_id = :delivery_id
         ORDER BY sscc
     """
 

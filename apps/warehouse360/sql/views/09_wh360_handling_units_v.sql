@@ -3,7 +3,7 @@
 -- Phase: 1 -- direct join on raw SAP tables (cross-plant source)
 -- Sources: published_uat.central_services.handlingunit_vekp (VEKP)
 --          published_uat.central_services.handlingunit_vepo (VEPO)
--- Filter : VEKP.WERKS = 'C061'
+-- Filter : VEKP.WERKS is populated
 -- Purpose: Handling unit (pallet/carton) detail with packed content and delivery link
 -- =============================================================================
 
@@ -46,4 +46,5 @@ LEFT JOIN connected_plant_uat.silver.silver_material_description AS md
   ON LPAD(md.MATERIAL_ID, 18, '0') = vp.MATNR
   AND md.LANGUAGE_ID = 'E'
 
-WHERE vk.WERKS = 'C061'
+WHERE vk.WERKS IS NOT NULL
+  AND LENGTH(TRIM(vk.WERKS)) > 0

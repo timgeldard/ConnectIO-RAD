@@ -3,7 +3,7 @@
 -- Phase: 1 -- direct join on raw SAP tables
 -- Sources: sap.transferorderobjects_ltak (LTAK)
 --          sap.transferorderobjects_ltap (LTAP)
--- Filter : LTAP.WERKS = 'C061'
+-- Filter : LTAP.WERKS is populated
 -- Purpose: WM transfer order header + item detail with age and confirmation status
 -- =============================================================================
 
@@ -47,4 +47,5 @@ JOIN connected_plant_uat.sap.transferorderobjects_ltap AS lt
   ON  lt.LGNUM = lk.LGNUM
   AND lt.TANUM = lk.TANUM
 
-WHERE lt.WERKS = 'C061'
+WHERE lt.WERKS IS NOT NULL
+  AND LENGTH(TRIM(lt.WERKS)) > 0

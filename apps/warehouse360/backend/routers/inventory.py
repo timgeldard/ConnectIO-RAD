@@ -16,12 +16,13 @@ _LINESIDE_FRESHNESS_SOURCES = ["wh360_lineside_stock_v"]
 @router.get("/inventory/bins")
 async def list_bins(
     request: Request,
+    plant_id: Optional[str] = None,
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
-    rows = await fetch_bin_stock(token)
+    rows = await fetch_bin_stock(token, plant_id=plant_id)
     return await attach_data_freshness(
         {"bins": rows},
         token,

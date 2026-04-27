@@ -17,6 +17,10 @@ async def fetch_plants(token: str) -> list[dict]:
           SELECT plant_id, plant_id AS plant_name FROM {tbl('wh360_lineside_stock_v')} WHERE plant_id IS NOT NULL
           UNION ALL
           SELECT plant_id, plant_id AS plant_name FROM {tbl('wh360_dispensary_tasks_v')} WHERE plant_id IS NOT NULL
+          UNION ALL
+          SELECT plant_id, plant_id AS plant_name FROM {tbl('wh360_bin_stock_v')} WHERE plant_id IS NOT NULL
+          UNION ALL
+          SELECT plant_id, plant_id AS plant_name FROM {tbl('wh360_handling_units_v')} WHERE plant_id IS NOT NULL
         ) AS plant_source
         GROUP BY plant_id
         ORDER BY plant_id

@@ -3,7 +3,7 @@
 -- Phase: 1 -- direct join on raw SAP tables
 -- Sources: sap.reservationrequirement_resb (RESB)
 --          sap.productionorderobject_afko  (AFKO)
--- Filter : RESB.WERKS = 'C061'
+-- Filter : RESB.WERKS is populated
 --          RESB.BWART = '261' (production consumption movement type)
 --          RESB.XLOEK != 'X'  (not deleted)
 --          Open qty > 0       (BDMNG > ENMNG)
@@ -51,7 +51,8 @@ LEFT JOIN connected_plant_uat.silver.silver_material_description AS md
   ON LPAD(md.MATERIAL_ID, 18, '0') = r.MATNR
   AND md.LANGUAGE_ID = 'E'
 
-WHERE r.WERKS  = 'C061'
+WHERE r.WERKS IS NOT NULL
+  AND LENGTH(TRIM(r.WERKS)) > 0
   AND r.BWART  = '261'
   AND r.XLOEK != 'X'
   AND r.BDMNG  > COALESCE(r.ENMNG, 0)

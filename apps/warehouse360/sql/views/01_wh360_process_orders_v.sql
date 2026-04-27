@@ -5,7 +5,7 @@
 --          sap.productionorderobject_afpo (AFPO)
 --          sap.transferorderobjects_ltak  (LTAK)
 --          sap.transferorderobjects_ltap  (LTAP)
--- Filter : AFPO.PWERK = 'C061'
+-- Filter : AFPO.PWERK is populated
 --          Planned finish (GLTRP) >= yesterday
 -- Purpose: Active process orders with staging progress and risk signal
 -- =============================================================================
@@ -48,7 +48,8 @@ orders AS (
   FROM connected_plant_uat.sap.productionorderobject_afko AS ak
   JOIN connected_plant_uat.sap.productionorderobject_afpo AS ap
     ON  ap.AUFNR = ak.AUFNR
-  WHERE ap.PWERK = 'C061'
+  WHERE ap.PWERK IS NOT NULL
+    AND LENGTH(TRIM(ap.PWERK)) > 0
     AND ak.GLTRP >= date_format(date_add(current_date(), -14), 'yyyy-MM-dd')
 )
 
@@ -105,4 +106,3 @@ LEFT JOIN staging AS s
 LEFT JOIN connected_plant_uat.silver.silver_material_description AS md
   ON LPAD(md.MATERIAL_ID, 18, '0') = o.MATNR
   AND md.LANGUAGE_ID = 'E'
-

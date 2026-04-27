@@ -63,11 +63,26 @@ const ProductionStaging = ({ onOpenOrder }) => {
   const [filters, setFilters] = React.useState({ risk: 'all', shift: 'all', line: 'all', window: 'today' });
   const [sort, setSort] = React.useState({ key: 'start', dir: 'asc' });
 
-  const { data: ordersResp } = useApi('/api/process-orders');
+  const { data: ordersResp, loading: ordersLoading, error: ordersError } = useApi('/api/process-orders');
+  const { data: linesideResp } = useApi('/api/inventory/lineside');
+  const { data: tasksResp } = useApi('/api/dispensary');
   const allOrders = React.useMemo(() => {
     const api = ordersResp?.orders ?? [];
-    return api.length > 0 ? api.map(normalizeOrder) : WM.PROCESS_ORDERS;
+    return api.map(normalizeOrder);
   }, [ordersResp]);
+  const liveLineOptions = React.useMemo(() => Array.from(
+    new Map(
+      allOrders
+        .filter((o) => o.line?.id && o.line.id !== '—')
+        .map((o) => [o.line.id, { value: o.line.id, label: o.line.name || o.line.id }])
+    ).values()
+  ), [allOrders]);
+  const liveLineside = linesideResp?.lineside ?? [];
+  const liveTasks = tasksResp?.tasks ?? [];
+  const avgStagingPct = allOrders.length > 0
+    ? Math.round(allOrders.reduce((sum, order) => sum + (order.stagingPct || 0), 0) / allOrders.length)
+    : 0;
+  const weighedTasks = liveTasks.filter((task) => task.status === 'Weighed' || task.weighed_qty > 0).length;
 
   const rows = React.useMemo(() => {
     let r = allOrders;
@@ -120,7 +135,7 @@ const ProductionStaging = ({ onOpenOrder }) => {
         <div>
           <div className="page-eyebrow">Operations · Today · Shift B</div>
           <h1 className="page-title">{t('warehouse.title.staging')}</h1>
-          <div className="page-desc">Across {WM.LINES.length} lines and 8 staging methods — highlighting orders whose raw materials are late, short or uncleared.</div>
+          <div className="page-desc">Live process orders for the selected plant, highlighting orders whose raw materials are late, short or uncleared.</div>
         </div>
         <div className="page-actions">
           <button className="btn btn-secondary"><Icon name="download" size={14}/> {t('warehouse.common.btn.export')}</button>
@@ -131,12 +146,12 @@ const ProductionStaging = ({ onOpenOrder }) => {
 
       {/* KPI strip for this screen */}
       <div className="kpi-grid">
-        <KPI label={t('warehouse.staging.kpi.ordersAtRisk')} value={riskCounts.red + riskCounts.amber} tone="critical" trend={+3} trendLabel=" vs last shift"/>
-        <KPI label={t('warehouse.staging.kpi.stagingSLA')} value={WM.KPIs.stagingSLA.value} unit="%" tone="warn" barPct={WM.KPIs.stagingSLA.value} barTone="amber" target="95%" trend={WM.KPIs.stagingSLA.trend} trendLabel="pp"/>
-        <KPI label={t('warehouse.staging.kpi.palletsStaged')} value="184" unit="/ 240" tone="ok" barPct={76} trend={+12} trendLabel=" vs plan"/>
-        <KPI label={t('warehouse.staging.kpi.linesideBelowMin')} value={WM.LINE_SIDE.filter((l) => l.status === 'Below min').length} tone="warn" trend={-1} trendLabel=" in 30m"/>
-        <KPI label={t('warehouse.staging.kpi.bulkDropsUncleared')} value="3" tone="critical" trend={+1}/>
-        <KPI label={t('warehouse.staging.kpi.dispensaryReady')} value={WM.DISP_TASKS.filter((d) => d.status === 'Weighed').length} unit={'/ ' + WM.DISP_TASKS.length} tone="ok" barPct={WM.DISP_TASKS.filter((d) => d.status === 'Weighed').length / WM.DISP_TASKS.length * 100} barTone="slate"/>
+        <KPI label={t('warehouse.staging.kpi.ordersAtRisk')} value={ordersLoading ? '...' : riskCounts.red + riskCounts.amber} tone={riskCounts.red > 0 ? 'critical' : riskCounts.amber > 0 ? 'warn' : 'ok'}/>
+        <KPI label={t('warehouse.staging.kpi.stagingSLA')} value={ordersLoading ? '...' : avgStagingPct} unit="%" tone={avgStagingPct < 70 ? 'critical' : avgStagingPct < 95 ? 'warn' : 'ok'} barPct={avgStagingPct} barTone={avgStagingPct < 70 ? 'red' : avgStagingPct < 95 ? 'amber' : ''} target="95%"/>
+        <KPI label={t('warehouse.staging.kpi.palletsStaged')} value="—" unit="" tone="ok"/>
+        <KPI label={t('warehouse.staging.kpi.linesideBelowMin')} value={liveLineside.filter((l) => l.status === 'Below min').length} tone="warn"/>
+        <KPI label={t('warehouse.staging.kpi.bulkDropsUncleared')} value="—" tone="ok"/>
+        <KPI label={t('warehouse.staging.kpi.dispensaryReady')} value={weighedTasks} unit={'/ ' + liveTasks.length} tone="ok" barPct={liveTasks.length > 0 ? weighedTasks / liveTasks.length * 100 : 0} barTone="slate"/>
       </div>
 
       {/* Timeline */}
@@ -146,7 +161,7 @@ const ProductionStaging = ({ onOpenOrder }) => {
           <button className="btn btn-sm btn-ghost">Zoom</button>
         </div>}
         style={{ marginBottom: 16 }} tight>
-        <StagingTimeline onOpen={onOpenOrder}/>
+        <StagingTimeline orders={allOrders} onOpen={onOpenOrder}/>
       </Card>
 
       {/* Method tabs */}
@@ -173,7 +188,7 @@ const ProductionStaging = ({ onOpenOrder }) => {
           ] },
           { key: 'line', label: t('warehouse.staging.filter.line'), options: [
             { value: 'all', label: t('warehouse.staging.filter.allLines') },
-            ...WM.LINES.map((l) => ({ value: l.id, label: l.name })),
+            ...liveLineOptions,
           ] },
           { key: 'window', label: t('warehouse.staging.filter.window'), chips: [
             { value: '8h', label: t('warehouse.staging.filter.next8h') },
@@ -213,6 +228,12 @@ const ProductionStaging = ({ onOpenOrder }) => {
               {rows.slice(0, 60).map((o) => (
                 <StagingRow key={o.id} o={o} onClick={() => onOpenOrder(o)}/>
               ))}
+              {!ordersLoading && rows.length === 0 && (
+                <tr><td colSpan={10} className="muted small">No live production orders match this plant and filter set.</td></tr>
+              )}
+              {ordersError && (
+                <tr><td colSpan={10} className="red small">Unable to load live production orders: {ordersError}</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -264,14 +285,20 @@ const StagingRow = ({ o, onClick }) => {
 };
 
 // Timeline component
-const StagingTimeline = ({ onOpen }) => {
+const StagingTimeline = ({ orders = [], onOpen }) => {
   const hours = 24;
   const startHour = 6; // starts at 06:00 today
   const dayStart = (() => { const d = new Date(WM.NOW); d.setHours(startHour, 0, 0, 0); return d; })();
   const dayEnd = new Date(dayStart.getTime() + hours * 3600000);
 
-  const lineRows = WM.LINES.slice(0, 6);
-  const orders = WM.PROCESS_ORDERS.filter((o) => o.start < dayEnd && o.end > dayStart);
+  const timelineOrders = orders.filter((o) => o.start && o.end && o.start < dayEnd && o.end > dayStart);
+  const lineRows = Array.from(
+    new Map(
+      timelineOrders
+        .filter((o) => o.line?.id && o.line.id !== '—')
+        .map((o) => [o.line.id, o.line])
+    ).values()
+  ).slice(0, 6);
 
   const xFromTime = (d) => {
     const pct = (d.getTime() - dayStart.getTime()) / (hours * 3600000);
@@ -286,6 +313,9 @@ const StagingTimeline = ({ onOpen }) => {
 
   return (
     <div style={{ minWidth: 900 }}>
+      {lineRows.length === 0 && (
+        <div className="muted small" style={{ padding: 12 }}>No live schedule rows available for this plant.</div>
+      )}
       {/* hour ruler */}
       <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}>
         <div style={{ padding: '8px 12px', background: 'var(--stone)', borderBottom: '1px solid var(--stroke-soft)', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--fg-muted)' }}>Line</div>
@@ -297,7 +327,7 @@ const StagingTimeline = ({ onOpen }) => {
         </div>
       </div>
       {lineRows.map((line) => {
-        const lineOrders = orders.filter((o) => o.line.id === line.id);
+        const lineOrders = timelineOrders.filter((o) => o.line.id === line.id);
         return (
           <div className="timeline-row" key={line.id}>
             <div className="timeline-row-label">
@@ -330,4 +360,4 @@ const StagingTimeline = ({ onOpen }) => {
 };
 
 
-export { ProductionStaging, StagingTimeline };
+export { ProductionStaging, StagingTimeline, normalizeOrder };

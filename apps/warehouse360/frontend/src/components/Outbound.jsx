@@ -71,7 +71,7 @@ const Outbound = ({ onOpen }) => {
 
       <Card title={t('warehouse.outbound.card.dockSchedule')} subtitle="Cut-off times · red = missed or imminent"
         eyebrow="Docks" style={{ marginBottom: 16 }}>
-        <DockSchedule type="Outbound" onOpen={onOpen}/>
+        <DockSchedule type="Outbound" events={allDeliveries} onOpen={onOpen}/>
       </Card>
 
       <div className="tabs">
@@ -145,6 +145,9 @@ const Outbound = ({ onOpen }) => {
                   </tr>
                 );
               })}
+              {!loading && rows.length === 0 && (
+                <tr><td colSpan={8} className="muted small">No live outbound deliveries match this plant and filter set.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -169,16 +172,6 @@ const DeliveryDetail = ({ delivery }) => {
   const lineCount = delivery.line_count ?? delivery.lines;
   const hu        = delivery.hu ?? false;
   const status    = delivery.delivery_id ? deliveryStatus(delivery) : delivery.status;
-
-  const mockLines = delivery.lines
-    ? Array.from({ length: delivery.lines }, (_, i) => ({
-        pos: String((i + 1) * 10).padStart(5, '0'),
-        material: WM.MATERIALS[(i * 3) % WM.MATERIALS.length],
-        qty: 40 + i * 17,
-        picked: i < delivery.linesDone,
-        short: i === 1 && delivery.shortPicks > 0,
-      }))
-    : null;
 
   const timelineSteps = [
     { label: 'Pick',  pct: pickPct },
@@ -239,26 +232,9 @@ const DeliveryDetail = ({ delivery }) => {
       </Card>
 
       <Card title="Delivery lines" subtitle={lineCount != null ? `${lineCount} items` : ''} eyebrow="Lines" tight>
-        {mockLines ? (
-          <table className="tbl">
-            <thead><tr><th>Pos</th><th>Material</th><th className="num">Qty</th><th>SSCC</th><th>Status</th></tr></thead>
-            <tbody>
-              {mockLines.slice(0, 12).map((l, i) => (
-                <tr key={i}>
-                  <td className="mono">{l.pos}</td>
-                  <td><div style={{ fontSize: 12 }}>{l.material.name}</div><div className="muted" style={{ fontSize: 11 }}>{l.material.id}</div></td>
-                  <td className="num">{l.qty} KG</td>
-                  <td className="mono small">{hu ? '003401...' + String(i).padStart(4, '0') : '—'}</td>
-                  <td>{l.short ? <Pill tone="red">Short</Pill> : l.picked ? <Pill tone="green">Picked</Pill> : <Pill tone="grey">Open</Pill>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div style={{ padding: '12px 16px', color: 'var(--fg-muted)', fontSize: 13 }}>
-            Line detail available in Phase 2 (LIPS line items view).
-          </div>
-        )}
+        <div style={{ padding: '12px 16px', color: 'var(--fg-muted)', fontSize: 13 }}>
+          No live delivery-line endpoint is available yet.
+        </div>
       </Card>
 
       {timelineSteps.length > 0 && (

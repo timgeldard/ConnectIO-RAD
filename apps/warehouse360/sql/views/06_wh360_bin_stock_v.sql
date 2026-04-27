@@ -4,16 +4,16 @@
 -- Sources: sap.storagebin_lagp  (LAGP)
 --          sap.quant_lqua       (LQUA)
 -- Filter : LAGP.LGNUM IS NOT NULL
---          LQUA plant filter applied inside CTE to preserve empty-bin rows
+--          LQUA plant is carried through for plant-scoped stock filtering
 -- Purpose: Bin-level stock summary with fill rate and shelf-life signals
 -- =============================================================================
 
 CREATE OR REPLACE VIEW connected_plant_uat.wh360.wh360_bin_stock_v AS
 
 WITH quant_agg AS (
-  -- Aggregate quants per bin, restricted to C061 plant quants only
-  -- Left-joining to LAGP preserves bins that have no C061 quants
+  -- Aggregate plant-specific quants per bin.
   SELECT
+    WERKS,
     LGNUM,
     LGTYP,
     LGPLA,
@@ -41,14 +41,16 @@ WITH quant_agg AS (
       END
     )                                                            AS latest_gr_date
   FROM connected_plant_uat.sap.quant_lqua
-  WHERE WERKS = 'C061'
-  GROUP BY LGNUM, LGTYP, LGPLA
+  WHERE WERKS IS NOT NULL
+    AND LENGTH(TRIM(WERKS)) > 0
+  GROUP BY WERKS, LGNUM, LGTYP, LGPLA
 )
 
 SELECT
   lg.LGNUM                                                       AS lgnum,
   lg.LGTYP                                                       AS lgtyp,
   lg.LGPLA                                                       AS bin_id,
+  q.WERKS                                                        AS plant_id,
   lg.LGBER                                                       AS section,
   lg.LPTYP                                                       AS bin_type,
   lg.KZLER                                                       AS is_empty,
@@ -74,7 +76,7 @@ SELECT
     ELSE 'occupied'
   END                                                            AS bin_status,
 
-  -- quant detail from aggregated C061 stock
+  -- quant detail from aggregated plant stock
   q.material_id,
   md.MATERIAL_NAME                                               AS material_name,
   q.batch_id,

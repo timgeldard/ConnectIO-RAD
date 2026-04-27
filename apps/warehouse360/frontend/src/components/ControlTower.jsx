@@ -2,31 +2,56 @@ import React from 'react';
 import { useI18n } from '@connectio/shared-frontend-i18n';
 import WM from '../data/mockData.js';
 import { useApi } from '../hooks/useApi.js';
+import { usePlantSelection } from '../context/PlantContext.jsx';
 import { Icon, Pill, Progress, RiskDot, Hbar } from './Primitives.jsx';
 import { KPI, Card } from './Shared.jsx';
-import { StagingTimeline } from './ProductionStaging.jsx';
+import { StagingTimeline, normalizeOrder } from './ProductionStaging.jsx';
 
 /* Control Tower — warehouse manager's landing page */
 
 const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
   const { t } = useI18n();
+  const { selectedPlant } = usePlantSelection();
   const { data: kpiResp } = useApi('/api/kpis');
+  const { data: ordersResp, loading: ordersLoading, error: ordersError } = useApi('/api/process-orders');
+  const { data: inboundResp, loading: inboundLoading, error: inboundError } = useApi('/api/inbound');
+  const { data: outboundResp, loading: outboundLoading, error: outboundError } = useApi('/api/deliveries');
+  const { data: binsResp } = useApi('/api/inventory/bins');
   const kpis = kpiResp?.kpis ?? null;
 
-  const redOrders = WM.PROCESS_ORDERS.filter((o) => o.risk === 'red').slice(0, 5);
-  const amberOrders = WM.PROCESS_ORDERS.filter((o) => o.risk === 'amber').slice(0, 4);
-  const criticalEx = WM.EXCEPTIONS.filter((e) => e.type.severity === 'critical').slice(0, 5);
-  const inboundToday = WM.INBOUND.filter((r) => WM.minutesFromNow(r.eta) < 8 * 60 && WM.minutesFromNow(r.eta) > -6 * 60).slice(0, 6);
-  const outboundToday = WM.DELIVERIES.filter((d) => WM.minutesFromNow(d.cutoff) > -3 * 60 && WM.minutesFromNow(d.cutoff) < 10 * 60).slice(0, 6);
-  const ageingTOs = WM.TOs.filter((to) => to.status !== 'Confirmed' && to.ageMin > 120).slice(0, 5);
+  const liveOrders = React.useMemo(() => (ordersResp?.orders ?? []).map(normalizeOrder), [ordersResp]);
+  const redOrders = liveOrders.filter((o) => o.risk === 'red').slice(0, 5);
+  const amberOrders = liveOrders.filter((o) => o.risk === 'amber').slice(0, 4);
+  const inboundToday = (inboundResp?.receipts ?? []).slice(0, 6);
+  const outboundToday = (outboundResp?.deliveries ?? []).slice(0, 6);
+  const bins = binsResp?.bins ?? [];
+  const exceptionSignals = [
+    { label: t('warehouse.ct.kpi.ordersAtRisk'), value: kpis?.orders_red ?? 0, tone: 'red', nav: 'staging' },
+    { label: t('warehouse.ct.kpi.deliveriesAtRisk'), value: kpis?.deliveries_at_risk ?? 0, tone: 'amber', nav: 'outbound' },
+    { label: t('warehouse.inventory.kpi.blockedQA'), value: kpis?.bins_blocked ?? 0, tone: 'slate', nav: 'inventory' },
+  ].filter((signal) => signal.value > 0);
+  const workload = [
+    { area: 'Production orders', open: kpis?.orders_total ?? 0, exceptions: (kpis?.orders_red ?? 0) + (kpis?.orders_amber ?? 0), nav: 'staging' },
+    { area: 'Transfer orders', open: kpis?.tos_open ?? 0, exceptions: 0, nav: 'inventory' },
+    { area: 'Inbound lines', open: kpis?.inbound_open ?? 0, exceptions: 0, nav: 'inbound' },
+    { area: 'Deliveries', open: kpis?.deliveries_today ?? 0, exceptions: kpis?.deliveries_at_risk ?? 0, nav: 'outbound' },
+  ];
+  const storageByType = Object.values(bins.reduce((acc, bin) => {
+    const key = bin.lgtyp ?? '—';
+    if (!acc[key]) acc[key] = { id: key, total: 0, occupied: 0, blocked: 0 };
+    acc[key].total += 1;
+    if (bin.bin_status === 'occupied') acc[key].occupied += 1;
+    if (bin.bin_status === 'blocked' || bin.bin_status === 'restricted') acc[key].blocked += 1;
+    return acc;
+  }, {})).slice(0, 6);
 
   return (
     <div className="page">
       <div className="page-header">
         <div>
-          <div className="page-eyebrow">Kerry Naas · {WM.fmtTime(WM.NOW)} · Shift B · Wed 24 Apr</div>
+          <div className="page-eyebrow">{selectedPlant.plant_name || selectedPlant.plant_id} · {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
           <h1 className="page-title">Good morning, Niamh</h1>
-          <div className="page-desc">Eight orders at risk, three critical. Dispensary is 2 weighings short for 11:30 campaign. Vendor Symrise slipped two hours on paprika.</div>
+          <div className="page-desc">Live plant workload, order risk, inbound receipts, outbound deliveries and storage constraints for the selected plant.</div>
         </div>
         <div className="page-actions">
           <button className="btn btn-secondary"><Icon name="download" size={14}/> {t('warehouse.ct.btn.shiftReport')}</button>
@@ -49,25 +74,25 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
       <div className="grid-asym" style={{ marginBottom: 16 }}>
         <Card title={t('warehouse.ct.card.runSheet')} subtitle="6 lines · click a bar to drill in" eyebrow="Schedule" tight
           actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('staging')}>Open staging <Icon name="arrowRight" size={12}/></button>}>
-          <StagingTimeline onOpen={onOpenOrder}/>
+          <StagingTimeline orders={liveOrders} onOpen={onOpenOrder}/>
         </Card>
 
         <Card title={t('warehouse.ct.card.criticalExceptions')} subtitle="Needs action now" eyebrow="Risk"
           actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('exceptions')}><Icon name="external" size={12}/></button>}>
           <div className="stack-8">
-            {criticalEx.map((e, i) => (
-              <button key={i} onClick={() => onOpenOrder(e.po)} style={{ textAlign: 'left', padding: 10, background: 'color-mix(in srgb, var(--sunset) 6%, white)', border: '1px solid color-mix(in srgb, var(--sunset) 20%, transparent)', borderRadius: 6, width: '100%' }}>
+            {exceptionSignals.map((e, i) => (
+              <button key={i} onClick={() => onNav(e.nav)} style={{ textAlign: 'left', padding: 10, background: 'color-mix(in srgb, var(--sunset) 6%, white)', border: '1px solid color-mix(in srgb, var(--sunset) 20%, transparent)', borderRadius: 6, width: '100%' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                  <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--forest)' }}>{e.type.title}</div>
-                  <span className="mono small muted">{e.ageMin}m</span>
+                  <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--forest)' }}>{e.label}</div>
+                  <span className="mono small muted">{e.value}</span>
                 </div>
-                <div className="muted" style={{ fontSize: 11, marginTop: 3 }}>{e.detail}{e.po ? ' · ' + e.po.id : ''}</div>
+                <div className="muted" style={{ fontSize: 11, marginTop: 3 }}>Live KPI signal for the selected plant</div>
                 <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
-                  <Pill tone="red" noDot>{e.type.domain}</Pill>
-                  {e.owner && <Pill tone="grey" noDot>{e.owner}</Pill>}
+                  <Pill tone={e.tone} noDot>{e.nav}</Pill>
                 </div>
               </button>
             ))}
+            {exceptionSignals.length === 0 && <div className="muted small">No live critical KPI signals for this plant.</div>}
           </div>
         </Card>
       </div>
@@ -76,20 +101,19 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
       <div className="grid-2" style={{ marginBottom: 16 }}>
         <Card title={t('warehouse.ct.card.workload')} subtitle="Open · in progress · confirmed tasks this shift" eyebrow="Warehouse tasks">
           <div className="stack-8">
-            {WM.WORKLOAD.map((w, i) => {
-              const total = w.open + w.inProgress + w.confirmed;
+            {workload.map((w, i) => {
+              const total = Math.max(1, w.open + w.exceptions);
               return (
-                <div key={i}>
+                <button key={i} onClick={() => onNav(w.nav)} style={{ display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 0, padding: 0, cursor: 'pointer' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
                     <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--forest)' }}>{w.area}</span>
-                    <span className="mono small muted">{w.confirmed}/{total} · {w.exceptions > 0 && <span className="red">{w.exceptions} exc</span>}</span>
+                    <span className="mono small muted">{w.open} open {w.exceptions > 0 && <span className="red"> · {w.exceptions} at risk</span>}</span>
                   </div>
                   <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', background: 'var(--stone)' }}>
-                    <div style={{ width: (w.confirmed / total * 100) + '%', background: 'var(--jade)' }}/>
-                    <div style={{ width: (w.inProgress / total * 100) + '%', background: 'var(--valentia-slate)' }}/>
-                    <div style={{ width: (w.open / total * 100) + '%', background: 'var(--stone-300)' }}/>
+                    <div style={{ width: ((w.open - w.exceptions) / total * 100) + '%', background: 'var(--jade)' }}/>
+                    <div style={{ width: (w.exceptions / total * 100) + '%', background: 'var(--sunset)' }}/>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -120,6 +144,12 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
                   <td><Icon name="chevronRight" size={12} color="var(--fg-muted)"/></td>
                 </tr>
               ))}
+              {!ordersLoading && redOrders.length + amberOrders.length === 0 && (
+                <tr><td colSpan={6} className="muted small">No live production orders at risk for this plant.</td></tr>
+              )}
+              {ordersError && (
+                <tr><td colSpan={6} className="red small">Unable to load live production orders: {ordersError}</td></tr>
+              )}
             </tbody>
           </table>
         </Card>
@@ -127,22 +157,28 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
 
       {/* Inbound + Outbound due today */}
       <div className="grid-2" style={{ marginBottom: 16 }}>
-        <Card title={t('warehouse.ct.card.inboundToday')} subtitle={`${inboundToday.filter((r) => r.status === 'Expected').length} expected · ${inboundToday.filter((r) => r.status === 'Overdue').length} overdue`}
+        <Card title={t('warehouse.ct.card.inboundToday')} subtitle={`${inboundToday.length} live receipts`}
           eyebrow="PO / STO"
           actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('inbound')}>All <Icon name="arrowRight" size={12}/></button>} tight>
           <table className="tbl">
             <thead><tr><th>{t('warehouse.common.col.type')}</th><th>Doc</th><th>{t('warehouse.ct.col.vendorPlant')}</th><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.ct.col.eta')}</th><th>{t('warehouse.common.col.status')}</th></tr></thead>
             <tbody>
               {inboundToday.map((r) => (
-                <tr key={r.id} onClick={() => onOpenReceipt(r)} className={`is-risk-${r.risk}`}>
-                  <td><Pill tone={r.type === 'PO' ? 'slate' : 'sage'} noDot>{r.type}</Pill></td>
-                  <td className="code">{r.id}</td>
-                  <td><div style={{ fontSize: 12 }}>{r.vendor.name}</div><div className="muted" style={{ fontSize: 11 }}>{r.vendor.id}</div></td>
-                  <td><div style={{ fontSize: 12 }}>{r.material.name}</div><div className="muted" style={{ fontSize: 11 }}>{r.expectedQty} {r.uom}</div></td>
-                  <td className="mono small">{WM.fmtTime(r.eta)}</td>
-                  <td><Pill tone={r.status === 'Overdue' ? 'red' : r.status === 'Expected' ? 'grey' : r.status === 'Put away' ? 'green' : 'amber'}>{r.status}</Pill></td>
+                <tr key={`${r.po_id}-${r.po_item}`} onClick={() => onOpenReceipt(r)} className={`is-risk-${r.risk}`}>
+                  <td><Pill tone="slate" noDot>PO</Pill></td>
+                  <td className="code">{r.po_id}</td>
+                  <td><div style={{ fontSize: 12 }}>{r.vendor_name || '—'}</div><div className="muted" style={{ fontSize: 11 }}>{r.vendor_id || '—'}</div></td>
+                  <td><div style={{ fontSize: 12 }}>{r.material_name || r.material_id || '—'}</div><div className="muted" style={{ fontSize: 11 }}>{r.ordered_qty ?? '—'} {r.uom ?? ''}</div></td>
+                  <td className="mono small">{r.delivery_date ?? '—'}</td>
+                  <td><Pill tone={r.qa_status === 'inspection' ? 'amber' : r.risk === 'red' ? 'red' : 'green'}>{r.qa_status || r.risk || 'open'}</Pill></td>
                 </tr>
               ))}
+              {!inboundLoading && inboundToday.length === 0 && (
+                <tr><td colSpan={6} className="muted small">No live inbound receipts for this plant.</td></tr>
+              )}
+              {inboundError && (
+                <tr><td colSpan={6} className="red small">Unable to load live inbound receipts: {inboundError}</td></tr>
+              )}
             </tbody>
           </table>
         </Card>
@@ -154,20 +190,26 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
             <thead><tr><th>{t('warehouse.common.col.delivery')}</th><th>{t('warehouse.common.col.customer')}</th><th>{t('warehouse.ct.col.cutOff')}</th><th className="num">{t('warehouse.ct.col.pick')}</th><th>{t('warehouse.common.col.status')}</th><th>{t('warehouse.ct.col.dock')}</th></tr></thead>
             <tbody>
               {outboundToday.map((d) => (
-                <tr key={d.id} onClick={() => onOpenDelivery(d)} className={`is-risk-${d.risk}`}>
-                  <td className="code">{d.id}</td>
-                  <td><div style={{ fontSize: 12 }}>{d.customer.name}</div></td>
-                  <td className="mono small">{WM.fmtTime(d.cutoff)}</td>
+                <tr key={d.delivery_id} onClick={() => onOpenDelivery(d)} className={`is-risk-${d.risk}`}>
+                  <td className="code">{d.delivery_id}</td>
+                  <td><div style={{ fontSize: 12 }}>{d.customer_name || d.customer_id || '—'}</div></td>
+                  <td className="mono small">{d.planned_gi_date ?? '—'}</td>
                   <td className="num" style={{ width: 90 }}>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
-                      <span className="mono" style={{ fontSize: 11 }}>{d.pickPct}%</span>
-                      <div style={{ width: 36 }}><Progress pct={d.pickPct} tone={d.risk === 'red' ? 'red' : d.risk === 'amber' ? 'amber' : ''}/></div>
+                      <span className="mono" style={{ fontSize: 11 }}>{Math.round(d.pick_pct ?? 0)}%</span>
+                      <div style={{ width: 36 }}><Progress pct={d.pick_pct ?? 0} tone={d.risk === 'red' ? 'red' : d.risk === 'amber' ? 'amber' : ''}/></div>
                     </div>
                   </td>
-                  <td><Pill tone={d.status === 'Shipped' ? 'green' : d.status === 'Loaded' ? 'green' : d.status === 'Loading' ? 'slate' : d.status === 'Staged' ? 'sage' : d.status === 'Picking' ? 'amber' : 'grey'}>{d.status}</Pill></td>
-                  <td className="mono small">{d.dock.id}</td>
+                  <td><Pill tone={d.risk === 'red' ? 'red' : d.risk === 'amber' ? 'amber' : 'green'}>{d.risk || 'open'}</Pill></td>
+                  <td className="mono small">—</td>
                 </tr>
               ))}
+              {!outboundLoading && outboundToday.length === 0 && (
+                <tr><td colSpan={6} className="muted small">No live outbound deliveries for this plant.</td></tr>
+              )}
+              {outboundError && (
+                <tr><td colSpan={6} className="red small">Unable to load live outbound deliveries: {outboundError}</td></tr>
+              )}
             </tbody>
           </table>
         </Card>
@@ -179,16 +221,7 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
           <table className="tbl">
             <thead><tr><th>{t('warehouse.ct.col.to')}</th><th>{t('warehouse.common.col.type')}</th><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.ct.col.srcDst')}</th><th className="num">{t('warehouse.common.col.age')}</th><th>{t('warehouse.common.col.operator')}</th></tr></thead>
             <tbody>
-              {ageingTOs.map((to) => (
-                <tr key={to.id}>
-                  <td className="code">{to.id}</td>
-                  <td><span className="tag">{to.type}</span></td>
-                  <td><div style={{ fontSize: 12 }}>{to.material.name}</div></td>
-                  <td className="mono small">{to.srcBin} → {to.dstBin}</td>
-                  <td className="num amber bold">{Math.floor(to.ageMin / 60)}h {to.ageMin % 60}m</td>
-                  <td className="small">{to.assignedTo || <span className="muted">—</span>}</td>
-                </tr>
-              ))}
+              <tr><td colSpan={6} className="muted small">No live ageing transfer-order list endpoint is available yet.</td></tr>
             </tbody>
           </table>
         </Card>
@@ -196,18 +229,17 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
         <Card title={t('warehouse.ct.card.spaceConstraints')} subtitle="Utilisation by storage type · click to drill" eyebrow="Inventory"
           actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('inventory')}>All <Icon name="arrowRight" size={12}/></button>}>
           <div className="stack-8">
-            {WM.STORAGE_TYPES.slice(0, 6).map((s, i) => {
-              const bins = WM.STORAGE_BINS.filter((b) => b.storageType.id === s.id);
-              const occ = bins.filter((b) => b.status === 'Occupied').length;
-              const pct = (occ / bins.length) * 100;
+            {storageByType.map((s, i) => {
+              const pct = s.total > 0 ? (s.occupied / s.total) * 100 : 0;
               const tone = pct > 92 ? 'red' : pct > 80 ? 'amber' : '';
               return (
-                <Hbar key={i} label={`${s.id} · ${s.name}`} value={Math.round(pct) + '%'} max={100} tone={tone}/>
+                <Hbar key={i} label={`${s.id} · ${s.blocked} blocked`} value={Math.round(pct) + '%'} max={100} tone={tone}/>
               );
             })}
+            {storageByType.length === 0 && <div className="muted small">No live storage utilisation data for this plant.</div>}
           </div>
           <div style={{ marginTop: 12, padding: 10, background: 'var(--stone)', borderRadius: 6, fontSize: 12, color: 'var(--forest)' }}>
-            <span className="bold">Storage type 002 Bulk Bay</span> at 94% — block 3 incoming bulk drops from DHL tonight until return pallets cleared.
+            <span className="bold">Live bin utilisation</span> is scoped to the selected plant where quant plant data is available.
           </div>
         </Card>
       </div>

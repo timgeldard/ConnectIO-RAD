@@ -90,15 +90,18 @@ const OrderStagingDetail = ({ order }) => {
                   <td><button className="btn btn-xs btn-ghost"><Icon name="chevronRight" size={12}/></button></td>
                 </tr>
               ))}
+              {tr.length === 0 && (
+                <tr><td colSpan={8} className="muted small">No live transfer requirements are available for this order.</td></tr>
+              )}
             </tbody>
           </table>
         </Card>
 
         {order.dispensaryRequired && (
-          <Card title="Dispensary weighing" subtitle={`${disp.length || 2} micro-ingredients to weigh · tolerance ± 0.5%`}
+          <Card title="Dispensary weighing" subtitle={`${disp.length} micro-ingredients to weigh · tolerance ± 0.5%`}
             eyebrow="Dispensary">
             <div className="stack-8">
-              {(disp.length ? disp : WM.DISP_TASKS.slice(0, 3)).map((d, i) => (
+              {disp.map((d, i) => (
                 <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 120px 80px 100px', gap: 12, alignItems: 'center', fontSize: 12 }}>
                   <div>
                     <div className="primary">{d.material.name}</div>
@@ -110,6 +113,7 @@ const OrderStagingDetail = ({ order }) => {
                   <div><Pill tone={d.status === 'Weighed' ? 'green' : d.status === 'Weighing' ? 'amber' : 'grey'}>{d.status}</Pill></div>
                 </div>
               ))}
+              {disp.length === 0 && <div className="muted small">No live dispensary task detail is available for this order.</div>}
             </div>
           </Card>
         )}
@@ -131,6 +135,9 @@ const OrderStagingDetail = ({ order }) => {
                   <td className="muted small">{WM.fmtTime(h.lastScan)}</td>
                 </tr>
               ))}
+              {hu.length === 0 && (
+                <tr><td colSpan={6} className="muted small">No live handling units are available for this order.</td></tr>
+              )}
             </tbody>
           </table>
         </Card>
@@ -154,6 +161,9 @@ const OrderStagingDetail = ({ order }) => {
                   <td><Pill tone={t.status === 'Confirmed' ? 'green' : t.status === 'Exception' ? 'red' : t.status === 'Open' ? 'amber' : 'slate'}>{t.status}</Pill></td>
                 </tr>
               ))}
+              {to.length === 0 && (
+                <tr><td colSpan={8} className="muted small">No live transfer orders are available for this order.</td></tr>
+              )}
             </tbody>
           </table>
         </Card>
@@ -165,8 +175,8 @@ const OrderStagingDetail = ({ order }) => {
               <div className="t-eyebrow" style={{ color: order.risk === 'red' ? 'var(--sunset)' : 'var(--forest)' }}>Suggested action</div>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, lineHeight: 1.4, color: 'var(--forest)', marginTop: 6, maxWidth: 560 }}>
                 {order.risk === 'red'
-                  ? 'Escalate to Shift Supervisor. Reassign 2 pickers from Line 3 (slack after 11:40) to complete staging within next 45 minutes.'
-                  : order.start ? 'Confirm dispensary weighing starts by ' + WM.fmtTime(new Date(order.start.getTime() - 30 * 60000)) + ' to stay on track. Check bulk drop 02-BLK01 is cleared.' : 'Confirm dispensary weighing is on schedule to stay on track. Check bulk drop 02-BLK01 is cleared.'}
+                  ? 'Escalate to the shift supervisor and confirm staging recovery actions against live warehouse tasks.'
+                  : order.start ? 'Confirm required staging activity before ' + WM.fmtTime(new Date(order.start.getTime() - 30 * 60000)) + ' to stay on track.' : 'Confirm required staging activity is on schedule.'}
               </div>
               <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
                 <button className="btn btn-primary btn-sm"><Icon name="check" size={12}/> Acknowledge</button>
