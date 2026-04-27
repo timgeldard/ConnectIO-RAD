@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 
-export type LanguageCode = 'en' | 'fr' | 'es' | 'de' | 'zh' | 'pt' | 'id' | 'ms'
+export type LanguageCode = 'en' | 'fr' | 'es' | 'de' | 'zh-Hans' | 'zh-Hant' | 'ja' | 'pt' | 'id' | 'ms' | 'ga' | 'pl' | 'nl'
 export type TranslationValues = Record<string, string | number | boolean | null | undefined>
 export type LocaleResources = Partial<Record<LanguageCode, Record<string, string>>>
 
@@ -25,10 +25,15 @@ export const supportedLanguages: LanguageOption[] = [
   { code: 'fr', label: 'French', nativeLabel: 'Français', enabled: true },
   { code: 'es', label: 'Spanish', nativeLabel: 'Español', enabled: true },
   { code: 'de', label: 'German', nativeLabel: 'Deutsch', enabled: true },
-  { code: 'zh', label: 'Mandarin', nativeLabel: '中文', enabled: false },
-  { code: 'pt', label: 'Portuguese', nativeLabel: 'Português', enabled: false },
-  { code: 'id', label: 'Indonesian', nativeLabel: 'Bahasa Indonesia', enabled: false },
-  { code: 'ms', label: 'Malay', nativeLabel: 'Bahasa Melayu', enabled: false },
+  { code: 'zh-Hans', label: 'Simplified Chinese', nativeLabel: '简体中文', enabled: true },
+  { code: 'zh-Hant', label: 'Traditional Chinese', nativeLabel: '繁體中文', enabled: true },
+  { code: 'ja', label: 'Japanese', nativeLabel: '日本語', enabled: true },
+  { code: 'pt', label: 'Portuguese', nativeLabel: 'Português', enabled: true },
+  { code: 'id', label: 'Indonesian', nativeLabel: 'Bahasa Indonesia', enabled: true },
+  { code: 'ms', label: 'Malay', nativeLabel: 'Bahasa Melayu', enabled: true },
+  { code: 'ga', label: 'Irish', nativeLabel: 'Gaeilge', enabled: true },
+  { code: 'pl', label: 'Polish', nativeLabel: 'Polski', enabled: true },
+  { code: 'nl', label: 'Dutch', nativeLabel: 'Nederlands', enabled: true },
 ]
 
 const DEFAULT_LANGUAGE: LanguageCode = 'en'

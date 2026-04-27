@@ -1,18 +1,23 @@
 # Frontend Internationalization
 
 The frontend apps share i18n behavior through `@connectio/shared-frontend-i18n`.
-English is the default language. The first supported language set is English,
-French, Spanish, and German.
+English is the default language. The supported language set includes:
 
-Future languages are already represented in the shared language registry:
+- English (`en`)
+- French (`fr`)
+- Spanish (`es`)
+- German (`de`)
+- Simplified Chinese (`zh-Hans`)
+- Traditional Chinese (`zh-Hant`)
+- Japanese (`ja`)
+- Portuguese (`pt`)
+- Indonesian (`id`)
+- Malay (`ms`)
+- Gaeilge (`ga`)
+- Polish (`pl`)
+- Dutch (`nl`)
 
-- Mandarin: `zh`
-- Portuguese: `pt`
-- Indonesian: `id`
-- Malay: `ms`
-
-Mandarin may need to split into `zh-Hans` and `zh-Hant` later if the product
-needs separate simplified and traditional Chinese support.
+Chinese support is split into Simplified and Traditional variants to ensure correct script rendering across different regions.
 
 ## Shared Responsibilities
 
