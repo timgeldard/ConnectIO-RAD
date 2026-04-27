@@ -7,7 +7,7 @@ import type { PlantInfo } from '~/types';
 
 const SOURCE_ID = 'plants';
 const POSITRON_MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
-const PERSISTENT_TOOLTIP_MIN_ZOOM = 5;
+const PERSISTENT_TOOLTIP_MIN_ZOOM = 6;
 
 function buildPersistentTooltipElement(props: PlantFeatureProps): HTMLDivElement {
   const el = document.createElement('div');
@@ -178,7 +178,7 @@ export default function EnvMonGlobalMap({
           const marker = new maplibregl.Marker({
             element: el,
             anchor: 'top-left',
-            offset: [12, -8],
+            offset: [8, -4],
           })
             .setLngLat(coords)
             .addTo(map);

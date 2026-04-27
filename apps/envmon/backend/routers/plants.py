@@ -27,13 +27,22 @@ router = APIRouter()
 
 
 async def _fetch_active_plant_ids(token: str) -> list[str]:
-    """Return distinct plant codes that have at least one type-14/Z14 lot."""
+    """
+    Return plant codes that are EM-relevant: have ever had a type-14/Z14 lot
+    AND whose plant name does not start with "DNU" (decommissioned / do-not-use).
+
+    No date filter is applied here — relevance is "any history". KPIs over the
+    selected time window are computed downstream; plants with no tests in window
+    show as neglected.
+    """
     sql = f"""
-        SELECT DISTINCT PLANT_ID
-        FROM {LOT_TBL}
-        WHERE INSPECTION_TYPE IN {INSP_TYPES_SQL}
-          AND PLANT_ID IS NOT NULL
-        ORDER BY PLANT_ID
+        SELECT DISTINCT lot.PLANT_ID
+        FROM {LOT_TBL} lot
+        LEFT JOIN {PLANT_TBL} p ON p.PLANT_ID = lot.PLANT_ID
+        WHERE lot.INSPECTION_TYPE IN {INSP_TYPES_SQL}
+          AND lot.PLANT_ID IS NOT NULL
+          AND (p.PLANT_NAME IS NULL OR UPPER(p.PLANT_NAME) NOT LIKE 'DNU%')
+        ORDER BY lot.PLANT_ID
     """
     rows = await run_sql_async(token, sql)
     return [
