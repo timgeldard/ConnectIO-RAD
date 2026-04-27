@@ -4,7 +4,7 @@
 
 export type HeatmapStatus = 'PASS' | 'FAIL' | 'PENDING' | 'NO_DATA' | 'WARNING';
 export type HeatmapMode = 'deterministic' | 'continuous';
-export type TimeWindow = 30 | 60 | 90 | 180 | 365;
+export type TimeWindow = 30 | 60 | 90 | 180 | 365 | 730;
 
 export interface FloorInfo {
   floor_id: string;

@@ -559,7 +559,7 @@ export default function CoordinateMapper() {
                 )}
                 {filteredUnmapped.map((loc) => (
                   <div key={loc.func_loc_id} className="em-draggable-id" draggable
-                    onDragStart={() => setDragging({ funcLocId: loc.func_loc_id })}
+                    onDragStart={(e) => { e.dataTransfer.setData('text/plain', loc.func_loc_id); setDragging({ funcLocId: loc.func_loc_id }); }}
                     onDragEnd={() => setDragging(null)}
                     title={t('envmon.admin.loc.dragToMap')}>
                     <IconMove size={12} style={{ marginRight: 4, verticalAlign: 'middle', flexShrink: 0 }} />
@@ -583,7 +583,7 @@ export default function CoordinateMapper() {
                 {filteredMapped.map((loc) => (
                   <div key={loc.func_loc_id} className="em-mapped-row">
                     <div className="em-draggable-id em-mapped-draggable" draggable
-                      onDragStart={() => setDragging({ funcLocId: loc.func_loc_id })}
+                      onDragStart={(e) => { e.dataTransfer.setData('text/plain', loc.func_loc_id); setDragging({ funcLocId: loc.func_loc_id }); }}
                       onDragEnd={() => setDragging(null)}
                       title={t('envmon.admin.loc.dragToReposition', { floor: loc.floor_id })}
                       style={{ flex: 1, marginBottom: 0 }}>

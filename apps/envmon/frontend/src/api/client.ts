@@ -27,10 +27,10 @@ const apiFetch = fetchJson;
 // Plants (portfolio — no plant_id needed, returns all active plants)
 // ---------------------------------------------------------------------------
 
-export function usePlants() {
+export function usePlants(days = 30) {
   return useQuery<PlantInfo[]>({
-    queryKey: ['plants'],
-    queryFn: () => apiFetch('/api/em/plants'),
+    queryKey: ['plants', days],
+    queryFn: () => apiFetch(`/api/em/plants?days=${days}`),
     staleTime: 5 * 60_000,
   });
 }

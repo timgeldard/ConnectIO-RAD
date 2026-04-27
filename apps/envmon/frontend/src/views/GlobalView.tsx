@@ -2,21 +2,25 @@ import { useCallback, useMemo, useState } from 'react';
 import { useI18n } from '@connectio/shared-frontend-i18n';
 import EnvMonGlobalMap from '~/map/EnvMonGlobalMap';
 import { usePlantMapData } from '~/map/usePlantMapData';
+import { usePlants } from '~/api/client';
 import KPI from '~/components/ui/KPI';
 import type { PlantInfo } from '~/types';
 
+const PORTFOLIO_WINDOWS = [30, 90, 180, 365, 730] as const;
+
 interface Props {
-  plants: PlantInfo[];
   onOpenPlant: (plantId: string) => void;
 }
 
 const REGIONS = ['ALL', 'EMEA', 'AMER', 'APMEA'];
 
 /** Portfolio-level view showing risk map, KPI strip, and plant ranking list. */
-export default function GlobalView({ plants, onOpenPlant }: Props) {
+export default function GlobalView({ onOpenPlant }: Props) {
   const { t } = useI18n();
   const [region, setRegion] = useState('ALL');
   const [sortBy, setSortBy] = useState<'risk' | 'fails' | 'rate' | 'name'>('risk');
+  const [portfolioDays, setPortfolioDays] = useState(30);
+  const { data: plants = [] } = usePlants(portfolioDays);
 
   const { featureCollection, sortedPlants, scopedPlants } = usePlantMapData(
     plants,
@@ -61,16 +65,27 @@ export default function GlobalView({ plants, onOpenPlant }: Props) {
             {t('envmon.global.subtitle')}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {REGIONS.map((r) => (
-            <button
-              key={r}
-              className={`chip${region === r ? ' active' : ''}`}
-              onClick={() => setRegion(r)}
-            >
-              {r === 'ALL' ? t('envmon.global.allRegions') : r}
-            </button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <select
+            value={portfolioDays}
+            onChange={(e) => setPortfolioDays(Number(e.target.value))}
+            style={{ fontSize: 12, padding: '4px 8px' }}
+          >
+            {PORTFOLIO_WINDOWS.map((d) => (
+              <option key={d} value={d}>{t('envmon.filterBar.days', { n: d })}</option>
+            ))}
+          </select>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {REGIONS.map((r) => (
+              <button
+                key={r}
+                className={`chip${region === r ? ' active' : ''}`}
+                onClick={() => setRegion(r)}
+              >
+                {r === 'ALL' ? t('envmon.global.allRegions') : r}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

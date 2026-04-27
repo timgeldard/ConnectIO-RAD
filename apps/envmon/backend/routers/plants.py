@@ -9,7 +9,7 @@ import asyncio
 import logging
 from typing import Any, Optional
 
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, Query
 
 from backend.schemas.em import PlantInfo, PlantKpis
 from backend.utils.db import resolve_token, run_sql_async, sql_param
@@ -88,7 +88,6 @@ async def _fetch_plant_metadata(token: str, plant_ids: list[str]) -> dict[str, d
             PLANT_ID,
             PLANT_NAME,
             COUNTRY_ID,
-            REGION,
             CITY
         FROM {PLANT_TBL}
         WHERE PLANT_ID IN ({id_list})
@@ -104,15 +103,14 @@ async def _fetch_plant_metadata(token: str, plant_ids: list[str]) -> dict[str, d
                 metadata[plant_id].update({
                     "plant_name": _row_get(r, "PLANT_NAME", "plant_name", default=plant_id) or plant_id,
                     "country": _row_get(r, "COUNTRY_ID", "country_id", default="") or "",
-                    "region": _row_get(r, "REGION", "region", default="EMEA") or "EMEA",
                     "city": _row_get(r, "CITY", "city", default="") or "",
                 })
 
     return metadata
 
 
-async def _fetch_plant_kpis(token: str, plant_id: str) -> PlantKpis:
-    """30-day KPI summary for one plant."""
+async def _fetch_plant_kpis(token: str, plant_id: str, days: int = 30) -> PlantKpis:
+    """KPI summary for one plant over the given number of days."""
     params = [sql_param("plant_id", plant_id)]
     sql = f"""
         WITH base AS (
@@ -125,7 +123,7 @@ async def _fetch_plant_kpis(token: str, plant_id: str) -> PlantKpis:
             WHERE lot.PLANT_ID = :plant_id
               AND lot.INSPECTION_TYPE IN {INSP_TYPES_SQL}
               AND ip.FUNCTIONAL_LOCATION IS NOT NULL
-              AND lot.CREATED_ON >= DATEADD(DAY, -30, CURRENT_DATE)
+              AND lot.CREATED_ON >= DATEADD(DAY, -{days}, CURRENT_DATE)
         ),
         loc_status AS (
             SELECT
@@ -185,6 +183,7 @@ async def _count_floors(token: str, plant_id: str) -> int:
 
 @router.get("/plants", response_model=list[PlantInfo])
 async def list_plants(
+    days: int = Query(default=30, ge=7, le=730),
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
@@ -196,7 +195,7 @@ async def list_plants(
 
     metadata, kpi_results, floor_counts = await asyncio.gather(
         _fetch_plant_metadata(token, plant_ids),
-        asyncio.gather(*[_fetch_plant_kpis(token, pid) for pid in plant_ids]),
+        asyncio.gather(*[_fetch_plant_kpis(token, pid, days) for pid in plant_ids]),
         asyncio.gather(*[_count_floors(token, pid) for pid in plant_ids]),
     )
 

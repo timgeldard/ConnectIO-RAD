@@ -8,17 +8,7 @@ import type { PlantInfo } from '~/types';
 const SOURCE_ID = 'plants';
 const MAP_STYLE: string | maplibregl.StyleSpecification =
   (import.meta.env.VITE_MAP_STYLE_URL as string | undefined) ??
-  {
-    version: 8,
-    sources: {},
-    layers: [
-      {
-        id: 'background',
-        type: 'background',
-        paint: { 'background-color': '#eef3ef' },
-      },
-    ],
-  };
+  'https://demotiles.maplibre.org/style.json';
 
 interface TooltipState {
   x: number;

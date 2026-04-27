@@ -124,7 +124,6 @@ function AppShellContent() {
           />
         ) : (
           <GlobalView
-            plants={plants}
             onOpenPlant={navToSite}
           />
         )}
