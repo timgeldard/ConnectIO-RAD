@@ -11,9 +11,10 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Iterable
+from typing import Iterable, Optional
 from urllib.parse import urlparse
 
+from fastapi import Header, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -118,3 +119,33 @@ class SameOriginMiddleware(BaseHTTPMiddleware):
                 "origin": origin_host,
             },
         )
+
+def resolve_token(
+    x_forwarded_access_token: Optional[str],
+    authorization: Optional[str],
+) -> str:
+    """
+    Resolve the access token from request headers (priority order):
+      1. x-forwarded-access-token  — injected by the Databricks Apps proxy
+      2. Authorization: Bearer     — for local development / direct API calls
+    """
+    token = x_forwarded_access_token
+    if token is None and authorization and authorization.startswith("Bearer "):
+        token = authorization[len("Bearer "):]
+    if not token:
+        raise HTTPException(
+            status_code=401,
+            detail=(
+                "No access token present. Expected x-forwarded-access-token "
+                "header (set by Databricks Apps proxy) or Authorization: Bearer."
+            ),
+        )
+    return token
+
+
+def require_token(
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+) -> str:
+    """FastAPI dependency to require a valid access token."""
+    return resolve_token(x_forwarded_access_token, authorization)

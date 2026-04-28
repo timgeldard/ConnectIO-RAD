@@ -1,13 +1,5 @@
 """
 Lightweight in-process rate limiting middleware for FastAPI/Starlette.
-
-Design goals:
-- No external dependency requirement at runtime.
-- Similar ergonomics to SlowAPI for this project:
-    * @limiter.limit("30/minute") decorators on routes
-    * app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
-    * app.add_middleware(SlowAPIMiddleware)
-- Sensible global fallback when route-specific limits are not set.
 """
 
 from __future__ import annotations
@@ -120,15 +112,6 @@ limiter = _Limiter(default_limit="120/minute")
 
 
 def _extract_client_identity(request: Request) -> str:
-    """Identify the rate-limit bucket for a request.
-
-    Priority:
-    1. Hash of the Databricks passthrough token — stable per user session
-       without trusting unverifiable JWT claims.
-    2. x-forwarded-for header — identifies the originating IP when the app
-       sits behind a load-balancer.
-    3. ASGI client host — the direct TCP peer (last-resort fallback).
-    """
     token = request.headers.get("x-forwarded-access-token", "")
     if token:
         token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()[:24]
@@ -147,7 +130,7 @@ async def rate_limit_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"})
 
 
-class SlowAPIMiddleware(BaseHTTPMiddleware):
+class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         endpoint = request.scope.get("endpoint")
         rule = getattr(endpoint, "_rate_limit_rule", None) if endpoint else None
@@ -157,6 +140,3 @@ class SlowAPIMiddleware(BaseHTTPMiddleware):
         limiter.check(route_key=route_key, client_key=client, rule=rule)
 
         return await call_next(request)
-
-
-__all__ = ["limiter", "RateLimitExceeded", "SlowAPIMiddleware", "rate_limit_handler"]

@@ -1,12 +1,8 @@
-import logging
 import os
-import time
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Header, HTTPException
-from starlette.requests import Request as StarletteRequest
-
+from fastapi import Depends, Header
 from backend.routers.exclusions import router as exclusions_router
 from backend.routers.export import router as export_router
 from backend.routers.genie import router as genie_router
@@ -20,43 +16,36 @@ from backend.utils.db import (
     TRACE_SCHEMA,
     WAREHOUSE_HTTP_PATH,
     check_warehouse_config,
-    hostname,
-    resolve_token,
     run_sql,
     run_sql_async,
-    send_operational_alert,
-)
-from backend.utils.rate_limit import (
-    RateLimitExceeded,
-    SlowAPIMiddleware,
-    limiter,
-    rate_limit_handler,
 )
 from backend.utils.schema_contract import assert_gold_view_schema
 from shared_api import (
     create_api_app,
     health_payload,
     register_spa_routes,
-    safe_global_exception_response,
+    databricks_sql_ready,
 )
+from shared_api.security import require_token, resolve_token
+from shared_db.errors import send_operational_alert
 
 ENABLE_DEBUG_ENDPOINTS: bool = os.environ.get("APP_ENV", "").strip().lower() == "development"
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
-_LATENCY_BUDGETS_MS = {
+LATENCY_BUDGETS_MS = {
     "/api/spc/scorecard": 8_000,
     "/api/spc/chart-data": 5_000,
     "/api/spc/characteristics": 3_000,
     "/api/spc/materials": 2_000,
 }
-_DEFAULT_LATENCY_BUDGET_MS = 10_000
-logger = logging.getLogger(__name__)
 
 app = create_api_app(
     title="TraceApp API",
-    limiter=limiter,
-    rate_limit_exception=RateLimitExceeded,
-    rate_limit_handler=rate_limit_handler,
-    slowapi_middleware=SlowAPIMiddleware,
+    latency_budgets_ms=LATENCY_BUDGETS_MS,
+    latency_alert_callback=lambda path, dur, bud, status: send_operational_alert(
+        subject="Latency budget exceeded",
+        body=f"Request to {path} completed in {dur} ms (budget {bud} ms, status {status}).",
+        request_path=path,
+    ),
 )
 
 app.include_router(trace_router, prefix="/api", tags=["Traceability"])
@@ -68,47 +57,6 @@ app.include_router(exclusions_router, prefix="/api/spc", tags=["SPC Exclusions"]
 app.include_router(genie_router, prefix="/api/spc", tags=["Genie"])
 
 
-def _latency_budget_ms_for_path(path: str) -> int:
-    return _LATENCY_BUDGETS_MS.get(path, _DEFAULT_LATENCY_BUDGET_MS)
-
-
-@app.middleware("http")
-async def latency_middleware(request: StarletteRequest, call_next):
-    started_at = time.monotonic()
-    response = None
-    try:
-        response = await call_next(request)
-        return response
-    finally:
-        duration_ms = int((time.monotonic() - started_at) * 1000)
-        status_code = getattr(response, "status_code", 500)
-        request_path = request.url.path
-        budget_ms = _latency_budget_ms_for_path(request_path)
-        logger.info(
-            "request.completed path=%s status=%d duration_ms=%d",
-            request_path,
-            status_code,
-            duration_ms,
-        )
-        if duration_ms > budget_ms:
-            try:
-                send_operational_alert(
-                    subject="Latency budget exceeded",
-                    body=(
-                        f"Request to {request_path} completed in {duration_ms} ms "
-                        f"(budget {budget_ms} ms, status {status_code})."
-                    ),
-                    request_path=request_path,
-                )
-            except Exception:
-                logger.exception("latency_alert.failed path=%s", request_path)
-
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: StarletteRequest, exc: Exception):
-    return await safe_global_exception_response(request, exc, logger_name=__name__)
-
-
 @app.get("/api/health")
 async def health():
     return health_payload()
@@ -116,50 +64,20 @@ async def health():
 
 @app.get("/api/ready")
 async def ready():
-    try:
-        check_warehouse_config()
-    except HTTPException as exc:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "not_ready",
-                "reason": "warehouse_config_missing",
-                "message": exc.detail,
-            },
-        ) from exc
-
+    # We still need a custom ready for SPC because it also checks gold_view_schema drift
+    await databricks_sql_ready(
+        check_warehouse_config=check_warehouse_config,
+        run_sql=run_sql_async,
+    )
+    
     readiness_token = os.environ.get("DATABRICKS_READINESS_TOKEN", "").strip()
-    if not readiness_token:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "not_ready",
-                "reason": "readiness_token_missing",
-                "message": (
-                    "DATABRICKS_READINESS_TOKEN is not configured. "
-                    "A dedicated workspace token is required for SQL warehouse readiness checks."
-                ),
-            },
-        )
-
-    try:
-        rows = await run_sql_async(readiness_token, "SELECT 1 AS ok", endpoint_hint="system.readiness")
-    except Exception as exc:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "not_ready",
-                "reason": "sql_warehouse_unreachable",
-                "message": "An internal error occurred while reaching the SQL warehouse.",
-            },
-        ) from exc
-
     schema_result = await assert_gold_view_schema(
         readiness_token,
         TRACE_CATALOG,
         TRACE_SCHEMA,
     )
     if not schema_result.ok:
+        from fastapi import HTTPException
         raise HTTPException(
             status_code=503,
             detail={
@@ -181,7 +99,6 @@ async def ready():
             "gold_view_schema": "ok",
         },
         "schema_contract_version": schema_result.version,
-        "sample_result": rows[0] if rows else None,
     }
 
 
@@ -191,12 +108,14 @@ async def health_debug(
     authorization: Optional[str] = Header(default=None),
 ):
     if not ENABLE_DEBUG_ENDPOINTS:
+        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Not found")
+    
     resolve_token(x_forwarded_access_token, authorization)
+    
     return {
         "status": "ok",
         "databricks_host": DATABRICKS_HOST[:50] if DATABRICKS_HOST else "(NOT SET)",
-        "hostname_resolved": hostname()[:50] if hostname() else "(EMPTY)",
         "warehouse_http_path": WAREHOUSE_HTTP_PATH if WAREHOUSE_HTTP_PATH else "(NOT SET)",
         "trace_catalog": TRACE_CATALOG,
         "trace_schema": TRACE_SCHEMA,
@@ -211,8 +130,11 @@ async def test_query(
     authorization: Optional[str] = Header(default=None),
 ):
     if not ENABLE_DEBUG_ENDPOINTS:
+        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Not found")
+    
     token = resolve_token(x_forwarded_access_token, authorization)
+    
     info: dict = {"token_present": True, "token_length": len(token)}
     try:
         info["result"] = run_sql(token, "SELECT 1 AS ok")
