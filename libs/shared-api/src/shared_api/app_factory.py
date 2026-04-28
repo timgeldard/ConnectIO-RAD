@@ -1,3 +1,9 @@
+"""
+Application factory for ConnectIO-RAD FastAPI services.
+
+This module provides a unified way to create FastAPI applications with
+standardized middleware, exception handling, and security defaults.
+"""
 from __future__ import annotations
 
 import logging
@@ -30,13 +36,32 @@ def create_api_app(
     redoc_url: str | None = None,
     lifespan: Any | None = None,
     latency_budgets_ms: dict[str, int] | None = None,
+    default_latency_budget_ms: int = 10_000,
     latency_alert_callback: Callable[[str, int, int, int], Any] | None = None,
     allow_origins: list[str] | None = None,
     enable_rate_limit: bool = True,
+    trust_forwarded_user: bool = False,
     same_origin_middleware: type = SameOriginMiddleware,
 ) -> FastAPI:
     """
     Bootstrap a FastAPI application with standard ConnectIO-RAD defaults.
+
+    Args:
+        title: The title of the application.
+        version: The version of the application.
+        docs_url: The URL where Swagger UI will be served.
+        redoc_url: The URL where ReDoc will be served.
+        lifespan: Optional lifespan context manager for the FastAPI app.
+        latency_budgets_ms: A mapping of paths to their latency budgets in milliseconds.
+        default_latency_budget_ms: The default latency budget for paths not in latency_budgets_ms.
+        latency_alert_callback: A callback triggered when a request exceeds its latency budget.
+        allow_origins: A list of origins allowed for CORS. Defaults to ["*"] if None.
+        enable_rate_limit: Whether to enable the built-in rate limiting middleware.
+        trust_forwarded_user: Whether to trust the x-forwarded-preferred-username header for identity.
+        same_origin_middleware: The middleware class to use for same-origin enforcement.
+
+    Returns:
+        A pre-configured FastAPI application instance.
     """
     app = FastAPI(
         title=title,
@@ -66,7 +91,7 @@ def create_api_app(
     # Security: CORS
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=allow_origins or ["*"],
+        allow_origins=["*"] if allow_origins is None else allow_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -76,11 +101,12 @@ def create_api_app(
     app.add_middleware(
         LatencyMiddleware,
         latency_budgets_ms=latency_budgets_ms,
+        default_latency_budget_ms=default_latency_budget_ms,
         alert_callback=latency_alert_callback,
     )
 
     # Observability: Request Context (request_id)
-    app.add_middleware(RequestContextMiddleware)
+    app.add_middleware(RequestContextMiddleware, trust_forwarded_user=trust_forwarded_user)
 
     return app
 
@@ -94,6 +120,17 @@ def register_spa_routes(
 ) -> None:
     """
     Register catch-all routes to serve a Single Page Application (SPA).
+
+    This utility mounts a series of routes that attempt to serve static files from
+    a directory, falling back to index.html for unknown paths to support client-side
+    routing.
+
+    Args:
+        app: The FastAPI application to register routes on.
+        static_dir_getter: A callable that returns the Path to the static directory.
+            This is a callable to allow for late resolution of the path.
+        assets_path: The URL prefix for static assets.
+        missing_frontend_payload: The JSON payload to return if the frontend is not built.
     """
     fallback_payload = missing_frontend_payload or {"status": "backend running", "frontend": "not built"}
 

@@ -1,5 +1,11 @@
+"""
+Custom middleware for ConnectIO-RAD FastAPI applications.
+
+Includes middleware for latency monitoring and request context management.
+"""
 from __future__ import annotations
 
+import inspect
 import logging
 import time
 import uuid
@@ -15,6 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 class LatencyMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware that monitors request latency and triggers alerts if budgets are exceeded.
+    """
     def __init__(
         self,
         app: ASGIApp,
@@ -23,12 +32,24 @@ class LatencyMiddleware(BaseHTTPMiddleware):
         default_latency_budget_ms: int = 10_000,
         alert_callback: Callable[[str, int, int, int], Any] | None = None,
     ) -> None:
+        """
+        Initialize the latency middleware.
+
+        Args:
+            app: The ASGI application.
+            latency_budgets_ms: Specific latency budgets per request path.
+            default_latency_budget_ms: Default budget for paths not specified in latency_budgets_ms.
+            alert_callback: Optional callback to trigger when a budget is exceeded.
+        """
         super().__init__(app)
         self.latency_budgets_ms = latency_budgets_ms or {}
         self.default_latency_budget_ms = default_latency_budget_ms
         self.alert_callback = alert_callback
 
     async def dispatch(self, request: Request, call_next):
+        """
+        Record start time, call next handler, and log/alert on completion.
+        """
         started_at = time.monotonic()
         response = None
         try:
@@ -50,18 +71,42 @@ class LatencyMiddleware(BaseHTTPMiddleware):
             
             if duration_ms > budget_ms and self.alert_callback:
                 try:
-                    self.alert_callback(request_path, duration_ms, budget_ms, status_code)
+                    result = self.alert_callback(request_path, duration_ms, budget_ms, status_code)
+                    if inspect.isawaitable(result):
+                        # Since dispatch is not in an event loop that we control easily for 
+                        # async callbacks when the middleware itself is BaseHTTPMiddleware,
+                        # we need to be careful. BaseHTTPMiddleware.dispatch IS async.
+                        await result
                 except Exception:
                     logger.exception("latency_alert.failed path=%s", request_path)
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware that populates request.state with tracing and identity information.
+    """
+    def __init__(self, app: ASGIApp, trust_forwarded_user: bool = False) -> None:
+        """
+        Initialize the request context middleware.
+
+        Args:
+            app: The ASGI application.
+            trust_forwarded_user: Whether to trust the x-forwarded-preferred-username header.
+        """
+        super().__init__(app)
+        self.trust_forwarded_user = trust_forwarded_user
+
     async def dispatch(self, request: Request, call_next):
+        """
+        Extract request_id and user identity from headers and populate request.state.
+        """
         request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
         
-        # In a real implementation we might extract user email from a JWT in the header
-        # For now, we stub it.
-        user_email = request.headers.get("x-forwarded-preferred-username", "anonymous")
+        # Identity extraction: We only trust the forwarded header if explicitly configured.
+        # Otherwise, user_email remains anonymous unless set later by auth dependencies.
+        user_email = "anonymous"
+        if self.trust_forwarded_user:
+            user_email = request.headers.get("x-forwarded-preferred-username", "anonymous")
         
         request.state.request_id = request_id
         request.state.user_email = user_email

@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Depends, Header
+from fastapi import Depends, Header, HTTPException
 from backend.routers.exclusions import router as exclusions_router
 from backend.routers.export import router as export_router
 from backend.routers.genie import router as genie_router
@@ -77,7 +77,6 @@ async def ready():
         TRACE_SCHEMA,
     )
     if not schema_result.ok:
-        from fastapi import HTTPException
         raise HTTPException(
             status_code=503,
             detail={
@@ -108,7 +107,6 @@ async def health_debug(
     authorization: Optional[str] = Header(default=None),
 ):
     if not ENABLE_DEBUG_ENDPOINTS:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Not found")
     
     resolve_token(x_forwarded_access_token, authorization)
@@ -130,7 +128,6 @@ async def test_query(
     authorization: Optional[str] = Header(default=None),
 ):
     if not ENABLE_DEBUG_ENDPOINTS:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Not found")
     
     token = resolve_token(x_forwarded_access_token, authorization)

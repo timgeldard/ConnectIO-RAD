@@ -16,7 +16,7 @@ Core backend infrastructure for ConnectIO-RAD FastAPI applications.
 - **Latency Monitoring**: `LatencyMiddleware` with configurable budgets and operational alert callbacks.
 
 ### 📊 Database & Caching
-- **Cached Query Decorator**: `@cached_query` for easy integration with `shared-db` tiered caching.
+- **Cached Query Decorator**: `@cached_query` (Planned/In-progress) scaffold for future integration with `shared-db` tiered caching.
 - **SQLAlchemy Support**: (Planned) Standard session management dependencies.
 
 ### 👁️ Observability

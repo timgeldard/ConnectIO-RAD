@@ -1,3 +1,9 @@
+"""
+Caching decorators and utilities for SQL query results.
+
+This module provides placeholders for tiered caching logic, allowing
+endpoints to easily opt-in to result caching via decorators.
+"""
 from __future__ import annotations
 
 import functools
@@ -21,12 +27,20 @@ def cached_query(
     
     The decorated function must accept a 'token' as its first argument or 
     provide it via a keyword argument.
+
+    Args:
+        runtime: The SqlRuntime instance to use for caching.
+        tier: The cache tier to use (e.g., 'chart', 'metadata').
+        endpoint_hint: A hint for the cache key generation.
+
+    Returns:
+        A decorated function that wraps the original with caching logic.
     """
     def decorator(func: F) -> F:
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs) -> Any:
             # Try to find token in args or kwargs
-            token = _extract_token(func, args, kwargs)
+            _ = _extract_token(func, args, kwargs)
             
             # If we have a runtime and a token, we can use the runtime's cache
             # But wait, SqlRuntime.run_sql_async already handles caching!
@@ -50,12 +64,28 @@ def cached_query(
 
 
 def _extract_token(func: Callable, args: tuple, kwargs: dict) -> str:
-    if "token" in kwargs:
-        return kwargs["token"]
-    if args:
+    """
+    Safely extract 'token' from arguments or keyword arguments.
+
+    Args:
+        func: The function whose signature to inspect.
+        args: Positional arguments passed to the function.
+        kwargs: Keyword arguments passed to the function.
+
+    Returns:
+        The extracted token as a string, or an empty string if not found.
+    """
+    token = kwargs.get("token")
+    if isinstance(token, str):
+        return token
+    
+    if args and isinstance(args[0], str):
         return args[0]
     
-    # Try to find 'token' in the function signature defaults or arguments
-    sig = inspect.signature(func)
-    bound_args = sig.bind(*args, **kwargs)
-    return bound_args.arguments.get("token", "")
+    try:
+        sig = inspect.signature(func)
+        bound_args = sig.bind(*args, **kwargs)
+        token = bound_args.arguments.get("token", "")
+        return token if isinstance(token, str) else ""
+    except (TypeError, ValueError):
+        return ""

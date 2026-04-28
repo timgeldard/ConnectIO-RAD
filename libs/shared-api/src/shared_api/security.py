@@ -1,4 +1,4 @@
-"""Origin-header enforcement for state-mutating requests.
+"""Origin-header enforcement and token resolution for shared-api.
 
 The Databricks Apps deployment model serves each SPA and its FastAPI backend as
 one same-origin surface. Token passthrough via `x-forwarded-access-token`
@@ -25,6 +25,7 @@ _log = logging.getLogger(__name__)
 
 
 def _origin_host(origin_header: str) -> str | None:
+    """Extract the netloc (host) from an Origin or Referer header."""
     if not origin_header:
         return None
     try:
@@ -37,6 +38,7 @@ def _origin_host(origin_header: str) -> str | None:
 
 
 def _parse_env_allowed_origins() -> set[str]:
+    """Parse APP_ALLOWED_ORIGINS or SPC_ALLOWED_ORIGINS from environment."""
     raw = os.environ.get("APP_ALLOWED_ORIGINS", os.environ.get("SPC_ALLOWED_ORIGINS", "")).strip()
     if not raw:
         return set()
@@ -52,6 +54,7 @@ def _parse_env_allowed_origins() -> set[str]:
 
 
 def _trust_forwarded_host() -> bool:
+    """Check if the environment explicitly trusts X-Forwarded-Host."""
     return os.environ.get("APP_TRUST_X_FORWARDED_HOST", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
@@ -59,6 +62,13 @@ class SameOriginMiddleware(BaseHTTPMiddleware):
     """Reject mutating browser requests whose Origin/Referer does not match Host."""
 
     def __init__(self, app: ASGIApp, extra_allowed: Iterable[str] | None = None) -> None:
+        """
+        Initialize the same-origin middleware.
+
+        Args:
+            app: The ASGI application.
+            extra_allowed: Additional origins allowed beyond the current Host.
+        """
         super().__init__(app)
         self._static_allowed: set[str] = set()
         for origin in extra_allowed or ():
@@ -67,6 +77,9 @@ class SameOriginMiddleware(BaseHTTPMiddleware):
                 self._static_allowed.add(host)
 
     async def dispatch(self, request: Request, call_next):
+        """
+        Verify that the Origin/Referer header matches the Host header for mutations.
+        """
         if request.method.upper() in _SAFE_METHODS:
             return await call_next(request)
 
@@ -125,9 +138,17 @@ def resolve_token(
     authorization: Optional[str],
 ) -> str:
     """
-    Resolve the access token from request headers (priority order):
-      1. x-forwarded-access-token  — injected by the Databricks Apps proxy
-      2. Authorization: Bearer     — for local development / direct API calls
+    Resolve the access token from request headers (priority order).
+
+    Args:
+        x_forwarded_access_token: Token injected by the Databricks Apps proxy.
+        authorization: Standard Authorization: Bearer <token> header.
+
+    Returns:
+        The resolved token as a string.
+
+    Raises:
+        HTTPException: 401 if no token is found.
     """
     token = x_forwarded_access_token
     if token is None and authorization and authorization.startswith("Bearer "):
@@ -147,5 +168,14 @@ def require_token(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ) -> str:
-    """FastAPI dependency to require a valid access token."""
+    """
+    FastAPI dependency to require a valid access token.
+
+    Args:
+        x_forwarded_access_token: Extracted from x-forwarded-access-token header.
+        authorization: Extracted from Authorization header.
+
+    Returns:
+        The resolved token.
+    """
     return resolve_token(x_forwarded_access_token, authorization)

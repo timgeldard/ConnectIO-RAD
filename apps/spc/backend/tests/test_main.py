@@ -51,15 +51,21 @@ def test_test_query_hidden_in_production(monkeypatch):
 
 
 def test_global_exception_handler_returns_safe_500():
-    # To test the global exception handler, we need a route that is NOT caught by SPA fallback.
-    # We also need to tell TestClient NOT to raise server exceptions.
-    
-    local_client = TestClient(app, raise_server_exceptions=False)
-    
-    @app.post("/api/trigger-error-test")
+    # To test the global exception handler, we use a fresh app to avoid polluting the shared one.
+    from fastapi import FastAPI
+    from shared_api import safe_global_exception_response
+
+    test_app = FastAPI()
+
+    @test_app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        return await safe_global_exception_response(request, exc, logger_name="test-app")
+
+    @test_app.post("/api/trigger-error-test")
     async def trigger_error():
         raise RuntimeError("secret details")
     
+    local_client = TestClient(test_app, raise_server_exceptions=False)
     response = local_client.post("/api/trigger-error-test")
     
     assert response.status_code == 500
