@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 // Mock data aligned to Kerry Databricks dashboard:
 // connected_plant_uat.csm_process_order_history.* views
 // Real schema: PROCESS_ORDER_ID (10-digit numeric), MATERIAL_ID, BATCH_ID, etc.
@@ -29,7 +29,7 @@ const PRODUCTS = [
 ];
 
 const PLANTS = [
-  { code: 'NAA1', name: 'Naas, IE' },
+  { code: 'RUN1', name: 'Runcorn, UK' },
   { code: 'BVL2', name: 'Beloit, US' },
   { code: 'LND3', name: 'Landgraaf, NL' },
   { code: 'TRS4', name: 'Três Corações, BR' },
@@ -460,14 +460,14 @@ export const KERRY_DATA: any = { ORDERS: ORDERS_LIST, STATUSES: STATUSES_LIST, b
 // ============================================================
 // Production lines — modeled after the equipment IDs that show up in vw_gold_equipment_history
 const PLAN_LINES = [
-  { id: 'MIX-04', name: 'Mixer Line A',     plant: 'NAA1', cap: 'BLEND/MIX',     shift: '24/7', maxKgH: 850 },
-  { id: 'MIX-07', name: 'Mixer Line B',     plant: 'NAA1', cap: 'BLEND/MIX',     shift: '24/5', maxKgH: 720 },
-  { id: 'SPD-02', name: 'Spray Dryer 2',    plant: 'NAA1', cap: 'SPRAY DRY',     shift: '24/7', maxKgH: 1100 },
+  { id: 'MIX-04', name: 'Mixer Line A',     plant: 'RUN1', cap: 'BLEND/MIX',     shift: '24/7', maxKgH: 850 },
+  { id: 'MIX-07', name: 'Mixer Line B',     plant: 'RUN1', cap: 'BLEND/MIX',     shift: '24/5', maxKgH: 720 },
+  { id: 'SPD-02', name: 'Spray Dryer 2',    plant: 'RUN1', cap: 'SPRAY DRY',     shift: '24/7', maxKgH: 1100 },
   { id: 'SPD-05', name: 'Spray Dryer 5',    plant: 'BVL2', cap: 'SPRAY DRY',     shift: '24/7', maxKgH: 1300 },
-  { id: 'PCK-12', name: 'Packing Line 12',  plant: 'NAA1', cap: 'PACKING',       shift: '12/5', maxKgH: 540 },
+  { id: 'PCK-12', name: 'Packing Line 12',  plant: 'RUN1', cap: 'PACKING',       shift: '12/5', maxKgH: 540 },
   { id: 'PCK-18', name: 'Packing Line 18',  plant: 'BVL2', cap: 'PACKING',       shift: '24/7', maxKgH: 620 },
   { id: 'EXT-03', name: 'Extruder 3',       plant: 'LND3', cap: 'EXTRUSION',     shift: '24/5', maxKgH: 480 },
-  { id: 'CIP-01', name: 'CIP Skid 1',       plant: 'NAA1', cap: 'CLEANING',      shift: 'on-demand', maxKgH: null },
+  { id: 'CIP-01', name: 'CIP Skid 1',       plant: 'RUN1', cap: 'CLEANING',      shift: 'on-demand', maxKgH: null },
 ];
 
 // Generate scheduled blocks across 7 days × 8 lines.

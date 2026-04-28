@@ -124,46 +124,15 @@ const PLANTS = [
 
 function PlantSwitcher() {
   const { t } = useT()
-  const [open, setOpen] = useState(false)
-  const [active, setActive] = useState('NAA')
-  const ref = useRef<HTMLDivElement | null>(null)
-  useEffect(() => {
-    const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDoc)
-    return () => document.removeEventListener('mousedown', onDoc)
-  }, [])
-  const cur = PLANTS.find(p => p.code === active)!
   return (
-    <div className="plant-switch" ref={ref}>
-      <button className={`plant-pill ${open ? 'open' : ''}`} onClick={() => setOpen(o => !o)}>
+    <div className="plant-switch">
+      <div className="plant-pill" style={{ cursor: 'default' }}>
         <span className="pp-icon">{I.mapPin}</span>
         <div className="pp-text">
           <div className="pp-label">{t.plantLabel}</div>
-          <div className="pp-name">{cur.name}, {cur.country}</div>
+          <div className="pp-name">Runcorn, United Kingdom</div>
         </div>
-        <span className="pp-chev">{I.chevD}</span>
-      </button>
-      {open && (
-        <div className="plant-menu">
-          <div className="plant-menu-label">{t.switchPlant || 'Switch plant'}</div>
-          {PLANTS.map(p => (
-            <button
-              key={p.code}
-              className={`plant-opt ${p.code === active ? 'active' : ''}`}
-              onClick={() => { setActive(p.code); setOpen(false) }}
-            >
-              <span className="po-icon">{I.factory}</span>
-              <div className="po-text">
-                <div className="po-name">{p.name}</div>
-                <div className="po-country">{p.country}</div>
-              </div>
-              {p.code === active && I.check}
-            </button>
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -171,9 +140,10 @@ function PlantSwitcher() {
 interface SidebarProps {
   active?: string
   onNavigate?: (key: string) => void
+  user?: { name: string; initials: string } | null
 }
 
-export function Sidebar({ active = 'orders', onNavigate = () => {} }: SidebarProps) {
+export function Sidebar({ active = 'orders', onNavigate = () => {}, user }: SidebarProps) {
   const { t } = useT()
   const cls = (key: string) => 'nav-item' + (active === key ? ' active' : '')
   return (
@@ -201,8 +171,6 @@ export function Sidebar({ active = 'orders', onNavigate = () => {} }: SidebarPro
       <div className="sidebar-label">{t.sectionQuality}</div>
       <div className="sidebar-section">
         <div className={cls('qa')} onClick={() => onNavigate('qa')}>{cloneElement(I.beaker as ReactElement, { className: 'ico' })}<span>{t.navQA}</span></div>
-        <div className={cls('compliance')} onClick={() => onNavigate('compliance')}>{cloneElement(I.shield as ReactElement, { className: 'ico' })}<span>{t.navCompliance}</span><span className="count">3</span></div>
-        <div className={cls('documents')} onClick={() => onNavigate('documents')}>{cloneElement(I.fileText as ReactElement, { className: 'ico' })}<span>{t.navDocuments}</span></div>
       </div>
 
       <div className="sidebar-label">{t.sectionInsights}</div>
@@ -212,9 +180,9 @@ export function Sidebar({ active = 'orders', onNavigate = () => {} }: SidebarPro
       </div>
 
       <div className="sidebar-foot">
-        <div className="avatar">MB</div>
+        <div className="avatar">{user?.initials ?? '—'}</div>
         <div>
-          <div className="user-name">Maeve Brennan</div>
+          <div className="user-name">{user?.name ?? '…'}</div>
           <div className="user-role">{t.userRole}</div>
         </div>
       </div>

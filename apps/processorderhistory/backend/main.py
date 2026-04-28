@@ -1,12 +1,4 @@
-"""Process Order History — FastAPI entry.
-
-Boots the SPA + a small surface of read-only API endpoints. The current build
-exposes only health and readiness probes; the React frontend ships with mock
-data sourced from `frontend/src/data/mock.ts`. Wiring against
-`connected_plant_uat.csm_process_order_history.*` views is tracked in
-`docs/architecture.md` and lives behind future routers under `backend/routers/`.
-"""
-
+"""Process Order History — FastAPI entry."""
 from pathlib import Path
 
 from starlette.requests import Request as StarletteRequest
@@ -17,10 +9,19 @@ from shared_api import (
     register_spa_routes,
     safe_global_exception_response,
 )
+from backend.db import check_warehouse_config
+from backend.routers.me_router import router as me_router
+from backend.routers.orders import router as orders_router
+from backend.routers.order_detail_router import router as order_detail_router
+from backend.routers.pours_router import router as pours_router
 
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 
 app = create_api_app(title="Process Order History API")
+app.include_router(me_router, prefix="/api")
+app.include_router(orders_router, prefix="/api")
+app.include_router(order_detail_router, prefix="/api")
+app.include_router(pours_router, prefix="/api")
 
 
 @app.exception_handler(Exception)
@@ -36,12 +37,8 @@ async def health():
 
 @app.get("/api/ready")
 async def ready():
-    """Readiness probe.
-
-    Returns 200 immediately because the current build serves only static
-    assets and in-memory mock data. When SQL-backed routers are added, swap
-    this for a `databricks_sql_ready` call (see trace2 for reference).
-    """
+    """Readiness probe — verifies warehouse config is present."""
+    check_warehouse_config()
     return {"status": "ok"}
 
 

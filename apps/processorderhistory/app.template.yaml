@@ -13,6 +13,8 @@ env:
   - name: DATABRICKS_WAREHOUSE_HTTP_PATH
     value: "${DATABRICKS_WAREHOUSE_HTTP_PATH}"
   - name: POH_CATALOG
-    value: "connected_plant_uat"
+    value: "${POH_CATALOG}"
   - name: POH_SCHEMA
-    value: "gold"
+    value: "${POH_SCHEMA}"
+  - name: APP_TRUST_X_FORWARDED_HOST
+    value: "true"

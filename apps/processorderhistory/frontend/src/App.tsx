@@ -6,6 +6,7 @@ import { OrderList } from './pages/OrderList'
 import { OrderDetail } from './pages/OrderDetail'
 import { PlanningBoard } from './pages/PlanningBoard'
 import { PourAnalyticsPage } from './pages/PourAnalytics'
+import { fetchCurrentUser, type CurrentUser } from './api/me'
 import { ORDERS } from './data/mock'
 
 type View =
@@ -19,6 +20,11 @@ const HOUR = 3600 * 1000
 export default function App() {
   const [view, setView] = useState<View>({ name: 'list' })
   const [lineFilter, setLineFilter] = useState('ALL')
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+
+  useEffect(() => {
+    fetchCurrentUser().then(u => setCurrentUser(u)).catch(() => {})
+  }, [])
 
   const sidebarActive =
     view.name === 'planning' ? 'planning' :
@@ -87,7 +93,7 @@ export default function App() {
   return (
     <LangProvider>
       <div className="app">
-        <Sidebar active={sidebarActive} onNavigate={onNavigate} />
+        <Sidebar active={sidebarActive} onNavigate={onNavigate} user={currentUser} />
         <main className="main">
           {view.name === 'list' && (
             <OrderList
