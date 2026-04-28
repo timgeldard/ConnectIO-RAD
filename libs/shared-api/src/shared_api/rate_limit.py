@@ -1,13 +1,8 @@
 """
 Lightweight in-process rate limiting middleware for FastAPI/Starlette.
 
-Design goals:
-- No external dependency requirement at runtime.
-- Similar ergonomics to SlowAPI for this project:
-    * @limiter.limit("30/minute") decorators on routes
-    * app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
-    * app.add_middleware(SlowAPIMiddleware)
-- Sensible global fallback when route-specific limits are not set.
+This module provides a simple, in-process rate limiter that can be used
+as middleware or a decorator for specific routes.
 """
 
 from __future__ import annotations
@@ -30,11 +25,13 @@ class RateLimitExceeded(Exception):
 
 @dataclass(frozen=True)
 class RateLimitRule:
+    """Defines a rate limit rule: number of requests allowed in a time window."""
     requests: int
     window_seconds: int
 
 
 def _parse_limit(limit: str) -> RateLimitRule:
+    """Parse a rate limit string (e.g., '10/minute') into a RateLimitRule."""
     raw = limit.strip().lower()
     if "/" not in raw:
         raise ValueError(f"Invalid rate limit format: {limit}")
@@ -63,7 +60,15 @@ def _parse_limit(limit: str) -> RateLimitRule:
 
 
 class _Limiter:
+    """In-memory rate limiter implementation using a sliding window."""
     def __init__(self, default_limit: str = "120/minute", max_buckets: int = 10_000) -> None:
+        """
+        Initialize the limiter.
+
+        Args:
+            default_limit: The default rate limit to apply if none is specified for a route.
+            max_buckets: Maximum number of tracking buckets to keep in memory.
+        """
         self.default_rule = _parse_limit(default_limit)
         self._events: dict[tuple[str, str], deque[float]] = defaultdict(deque)
         self._last_seen: dict[tuple[str, str], float] = {}
@@ -71,6 +76,7 @@ class _Limiter:
         self._lock = Lock()
 
     def limit(self, limit: str) -> Callable:
+        """Decorator to set a specific rate limit for a route."""
         rule = _parse_limit(limit)
 
         def decorator(func: Callable) -> Callable:
@@ -80,6 +86,17 @@ class _Limiter:
         return decorator
 
     def check(self, route_key: str, client_key: str, rule: RateLimitRule | None) -> None:
+        """
+        Check if a request exceeds the rate limit.
+
+        Args:
+            route_key: The identifier for the route being accessed.
+            client_key: The identifier for the client making the request.
+            rule: Optional specific rule to apply.
+
+        Raises:
+            RateLimitExceeded: if the limit is exceeded.
+        """
         active_rule = rule or self.default_rule
         now = time.time()
         window_start = now - active_rule.window_seconds
@@ -98,6 +115,7 @@ class _Limiter:
             self._last_seen[bucket_key] = now
 
     def _purge_inactive_buckets(self, window_start: float) -> None:
+        """Remove buckets that have no events within the current window."""
         stale_keys: list[tuple[str, str]] = []
         for bucket_key, events in self._events.items():
             while events and events[0] <= window_start:
@@ -109,6 +127,7 @@ class _Limiter:
             self._last_seen.pop(bucket_key, None)
 
     def _evict_oldest_bucket(self) -> None:
+        """Evict the least recently used bucket when memory limit is reached."""
         if not self._last_seen:
             return
         oldest_key = min(self._last_seen, key=lambda key: self._last_seen[key])
@@ -120,15 +139,7 @@ limiter = _Limiter(default_limit="120/minute")
 
 
 def _extract_client_identity(request: Request) -> str:
-    """Identify the rate-limit bucket for a request.
-
-    Priority:
-    1. Hash of the Databricks passthrough token — stable per user session
-       without trusting unverifiable JWT claims.
-    2. x-forwarded-for header — identifies the originating IP when the app
-       sits behind a load-balancer.
-    3. ASGI client host — the direct TCP peer (last-resort fallback).
-    """
+    """Extract a unique identity for the client from request headers."""
     token = request.headers.get("x-forwarded-access-token", "")
     if token:
         token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()[:24]
@@ -144,11 +155,14 @@ def _extract_client_identity(request: Request) -> str:
 
 
 async def rate_limit_handler(request: Request, exc: Exception):
+    """Global exception handler for RateLimitExceeded."""
     return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"})
 
 
-class SlowAPIMiddleware(BaseHTTPMiddleware):
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Middleware that applies rate limiting to all incoming requests."""
     async def dispatch(self, request: Request, call_next):
+        """Check rate limit before proceeding with the request."""
         endpoint = request.scope.get("endpoint")
         rule = getattr(endpoint, "_rate_limit_rule", None) if endpoint else None
 
@@ -157,6 +171,3 @@ class SlowAPIMiddleware(BaseHTTPMiddleware):
         limiter.check(route_key=route_key, client_key=client, rule=rule)
 
         return await call_next(request)
-
-
-__all__ = ["limiter", "RateLimitExceeded", "SlowAPIMiddleware", "rate_limit_handler"]

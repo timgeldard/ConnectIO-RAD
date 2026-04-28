@@ -1,3 +1,9 @@
+"""
+Health and readiness utilities for shared-api.
+
+Provides standardized payloads and connectivity checks for FastAPI services,
+particularly focusing on Databricks SQL connectivity.
+"""
 from __future__ import annotations
 
 import inspect
@@ -13,14 +19,17 @@ RunSql = Callable[..., Any]
 
 
 def health_payload() -> dict[str, str]:
+    """Returns a simple health status payload."""
     return {"status": "ok"}
 
 
 def readiness_token_from_env(env_var: str = "DATABRICKS_READINESS_TOKEN") -> str:
+    """Extracts the readiness token from the environment."""
     return os.environ.get(env_var, "").strip()
 
 
 def not_ready(reason: str, *, message: Any | None = None) -> HTTPException:
+    """Helper to create a consistent 503 Not Ready exception."""
     detail: dict[str, Any] = {"status": "not_ready", "reason": reason}
     if message is not None:
         detail["message"] = message
@@ -28,12 +37,14 @@ def not_ready(reason: str, *, message: Any | None = None) -> HTTPException:
 
 
 async def maybe_await(value: Any) -> Any:
+    """Await a value if it is awaitable, otherwise return it as is."""
     if inspect.isawaitable(value):
         return await value
     return value
 
 
 def accepts_keyword(func: RunSql, name: str) -> bool:
+    """Check if a function signature accepts a specific keyword argument."""
     try:
         signature = inspect.signature(func)
     except (TypeError, ValueError):
@@ -55,6 +66,25 @@ async def databricks_sql_ready(
     readiness_token_message: str | None = None,
     sql_error_message: str | None = None,
 ) -> dict[str, Any]:
+    """
+    Check if the Databricks SQL warehouse is ready and reachable.
+
+    Args:
+        check_warehouse_config: Callable to verify warehouse configuration.
+        run_sql: Callable to execute a SQL query.
+        query: The SQL query to run for the readiness check.
+        endpoint_hint: Optional hint for the query execution.
+        include_sample_result: Whether to include the first row of the query result.
+        warehouse_config_message: Custom message for configuration errors.
+        readiness_token_message: Custom message for missing readiness token.
+        sql_error_message: Custom message for SQL execution errors.
+
+    Returns:
+        A dictionary containing the readiness status and checks performed.
+
+    Raises:
+        HTTPException: 503 if the warehouse is not ready.
+    """
     try:
         check_warehouse_config()
     except HTTPException as exc:
