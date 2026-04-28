@@ -98,7 +98,20 @@ type LoadState =
 - Include label, value, unit, and optional tone (good/bad/warn/muted)
 - Include sub-text for context (date range, comparison, etc.)
 
-## 6. Build and Deployment
+## 6. Internationalization (i18n)
+
+### 6.1 Language Support
+- The monorepo supports 13 core languages: `en`, `de`, `fr`, `es`, `ja`, `pt`, `id`, `ms`, `ga`, `pl`, `nl`, `uk`, `da`.
+- All strings MUST be defined in `src/i18n/resources.json`.
+- Do NOT hardcode strings in components.
+
+### 6.2 Validation
+- 100% coverage is mandatory for all 13 languages.
+- Keys must be identical across all languages.
+- Placeholders like `{{ value }}` must be consistent across translations.
+- Run `python3 scripts/validate_i18n.py` to verify coverage.
+
+## 7. Build and Deployment
 
 - Frontend builds to `frontend/dist/`
 - FastAPI serves `dist/index.html` as SPA fallback

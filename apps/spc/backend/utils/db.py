@@ -7,15 +7,12 @@ data freshness, and exclusion snapshot helpers.
 """
 
 import asyncio
-import hashlib
 import json
 import logging
 import os
 import re
 import threading
-import time
 import uuid
-import orjson
 from typing import Optional
 
 from fastapi import HTTPException
@@ -39,6 +36,7 @@ from shared_db.executors import (
     _REST_EXECUTOR,
     _sql_executor,
 )
+from shared_db.freshness import DataFreshnessRuntime
 from shared_db.runtime import (
     CachePolicy,
     CacheTier,
@@ -56,9 +54,6 @@ except ImportError:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 _VIEW_NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
-
-_freshness_cache     = TTLCache(maxsize=50,  ttl=300)
-_freshness_cache_lock = threading.Lock()
 
 _SQL_CACHE_ROW_LIMIT = 1000
 _QUERY_AUDIT_TABLE_NAME = "spc_query_audit"
@@ -234,6 +229,12 @@ _scorecard_cache_lock = _sql_runtime.cache_lock
 _chart_cache = _sql_runtime._tier_caches["chart"]
 _chart_cache_lock = _sql_runtime.cache_lock
 
+_freshness_runtime = DataFreshnessRuntime(
+    run_sql=lambda token, statement, params=None: run_sql(token, statement, params),
+    catalog=lambda: TRACE_CATALOG,
+    schema=lambda: TRACE_SCHEMA,
+)
+
 
 # ---------------------------------------------------------------------------
 # SPC run_sql_async — shared runtime with tiered cache + query audit
@@ -261,47 +262,7 @@ async def run_sql_async(
 # Data freshness
 # ---------------------------------------------------------------------------
 def get_data_freshness(token: str, source_views: list[str]) -> dict:
-    safe_views = sorted({v for v in source_views if _VIEW_NAME_RE.match(v)})
-    if not safe_views:
-        return {"generated_at_utc": int(time.time()), "sources": []}
-
-    token_hash = hashlib.sha256(token.encode()).hexdigest()
-    cache_key = (token_hash, tuple(safe_views))
-    with _freshness_cache_lock:
-        cached = _freshness_cache.get(cache_key)
-    if cached is not None:
-        return orjson.loads(cached)
-
-    params = [
-        sql_param("catalog_name", TRACE_CATALOG),
-        sql_param("schema_name", TRACE_SCHEMA),
-    ]
-    view_clauses: list[str] = []
-    for idx, view in enumerate(safe_views):
-        param_name = f"view_{idx}"
-        view_clauses.append(f"table_name = :{param_name}")
-        params.append(sql_param(param_name, view))
-
-    query = f"""
-        SELECT
-            table_name AS source_view,
-            CAST(last_altered AS STRING) AS last_altered_utc
-        FROM system.information_schema.tables
-        WHERE table_catalog = :catalog_name
-          AND table_schema = :schema_name
-          AND ({' OR '.join(view_clauses)})
-        ORDER BY table_name
-    """
-    rows = run_sql(token, query, params)
-    result = {
-        "generated_at_utc": int(time.time()),
-        "catalog": TRACE_CATALOG,
-        "schema": TRACE_SCHEMA,
-        "sources": rows,
-    }
-    with _freshness_cache_lock:
-        _freshness_cache[cache_key] = orjson.dumps(result)
-    return result
+    return _freshness_runtime.get_data_freshness(token, source_views)
 
 
 # ---------------------------------------------------------------------------

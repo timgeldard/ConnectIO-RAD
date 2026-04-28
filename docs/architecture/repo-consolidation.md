@@ -74,6 +74,27 @@ Committed generated configs are allowed only when they match the default render.
 npm run render:app-configs
 ```
 
+## Current Status (April 2026)
+
+The primary consolidation phase is complete. All apps (envmon, SPC, trace2, warehouse360, processorderhistory) are part of the monorepo and share:
+- Deployment infrastructure (`scripts/deploy_app.py`)
+- SQL Runtime and Data Freshness checks (`libs/shared-db`)
+- Core Traceability logic (`libs/shared-trace`)
+- Frontend API and i18n utilities (`libs/shared-frontend-*`)
+- Strict i18n validation (13 languages enforced)
+
+### Next Steps
+1. **Data Contract Catalog**: Promote `reports/consolidation/sql-table-map.md` into a maintained source-of-truth.
+2. **Real UAT Deploys**: Execute the first live deploys through the shared wrapper for all apps.
+3. **Migration Manifests**: Standardize the SQL migration entries in `deploy.toml`.
+
+## Documentation Cleanup (April 2026)
+
+To maintain a high-signal repository, stale plans and temporary consolidation tracking files have been removed:
+- Root-level consolidation plans (`BACKEND_CONSOLIDATION_*.md`, `CONSOLIDATION_EXECUTION_PLAN.md`, `REPO_CONSOLIDATION_OPPORTUNITY_MAP.md`) were merged into this document or `TODO.md`.
+- Legacy SPC migration plans and quality reviews from early 2026 were deleted.
+- Finished spec-level plans in `apps/spc/specs/` were deleted.
+
 ## Adding Or Changing A Project
 
 When adding an app or shared package:

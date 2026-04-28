@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: validate-i18n
+        name: Validate i18n
+        entry: python3 scripts/validate_i18n.py
+        language: system
+        files: ^apps/.*/i18n/resources\.json$
+        pass_filenames: false

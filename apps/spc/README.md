@@ -70,23 +70,18 @@ The FastAPI backend is built with a layered architecture:
 *   **Schemas** define Pydantic models for request/response contracts.
 *   **Data Access Layer (DAL)** manages programmatic SQL generation via **PyPika**, ensuring injection safety and deterministic data formatting.
 
-SQL is executed through a swappable adapter in `backend/utils/db.py`. The official `databricks-sql-connector` is now the default path (`SPC_SQL_EXECUTOR=connector`), and `SPC_SQL_EXECUTOR=rest` remains available as a fallback using the Databricks Statement Execution REST API.
+SQL is executed through a swappable adapter in `backend/utils/db.py` which delegates to `shared-db`.
 
 ---
 
 ## Local Development
 
-### Prerequisites
-
-- Python 3.11+
-- Node.js 20+
-- Databricks workspace with a SQL Warehouse
+For general monorepo setup, see the [Monorepo Development Guide](../../docs/monorepo-development.md).
 
 ### 1 — Setup
 
 ```bash
-git clone https://github.com/timgeldard/spc.git
-cd spc
+cd apps/spc
 cp .env.example .env
 # Configure your workspace host and warehouse ID in .env
 ```
@@ -94,8 +89,7 @@ cp .env.example .env
 ### 2 — Backend
 
 ```bash
-pip install -r backend/requirements.txt
-uvicorn backend.main:app --reload --port 8000
+uv run --package apps/spc uvicorn backend.main:app --reload --port 8000
 ```
 
 To exercise the readiness probe locally, set a dedicated Databricks token:
@@ -140,26 +134,7 @@ Because the app normally relies on per-user token passthrough, readiness needs i
 
 Calculations strictly follow the **AIAG SPC Reference Manual (4th Edition)** and **Western Electric SQC Handbook**.
 
-| Metric | Goal |
-|---|---|
-| **Cpk** | Within-subgroup capability using pooled standard deviation or $\bar{R}/d_2$ |
-| **Ppk** | Overall performance using sample standard deviation ($N-1$) |
-| **Non-Parametric** | Percentile-based capability for non-gaussian distributions ($p < 0.05$ on Shapiro-Wilk) |
-| **Hotelling's T²** | Multivariate anomaly detection across shared-batch characteristic vectors |
-
 See [`docs/STATISTICAL_METHODS.md`](docs/STATISTICAL_METHODS.md) for full mathematical definitions.
-
-**Ppk colour thresholds (AIAG SPC Reference Manual 4th Edition, Table III-4):**
-
-
-| Ppk | Status |
-|---|---|
-| ≥ 1.67 | Excellent / Highly Capable |
-| ≥ 1.33 | Capable (green) |
-| ≥ 1.00 | Marginal (amber) |
-| < 1.00 | Not Capable (red) |
-
-**Process flow health colouring** is based on batch rejection rate (`INSPECTION_RESULT_VALUATION = 'R'`), not Cpk. Thresholds: < 2% rejection → green, < 10% → amber, ≥ 10% → red.
 
 ---
 
@@ -171,10 +146,7 @@ The application includes a professional, enforceable test suite covering both th
 The suite uses `pytest` with `hypothesis` for property-based testing and enforces a coverage floor.
 ```bash
 # Run all unit tests (Enforces >=75% coverage)
-make test
-
-# Run statistical logic tests
-make test-stat
+uv run pytest
 ```
 
 ### Frontend Tests (React)
@@ -190,30 +162,8 @@ For more details, see [tests/README.md](tests/README.md).
 
 ## Deployment
 
-Use the bundled make target rather than raw bundle deploys:
+Use the shared deployment script from the root:
 
 ```bash
-make deploy PROFILE=uat
-make deploy PROFILE=prod
+python3 ../../scripts/deploy_app.py --app-dir . --action deploy --profile uat
 ```
-
-Important deployment notes:
-- `databricks bundle deploy` alone is not sufficient for this app
-- `databricks.yml` declares `user_api_scopes: ["sql"]` directly on the app resource
-- deployment is fully declarative; no post-deploy scope patching script is required
-- `/api/ready` requires `DATABRICKS_READINESS_TOKEN` in the target environment for a real warehouse probe
-- the in-process SQL cache is per app instance, so multi-instance deployments should treat it as a latency optimisation rather than a shared consistency layer
-- the backend supports `SPC_SQL_EXECUTOR=connector|rest`; use `connector` as the baseline.
-
-Live Release 1 warehouse validation:
-
-```bash
-DATABRICKS_HOST=https://<workspace-host> \
-DATABRICKS_TOKEN=<token> \
-DATABRICKS_WAREHOUSE_ID=<warehouse-id> \
-TRACE_CATALOG=connected_plant_uat \
-TRACE_SCHEMA=gold \
-python3 scripts/validate_release1_databricks.py
-```
-
-That harness smoke-tests the metric-view scorecard path and the multivariate shared-batch path against real Databricks data.

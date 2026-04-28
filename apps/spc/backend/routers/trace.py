@@ -6,21 +6,34 @@ from shared_trace.freshness_sources import (
     BATCH_DETAILS_FRESHNESS_SOURCES,
     IMPACT_FRESHNESS_SOURCES,
     SUMMARY_FRESHNESS_SOURCES,
+    TRACE2_PAGE_FRESHNESS_SOURCES,
     TRACE_TREE_FRESHNESS_SOURCES,
 )
 
 from backend.dal.trace_dal import (
     MAX_TRACE_LEVELS,
     _build_tree,
+    fetch_batch_compare,
     fetch_batch_details,
+    fetch_batch_header,
+    fetch_bottom_up,
+    fetch_coa,
     fetch_impact,
+    fetch_mass_balance,
+    fetch_production_history,
+    fetch_quality,
+    fetch_recall_readiness,
     fetch_summary,
+    fetch_supplier_risk,
+    fetch_top_down,
     fetch_trace_tree,
 )
 from backend.routers.spc_common import attach_payload_freshness, handle_sql_error
 from backend.schemas.trace_schemas import (
     BatchDetailsRequest,
+    BatchPageRequest,
     ImpactRequest,
+    RecallReadinessRequest,
     SummaryRequest,
     TraceRequest,
 )
@@ -131,4 +144,199 @@ async def impact(
         token,
         request.url.path,
         list(IMPACT_FRESHNESS_SOURCES),
+    )
+
+
+@router.post("/batch-header")
+@limiter.limit("60/minute")
+async def batch_header(
+    request: Request,
+    body: BatchPageRequest,
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    token = resolve_token(x_forwarded_access_token, authorization)
+    check_warehouse_config()
+    try:
+        row = await fetch_batch_header(token, body.material_id, body.batch_id)
+    except Exception as exc:
+        handle_sql_error(exc)
+
+    if not row:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No data for Material '{body.material_id}', Batch '{body.batch_id}'.",
+        )
+    return row
+
+
+@router.post("/recall-readiness")
+@limiter.limit("30/minute")
+async def recall_readiness(
+    request: Request,
+    body: RecallReadinessRequest,
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    token = resolve_token(x_forwarded_access_token, authorization)
+    check_warehouse_config()
+    try:
+        payload = await fetch_recall_readiness(token, body.material_id, body.batch_id)
+    except Exception as exc:
+        handle_sql_error(exc)
+
+    if not payload.get("header"):
+        raise HTTPException(
+            status_code=404,
+            detail=f"No data for Material '{body.material_id}', Batch '{body.batch_id}'.",
+        )
+
+    return await attach_payload_freshness(
+        payload,
+        token,
+        request.url.path,
+        [
+            "gold_batch_lineage",
+            "gold_batch_stock_mat",
+            "gold_batch_mass_balance_mat",
+            "gold_batch_delivery_mat",
+            "gold_batch_summary_v",
+            "gold_plant",
+        ],
+    )
+
+
+_PAGE_SOURCES = {key: list(value) for key, value in TRACE2_PAGE_FRESHNESS_SOURCES.items()}
+
+
+async def _batch_page_endpoint(
+    request: Request,
+    body: BatchPageRequest,
+    fetcher,
+    page_key: str,
+    x_forwarded_access_token: Optional[str],
+    authorization: Optional[str],
+):
+    token = resolve_token(x_forwarded_access_token, authorization)
+    check_warehouse_config()
+    try:
+        payload = await fetcher(token, body.material_id, body.batch_id)
+    except Exception as exc:
+        handle_sql_error(exc)
+
+    if not payload.get("header"):
+        raise HTTPException(
+            status_code=404,
+            detail=f"No data for Material '{body.material_id}', Batch '{body.batch_id}'.",
+        )
+
+    return await attach_payload_freshness(
+        payload,
+        token,
+        request.url.path,
+        _PAGE_SOURCES[page_key],
+    )
+
+
+@router.post("/coa")
+@limiter.limit("30/minute")
+async def coa(
+    request: Request,
+    body: BatchPageRequest,
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    return await _batch_page_endpoint(
+        request, body, fetch_coa, "coa", x_forwarded_access_token, authorization
+    )
+
+
+@router.post("/mass-balance")
+@limiter.limit("30/minute")
+async def mass_balance(
+    request: Request,
+    body: BatchPageRequest,
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    return await _batch_page_endpoint(
+        request, body, fetch_mass_balance, "mass_balance", x_forwarded_access_token, authorization
+    )
+
+
+@router.post("/quality")
+@limiter.limit("30/minute")
+async def quality(
+    request: Request,
+    body: BatchPageRequest,
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    return await _batch_page_endpoint(
+        request, body, fetch_quality, "quality", x_forwarded_access_token, authorization
+    )
+
+
+@router.post("/production-history")
+@limiter.limit("30/minute")
+async def production_history(
+    request: Request,
+    body: BatchPageRequest,
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    return await _batch_page_endpoint(
+        request, body, fetch_production_history, "production_history", x_forwarded_access_token, authorization
+    )
+
+
+@router.post("/batch-compare")
+@limiter.limit("30/minute")
+async def batch_compare(
+    request: Request,
+    body: BatchPageRequest,
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    return await _batch_page_endpoint(
+        request, body, fetch_batch_compare, "batch_compare", x_forwarded_access_token, authorization
+    )
+
+
+@router.post("/bottom-up")
+@limiter.limit("30/minute")
+async def bottom_up(
+    request: Request,
+    body: BatchPageRequest,
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    return await _batch_page_endpoint(
+        request, body, fetch_bottom_up, "bottom_up", x_forwarded_access_token, authorization
+    )
+
+
+@router.post("/top-down")
+@limiter.limit("30/minute")
+async def top_down(
+    request: Request,
+    body: BatchPageRequest,
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    return await _batch_page_endpoint(
+        request, body, fetch_top_down, "top_down", x_forwarded_access_token, authorization
+    )
+
+
+@router.post("/supplier-risk")
+@limiter.limit("30/minute")
+async def supplier_risk(
+    request: Request,
+    body: BatchPageRequest,
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    return await _batch_page_endpoint(
+        request, body, fetch_supplier_risk, "supplier_risk", x_forwarded_access_token, authorization
     )
