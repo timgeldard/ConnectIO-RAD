@@ -152,7 +152,7 @@ async def test_fetch_mass_balance_events_uses_balance_qty():
     dal = TraceCoreDal(run_sql_async=run_sql_async, tbl=lambda n: n, sql_param=lambda n, v: {})
     await dal.fetch_mass_balance("token", "MAT1", "BATCH1")
     
-    # 2nd call is events query
-    sql = calls[1]
+    # Identify the events query by its content (CTE named 'events')
+    sql = next(s for s in calls if "WITH events AS" in s)
     assert "BALANCE_QTY AS delta" in sql
     assert "-ABS_QUANTITY" not in sql

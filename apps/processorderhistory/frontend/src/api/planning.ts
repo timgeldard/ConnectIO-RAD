@@ -70,6 +70,13 @@ export interface PlanningScheduleResponse {
   kpis: PlanningKpis
 }
 
+/**
+ * Fetch the planning schedule (Gantt blocks, backlog, and KPIs) for a specific plant.
+ *
+ * @param params Optional filter for plant ID.
+ * @returns A promise resolving to the PlanningScheduleResponse payload.
+ * @throws Error if the API request fails.
+ */
 export async function fetchPlanningSchedule(params?: {
   plantId?: string
 }): Promise<PlanningScheduleResponse> {

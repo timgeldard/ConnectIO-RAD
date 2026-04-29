@@ -44,6 +44,7 @@ backend/routers/quality_router.py      POST /api/quality/analytics
 backend/routers/day_view_router.py     POST /api/dayview
 backend/routers/planning_router.py     POST /api/planning/schedule
 backend/routers/me_router.py           GET /api/me
+backend/routers/downtime_router.py     POST /api/downtime/analytics
 backend/dal/                            One DAL module per router; all SQL lives here
 backend/schemas/                        Pydantic request models
 ```
@@ -56,10 +57,9 @@ the prototype to keep the JSX→TSX port mechanical.
 
 ## Data layer
 
-All SQL queries target gold-layer views only (Rule 1.1).  `day_view_dal` and
-`planning_dal` are approved exceptions that also read
-`silver.silver_process_order` for `PROCESS_LINE` and `SCHEDULED_START` columns
-not yet promoted to a gold view.
+All SQL queries target gold-layer views only (Rule 1.1).  `planning_dal` is an 
+approved exception that also reads `silver.silver_process_order` for the 
+`SCHEDULED_START` column not yet promoted to a gold view.
 
 Catalog and schema come from `POH_CATALOG` / `POH_SCHEMA` env vars (rendered
 from `app.template.yaml`).  SQL helpers use `tbl()` for the app schema and
@@ -95,6 +95,6 @@ delete `dictionary.ts`.
 | Frontend pages | ✅ all pages wired to real data (orders, detail, pours, planning, day view, yield, quality) |
 | Frontend i18n | en/fr/de/es ported; `dictionary.ts` and `resources.json` not auto-synced |
 | Backend health/ready | ✅ |
-| Backend routers | ✅ 8 data endpoints live — orders, detail, pours, yield, quality, day view, planning, /me |
-| Tests | 133 passing; 96% overall coverage |
+| Backend routers | ✅ 9 data endpoints live — orders, detail, pours, yield, quality, day view, planning, downtime, /me |
+| Tests | Passing; high unit test coverage (target >95%) |
 | Deploy | `make deploy PROFILE=uat` works once shared libs are present |

@@ -193,6 +193,7 @@ def _coerce_event(row: dict) -> dict:
     row["ts_ms"] = int(v) if v is not None else 0
     v = row.get("source_type")
     row["source_type"] = str(v).strip() if v is not None else None
+    row["shift"] = None
     return row
 
 

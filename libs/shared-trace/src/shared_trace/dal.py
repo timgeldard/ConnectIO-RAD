@@ -166,7 +166,9 @@ class TraceCoreDal:
             ),
             mb AS (
               SELECT
+                -- BALANCE_QTY is positive for receipts (Production), negative for issues (Shipment)
                 COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Production' THEN BALANCE_QTY ELSE 0 END), 0) AS total_produced,
+                -- We negate BALANCE_QTY for Shipment to show a positive 'total_shipped' volume
                 COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment'   THEN -BALANCE_QTY ELSE 0 END), 0) AS total_shipped
               FROM {self.tbl('gold_batch_mass_balance_v')}
               WHERE BATCH_ID = :batch_id
@@ -200,7 +202,9 @@ class TraceCoreDal:
             ),
             mb AS (
               SELECT
+                -- BALANCE_QTY is positive for receipts (Production), negative for issues (Shipment)
                 COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Production' THEN BALANCE_QTY ELSE 0 END), 0) AS total_produced,
+                -- We negate BALANCE_QTY for Shipment to show a positive 'total_shipped' volume
                 COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment'   THEN -BALANCE_QTY ELSE 0 END), 0) AS total_shipped
               FROM {self.tbl('gold_batch_mass_balance_v')}
               WHERE MATERIAL_ID = :material_id AND BATCH_ID = :batch_id
@@ -419,6 +423,7 @@ class TraceCoreDal:
             ),
             mb_totals AS (
               SELECT
+                -- BALANCE_QTY is negative for issues (Shipment, Consumption)
                 COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment' THEN -BALANCE_QTY ELSE 0 END), 0) AS qty_shipped,
                 COALESCE(SUM(CASE WHEN MOVEMENT_TYPE IN ('261','262','201','202') THEN -BALANCE_QTY ELSE 0 END), 0) AS qty_consumed,
                 COALESCE(SUM(CASE WHEN MOVEMENT_TYPE IN ('701','702','711','712','531','532') THEN BALANCE_QTY ELSE 0 END), 0) AS qty_adjusted

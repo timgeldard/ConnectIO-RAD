@@ -163,6 +163,13 @@ export interface OrderDetailData {
 // Order list fetch
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch a list of process order summaries for a specific plant.
+ *
+ * @param params Optional filters for plant ID and result limit.
+ * @returns A promise resolving to the OrderListResponse payload.
+ * @throws Error if the API request fails.
+ */
 export async function fetchOrders(params: {
   plantId?: string
   limit?: number
@@ -308,6 +315,13 @@ function mapUsageDecision(raw: Record<string, unknown>): UsageDecision {
   }
 }
 
+/**
+ * Fetch full details for a specific process order by its ID.
+ *
+ * @param orderId The process order number (e.g., "1001234").
+ * @returns A promise resolving to the OrderDetailData payload.
+ * @throws Error if the API request fails or the order is not found.
+ */
 export async function fetchOrderDetail(orderId: string): Promise<OrderDetailData> {
   const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}`, { credentials: 'include' })
   if (!res.ok) {

@@ -13,10 +13,12 @@ POST /api/yield/analytics           yield analytics: per-order yield, daily 30d,
 POST /api/quality/analytics         quality analytics: inspection results, RFT daily/hourly series
 POST /api/dayview                   day view: single-day Gantt blocks + downtime
 POST /api/planning/schedule         planning board: ±7-day Gantt blocks, backlog, KPIs
+POST /api/downtime/analytics         downtime pareto: grouped by reason + daily trend
 ```
 
 `/api/health` and `/api/ready` come from `shared_api`. `/api/health` returns a
 static liveness payload; `/api/ready` verifies warehouse config is present.
+Interactive documentation is available at [/docs](/docs).
 
 ### `GET /api/me`
 

@@ -12,6 +12,7 @@ from backend.dal import order_detail_dal as dal
 # ---------------------------------------------------------------------------
 
 def test_coerce_header_converts_timestamps():
+    """Verify that manufacture and expiry date strings are converted to integers."""
     row = {"manufacture_date_ms": "1700000000000", "expiry_date_ms": "1710000000000"}
     result = dal._coerce_header(row)
     assert result["manufacture_date_ms"] == 1700000000000
@@ -19,6 +20,7 @@ def test_coerce_header_converts_timestamps():
 
 
 def test_coerce_header_handles_null_timestamps():
+    """Verify that null manufacture and expiry dates are preserved."""
     row = {"manufacture_date_ms": None, "expiry_date_ms": None}
     result = dal._coerce_header(row)
     assert result["manufacture_date_ms"] is None

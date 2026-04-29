@@ -111,7 +111,8 @@ def test_fetch_orders_list_handles_null_fields(monkeypatch):
     assert result[0]["duration_h"] is None
 
 
-def test_fetch_orders_list_with_plant_id_sends_one_param(monkeypatch):
+def test_fetch_orders_list_with_plant_id_sends_params(monkeypatch):
+    """Verify that plant_id and limit parameters are correctly passed to the SQL runner."""
     captured: list = []
 
     async def capture(_token, _query, params=None, **_kwargs):
@@ -120,10 +121,14 @@ def test_fetch_orders_list_with_plant_id_sends_one_param(monkeypatch):
 
     monkeypatch.setattr(dal, "run_sql_async", capture)
     asyncio.run(dal.fetch_orders_list("token", plant_id="P001"))
-    assert len(captured[0]) == 1
+    # Now expects 2 params: limit and plant_id
+    assert len(captured[0]) == 2
+    assert any(p["name"] == "plant_id" and p["value"] == "P001" for p in captured[0])
+    assert any(p["name"] == "limit" and p["value"] == "2000" for p in captured[0])
 
 
-def test_fetch_orders_list_without_plant_id_sends_empty_params(monkeypatch):
+def test_fetch_orders_list_without_plant_id_sends_limit_param(monkeypatch):
+    """Verify that only the limit parameter is passed when plant_id is omitted."""
     captured: list = []
 
     async def capture(_token, _query, params=None, **_kwargs):
@@ -132,7 +137,8 @@ def test_fetch_orders_list_without_plant_id_sends_empty_params(monkeypatch):
 
     monkeypatch.setattr(dal, "run_sql_async", capture)
     asyncio.run(dal.fetch_orders_list("token"))
-    assert captured[0] == []
+    assert len(captured[0]) == 1
+    assert captured[0][0]["name"] == "limit"
 
 
 def test_fetch_orders_list_multiple_orders_all_coerced(monkeypatch):
