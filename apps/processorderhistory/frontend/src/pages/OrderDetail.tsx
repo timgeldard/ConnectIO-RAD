@@ -574,14 +574,6 @@ function InspectionsSection({ detail, t, view, setView }) {
 
       <div className="side-stack">
         <UsageDecisionCard ud={detail.usageDecision} t={t} />
-        <div className="detail-card">
-          <div className="detail-card-head">{DI.shield}<h3>{t.cardCompliance}</h3></div>
-          <dl className="def-list">
-            <div className="row"><dt>{t.haccp}</dt><dd className="mono" style={{color:'#1F6E4A'}}>{t.haccpVal}</dd></div>
-            <div className="row"><dt>{t.fssc}</dt><dd className="mono" style={{color:'#1F6E4A'}}>{t.fsscVal}</dd></div>
-            <div className="row"><dt>{t.retention}</dt><dd>{t.retentionVal}</dd></div>
-          </dl>
-        </div>
       </div>
     </div>
   );
@@ -634,14 +626,6 @@ function DocsSection({ t }) {
       </div>
 
       <div className="side-stack">
-        <div className="detail-card">
-          <div className="detail-card-head">{DI.shield}<h3>{t.cardCompliance}</h3></div>
-          <dl className="def-list">
-            <div className="row"><dt>{t.haccp}</dt><dd className="mono" style={{color:'#1F6E4A'}}>{t.haccpVal}</dd></div>
-            <div className="row"><dt>{t.fssc}</dt><dd className="mono" style={{color:'#1F6E4A'}}>{t.fsscVal}</dd></div>
-            <div className="row"><dt>{t.retention}</dt><dd>{t.retentionVal}</dd></div>
-          </dl>
-        </div>
       </div>
     </div>
   );

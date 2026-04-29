@@ -164,7 +164,7 @@ export function Sidebar({ active = 'orders', onNavigate = () => {}, user }: Side
       <div className="sidebar-section">
         <div className={cls('planning')} onClick={() => onNavigate('planning')}>{cloneElement(I.layers as ReactElement, { className: 'ico' })}<span>{t.navPlanning}</span></div>
         <div className={cls('lines')} onClick={() => onNavigate('lines')}>{cloneElement(I.factory as ReactElement, { className: 'ico' })}<span>{t.navLines}</span></div>
-        <div className={cls('orders')} onClick={() => onNavigate('orders')}>{cloneElement(I.history as ReactElement, { className: 'ico' })}<span>{t.navOrders}</span><span className="count">1,370</span></div>
+        <div className={cls('orders')} onClick={() => onNavigate('orders')}>{cloneElement(I.history as ReactElement, { className: 'ico' })}<span>{t.navOrders}</span></div>
         <div className={cls('materials')} onClick={() => onNavigate('materials')}>{cloneElement(I.package as ReactElement, { className: 'ico' })}<span>{t.navMaterials}</span></div>
       </div>
 
@@ -183,7 +183,6 @@ export function Sidebar({ active = 'orders', onNavigate = () => {}, user }: Side
         <div className="avatar">{user?.initials ?? '—'}</div>
         <div>
           <div className="user-name">{user?.name ?? '…'}</div>
-          <div className="user-role">{t.userRole}</div>
         </div>
       </div>
     </aside>
