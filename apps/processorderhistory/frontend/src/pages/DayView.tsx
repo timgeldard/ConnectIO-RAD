@@ -13,7 +13,7 @@ function fmtHHMM(ms: number): string {
   return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 function fmtDate(iso: string): string {
-  const d = new Date(iso + 'T00:00:00Z')
+  const d = new Date(iso + 'T12:00:00Z')
   return d.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
 }
 function toLocalIso(ms: number): string {
