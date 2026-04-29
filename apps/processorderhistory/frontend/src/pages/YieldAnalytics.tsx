@@ -389,8 +389,8 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
       </div>
 
       {activeTab === 'analysis' && !cardView && (
-        <div className="pa-bars">
-          <div className="pa-bars-head" style={{ gridTemplateColumns: gridCols }}>
+        <div className="pa-bars" style={{ gridTemplateColumns: gridCols }}>
+          <div className="pa-bars-head">
             <div>{dimLabel}</div>
             <div className="right">Yield %</div>
             <div></div>
@@ -404,7 +404,7 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
             const vsCls = vsAvg == null ? 'neut' : vsAvg > 2 ? 'pos' : vsAvg < -2 ? 'neg' : 'neut'
             const color = yieldColor(g.yieldPct)
             return (
-              <div key={g.key} className="pa-row" style={{ gridTemplateColumns: gridCols }}>
+              <div key={g.key} className="pa-row">
                 <div className="pa-row-name">
                   <span className="pa-row-rank mono">#{i + 1}</span>
                   <span>{g.key}</span>
