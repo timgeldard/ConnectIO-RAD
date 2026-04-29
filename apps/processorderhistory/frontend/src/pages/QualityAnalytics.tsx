@@ -535,20 +535,6 @@ export function QualityAnalyticsPage() {
   const rejectPct = total > 0 ? (rejected / total) * 100 : null
   const qualityTone = rftPct == null ? '' : rftPct >= 98 ? 'good' : rftPct >= 95 ? 'ok' : 'bad'
 
-  /** Average RFT % over the 30-day daily series (null if no data). */
-  const avg30dRft = (() => {
-    const pts = daily30d.filter(d => d.rft_pct !== null)
-    if (!pts.length) return null
-    return (pts.reduce((a, d) => a + d.rft_pct!, 0) / pts.length).toFixed(1)
-  })()
-
-  /** Lowest single-hour RFT % in the 24-hour series (null if no data). */
-  const minHourRft = (() => {
-    const pts = hourly24h.filter(h => h.rft_pct !== null)
-    if (!pts.length) return null
-    return Math.min(...pts.map(h => h.rft_pct!)).toFixed(1)
-  })()
-
   const todayStr = todayISO()
 
   if (error) {
@@ -653,20 +639,8 @@ export function QualityAnalyticsPage() {
           </div>
 
           <div className="pour-trends">
-            <div className="pour-trend-card">
-              <div className="ptc-head">
-                <span className="ptc-title">Quality per day · last 30 days</span>
-                {avg30dRft != null && <span className="ptc-meta mono">avg RFT {avg30dRft}%</span>}
-              </div>
-              <QualityTrendChart30d data={daily30d} />
-            </div>
-            <div className="pour-trend-card">
-              <div className="ptc-head">
-                <span className="ptc-title">Right first time · last 24 hours</span>
-                {minHourRft != null && <span className="ptc-meta mono">lowest {minHourRft}%</span>}
-              </div>
-              <QualityTrendChart24h data={hourly24h} />
-            </div>
+            <QualityTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="30d" />
+            <QualityTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="24h" />
           </div>
 
           <QualityAnalyticsBreakdown rows={rows} prior7d={prior7d} dateFrom={dateFrom} dateTo={dateTo} />
