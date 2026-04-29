@@ -70,6 +70,7 @@ export async function fetchQualityAnalytics(params?: {
       plant_id: params?.plant_id ?? null,
       date_from: params?.date_from ?? null,
       date_to: params?.date_to ?? null,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     }),
   })
   if (!res.ok) {

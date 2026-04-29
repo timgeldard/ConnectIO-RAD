@@ -28,6 +28,12 @@ def test_coerce_event_handles_nulls():
     assert result["shift"] is None
 
 
+def test_coerce_event_rounds_quantity_to_6dp():
+    row = {"quantity": "0.1234567890", "ts_ms": "1700000000000", "source_type": "WH"}
+    result = dal._coerce_event(row)
+    assert result["quantity"] == round(0.1234567890, 6)
+
+
 # ---------------------------------------------------------------------------
 # _build_daily_series
 # ---------------------------------------------------------------------------

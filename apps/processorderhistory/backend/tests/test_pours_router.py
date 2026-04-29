@@ -55,19 +55,24 @@ def test_post_pours_analytics_returns_200(mock_analytics):
     assert "daily30d" in data
     assert "hourly24h" in data
     assert "now_ms" in data
-    mock_analytics.assert_called_once_with("token", plant_id=None, date_from=None, date_to=None)
+    mock_analytics.assert_called_once_with("token", plant_id=None, date_from=None, date_to=None, timezone="UTC")
 
 
 def test_post_pours_analytics_passes_plant_id(mock_analytics):
     client.post("/api/pours/analytics", json={"plant_id": "P001"})
-    mock_analytics.assert_called_once_with("token", plant_id="P001", date_from=None, date_to=None)
+    mock_analytics.assert_called_once_with("token", plant_id="P001", date_from=None, date_to=None, timezone="UTC")
 
 
 def test_post_pours_analytics_passes_date_range(mock_analytics):
     client.post("/api/pours/analytics", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
     mock_analytics.assert_called_once_with(
-        "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07"
+        "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07", timezone="UTC"
     )
+
+
+def test_post_pours_analytics_passes_timezone(mock_analytics):
+    client.post("/api/pours/analytics", json={"timezone": "Australia/Sydney"})
+    mock_analytics.assert_called_once_with("token", plant_id=None, date_from=None, date_to=None, timezone="Australia/Sydney")
 
 
 def test_post_pours_analytics_returns_full_shape(mock_analytics):

@@ -52,138 +52,162 @@ function periodLabel(dateFrom: string, dateTo: string): string {
 // Chart components
 // ---------------------------------------------------------------------------
 
-/**
- * Bar chart showing accepted + rejected inspection results per day over the
- * last 30 days. Bar colour encodes the RFT percentage for that day.
- * @param data - Array of daily quality series data points.
- */
-function QualityTrendChart30d({ data }: { data: QualityDaySeries[] }) {
-  if (!data?.length) return null
-  const W = 560, H = 110, padL = 28, padR = 6, padT = 6, padB = 16
-  const innerW = W - padL - padR
-  const innerH = H - padT - padB
-  const maxTotal = Math.max(...data.map(d => d.accepted + d.rejected), 1)
-  const maxV = maxTotal * 1.1
-  const barW = innerW / data.length - 2
+/** Quality chart with range toggle and hover tooltip.
+ * Renders a bar chart (total inspections, coloured by RFT%) for 7 d / 30 d and
+ * an area+line chart of RFT% for 24 h (hourly). */
+function QualityTrendChart({
+  daily30d,
+  hourly24h,
+  defaultRange = '30d',
+}) {
+  const [range, setRange] = useState(defaultRange)
+  const [tooltip, setTooltip] = useState(null)
 
-  return (
-    <svg className="pour-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-      {[0, 0.5, 1].map((p, i) => {
-        const y = padT + innerH - p * innerH
-        return (
-          <g key={i}>
-            <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
-            <text x={padL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{Math.round(maxV * p)}</text>
-          </g>
-        )
-      })}
-      {data.map((d, i) => {
-        const total = d.accepted + d.rejected
-        if (total === 0) return null
-        const x = padL + i * (innerW / data.length) + 1
-        const h = (total / maxV) * innerH
-        const y = padT + innerH - h
-        const isToday = i === data.length - 1
-        let fill: string
-        if (d.rft_pct == null) return null
-        if (d.rft_pct >= 98) fill = '#1F6E4A'
-        else if (d.rft_pct >= 95) fill = '#B45309'
-        else fill = '#DC2626'
-        return (
-          <rect key={i} x={x} y={y} width={barW} height={h}
-            fill={fill}
-            opacity={isToday ? 1 : 0.85} rx="1" />
-        )
-      })}
-      <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtDay(data[0].date)}</text>
-      <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtDay(data[Math.floor(data.length / 2)].date)}</text>
-      <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">today</text>
-    </svg>
-  )
-}
-
-/**
- * Line-area chart showing the right-first-time percentage per hour over the
- * last 24 hours. Handles null RFT values by rendering contiguous non-null
- * segments separately. Draws a reference line at 98%.
- * @param data - Array of hourly quality series data points.
- */
-function QualityTrendChart24h({ data }: { data: QualityHourSeries[] }) {
-  if (!data?.length) return null
   const W = 560, H = 110, padL = 32, padR = 6, padT = 6, padB = 16
   const innerW = W - padL - padR
   const innerH = H - padT - padB
   const bottom = padT + innerH
 
-  /** Maps a value in [0,100] to an SVG y-coordinate (Y axis fixed 0–100%). */
-  const xFor = (i: number) => padL + (i / Math.max(data.length - 1, 1)) * innerW
-  const yFor = (v: number) => padT + innerH - (v / 100) * innerH
+  const isHourly = range === '24h'
+  const barData = range === '7d' ? daily30d.slice(-7) : daily30d
 
-  // Build contiguous non-null runs for segment rendering
-  const runs: Array<Array<{ x: number; y: number }>> = []
-  let current: Array<{ x: number; y: number }> = []
-  data.forEach((d, i) => {
-    if (d.rft_pct !== null) {
-      current.push({ x: xFor(i), y: yFor(d.rft_pct) })
-    } else {
-      if (current.length > 0) {
-        runs.push(current)
-        current = []
-      }
-    }
+  const maxTotal = barData.length ? Math.max(...barData.map(d => d.accepted + d.rejected), 1) * 1.1 : 1
+  const barSlot = innerW / Math.max(barData.length, 1)
+  const barW = barSlot - 2
+
+  const lineX = (i) => padL + (i / Math.max(hourly24h.length - 1, 1)) * innerW
+  const lineY = (v) => padT + innerH - (v / 100) * innerH
+  const refY = lineY(98)
+
+  // Build contiguous non-null runs for the hourly RFT line
+  const runs = []; let cur = []
+  hourly24h.forEach((d, i) => {
+    if (d.rft_pct !== null) { cur.push({ x: lineX(i), y: lineY(d.rft_pct) }) }
+    else { if (cur.length > 0) { runs.push(cur); cur = [] } }
   })
-  if (current.length > 0) runs.push(current)
+  if (cur.length > 0) runs.push(cur)
 
-  // Y-axis reference line position for 98%
-  const refY = yFor(98)
+  const nonNullBar = barData.filter(d => d.rft_pct != null)
+  const nonNullLine = hourly24h.filter(d => d.rft_pct != null)
+  const metaLabel = isHourly
+    ? nonNullLine.length > 0 ? `lowest ${Math.min(...nonNullLine.map(d => d.rft_pct)).toFixed(1)}%` : null
+    : nonNullBar.length > 0 ? `avg RFT ${(nonNullBar.reduce((a, d) => a + d.rft_pct, 0) / nonNullBar.length).toFixed(1)}%` : null
+
+  const TW = 90, TH = 28
+  const ttx = tooltip ? Math.max(padL + TW / 2, Math.min(W - padR - TW / 2, tooltip.x)) : 0
+  const tty = tooltip ? (tooltip.y < padT + TH + 8 ? tooltip.y + TH + 10 : tooltip.y - 6) : 0
 
   return (
-    <svg className="pour-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-      {/* Horizontal gridlines at 0%, 50%, 100% */}
-      {['0%', '50%', '100%'].map((lbl, i) => {
-        const y = padT + innerH - (i * 0.5) * innerH
-        return (
-          <g key={i}>
-            <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
-            <text x={padL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{lbl}</text>
+    <div className="pour-trend-card">
+      <div className="ptc-head">
+        <span className="ptc-title">
+          Quality · {isHourly ? 'last 24 hours' : range === '7d' ? 'last 7 days' : 'last 30 days'}
+        </span>
+        {metaLabel && <span className="ptc-meta mono">{metaLabel}</span>}
+        <div className="chart-range-toggle">
+          {['24h', '7d', '30d'].map(r => (
+            <button key={r} className={range === r ? 'active' : ''} onClick={() => { setRange(r); setTooltip(null) }}>{r}</button>
+          ))}
+        </div>
+      </div>
+
+      <svg className="pour-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+        onMouseLeave={() => setTooltip(null)}>
+
+        {isHourly ? (
+          // Hourly RFT% line chart
+          <>
+            {['0%', '50%', '100%'].map((lbl, i) => {
+              const y = padT + innerH - (i * 0.5) * innerH
+              return (
+                <g key={i}>
+                  <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
+                  <text x={padL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{lbl}</text>
+                </g>
+              )
+            })}
+            <line x1={padL} y1={refY} x2={W - padR} y2={refY} stroke="#1F6E4A" strokeDasharray="3 3" strokeWidth="1.5" opacity="0.7" />
+            <text x={padL - 4} y={refY + 3} textAnchor="end" className="pour-axis-lbl" fill="#1F6E4A">98%</text>
+            {runs.map((pts, si) => {
+              if (pts.length === 0) return null
+              const lp = pts.map((p, j) => `${j === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+              const ap = lp + ` L${pts[pts.length-1].x.toFixed(1)} ${bottom.toFixed(1)} L${pts[0].x.toFixed(1)} ${bottom.toFixed(1)} Z`
+              return <g key={si}><path d={ap} fill="var(--valentia-slate)" opacity="0.1" /><path d={lp} fill="none" stroke="var(--valentia-slate)" strokeWidth="2" /></g>
+            })}
+            {hourly24h.map((d, i) => d.rft_pct !== null && (
+              <circle key={i} cx={lineX(i)} cy={lineY(d.rft_pct)} r="2.2" fill="var(--valentia-slate)" />
+            ))}
+            {hourly24h.length > 0 && (
+              <>
+                <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtHour(hourly24h[0].hour)}</text>
+                <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtHour(hourly24h[Math.floor(hourly24h.length / 2)].hour)}</text>
+                <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">now</text>
+              </>
+            )}
+            <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
+              onMouseMove={e => {
+                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                const ctm = svg.getScreenCTM(); if (!ctm) return
+                const { x } = pt.matrixTransform(ctm.inverse())
+                const idx = Math.max(0, Math.min(hourly24h.length - 1, Math.round(((x - padL) / innerW) * (hourly24h.length - 1))))
+                const d = hourly24h[idx]
+                setTooltip({ x: lineX(idx), y: lineY(d.rft_pct ?? 0), label: fmtHour(d.hour), value: d.rft_pct != null ? d.rft_pct.toFixed(1) + '%' : '—' })
+              }}
+            />
+          </>
+        ) : (
+          // Daily bar chart — total results, coloured by RFT%
+          <>
+            {[0, 0.5, 1].map((p, i) => {
+              const y = padT + innerH - p * innerH
+              return (
+                <g key={i}>
+                  <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
+                  <text x={padL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{Math.round(maxTotal * p)}</text>
+                </g>
+              )
+            })}
+            {barData.map((d, i) => {
+              const total = d.accepted + d.rejected
+              if (total === 0 || d.rft_pct == null) return null
+              const bx = padL + i * barSlot + 1
+              const h = (total / maxTotal) * innerH
+              const fill = d.rft_pct >= 98 ? '#1F6E4A' : d.rft_pct >= 95 ? '#B45309' : '#DC2626'
+              return <rect key={i} x={bx} y={padT + innerH - h} width={barW} height={h} fill={fill} opacity={i === barData.length - 1 ? 1 : 0.85} rx="1" />
+            })}
+            {barData.length > 0 && (
+              <>
+                <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtDay(barData[0].date)}</text>
+                <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtDay(barData[Math.floor(barData.length / 2)].date)}</text>
+                <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">today</text>
+              </>
+            )}
+            <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
+              onMouseMove={e => {
+                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                const ctm = svg.getScreenCTM(); if (!ctm) return
+                const { x } = pt.matrixTransform(ctm.inverse())
+                const idx = Math.max(0, Math.min(barData.length - 1, Math.floor((x - padL) / barSlot)))
+                const d = barData[idx]
+                const total = d.accepted + d.rejected
+                const h = Math.max((total / maxTotal) * innerH, 0)
+                setTooltip({ x: padL + idx * barSlot + 1 + barW / 2, y: padT + innerH - h, label: fmtDay(d.date), value: d.rft_pct != null ? d.rft_pct.toFixed(1) + '% RFT' : '—' })
+              }}
+            />
+          </>
+        )}
+
+        {tooltip && (
+          <g style={{ pointerEvents: 'none' }}>
+            <rect x={ttx - TW / 2} y={tty - TH} width={TW} height={TH} rx={3} fill="var(--ink-900)" opacity={0.88} />
+            <text x={ttx} y={tty - TH + 11} textAnchor="middle" fontSize={8} fill="rgba(255,255,255,0.7)">{tooltip.label}</text>
+            <text x={ttx} y={tty - TH + 23} textAnchor="middle" fontSize={11} fontWeight="600" fill="white">{tooltip.value}</text>
           </g>
-        )
-      })}
-
-      {/* 98% reference line */}
-      <line
-        x1={padL} y1={refY} x2={W - padR} y2={refY}
-        stroke="#1F6E4A" strokeDasharray="3 3" strokeWidth="1.5" opacity="0.7"
-      />
-      <text x={padL - 4} y={refY + 3} textAnchor="end" className="pour-axis-lbl" fill="#1F6E4A">98%</text>
-
-      {/* Segment area fills and lines */}
-      {runs.map((pts, si) => {
-        if (pts.length === 0) return null
-        const linePath = pts.map((p, j) => `${j === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
-        const first = pts[0]
-        const last = pts[pts.length - 1]
-        const areaPath = linePath + ` L${last.x.toFixed(1)} ${bottom.toFixed(1)} L${first.x.toFixed(1)} ${bottom.toFixed(1)} Z`
-        return (
-          <g key={si}>
-            <path d={areaPath} fill="var(--valentia-slate)" opacity="0.1" />
-            <path d={linePath} fill="none" stroke="var(--valentia-slate)" strokeWidth="2" />
-          </g>
-        )
-      })}
-
-      {/* Dots for every non-null point */}
-      {data.map((d, i) =>
-        d.rft_pct !== null
-          ? <circle key={i} cx={xFor(i)} cy={yFor(d.rft_pct)} r="2.2" fill="var(--valentia-slate)" />
-          : null
-      )}
-
-      {/* X-axis labels */}
-      <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtHour(data[0].hour)}</text>
-      <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtHour(data[Math.floor(data.length / 2)].hour)}</text>
-      <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">now</text>
-    </svg>
+        )}
+      </svg>
+    </div>
   )
 }
 

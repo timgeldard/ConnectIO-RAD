@@ -27,10 +27,11 @@ TODO — shift attribution:
   show all events as a single unlabelled bucket.
 """
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone as dt_timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 
-from backend.db import run_sql_async, sql_param, tbl
+from backend.db import run_sql_async, sql_param, tbl, tz_date, tz_day_ms, tz_hour_ms
 
 _MS_PER_HOUR = 3_600_000
 _MS_PER_DAY = 86_400_000
@@ -44,16 +45,18 @@ async def _q_events_range(
     token: str,
     date_from: Optional[str],
     date_to: Optional[str],
+    tz: str,
 ) -> list[dict]:
     """Movement type-261 events for the requested date range, including process order and operator.
 
     Falls back to the last-24h rolling window when no dates are supplied.
+    Date comparisons use the plant's local calendar date (via ``tz``).
     line_id is hardcoded to 'ALL' — per-line attribution requires silver schema access.
     """
     if date_from and date_to:
         date_clause = (
-            "AND DATE(adp.DATE_TIME_OF_ENTRY) >= :date_from"
-            " AND DATE(adp.DATE_TIME_OF_ENTRY) <= :date_to"
+            f"AND {tz_date('adp.DATE_TIME_OF_ENTRY', tz)} >= :date_from"
+            f" AND {tz_date('adp.DATE_TIME_OF_ENTRY', tz)} <= :date_to"
         )
         params = [sql_param("date_from", date_from), sql_param("date_to", date_to)]
     else:
@@ -64,7 +67,9 @@ async def _q_events_range(
         SELECT
             adp.PROCESS_ORDER_ID                                               AS process_order,
             COALESCE(m.MATERIAL_NAME, adp.MATERIAL_ID)                        AS material_name,
-            adp.QUANTITY                                                       AS quantity,
+            CASE WHEN UPPER(TRIM(adp.UOM)) = 'G'
+                 THEN adp.QUANTITY / 1000.0
+                 ELSE adp.QUANTITY END                                         AS quantity,
             adp.UOM                                                            AS uom,
             adp.STORAGE_ID                                                     AS source_area,
             adp.SOURCE_ST                                                      AS source_type,
@@ -83,16 +88,21 @@ async def _q_events_range(
     return await run_sql_async(token, query, params, endpoint_hint="poh.pours.events_range")
 
 
-async def _q_daily30d(token: str) -> list[dict]:
-    """Daily pour count over the last 30 days (always fixed; feeds the context chart)."""
+async def _q_daily30d(token: str, tz: str) -> list[dict]:
+    """Net daily pour count over the last 30 days bucketed by local calendar day.
+
+    MT-261 events count +1; MT-262 reversals count -1 to give the net pour count.
+    Day boundaries align to local midnight in ``tz``.
+    """
     query = f"""
         SELECT
-            CAST(UNIX_TIMESTAMP(DATE_TRUNC('day', adp.DATE_TIME_OF_ENTRY)) * 1000 AS BIGINT)
-                AS day_ms,
+            {tz_day_ms('adp.DATE_TIME_OF_ENTRY', tz)} AS day_ms,
             'ALL'    AS line_id,
-            COUNT(*) AS pour_count
+            SUM(CASE WHEN adp.MOVEMENT_TYPE = '261' THEN 1
+                     WHEN adp.MOVEMENT_TYPE = '262' THEN -1
+                     ELSE 0 END) AS pour_count
         FROM {tbl('vw_gold_adp_movement')} adp
-        WHERE adp.MOVEMENT_TYPE = '261'
+        WHERE adp.MOVEMENT_TYPE IN ('261', '262')
           AND adp.UOM != 'EA'
           AND adp.DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 30 DAYS
         GROUP BY day_ms
@@ -101,16 +111,21 @@ async def _q_daily30d(token: str) -> list[dict]:
     return await run_sql_async(token, query, endpoint_hint="poh.pours.daily30d")
 
 
-async def _q_hourly24h(token: str) -> list[dict]:
-    """Hourly pour count over the last 24 hours (always fixed; feeds the context chart)."""
+async def _q_hourly24h(token: str, tz: str) -> list[dict]:
+    """Net hourly pour count over the last 24 hours bucketed by local calendar hour.
+
+    MT-261 events count +1; MT-262 reversals count -1 to give the net pour count.
+    Hour boundaries align to local hour starts in ``tz``.
+    """
     query = f"""
         SELECT
-            CAST(UNIX_TIMESTAMP(DATE_TRUNC('hour', adp.DATE_TIME_OF_ENTRY)) * 1000 AS BIGINT)
-                AS hour_ms,
+            {tz_hour_ms('adp.DATE_TIME_OF_ENTRY', tz)} AS hour_ms,
             'ALL'    AS line_id,
-            COUNT(*) AS pour_count
+            SUM(CASE WHEN adp.MOVEMENT_TYPE = '261' THEN 1
+                     WHEN adp.MOVEMENT_TYPE = '262' THEN -1
+                     ELSE 0 END) AS pour_count
         FROM {tbl('vw_gold_adp_movement')} adp
-        WHERE adp.MOVEMENT_TYPE = '261'
+        WHERE adp.MOVEMENT_TYPE IN ('261', '262')
           AND adp.UOM != 'EA'
           AND adp.DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 24 HOURS
         GROUP BY hour_ms
@@ -122,11 +137,13 @@ async def _q_hourly24h(token: str) -> list[dict]:
 async def _q_prior7d_events(
     token: str,
     date_from: Optional[str],
+    tz: str,
 ) -> list[dict]:
     """Movement type-261 events for the 7 days immediately prior to date_from.
 
     Used by the card view to compute per-entity averages over days with activity.
     Returns an empty list when date_from is not supplied (rolling-window mode).
+    Date comparisons use the plant's local calendar date (via ``tz``).
     line_id is hardcoded to 'ALL' — per-line attribution requires silver schema access.
     """
     if not date_from:
@@ -136,7 +153,9 @@ async def _q_prior7d_events(
         SELECT
             adp.PROCESS_ORDER_ID                                               AS process_order,
             COALESCE(m.MATERIAL_NAME, adp.MATERIAL_ID)                        AS material_name,
-            adp.QUANTITY                                                       AS quantity,
+            CASE WHEN UPPER(TRIM(adp.UOM)) = 'G'
+                 THEN adp.QUANTITY / 1000.0
+                 ELSE adp.QUANTITY END                                         AS quantity,
             adp.UOM                                                            AS uom,
             adp.STORAGE_ID                                                     AS source_area,
             adp.SOURCE_ST                                                      AS source_type,
@@ -149,8 +168,8 @@ async def _q_prior7d_events(
            AND m.LANGUAGE_ID = 'E'
         WHERE adp.MOVEMENT_TYPE = '261'
           AND adp.UOM != 'EA'
-          AND DATE(adp.DATE_TIME_OF_ENTRY) >= DATE_ADD(CAST(:date_from AS DATE), -7)
-          AND DATE(adp.DATE_TIME_OF_ENTRY) <  CAST(:date_from AS DATE)
+          AND {tz_date('adp.DATE_TIME_OF_ENTRY', tz)} >= DATE_ADD(CAST(:date_from AS DATE), -7)
+          AND {tz_date('adp.DATE_TIME_OF_ENTRY', tz)} <  CAST(:date_from AS DATE)
         ORDER BY adp.DATE_TIME_OF_ENTRY
     """
     params = [sql_param("date_from", date_from)]
@@ -162,9 +181,12 @@ async def _q_prior7d_events(
 # ---------------------------------------------------------------------------
 
 def _coerce_event(row: dict) -> dict:
-    """Coerce Databricks string-serialised values in an event row."""
+    """Coerce Databricks string-serialised values in an event row.
+
+    Quantity is rounded to 6 decimal places; G→KG conversion is applied in SQL.
+    """
     v = row.get("quantity")
-    row["quantity"] = float(v) if v is not None else 0.0
+    row["quantity"] = round(float(v), 6) if v is not None else 0.0
     v = row.get("ts_ms")
     row["ts_ms"] = int(v) if v is not None else 0
     v = row.get("source_type")
@@ -178,15 +200,21 @@ def _coerce_event(row: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 def _build_daily_series(
-    daily_rows: list[dict], now_ms: int
+    daily_rows: list[dict], now_ms: int, tz_name: str = "UTC"
 ) -> tuple[dict[str, list[dict]], list[str]]:
     """Build zero-padded 30-day series keyed by line_id plus 'ALL'.
 
+    Bucket boundaries align to local midnight in ``tz_name``.
     Returns (series_by_line, sorted_line_ids).  'ALL' is excluded from
     sorted_line_ids since it is always present as a synthetic aggregate.
     """
-    now_day_ms = (now_ms // _MS_PER_DAY) * _MS_PER_DAY
-    day_buckets = [now_day_ms - (29 - i) * _MS_PER_DAY for i in range(30)]
+    tz = ZoneInfo(tz_name)
+    now_utc = datetime.fromtimestamp(now_ms / 1000, tz=dt_timezone.utc)
+    local_today = now_utc.astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    day_buckets = [
+        int((local_today - timedelta(days=29 - i)).astimezone(dt_timezone.utc).timestamp() * 1000)
+        for i in range(30)
+    ]
 
     sparse: dict[tuple[int, str], int] = {}
     all_daily: dict[int, int] = {}
@@ -215,14 +243,20 @@ def _build_daily_series(
 
 
 def _build_hourly_series(
-    hourly_rows: list[dict], now_ms: int
+    hourly_rows: list[dict], now_ms: int, tz_name: str = "UTC"
 ) -> dict[str, list[dict]]:
     """Build zero-padded 24-hour series keyed by line_id plus 'ALL'.
 
-    Buckets run from 24 hours ago (hour-truncated) to the most recent completed hour.
+    Bucket boundaries align to local hour starts in ``tz_name``.
+    Buckets run from 24 hours ago to the most recent completed local hour.
     """
-    now_hour_ms = (now_ms // _MS_PER_HOUR) * _MS_PER_HOUR
-    hour_buckets = [now_hour_ms - (24 - i) * _MS_PER_HOUR for i in range(24)]
+    tz = ZoneInfo(tz_name)
+    now_utc = datetime.fromtimestamp(now_ms / 1000, tz=dt_timezone.utc)
+    local_now_hour = now_utc.astimezone(tz).replace(minute=0, second=0, microsecond=0)
+    hour_buckets = [
+        int((local_now_hour - timedelta(hours=24 - i)).astimezone(dt_timezone.utc).timestamp() * 1000)
+        for i in range(24)
+    ]
 
     sparse: dict[tuple[int, str], int] = {}
     all_hourly: dict[int, int] = {}
@@ -260,6 +294,7 @@ async def fetch_pours_analytics(
     plant_id: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    timezone: str = "UTC",
 ) -> dict:
     """Fetch pour analytics via 3–4 parallel Databricks queries.
 
@@ -269,23 +304,26 @@ async def fetch_pours_analytics(
     If ``date_from`` / ``date_to`` are omitted, events default to the last-24h window
     and prior7d is empty.
 
+    ``timezone`` is a validated IANA timezone name (from ``validate_timezone``).
+    Day and hour buckets align to local calendar boundaries in that timezone.
+
     ``planned_24h`` is always ``None`` — planned pour count requires silver schema
     access that is not universally available.  ``lines`` is always ``[]`` for the
     same reason; the frontend always uses the 'ALL' aggregate series.
     """
-    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    now_ms = int(datetime.now(dt_timezone.utc).timestamp() * 1000)
 
     events_rows, daily_rows, hourly_rows, prior7d_rows = await asyncio.gather(
-        _q_events_range(token, date_from, date_to),
-        _q_daily30d(token),
-        _q_hourly24h(token),
-        _q_prior7d_events(token, date_from),
+        _q_events_range(token, date_from, date_to, timezone),
+        _q_daily30d(token, timezone),
+        _q_hourly24h(token, timezone),
+        _q_prior7d_events(token, date_from, timezone),
     )
 
     events = [_coerce_event(r) for r in events_rows]
     prior7d = [_coerce_event(r) for r in prior7d_rows]
-    daily_series, _ = _build_daily_series(daily_rows, now_ms)
-    hourly_series = _build_hourly_series(hourly_rows, now_ms)
+    daily_series, _ = _build_daily_series(daily_rows, now_ms, timezone)
+    hourly_series = _build_hourly_series(hourly_rows, now_ms, timezone)
 
     return {
         "now_ms": now_ms,

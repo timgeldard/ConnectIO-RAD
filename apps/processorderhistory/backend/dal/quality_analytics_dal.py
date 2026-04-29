@@ -18,10 +18,11 @@ If ``date_from`` / ``date_to`` are omitted the results_range query falls back to
 24-hour rolling window for backward compatibility, and prior7d is empty.
 """
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone as dt_timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 
-from backend.db import run_sql_async, sql_param, tbl
+from backend.db import run_sql_async, sql_param, tbl, tz_date, tz_day_ms, tz_hour_ms
 
 _MS_PER_HOUR = 3_600_000
 _MS_PER_DAY = 86_400_000
@@ -36,16 +37,18 @@ async def _q_results_range(
     date_from: Optional[str],
     date_to: Optional[str],
     plant_id: Optional[str],
+    tz: str,
 ) -> list[dict]:
     """Inspection result rows joined to usage decision, specification, process order, and material.
 
     Falls back to last-24h window when no dates supplied.
     Rows without a usage decision are excluded (INNER JOIN to ud).
+    Date comparisons use the plant's local calendar date (via ``tz``).
     """
     if date_from and date_to:
         date_clause = (
-            "AND DATE(ud.USAGE_DECISION_CREATED_DATE) >= :date_from"
-            " AND DATE(ud.USAGE_DECISION_CREATED_DATE) <= :date_to"
+            f"AND {tz_date('ud.USAGE_DECISION_CREATED_DATE', tz)} >= :date_from"
+            f" AND {tz_date('ud.USAGE_DECISION_CREATED_DATE', tz)} <= :date_to"
         )
         params: list[dict] = [sql_param("date_from", date_from), sql_param("date_to", date_to)]
     else:
@@ -98,15 +101,17 @@ async def _q_results_range(
     return await run_sql_async(token, query, final_params, endpoint_hint="poh.quality.results_range")
 
 
-async def _q_daily30d(token: str, plant_id: Optional[str]) -> list[dict]:
-    """Daily accepted/rejected counts over the last 30 days."""
+async def _q_daily30d(token: str, plant_id: Optional[str], tz: str) -> list[dict]:
+    """Daily accepted/rejected counts over the last 30 days bucketed by local calendar day.
+
+    Day boundaries align to local midnight in ``tz``.
+    """
     plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
     params: Optional[list[dict]] = [sql_param("plant_id", plant_id)] if plant_id else None
 
     query = f"""
         SELECT
-            CAST(UNIX_TIMESTAMP(DATE_TRUNC('day', ud.USAGE_DECISION_CREATED_DATE)) * 1000 AS BIGINT)
-                AS day_ms,
+            {tz_day_ms('ud.USAGE_DECISION_CREATED_DATE', tz)} AS day_ms,
             COUNT(CASE WHEN ir.INSPECTION_RESULT_VALUATION LIKE 'A%' THEN 1 END) AS accepted_count,
             COUNT(CASE WHEN ir.INSPECTION_RESULT_VALUATION NOT LIKE 'A%' THEN 1 END) AS rejected_count
         FROM {tbl('vw_gold_inspection_result')} ir
@@ -122,15 +127,17 @@ async def _q_daily30d(token: str, plant_id: Optional[str]) -> list[dict]:
     return await run_sql_async(token, query, params, endpoint_hint="poh.quality.daily30d")
 
 
-async def _q_hourly24h(token: str, plant_id: Optional[str]) -> list[dict]:
-    """Hourly accepted/rejected counts over the last 24 hours."""
+async def _q_hourly24h(token: str, plant_id: Optional[str], tz: str) -> list[dict]:
+    """Hourly accepted/rejected counts over the last 24 hours bucketed by local calendar hour.
+
+    Hour boundaries align to local hour starts in ``tz``.
+    """
     plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
     params: Optional[list[dict]] = [sql_param("plant_id", plant_id)] if plant_id else None
 
     query = f"""
         SELECT
-            CAST(UNIX_TIMESTAMP(DATE_TRUNC('hour', ud.USAGE_DECISION_CREATED_DATE)) * 1000 AS BIGINT)
-                AS hour_ms,
+            {tz_hour_ms('ud.USAGE_DECISION_CREATED_DATE', tz)} AS hour_ms,
             COUNT(CASE WHEN ir.INSPECTION_RESULT_VALUATION LIKE 'A%' THEN 1 END) AS accepted_count,
             COUNT(CASE WHEN ir.INSPECTION_RESULT_VALUATION NOT LIKE 'A%' THEN 1 END) AS rejected_count
         FROM {tbl('vw_gold_inspection_result')} ir
@@ -150,11 +157,13 @@ async def _q_prior7d_results(
     token: str,
     date_from: Optional[str],
     plant_id: Optional[str],
+    tz: str,
 ) -> list[dict]:
     """Result rows for 7 days prior to date_from.
 
     Used by the card view to compute per-entity averages over the preceding week.
     Returns an empty list when date_from is not supplied (rolling-window mode).
+    Date comparisons use the plant's local calendar date (via ``tz``).
     """
     if not date_from:
         return []
@@ -196,8 +205,8 @@ async def _q_prior7d_results(
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = po.MATERIAL_ID
            AND m.LANGUAGE_ID = 'E'
-        WHERE DATE(ud.USAGE_DECISION_CREATED_DATE) >= DATE_ADD(CAST(:date_from AS DATE), -7)
-          AND DATE(ud.USAGE_DECISION_CREATED_DATE) <  CAST(:date_from AS DATE)
+        WHERE {tz_date('ud.USAGE_DECISION_CREATED_DATE', tz)} >= DATE_ADD(CAST(:date_from AS DATE), -7)
+          AND {tz_date('ud.USAGE_DECISION_CREATED_DATE', tz)} <  CAST(:date_from AS DATE)
           {plant_clause}
         ORDER BY result_date_ms
     """
@@ -226,14 +235,19 @@ def _coerce_row(row: dict) -> dict:
 # Series builders — fill zero-padded 30-day / 24-hour grids
 # ---------------------------------------------------------------------------
 
-def _build_daily_series(daily_rows: list[dict], now_ms: int) -> list[dict]:
+def _build_daily_series(daily_rows: list[dict], now_ms: int, tz_name: str = "UTC") -> list[dict]:
     """Zero-padded 30-day series of accepted/rejected counts and right-first-time percentage.
 
+    Bucket boundaries align to local midnight in ``tz_name``.
     rft_pct is None for zero-result buckets (no inspections recorded that day).
-    Buckets run from 29 days ago (day-truncated) through today.
     """
-    now_day_ms = (now_ms // _MS_PER_DAY) * _MS_PER_DAY
-    day_buckets = [now_day_ms - (29 - i) * _MS_PER_DAY for i in range(30)]
+    tz = ZoneInfo(tz_name)
+    now_utc = datetime.fromtimestamp(now_ms / 1000, tz=dt_timezone.utc)
+    local_today = now_utc.astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    day_buckets = [
+        int((local_today - timedelta(days=29 - i)).astimezone(dt_timezone.utc).timestamp() * 1000)
+        for i in range(30)
+    ]
 
     sparse: dict[int, tuple[int, int]] = {}
     for row in daily_rows:
@@ -252,14 +266,19 @@ def _build_daily_series(daily_rows: list[dict], now_ms: int) -> list[dict]:
     return result
 
 
-def _build_hourly_series(hourly_rows: list[dict], now_ms: int) -> list[dict]:
+def _build_hourly_series(hourly_rows: list[dict], now_ms: int, tz_name: str = "UTC") -> list[dict]:
     """Zero-padded 24-hour series of accepted/rejected counts and right-first-time percentage.
 
+    Bucket boundaries align to local hour starts in ``tz_name``.
     rft_pct is None for zero-result buckets (no inspections recorded that hour).
-    Buckets run from 24 hours ago (hour-truncated) through the most recent completed hour.
     """
-    now_hour_ms = (now_ms // _MS_PER_HOUR) * _MS_PER_HOUR
-    hour_buckets = [now_hour_ms - (24 - i) * _MS_PER_HOUR for i in range(24)]
+    tz = ZoneInfo(tz_name)
+    now_utc = datetime.fromtimestamp(now_ms / 1000, tz=dt_timezone.utc)
+    local_now_hour = now_utc.astimezone(tz).replace(minute=0, second=0, microsecond=0)
+    hour_buckets = [
+        int((local_now_hour - timedelta(hours=24 - i)).astimezone(dt_timezone.utc).timestamp() * 1000)
+        for i in range(24)
+    ]
 
     sparse: dict[int, tuple[int, int]] = {}
     for row in hourly_rows:
@@ -288,6 +307,7 @@ async def fetch_quality_analytics(
     plant_id: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    timezone: str = "UTC",
 ) -> dict:
     """Fetch quality analytics via 3–4 parallel Databricks queries.
 
@@ -295,22 +315,25 @@ async def fetch_quality_analytics(
     for card-view averages, and distinct material names.  Timestamp is
     USAGE_DECISION_CREATED_DATE — see module docstring.
 
+    ``timezone`` is a validated IANA timezone name (from ``validate_timezone``).
+    Day and hour buckets align to local calendar boundaries in that timezone.
+
     If ``date_from`` / ``date_to`` are omitted, results_range defaults to the
     last-24h window and prior7d is empty.
     """
-    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    now_ms = int(datetime.now(dt_timezone.utc).timestamp() * 1000)
 
     rows_result, daily_rows, hourly_rows, prior7d_rows = await asyncio.gather(
-        _q_results_range(token, date_from, date_to, plant_id),
-        _q_daily30d(token, plant_id),
-        _q_hourly24h(token, plant_id),
-        _q_prior7d_results(token, date_from, plant_id),
+        _q_results_range(token, date_from, date_to, plant_id, timezone),
+        _q_daily30d(token, plant_id, timezone),
+        _q_hourly24h(token, plant_id, timezone),
+        _q_prior7d_results(token, date_from, plant_id, timezone),
     )
 
     rows = [_coerce_row(r) for r in rows_result]
     prior7d = [_coerce_row(r) for r in prior7d_rows]
-    daily30d = _build_daily_series(daily_rows, now_ms)
-    hourly24h = _build_hourly_series(hourly_rows, now_ms)
+    daily30d = _build_daily_series(daily_rows, now_ms, timezone)
+    hourly24h = _build_hourly_series(hourly_rows, now_ms, timezone)
 
     materials = sorted({r["material_name"] for r in rows if r.get("material_name")})
 

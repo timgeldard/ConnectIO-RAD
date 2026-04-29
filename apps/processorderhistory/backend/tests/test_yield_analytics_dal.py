@@ -45,6 +45,18 @@ def test_coerce_order_null_loss_kg():
     assert dal._coerce_order(row)["loss_kg"] is None
 
 
+def test_coerce_order_rounds_qty_to_6dp():
+    """qty_received_kg and qty_issued_kg are rounded to 6 decimal places."""
+    row = {
+        "qty_received_kg": "980.1234567",
+        "qty_issued_kg": "1000.9876543",
+        "yield_pct": None, "loss_kg": None, "order_date_ms": "0",
+    }
+    result = dal._coerce_order(row)
+    assert result["qty_received_kg"] == round(980.1234567, 6)
+    assert result["qty_issued_kg"] == round(1000.9876543, 6)
+
+
 # ---------------------------------------------------------------------------
 # _build_daily_series
 # ---------------------------------------------------------------------------

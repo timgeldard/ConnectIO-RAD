@@ -5,7 +5,7 @@ from fastapi import APIRouter, Header
 from pydantic import BaseModel
 
 from backend.dal.yield_analytics_dal import fetch_yield_analytics
-from backend.db import check_warehouse_config, resolve_token
+from backend.db import check_warehouse_config, resolve_token, validate_timezone
 
 router = APIRouter()
 
@@ -16,6 +16,7 @@ class YieldAnalyticsRequest(BaseModel):
     plant_id: Optional[str] = None
     date_from: Optional[str] = None
     date_to: Optional[str] = None
+    timezone: Optional[str] = None
 
 
 @router.post("/yield/analytics")
@@ -37,4 +38,5 @@ async def get_yield_analytics(
         plant_id=body.plant_id,
         date_from=body.date_from,
         date_to=body.date_to,
+        timezone=validate_timezone(body.timezone),
     )

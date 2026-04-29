@@ -559,7 +559,9 @@ function InspectionsSection({ detail, t, view, setView }) {
         ) : (
           <div className="qa-grid">
             {detail.inspections.map((ins, i) => {
-              const result = ins.quantitativeResult != null ? ins.quantitativeResult : ins.qualitativeResult;
+              const result = ins.qualitativeResult
+                ? ins.qualitativeResult
+                : ins.quantitativeResult != null ? ins.quantitativeResult : null;
               return (
                 <div key={i} className="qa-cell">
                   <div className="label">{ins.characteristicDescription}</div>

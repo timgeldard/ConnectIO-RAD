@@ -34,189 +34,168 @@ function fmtHour(ms: number) { return new Date(ms).toLocaleTimeString('en-GB', {
 function periodLabel(a: string, b: string) { return a === b ? a : `${a} → ${b}` }
 
 // ---------------------------------------------------------------------------
-// YieldTrendChart30d — SVG bar chart of daily avg yield % over 30 days
+// YieldTrendChart — unified 24h / 7d / 30d toggle with hover tooltip
 // ---------------------------------------------------------------------------
 
-/**
- * Renders a 30-day daily yield % bar chart as an inline SVG.
- *
- * @param data        - Array of YieldDaySeries entries (one per day).
- * @param targetYield - The plant yield target percentage; rendered as a dashed reference line.
- */
-function YieldTrendChart30d({ data, targetYield }: { data: YieldDaySeries[]; targetYield: number }) {
-  if (!data?.length) return null
+/** Yield chart with range toggle and hover tooltip.
+ * Renders a bar chart coloured by yield vs target for 7 d / 30 d and an
+ * area+line chart for 24 h (hourly). */
+function YieldTrendChart({
+  daily30d,
+  hourly24h,
+  targetYield,
+  defaultRange = '30d',
+}) {
+  const [range, setRange] = useState(defaultRange)
+  const [tooltip, setTooltip] = useState(null)
 
   const W = 560, H = 110, padL = 28, padR = 6, padT = 6, padB = 16
   const innerW = W - padL - padR
   const innerH = H - padT - padB
 
-  const nonNullVals = data.map(d => d.avg_yield_pct).filter((v): v is number => v != null)
-  const minV = nonNullVals.length ? Math.max(0, Math.min(...nonNullVals) - 5) : 0
-  const maxV = 100
+  const isHourly = range === '24h'
+  const barData = range === '7d' ? daily30d.slice(-7) : daily30d
 
-  const barW = innerW / data.length - 2
+  // Y-axis: fixed 0–100% range for yield
+  const minV = 0, maxV = 100
+  const barSlot = innerW / Math.max(barData.length, 1)
+  const barW = barSlot - 2
 
-  // Dashed reference line Y position for targetYield
-  const refY = padT + innerH - ((targetYield - minV) / (maxV - minV)) * innerH
+  const lineX = (i) => padL + (i / Math.max(hourly24h.length - 1, 1)) * innerW
+  const lineY = (v) => padT + innerH - ((v - minV) / (maxV - minV)) * innerH
+  const barY = (v) => v == null ? padT + innerH : padT + innerH - ((v - minV) / (maxV - minV)) * innerH
+  const barH = (v) => v == null ? 0 : Math.max(((v - minV) / (maxV - minV)) * innerH, 0)
 
-  return (
-    <svg className="pour-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-      {/* Gridlines at minV, midpoint, maxV */}
-      {[minV, (minV + maxV) / 2, maxV].map((v, i) => {
-        const y = padT + innerH - ((v - minV) / (maxV - minV)) * innerH
-        return (
-          <g key={i}>
-            <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
-            <text x={padL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{v.toFixed(0)}%</text>
-          </g>
-        )
-      })}
-
-      {/* Target yield reference line */}
-      <line
-        x1={padL} y1={refY} x2={W - padR} y2={refY}
-        stroke="var(--valentia-slate)" strokeDasharray="3 3" opacity="0.6"
-      />
-      <text x={W - padR - 2} y={refY - 3} textAnchor="end" className="pour-axis-lbl">{targetYield}%</text>
-
-      {/* Bars */}
-      {data.map((d, i) => {
-        if (d.avg_yield_pct == null) return null
-        const x = padL + i * (innerW / data.length) + 1
-        const h = ((d.avg_yield_pct - minV) / (maxV - minV)) * innerH
-        const y = padT + innerH - h
-        const isLast = i === data.length - 1
-        const fill = d.avg_yield_pct >= targetYield
-          ? '#1F6E4A'
-          : d.avg_yield_pct >= 85
-            ? 'var(--sunrise)'
-            : '#C04A1F'
-        return (
-          <rect key={i} x={x} y={y} width={barW} height={h}
-            fill={fill} opacity={isLast ? 1 : 0.82} rx="1" />
-        )
-      })}
-
-      {/* X-axis labels: first, middle, today */}
-      <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtDay(data[0].date)}</text>
-      <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtDay(data[Math.floor(data.length / 2)].date)}</text>
-      <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">today</text>
-    </svg>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// YieldTrendChart24h — SVG area/line chart of hourly avg yield % over 24h
-// ---------------------------------------------------------------------------
-
-/**
- * Renders a 24-hour hourly yield % area+line chart as an inline SVG.
- * Null values cause path gaps; only non-null points are connected.
- *
- * @param data        - Array of YieldHourSeries entries (one per hour).
- * @param targetYield - The plant yield target percentage; rendered as a dashed reference line.
- */
-function YieldTrendChart24h({ data, targetYield }: { data: YieldHourSeries[]; targetYield: number }) {
-  if (!data?.length) return null
-
-  const W = 560, H = 110, padL = 28, padR = 6, padT = 6, padB = 16
-  const innerW = W - padL - padR
-  const innerH = H - padT - padB
-
-  const nonNullVals = data.map(d => d.avg_yield_pct).filter((v): v is number => v != null)
-  const minV = nonNullVals.length ? Math.max(0, Math.min(...nonNullVals) - 5) : 0
-  const maxV = 100
-
-  const xFor = (i: number) => padL + (i / Math.max(data.length - 1, 1)) * innerW
-  const yFor = (v: number) => padT + innerH - ((v - minV) / (maxV - minV)) * innerH
-
-  // Dashed reference line Y position for targetYield
-  const refY = padT + innerH - ((targetYield - minV) / (maxV - minV)) * innerH
-
-  // Build path segments, breaking at null values
-  const segments: string[] = []
-  let currentSegment: string[] = []
-  data.forEach((d, i) => {
-    if (d.avg_yield_pct == null) {
-      if (currentSegment.length) {
-        segments.push(currentSegment.join(' '))
-        currentSegment = []
-      }
-    } else {
-      const x = xFor(i).toFixed(1)
-      const y = yFor(d.avg_yield_pct).toFixed(1)
-      currentSegment.push(currentSegment.length === 0 ? `M${x} ${y}` : `L${x} ${y}`)
-    }
+  // Line chart path (segments break at null values)
+  const lineSegments = []; let seg = []
+  hourly24h.forEach((d, i) => {
+    if (d.avg_yield_pct == null) { if (seg.length) { lineSegments.push(seg.join(' ')); seg = [] } }
+    else { seg.push(`${seg.length === 0 ? 'M' : 'L'}${lineX(i).toFixed(1)} ${lineY(d.avg_yield_pct).toFixed(1)}`) }
   })
-  if (currentSegment.length) segments.push(currentSegment.join(' '))
+  if (seg.length) lineSegments.push(seg.join(' '))
+  const linePath = lineSegments.join(' ')
 
-  const linePath = segments.join(' ')
-
-  // Area fill only for continuous non-null runs
-  const areaSegments: string[] = []
-  let areaStart: { i: number; x: string } | null = null
-  let areaPoints: string[] = []
-  data.forEach((d, i) => {
+  // Area fill segments
+  const areaSegs = []; let aStart = null; let aPts = []
+  hourly24h.forEach((d, i) => {
     if (d.avg_yield_pct != null) {
-      if (!areaStart) { areaStart = { i, x: xFor(i).toFixed(1) } }
-      areaPoints.push(`${xFor(i).toFixed(1)} ${yFor(d.avg_yield_pct).toFixed(1)}`)
+      if (!aStart) aStart = { x: lineX(i).toFixed(1) }
+      aPts.push(`${lineX(i).toFixed(1)} ${lineY(d.avg_yield_pct).toFixed(1)}`)
     } else {
-      if (areaStart && areaPoints.length > 1) {
-        const lastX = xFor(i - 1).toFixed(1)
-        areaSegments.push(`M${areaPoints[0]} ${areaPoints.slice(1).map(p => `L${p}`).join(' ')} L${lastX} ${(padT + innerH).toFixed(1)} L${areaStart.x} ${(padT + innerH).toFixed(1)} Z`)
+      if (aStart && aPts.length > 1) {
+        const lx = lineX(i - 1).toFixed(1), bot = (padT + innerH).toFixed(1)
+        areaSegs.push(`M${aPts[0]} ${aPts.slice(1).map(p => `L${p}`).join(' ')} L${lx} ${bot} L${aStart.x} ${bot} Z`)
       }
-      areaStart = null
-      areaPoints = []
+      aStart = null; aPts = []
     }
   })
-  if (areaStart && areaPoints.length > 1) {
-    const lastX = xFor(data.length - 1).toFixed(1)
-    areaSegments.push(`M${areaPoints[0]} ${areaPoints.slice(1).map(p => `L${p}`).join(' ')} L${lastX} ${(padT + innerH).toFixed(1)} L${areaStart.x} ${(padT + innerH).toFixed(1)} Z`)
+  if (aStart && aPts.length > 1) {
+    const lx = lineX(hourly24h.length - 1).toFixed(1), bot = (padT + innerH).toFixed(1)
+    areaSegs.push(`M${aPts[0]} ${aPts.slice(1).map(p => `L${p}`).join(' ')} L${lx} ${bot} L${aStart.x} ${bot} Z`)
   }
 
+  const refY = padT + innerH - ((targetYield - minV) / (maxV - minV)) * innerH
+
+  const nonNullBar = barData.filter(d => d.avg_yield_pct != null)
+  const nonNullLine = hourly24h.filter(d => d.avg_yield_pct != null)
+  const metaLabel = isHourly
+    ? nonNullLine.length > 0 ? `peak ${Math.max(...nonNullLine.map(d => d.avg_yield_pct)).toFixed(1)}%` : null
+    : nonNullBar.length > 0 ? `avg ${(nonNullBar.reduce((a, d) => a + d.avg_yield_pct, 0) / nonNullBar.length).toFixed(1)}% / day` : null
+
+  const TW = 86, TH = 28
+  const ttx = tooltip ? Math.max(padL + TW / 2, Math.min(W - padR - TW / 2, tooltip.x)) : 0
+  const tty = tooltip ? (tooltip.y < padT + TH + 8 ? tooltip.y + TH + 10 : tooltip.y - 6) : 0
+
   return (
-    <svg className="pour-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-      {/* Gridlines at minV, midpoint, maxV */}
-      {[minV, (minV + maxV) / 2, maxV].map((v, i) => {
-        const y = padT + innerH - ((v - minV) / (maxV - minV)) * innerH
-        return (
-          <g key={i}>
-            <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
-            <text x={padL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{v.toFixed(0)}%</text>
+    <div className="pour-trend-card">
+      <div className="ptc-head">
+        <span className="ptc-title">
+          Yield % · {isHourly ? 'last 24 hours' : range === '7d' ? 'last 7 days' : 'last 30 days'}
+        </span>
+        {metaLabel && <span className="ptc-meta mono">{metaLabel}</span>}
+        <div className="chart-range-toggle">
+          {['24h', '7d', '30d'].map(r => (
+            <button key={r} className={range === r ? 'active' : ''} onClick={() => { setRange(r); setTooltip(null) }}>{r}</button>
+          ))}
+        </div>
+      </div>
+
+      <svg className="pour-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+        onMouseLeave={() => setTooltip(null)}>
+
+        {[minV, (minV + maxV) / 2, maxV].map((v, i) => {
+          const y = padT + innerH - ((v - minV) / (maxV - minV)) * innerH
+          return (
+            <g key={i}>
+              <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
+              <text x={padL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{v.toFixed(0)}%</text>
+            </g>
+          )
+        })}
+        <line x1={padL} y1={refY} x2={W - padR} y2={refY} stroke="var(--valentia-slate)" strokeDasharray="3 3" opacity="0.6" />
+        <text x={W - padR - 2} y={refY - 3} textAnchor="end" className="pour-axis-lbl">{targetYield}%</text>
+
+        {isHourly && hourly24h.length > 0 && (
+          <>
+            {areaSegs.map((d, i) => <path key={i} d={d} fill="var(--valentia-slate)" opacity="0.10" />)}
+            {linePath && <path d={linePath} fill="none" stroke="var(--valentia-slate)" strokeWidth="2" />}
+            {hourly24h.map((d, i) => d.avg_yield_pct != null && (
+              <circle key={i} cx={lineX(i)} cy={lineY(d.avg_yield_pct)} r="2.2" fill="var(--valentia-slate)" />
+            ))}
+            <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtHour(hourly24h[0].hour)}</text>
+            <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtHour(hourly24h[Math.floor(hourly24h.length / 2)].hour)}</text>
+            <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">now</text>
+            <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
+              onMouseMove={e => {
+                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                const ctm = svg.getScreenCTM(); if (!ctm) return
+                const { x } = pt.matrixTransform(ctm.inverse())
+                const idx = Math.max(0, Math.min(hourly24h.length - 1, Math.round(((x - padL) / innerW) * (hourly24h.length - 1))))
+                const d = hourly24h[idx]
+                setTooltip({ x: lineX(idx), y: lineY(d.avg_yield_pct ?? 0), label: fmtHour(d.hour), value: d.avg_yield_pct != null ? d.avg_yield_pct.toFixed(1) + '%' : '—' })
+              }}
+            />
+          </>
+        )}
+
+        {!isHourly && barData.length > 0 && (
+          <>
+            {barData.map((d, i) => {
+              if (d.avg_yield_pct == null) return null
+              const bx = padL + i * barSlot + 1
+              const fill = d.avg_yield_pct >= targetYield ? '#1F6E4A' : d.avg_yield_pct >= 85 ? 'var(--sunrise)' : '#C04A1F'
+              return (
+                <rect key={i} x={bx} y={barY(d.avg_yield_pct)} width={barW} height={barH(d.avg_yield_pct)}
+                  fill={fill} opacity={i === barData.length - 1 ? 1 : 0.82} rx="1" />
+              )
+            })}
+            <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtDay(barData[0].date)}</text>
+            <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtDay(barData[Math.floor(barData.length / 2)].date)}</text>
+            <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">today</text>
+            <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
+              onMouseMove={e => {
+                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                const ctm = svg.getScreenCTM(); if (!ctm) return
+                const { x } = pt.matrixTransform(ctm.inverse())
+                const idx = Math.max(0, Math.min(barData.length - 1, Math.floor((x - padL) / barSlot)))
+                const d = barData[idx]
+                setTooltip({ x: padL + idx * barSlot + 1 + barW / 2, y: barY(d.avg_yield_pct), label: fmtDay(d.date), value: d.avg_yield_pct != null ? d.avg_yield_pct.toFixed(1) + '%' : '—' })
+              }}
+            />
+          </>
+        )}
+
+        {tooltip && (
+          <g style={{ pointerEvents: 'none' }}>
+            <rect x={ttx - TW / 2} y={tty - TH} width={TW} height={TH} rx={3} fill="var(--ink-900)" opacity={0.88} />
+            <text x={ttx} y={tty - TH + 11} textAnchor="middle" fontSize={8} fill="rgba(255,255,255,0.7)">{tooltip.label}</text>
+            <text x={ttx} y={tty - TH + 23} textAnchor="middle" fontSize={11} fontWeight="600" fill="white">{tooltip.value}</text>
           </g>
-        )
-      })}
-
-      {/* Target yield reference line */}
-      <line
-        x1={padL} y1={refY} x2={W - padR} y2={refY}
-        stroke="var(--valentia-slate)" strokeDasharray="3 3" opacity="0.6"
-      />
-      <text x={W - padR - 2} y={refY - 3} textAnchor="end" className="pour-axis-lbl">{targetYield}%</text>
-
-      {/* Area fills */}
-      {areaSegments.map((d, i) => (
-        <path key={i} d={d} fill="var(--valentia-slate)" opacity="0.10" />
-      ))}
-
-      {/* Lines */}
-      {linePath && (
-        <path d={linePath} fill="none" stroke="var(--valentia-slate)" strokeWidth="2" />
-      )}
-
-      {/* Dots — only for non-null values */}
-      {data.map((d, i) => {
-        if (d.avg_yield_pct == null) return null
-        return (
-          <circle key={i} cx={xFor(i)} cy={yFor(d.avg_yield_pct)} r="2.2" fill="var(--valentia-slate)" />
-        )
-      })}
-
-      {/* X-axis labels: first hour, midpoint, now */}
-      <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtHour(data[0].hour)}</text>
-      <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtHour(data[Math.floor(data.length / 2)].hour)}</text>
-      <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">now</text>
-    </svg>
+        )}
+      </svg>
+    </div>
   )
 }
 
@@ -421,10 +400,10 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
                     }}
                   />
                 </div>
-                <div className="pa-row-kg mono">{(g.qtyIssued / 1000).toFixed(1)} t</div>
-                <div className="pa-row-kg mono">{(g.qtyReceived / 1000).toFixed(1)} t</div>
+                <div className="pa-row-kg mono">{g.qtyIssued.toFixed(1)} kg</div>
+                <div className="pa-row-kg mono">{g.qtyReceived.toFixed(1)} kg</div>
                 <div className="pa-row-kg mono">
-                  {g.lossKg != null ? (g.lossKg / 1000).toFixed(1) + ' t' : '—'}
+                  {g.lossKg != null ? g.lossKg.toFixed(1) + ' kg' : '—'}
                 </div>
                 <div className={`pa-row-vs mono ${vsCls}`}>
                   {vsAvg == null ? '—' : (vsAvg >= 0 ? '+' : '') + vsAvg.toFixed(1) + '%'}
@@ -448,7 +427,7 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
                   {g.yieldPct != null ? g.yieldPct.toFixed(1) + '%' : '—'}
                 </div>
                 <div className="pa-card-count-label">
-                  {g.orderCount} orders · {(g.qtyReceived / 1000).toFixed(1)} t received
+                  {g.orderCount} orders · {g.qtyReceived.toFixed(1)} kg received
                 </div>
                 {!isPoOrder && (
                   <div className="pa-card-avg">
@@ -533,8 +512,9 @@ export function YieldAnalyticsPage() {
   const avgYield = validOrders.length
     ? validOrders.reduce((a, o) => a + o.yield_pct, 0) / validOrders.length
     : null
-  const totalLossT = filteredOrders.reduce((a, o) => a + (o.loss_kg ?? 0), 0) / 1000
+  const totalLossKg = filteredOrders.reduce((a, o) => a + (o.loss_kg ?? 0), 0)
   const yieldTone = avgYield == null ? '' : avgYield >= targetYield ? 'good' : avgYield >= 85 ? 'ok' : 'bad'
+
 
   const todayStr = todayISO()
 
@@ -627,7 +607,7 @@ export function YieldAnalyticsPage() {
             </div>
             <div className={`pour-kpi tone-actual ${yieldTone}`}>
               <div className="pk-l">{I.trending}<span>Total loss</span></div>
-              <div className="pk-v mono">{totalLossT.toFixed(1)} t</div>
+              <div className="pk-v mono">{totalLossKg.toFixed(1)} kg</div>
               <div className="pk-sub">
                 <span className={`pk-delta ${avgYield == null ? 'neut' : avgYield >= targetYield ? 'pos' : avgYield >= 85 ? 'neut' : 'neg'}`}>
                   {avgYield != null ? avgYield.toFixed(1) + '% avg yield' : '—'}
@@ -637,24 +617,8 @@ export function YieldAnalyticsPage() {
           </div>
 
           <div className="pour-trends">
-            <div className="pour-trend-card">
-              <div className="ptc-head">
-                <span className="ptc-title">Yield % per day · last 30 days</span>
-                {daily30dAvgLabel && (
-                  <span className="ptc-meta mono">{daily30dAvgLabel}</span>
-                )}
-              </div>
-              <YieldTrendChart30d data={daily30d} targetYield={targetYield} />
-            </div>
-            <div className="pour-trend-card">
-              <div className="ptc-head">
-                <span className="ptc-title">Yield % per hour · last 24 hours</span>
-                <span className="ptc-meta mono">
-                  {peakHourPct != null ? `peak ${peakHourPct.toFixed(1)}%` : '–'}
-                </span>
-              </div>
-              <YieldTrendChart24h data={hourly24h} targetYield={targetYield} />
-            </div>
+            <YieldTrendChart daily30d={daily30d} hourly24h={hourly24h} targetYield={targetYield} defaultRange="30d" />
+            <YieldTrendChart daily30d={daily30d} hourly24h={hourly24h} targetYield={targetYield} defaultRange="24h" />
           </div>
 
           <YieldBreakdown

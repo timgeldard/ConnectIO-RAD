@@ -53,6 +53,7 @@ export async function fetchPoursAnalytics(params?: {
       plant_id: params?.plantId ?? null,
       date_from: params?.dateFrom ?? null,
       date_to: params?.dateTo ?? null,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     }),
   })
   if (!res.ok) {

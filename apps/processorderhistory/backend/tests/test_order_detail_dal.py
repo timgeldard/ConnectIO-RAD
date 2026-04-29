@@ -181,6 +181,53 @@ def test_derive_materials_uses_first_batch_id():
     assert result[0]["batch_id"] == "FIRST"
 
 
+def test_derive_materials_subtracts_262_from_261():
+    movements = [
+        {"movement_type": "261", "material_id": "MAT-1", "material_name": "Sugar",
+         "batch_id": "B001", "quantity": 100.0, "uom": "KG"},
+        {"movement_type": "262", "material_id": "MAT-1", "material_name": "Sugar",
+         "batch_id": "B001", "quantity": 30.0, "uom": "KG"},
+    ]
+    result = dal._derive_materials(movements)
+    assert len(result) == 1
+    assert result[0]["total_qty"] == 70.0
+
+
+def test_derive_materials_excludes_fully_reversed_material():
+    movements = [
+        {"movement_type": "261", "material_id": "MAT-1", "material_name": "X",
+         "batch_id": "B001", "quantity": 50.0, "uom": "KG"},
+        {"movement_type": "262", "material_id": "MAT-1", "material_name": "X",
+         "batch_id": "B001", "quantity": 50.0, "uom": "KG"},
+    ]
+    result = dal._derive_materials(movements)
+    assert result == []
+
+
+def test_derive_materials_excludes_ea_materials():
+    movements = [
+        {"movement_type": "261", "material_id": "PKG-1", "material_name": "Box",
+         "batch_id": "B001", "quantity": 500.0, "uom": "EA"},
+        {"movement_type": "261", "material_id": "MAT-1", "material_name": "Sugar",
+         "batch_id": "B002", "quantity": 100.0, "uom": "KG"},
+    ]
+    result = dal._derive_materials(movements)
+    assert len(result) == 1
+    assert result[0]["material_id"] == "MAT-1"
+
+
+def test_derive_materials_rounds_to_6dp():
+    movements = [
+        {"movement_type": "261", "material_id": "MAT-1", "material_name": "X",
+         "batch_id": "B001", "quantity": 1000.0, "uom": "G"},  # → 1.0 KG
+        {"movement_type": "262", "material_id": "MAT-1", "material_name": "X",
+         "batch_id": "B001", "quantity": 1.0, "uom": "G"},   # → 0.001 KG
+    ]
+    result = dal._derive_materials(movements)
+    assert len(result) == 1
+    assert result[0]["total_qty"] == round(0.999, 6)
+
+
 # ---------------------------------------------------------------------------
 # _movement_summary
 # ---------------------------------------------------------------------------
@@ -208,6 +255,35 @@ def test_movement_summary_issued_none_when_no_261():
     result = dal._movement_summary(movements)
     assert result["qty_issued_kg"] is None
     assert result["qty_received_kg"] == 100.0
+
+
+def test_movement_summary_subtracts_262_from_issued():
+    movements = [
+        {"movement_type": "261", "quantity": 100.0, "uom": "KG"},
+        {"movement_type": "262", "quantity": 25.0, "uom": "KG"},
+        {"movement_type": "101", "quantity": 80.0, "uom": "KG"},
+    ]
+    result = dal._movement_summary(movements)
+    assert result["qty_issued_kg"] == 75.0
+    assert result["qty_received_kg"] == 80.0
+
+
+def test_movement_summary_issued_none_when_fully_reversed():
+    movements = [
+        {"movement_type": "261", "quantity": 50.0, "uom": "KG"},
+        {"movement_type": "262", "quantity": 50.0, "uom": "KG"},
+    ]
+    result = dal._movement_summary(movements)
+    assert result["qty_issued_kg"] is None
+
+
+def test_movement_summary_rounds_to_6dp():
+    movements = [
+        {"movement_type": "261", "quantity": 1000.0, "uom": "G"},  # → 1.0 KG
+        {"movement_type": "262", "quantity": 1.0, "uom": "G"},    # → 0.001 KG
+    ]
+    result = dal._movement_summary(movements)
+    assert result["qty_issued_kg"] == round(0.999, 6)
 
 
 # ---------------------------------------------------------------------------

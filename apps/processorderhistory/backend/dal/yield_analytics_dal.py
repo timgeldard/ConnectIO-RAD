@@ -19,10 +19,11 @@ Quantity conversion (mirrors existing orders_dal pattern):
 TARGET_YIELD_PCT = 95.0
 """
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone as dt_timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 
-from backend.db import run_sql_async, sql_param, tbl
+from backend.db import run_sql_async, sql_param, tbl, tz_date, tz_day_ms, tz_hour_ms
 
 _MS_PER_HOUR = 3_600_000
 _MS_PER_DAY  = 86_400_000
@@ -43,18 +44,19 @@ async def _q_orders_range(
     date_from: Optional[str],
     date_to: Optional[str],
     plant_id: Optional[str],
+    tz: str,
 ) -> list[dict]:
     """Per-order yield for the requested date range using MT-101 receipts and MT-261 issues.
 
-    Two CTEs — ``receipts`` (MT-101) and ``issues`` (MT-261) — are joined on
+    Two CTEs — ``receipts`` (MT-101) and ``issues`` (MT-261/262) — are joined on
     PROCESS_ORDER_ID.  Only orders that have at least one MT-101 receipt within
     the date range are returned.  Falls back to a 24-hour rolling window when no
-    dates are supplied.
+    dates are supplied.  Date comparisons use the plant's local calendar date (via ``tz``).
     """
     if date_from and date_to:
         date_clause = (
-            "AND DATE(DATE_TIME_OF_ENTRY) >= :date_from"
-            " AND DATE(DATE_TIME_OF_ENTRY) <= :date_to"
+            f"AND {tz_date('DATE_TIME_OF_ENTRY', tz)} >= :date_from"
+            f" AND {tz_date('DATE_TIME_OF_ENTRY', tz)} <= :date_to"
         )
         params = [sql_param("date_from", date_from), sql_param("date_to", date_to)]
     else:
@@ -84,9 +86,12 @@ async def _q_orders_range(
         issues AS (
             SELECT
                 PROCESS_ORDER_ID,
-                COALESCE(SUM(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END), 0.0) AS qty_issued_kg
+                COALESCE(SUM(CASE
+                    WHEN MOVEMENT_TYPE = '261' THEN CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
+                    WHEN MOVEMENT_TYPE = '262' THEN -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
+                END), 0.0) AS qty_issued_kg
             FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE = '261'
+            WHERE MOVEMENT_TYPE IN ('261', '262')
               AND UPPER(TRIM(UOM)) != 'EA'
               {date_clause}
             GROUP BY PROCESS_ORDER_ID
@@ -96,8 +101,8 @@ async def _q_orders_range(
             po.MATERIAL_ID                                                       AS material_id,
             COALESCE(m.MATERIAL_NAME, po.MATERIAL_DESCRIPTION, po.MATERIAL_ID)  AS material_name,
             po.PLANT_ID                                                          AS plant_id,
-            r.qty_received_kg,
-            COALESCE(i.qty_issued_kg, 0.0)                                       AS qty_issued_kg,
+            ROUND(r.qty_received_kg, 6)                                          AS qty_received_kg,
+            ROUND(COALESCE(i.qty_issued_kg, 0.0), 6)                             AS qty_issued_kg,
             CASE WHEN COALESCE(i.qty_issued_kg, 0) > 0
                  THEN ROUND((r.qty_received_kg / i.qty_issued_kg) * 100.0, 2)
                  ELSE NULL END                                                   AS yield_pct,
@@ -115,87 +120,93 @@ async def _q_orders_range(
     return await run_sql_async(token, query, params, endpoint_hint="poh.yield.orders_range")
 
 
-async def _q_daily30d(token: str) -> list[dict]:
-    """Daily average yield % over the last 30 days (always fixed; feeds the context chart).
+async def _q_daily30d(token: str, tz: str) -> list[dict]:
+    """Daily average yield % over the last 30 days bucketed by local calendar day.
 
-    Two CTEs aggregate MT-101 receipts and MT-261 issues per order per day.
+    Two CTEs aggregate MT-101 receipts and MT-261/262 net issues per order per day.
     The outer query computes avg_yield_pct by summing quantities across orders
-    within each day bucket.
+    within each local day bucket.  Day boundaries align to local midnight in ``tz``.
     """
     query = f"""
         WITH receipts AS (
             SELECT
-                DATE_TRUNC('day', DATE_TIME_OF_ENTRY) AS day_ts,
+                {tz_day_ms('DATE_TIME_OF_ENTRY', tz)} AS day_ms,
                 PROCESS_ORDER_ID,
                 COALESCE(SUM(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END), 0.0) AS qty_received
             FROM {tbl('vw_gold_adp_movement')}
             WHERE MOVEMENT_TYPE = '101'
               AND UPPER(TRIM(UOM)) != 'EA'
               AND DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 30 DAYS
-            GROUP BY day_ts, PROCESS_ORDER_ID
+            GROUP BY day_ms, PROCESS_ORDER_ID
         ),
         issues AS (
             SELECT
-                DATE_TRUNC('day', DATE_TIME_OF_ENTRY) AS day_ts,
+                {tz_day_ms('DATE_TIME_OF_ENTRY', tz)} AS day_ms,
                 PROCESS_ORDER_ID,
-                COALESCE(SUM(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END), 0.0) AS qty_issued
+                COALESCE(SUM(CASE
+                    WHEN MOVEMENT_TYPE = '261' THEN CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
+                    WHEN MOVEMENT_TYPE = '262' THEN -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
+                END), 0.0) AS qty_issued
             FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE = '261'
+            WHERE MOVEMENT_TYPE IN ('261', '262')
               AND UPPER(TRIM(UOM)) != 'EA'
               AND DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 30 DAYS
-            GROUP BY day_ts, PROCESS_ORDER_ID
+            GROUP BY day_ms, PROCESS_ORDER_ID
         )
         SELECT
-            CAST(UNIX_TIMESTAMP(r.day_ts) * 1000 AS BIGINT) AS day_ms,
+            r.day_ms,
             CASE WHEN SUM(i.qty_issued) > 0
                  THEN ROUND((SUM(r.qty_received) / SUM(i.qty_issued)) * 100.0, 2)
                  ELSE NULL END AS avg_yield_pct
         FROM receipts r
-        LEFT JOIN issues i ON i.PROCESS_ORDER_ID = r.PROCESS_ORDER_ID AND i.day_ts = r.day_ts
-        GROUP BY r.day_ts
-        ORDER BY day_ms
+        LEFT JOIN issues i ON i.PROCESS_ORDER_ID = r.PROCESS_ORDER_ID AND i.day_ms = r.day_ms
+        GROUP BY r.day_ms
+        ORDER BY r.day_ms
     """
     return await run_sql_async(token, query, endpoint_hint="poh.yield.daily30d")
 
 
-async def _q_hourly24h(token: str) -> list[dict]:
-    """Hourly average yield % over the last 24 hours (always fixed; feeds the context chart).
+async def _q_hourly24h(token: str, tz: str) -> list[dict]:
+    """Hourly average yield % over the last 24 hours bucketed by local calendar hour.
 
-    Same structure as ``_q_daily30d`` but bucketed by hour and restricted to the
-    last 24-hour rolling window.
+    Same structure as ``_q_daily30d`` but bucketed by local hour and restricted to the
+    last 24-hour rolling window.  Hour boundaries align to local hour starts in ``tz``.
     """
     query = f"""
         WITH receipts AS (
             SELECT
-                DATE_TRUNC('hour', DATE_TIME_OF_ENTRY) AS hour_ts,
+                {tz_hour_ms('DATE_TIME_OF_ENTRY', tz)} AS hour_ms,
                 PROCESS_ORDER_ID,
                 COALESCE(SUM(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END), 0.0) AS qty_received
             FROM {tbl('vw_gold_adp_movement')}
             WHERE MOVEMENT_TYPE = '101'
               AND UPPER(TRIM(UOM)) != 'EA'
               AND DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 24 HOURS
-            GROUP BY hour_ts, PROCESS_ORDER_ID
+            GROUP BY hour_ms, PROCESS_ORDER_ID
         ),
         issues AS (
             SELECT
-                DATE_TRUNC('hour', DATE_TIME_OF_ENTRY) AS hour_ts,
+                {tz_hour_ms('DATE_TIME_OF_ENTRY', tz)} AS hour_ms,
                 PROCESS_ORDER_ID,
-                COALESCE(SUM(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END), 0.0) AS qty_issued
+                COALESCE(SUM(CASE
+                    WHEN MOVEMENT_TYPE = '261' THEN CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
+                    WHEN MOVEMENT_TYPE = '262' THEN -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
+                END), 0.0) AS qty_issued
             FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE = '261'
+            WHERE MOVEMENT_TYPE IN ('261', '262')
               AND UPPER(TRIM(UOM)) != 'EA'
               AND DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 24 HOURS
-            GROUP BY hour_ts, PROCESS_ORDER_ID
+            GROUP BY hour_ms, PROCESS_ORDER_ID
         )
         SELECT
-            CAST(UNIX_TIMESTAMP(r.hour_ts) * 1000 AS BIGINT) AS hour_ms,
+            r.hour_ms,
             CASE WHEN SUM(i.qty_issued) > 0
                  THEN ROUND((SUM(r.qty_received) / SUM(i.qty_issued)) * 100.0, 2)
                  ELSE NULL END AS avg_yield_pct
         FROM receipts r
-        LEFT JOIN issues i ON i.PROCESS_ORDER_ID = r.PROCESS_ORDER_ID AND i.hour_ts = r.hour_ts
-        GROUP BY r.hour_ts
-        ORDER BY hour_ms
+        LEFT JOIN issues i ON i.PROCESS_ORDER_ID = r.PROCESS_ORDER_ID AND i.hour_ms = r.hour_ms
+        GROUP BY r.hour_ms
+        ORDER BY r.hour_ms
     """
     return await run_sql_async(token, query, endpoint_hint="poh.yield.hourly24h")
 
@@ -203,12 +214,14 @@ async def _q_hourly24h(token: str) -> list[dict]:
 async def _q_prior7d_orders(
     token: str,
     date_from: Optional[str],
+    tz: str,
 ) -> list[dict]:
     """Per-order yield for the 7 days immediately prior to date_from.
 
     Used by the card view to compute comparison baseline averages.
     Returns an empty list immediately when date_from is not supplied (rolling-window mode).
     No plant_id filter — used for cross-plant comparison baseline only.
+    Date comparisons use the plant's local calendar date (via ``tz``).
     """
     if not date_from:
         return []
@@ -222,19 +235,22 @@ async def _q_prior7d_orders(
             FROM {tbl('vw_gold_adp_movement')}
             WHERE MOVEMENT_TYPE = '101'
               AND UPPER(TRIM(UOM)) != 'EA'
-              AND DATE(DATE_TIME_OF_ENTRY) >= DATE_ADD(CAST(:date_from AS DATE), -7)
-              AND DATE(DATE_TIME_OF_ENTRY) <  CAST(:date_from AS DATE)
+              AND {tz_date('DATE_TIME_OF_ENTRY', tz)} >= DATE_ADD(CAST(:date_from AS DATE), -7)
+              AND {tz_date('DATE_TIME_OF_ENTRY', tz)} <  CAST(:date_from AS DATE)
             GROUP BY PROCESS_ORDER_ID
         ),
         issues AS (
             SELECT
                 PROCESS_ORDER_ID,
-                COALESCE(SUM(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END), 0.0) AS qty_issued_kg
+                COALESCE(SUM(CASE
+                    WHEN MOVEMENT_TYPE = '261' THEN CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
+                    WHEN MOVEMENT_TYPE = '262' THEN -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
+                END), 0.0) AS qty_issued_kg
             FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE = '261'
+            WHERE MOVEMENT_TYPE IN ('261', '262')
               AND UPPER(TRIM(UOM)) != 'EA'
-              AND DATE(DATE_TIME_OF_ENTRY) >= DATE_ADD(CAST(:date_from AS DATE), -7)
-              AND DATE(DATE_TIME_OF_ENTRY) <  CAST(:date_from AS DATE)
+              AND {tz_date('DATE_TIME_OF_ENTRY', tz)} >= DATE_ADD(CAST(:date_from AS DATE), -7)
+              AND {tz_date('DATE_TIME_OF_ENTRY', tz)} <  CAST(:date_from AS DATE)
             GROUP BY PROCESS_ORDER_ID
         )
         SELECT
@@ -242,8 +258,8 @@ async def _q_prior7d_orders(
             po.MATERIAL_ID                                                       AS material_id,
             COALESCE(m.MATERIAL_NAME, po.MATERIAL_DESCRIPTION, po.MATERIAL_ID)  AS material_name,
             po.PLANT_ID                                                          AS plant_id,
-            r.qty_received_kg,
-            COALESCE(i.qty_issued_kg, 0.0)                                       AS qty_issued_kg,
+            ROUND(r.qty_received_kg, 6)                                          AS qty_received_kg,
+            ROUND(COALESCE(i.qty_issued_kg, 0.0), 6)                             AS qty_issued_kg,
             CASE WHEN COALESCE(i.qty_issued_kg, 0) > 0
                  THEN ROUND((r.qty_received_kg / i.qty_issued_kg) * 100.0, 2)
                  ELSE NULL END                                                   AS yield_pct,
@@ -267,13 +283,13 @@ async def _q_prior7d_orders(
 def _coerce_order(row: dict) -> dict:
     """Coerce Databricks string-serialised values in an order yield row.
 
-    ``qty_received_kg`` and ``qty_issued_kg`` default to ``0.0`` when None.
-    ``yield_pct`` and ``loss_kg`` remain ``None`` when None (no yield computable).
-    ``order_date_ms`` defaults to ``0`` when None.
+    ``qty_received_kg`` and ``qty_issued_kg`` default to ``0.0`` when None and are
+    rounded to 6 decimal places.  ``yield_pct`` and ``loss_kg`` remain ``None``
+    when None (no yield computable).  ``order_date_ms`` defaults to ``0`` when None.
     """
     for key in ("qty_received_kg", "qty_issued_kg"):
         v = row.get(key)
-        row[key] = float(v) if v is not None else 0.0
+        row[key] = round(float(v), 6) if v is not None else 0.0
     for key in ("yield_pct", "loss_kg"):
         v = row.get(key)
         row[key] = float(v) if v is not None else None
@@ -286,14 +302,20 @@ def _coerce_order(row: dict) -> dict:
 # Series builders — fill zero-padded 30-day / 24-hour grids
 # ---------------------------------------------------------------------------
 
-def _build_daily_series(daily_rows: list[dict], now_ms: int) -> list[dict]:
+def _build_daily_series(daily_rows: list[dict], now_ms: int, tz_name: str = "UTC") -> list[dict]:
     """Build a zero-padded 30-day series of daily average yield percentages.
 
+    Bucket boundaries align to local midnight in ``tz_name``.
     Returns a list of 30 dicts ``{"date": day_ms, "avg_yield_pct": float | None}``,
     oldest bucket first.  Buckets with no data carry ``None`` for ``avg_yield_pct``.
     """
-    now_day_ms = (now_ms // _MS_PER_DAY) * _MS_PER_DAY
-    day_buckets = [now_day_ms - (29 - i) * _MS_PER_DAY for i in range(30)]
+    tz = ZoneInfo(tz_name)
+    now_utc = datetime.fromtimestamp(now_ms / 1000, tz=dt_timezone.utc)
+    local_today = now_utc.astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    day_buckets = [
+        int((local_today - timedelta(days=29 - i)).astimezone(dt_timezone.utc).timestamp() * 1000)
+        for i in range(30)
+    ]
 
     lookup: dict[int, Optional[float]] = {
         int(row["day_ms"]): (float(row["avg_yield_pct"]) if row["avg_yield_pct"] is not None else None)
@@ -303,14 +325,20 @@ def _build_daily_series(daily_rows: list[dict], now_ms: int) -> list[dict]:
     return [{"date": d, "avg_yield_pct": lookup.get(d)} for d in day_buckets]
 
 
-def _build_hourly_series(hourly_rows: list[dict], now_ms: int) -> list[dict]:
+def _build_hourly_series(hourly_rows: list[dict], now_ms: int, tz_name: str = "UTC") -> list[dict]:
     """Build a zero-padded 24-hour series of hourly average yield percentages.
 
+    Bucket boundaries align to local hour starts in ``tz_name``.
     Returns a list of 24 dicts ``{"hour": hour_ms, "avg_yield_pct": float | None}``,
     oldest bucket first.  Buckets with no data carry ``None`` for ``avg_yield_pct``.
     """
-    now_hour_ms = (now_ms // _MS_PER_HOUR) * _MS_PER_HOUR
-    hour_buckets = [now_hour_ms - (24 - i) * _MS_PER_HOUR for i in range(24)]
+    tz = ZoneInfo(tz_name)
+    now_utc = datetime.fromtimestamp(now_ms / 1000, tz=dt_timezone.utc)
+    local_now_hour = now_utc.astimezone(tz).replace(minute=0, second=0, microsecond=0)
+    hour_buckets = [
+        int((local_now_hour - timedelta(hours=24 - i)).astimezone(dt_timezone.utc).timestamp() * 1000)
+        for i in range(24)
+    ]
 
     lookup: dict[int, Optional[float]] = {
         int(row["hour_ms"]): (float(row["avg_yield_pct"]) if row["avg_yield_pct"] is not None else None)
@@ -330,6 +358,7 @@ async def fetch_yield_analytics(
     plant_id: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    timezone: str = "UTC",
 ) -> dict:
     """Fetch yield analytics via 3–4 parallel Databricks queries.
 
@@ -351,19 +380,19 @@ async def fetch_yield_analytics(
         Dict with keys: ``now_ms``, ``target_yield_pct``, ``materials``,
         ``orders``, ``prior7d``, ``daily30d``, ``hourly24h``.
     """
-    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    now_ms = int(datetime.now(dt_timezone.utc).timestamp() * 1000)
 
     orders_rows, daily_rows, hourly_rows, prior7d_rows = await asyncio.gather(
-        _q_orders_range(token, date_from, date_to, plant_id),
-        _q_daily30d(token),
-        _q_hourly24h(token),
-        _q_prior7d_orders(token, date_from),
+        _q_orders_range(token, date_from, date_to, plant_id, timezone),
+        _q_daily30d(token, timezone),
+        _q_hourly24h(token, timezone),
+        _q_prior7d_orders(token, date_from, timezone),
     )
 
     orders = [_coerce_order(r) for r in orders_rows]
     prior7d = [_coerce_order(r) for r in prior7d_rows]
-    daily_series = _build_daily_series(daily_rows, now_ms)
-    hourly_series = _build_hourly_series(hourly_rows, now_ms)
+    daily_series = _build_daily_series(daily_rows, now_ms, timezone)
+    hourly_series = _build_hourly_series(hourly_rows, now_ms, timezone)
     materials = sorted({o["material_name"] for o in orders if o.get("material_name")})
 
     return {

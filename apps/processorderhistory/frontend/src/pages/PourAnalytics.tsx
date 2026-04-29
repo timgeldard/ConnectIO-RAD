@@ -95,79 +95,151 @@ function periodLabel(dateFrom: string, dateTo: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Chart components
+// Chart components — unified PourTrendChart with 24h / 7d / 30d toggle + tooltip
 // ---------------------------------------------------------------------------
 
-function TrendChart30d({ data }: { data: DaySeries[] }) {
-  if (!data?.length) return null
-  const W = 560, H = 110, padL = 28, padR = 6, padT = 6, padB = 16
-  const innerW = W - padL - padR
-  const innerH = H - padT - padB
-  const maxActual = Math.max(...data.map(d => d.actual), 1)
-  const maxV = maxActual * 1.1
-  const barW = innerW / data.length - 2
+type Range = '24h' | '7d' | '30d'
+interface TooltipData { x: number; y: number; label: string; value: string }
+
+const CW = 560, CH = 110, CL = 28, CR = 6, CT = 6, CB = 16
+const IW = CW - CL - CR, IH = CH - CT - CB
+
+/** Pour count chart with range toggle and hover tooltip.
+ * Renders a line chart for 24 h (hourly) and a bar chart for 7 d / 30 d (daily). */
+function PourTrendChart({
+  daily30d,
+  hourly24h,
+  defaultRange = '30d',
+}: {
+  daily30d: DaySeries[]
+  hourly24h: HourSeries[]
+  defaultRange?: Range
+}) {
+  const [range, setRange] = useState<Range>(defaultRange)
+  const [tooltip, setTooltip] = useState<TooltipData | null>(null)
+
+  const isHourly = range === '24h'
+  const barData = range === '7d' ? daily30d.slice(-7) : daily30d
+
+  const maxBarV = barData.length ? Math.max(...barData.map(d => d.actual), 1) * 1.1 : 1
+  const barSlot = IW / Math.max(barData.length, 1)
+  const barW = barSlot - 2
+
+  const maxLineV = hourly24h.length ? Math.max(...hourly24h.map(d => d.actual), 1) * 1.15 : 1
+  const lineX = (i: number) => CL + (i / Math.max(hourly24h.length - 1, 1)) * IW
+  const lineY = (v: number) => CT + IH - (v / maxLineV) * IH
+
+  const linePath = hourly24h.map((d, i) => `${i === 0 ? 'M' : 'L'}${lineX(i).toFixed(1)} ${lineY(d.actual).toFixed(1)}`).join(' ')
+  const areaPath = hourly24h.length > 1
+    ? `${linePath} L${lineX(hourly24h.length - 1).toFixed(1)} ${(CT + IH).toFixed(1)} L${lineX(0).toFixed(1)} ${(CT + IH).toFixed(1)} Z`
+    : ''
+
+  const metaLabel = isHourly && hourly24h.length > 0
+    ? `peak ${Math.max(...hourly24h.map(h => h.actual))} / hr`
+    : !isHourly && barData.length > 0
+      ? `avg ${Math.round(barData.reduce((a, d) => a + d.actual, 0) / barData.length)} / day`
+      : null
+
+  const TW = 80, TH = 28
+  const ttx = tooltip ? Math.max(CL + TW / 2, Math.min(CW - CR - TW / 2, tooltip.x)) : 0
+  const tty = tooltip ? (tooltip.y < CT + TH + 8 ? tooltip.y + TH + 10 : tooltip.y - 6) : 0
+  const maxV = isHourly ? maxLineV : maxBarV
 
   return (
-    <svg className="pour-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-      {[0, 0.5, 1].map((p, i) => {
-        const y = padT + innerH - p * innerH
-        return (
-          <g key={i}>
-            <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
-            <text x={padL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{Math.round(maxV * p)}</text>
-          </g>
-        )
-      })}
-      {data.map((d, i) => {
-        const x = padL + i * (innerW / data.length) + 1
-        const h = (d.actual / maxV) * innerH
-        const y = padT + innerH - h
-        const isToday = i === data.length - 1
-        return (
-          <rect key={i} x={x} y={y} width={barW} height={h}
-            fill={isToday ? 'var(--valentia-slate)' : '#1F6E4A'}
-            opacity={isToday ? 1 : 0.78} rx="1" />
-        )
-      })}
-      <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtDay(data[0].date)}</text>
-      <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtDay(data[Math.floor(data.length / 2)].date)}</text>
-      <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">today</text>
-    </svg>
-  )
-}
+    <div className="pour-trend-card">
+      <div className="ptc-head">
+        <span className="ptc-title">
+          Pours · {isHourly ? 'last 24 hours' : range === '7d' ? 'last 7 days' : 'last 30 days'}
+        </span>
+        {metaLabel && <span className="ptc-meta mono">{metaLabel}</span>}
+        <div className="chart-range-toggle">
+          {(['24h', '7d', '30d'] as Range[]).map(r => (
+            <button key={r} className={range === r ? 'active' : ''} onClick={() => { setRange(r); setTooltip(null) }}>
+              {r}
+            </button>
+          ))}
+        </div>
+      </div>
 
-function TrendChart24h({ data }: { data: HourSeries[] }) {
-  if (!data?.length) return null
-  const W = 560, H = 110, padL = 28, padR = 6, padT = 6, padB = 16
-  const innerW = W - padL - padR
-  const innerH = H - padT - padB
-  const maxActual = Math.max(...data.map(d => d.actual), 1)
-  const maxV = maxActual * 1.15
-  const xFor = (i: number) => padL + (i / (data.length - 1)) * innerW
-  const yFor = (v: number) => padT + innerH - (v / maxV) * innerH
-  const path = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${xFor(i).toFixed(1)} ${yFor(d.actual).toFixed(1)}`).join(' ')
-  const area = path + ` L${xFor(data.length - 1).toFixed(1)} ${(padT + innerH).toFixed(1)} L${xFor(0).toFixed(1)} ${(padT + innerH).toFixed(1)} Z`
+      <svg className="pour-chart" viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none"
+        onMouseLeave={() => setTooltip(null)}>
 
-  return (
-    <svg className="pour-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-      {[0, 0.5, 1].map((p, i) => {
-        const y = padT + innerH - p * innerH
-        return (
-          <g key={i}>
-            <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
-            <text x={padL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{Math.round(maxV * p)}</text>
+        {[0, 0.5, 1].map((p, gi) => {
+          const y = CT + IH - p * IH
+          return (
+            <g key={gi}>
+              <line x1={CL} y1={y} x2={CW - CR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
+              <text x={CL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{Math.round(maxV * p)}</text>
+            </g>
+          )
+        })}
+
+        {isHourly && hourly24h.length > 0 && (
+          <>
+            <path d={areaPath} fill="var(--valentia-slate)" opacity="0.12" />
+            <path d={linePath} fill="none" stroke="var(--valentia-slate)" strokeWidth="2" />
+            {hourly24h.map((d, i) => (
+              <circle key={i} cx={lineX(i)} cy={lineY(d.actual)} r="2.2" fill="var(--valentia-slate)" />
+            ))}
+            <text x={CL} y={CH - 4} className="pour-axis-lbl">{fmtHour(hourly24h[0].hour)}</text>
+            <text x={CL + IW / 2} y={CH - 4} textAnchor="middle" className="pour-axis-lbl">
+              {fmtHour(hourly24h[Math.floor(hourly24h.length / 2)].hour)}
+            </text>
+            <text x={CW - CR} y={CH - 4} textAnchor="end" className="pour-axis-lbl">now</text>
+            <rect x={CL} y={CT} width={IW} height={IH} fill="transparent"
+              onMouseMove={e => {
+                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                const ctm = svg.getScreenCTM(); if (!ctm) return
+                const { x } = pt.matrixTransform(ctm.inverse())
+                const idx = Math.max(0, Math.min(hourly24h.length - 1, Math.round(((x - CL) / IW) * (hourly24h.length - 1))))
+                const d = hourly24h[idx]
+                setTooltip({ x: lineX(idx), y: lineY(d.actual), label: fmtHour(d.hour), value: d.actual.toLocaleString() })
+              }}
+            />
+          </>
+        )}
+
+        {!isHourly && barData.length > 0 && (
+          <>
+            {barData.map((d, i) => {
+              const bx = CL + i * barSlot + 1
+              const h = Math.max((d.actual / maxBarV) * IH, 0)
+              return (
+                <rect key={i} x={bx} y={CT + IH - h} width={barW} height={h}
+                  fill={i === barData.length - 1 ? 'var(--valentia-slate)' : '#1F6E4A'}
+                  opacity={i === barData.length - 1 ? 1 : 0.78} rx="1" />
+              )
+            })}
+            <text x={CL} y={CH - 4} className="pour-axis-lbl">{fmtDay(barData[0].date)}</text>
+            <text x={CL + IW / 2} y={CH - 4} textAnchor="middle" className="pour-axis-lbl">
+              {fmtDay(barData[Math.floor(barData.length / 2)].date)}
+            </text>
+            <text x={CW - CR} y={CH - 4} textAnchor="end" className="pour-axis-lbl">today</text>
+            <rect x={CL} y={CT} width={IW} height={IH} fill="transparent"
+              onMouseMove={e => {
+                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                const ctm = svg.getScreenCTM(); if (!ctm) return
+                const { x } = pt.matrixTransform(ctm.inverse())
+                const idx = Math.max(0, Math.min(barData.length - 1, Math.floor((x - CL) / barSlot)))
+                const d = barData[idx]
+                const h = Math.max((d.actual / maxBarV) * IH, 0)
+                setTooltip({ x: CL + idx * barSlot + 1 + barW / 2, y: CT + IH - h, label: fmtDay(d.date), value: d.actual.toLocaleString() })
+              }}
+            />
+          </>
+        )}
+
+        {tooltip && (
+          <g style={{ pointerEvents: 'none' }}>
+            <rect x={ttx - TW / 2} y={tty - TH} width={TW} height={TH} rx={3} fill="var(--ink-900)" opacity={0.88} />
+            <text x={ttx} y={tty - TH + 11} textAnchor="middle" fontSize={8} fill="rgba(255,255,255,0.7)">{tooltip.label}</text>
+            <text x={ttx} y={tty - TH + 23} textAnchor="middle" fontSize={11} fontWeight="600" fill="white">{tooltip.value}</text>
           </g>
-        )
-      })}
-      <path d={area} fill="var(--valentia-slate)" opacity="0.12" />
-      <path d={path} fill="none" stroke="var(--valentia-slate)" strokeWidth="2" />
-      {data.map((d, i) => (
-        <circle key={i} cx={xFor(i)} cy={yFor(d.actual)} r="2.2" fill="var(--valentia-slate)" />
-      ))}
-      <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtHour(data[0].hour)}</text>
-      <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtHour(data[Math.floor(data.length / 2)].hour)}</text>
-      <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">now</text>
-    </svg>
+        )}
+      </svg>
+    </div>
   )
 }
 
@@ -631,28 +703,8 @@ export function PourAnalyticsPage() {
           </div>
 
           <div className="pour-trends">
-            <div className="pour-trend-card">
-              <div className="ptc-head">
-                <span className="ptc-title">Pours per day · last 30 days</span>
-                {daily30d.length > 0 && (
-                  <span className="ptc-meta mono">
-                    avg {Math.round(daily30d.reduce((a, d) => a + d.actual, 0) / daily30d.length)} / day
-                  </span>
-                )}
-              </div>
-              <TrendChart30d data={daily30d} />
-            </div>
-            <div className="pour-trend-card">
-              <div className="ptc-head">
-                <span className="ptc-title">Pours per hour · last 24 hours</span>
-                {hourly24h.length > 0 && (
-                  <span className="ptc-meta mono">
-                    peak {Math.max(...hourly24h.map(h => h.actual))} / hr
-                  </span>
-                )}
-              </div>
-              <TrendChart24h data={hourly24h} />
-            </div>
+            <PourTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="30d" />
+            <PourTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="24h" />
           </div>
 
           <PourAnalyticsBreakdown events={events} prior7d={prior7d} dateFrom={dateFrom} dateTo={dateTo} />

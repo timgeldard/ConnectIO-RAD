@@ -312,29 +312,43 @@ def _coerce_usage_decision(row: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 def _derive_materials(movements: list[dict]) -> list[dict]:
-    """Aggregate 261 (component issue) movements into a BOM-style component list.
+    """Aggregate 261/262 movements into a net BOM-style component list.
 
-    G quantities are normalised to KG. EA items are listed separately at face value.
-    Takes the first batch_id seen per material as the representative batch.
+    MT-262 (return from production order) is subtracted from MT-261 (goods issue)
+    to compute the net issued quantity per material.  EA (each/packaging) materials
+    are excluded.  G quantities are normalised to KG.  Totals are rounded to 6dp.
+    Materials with a net total of zero or less (fully reversed) are omitted.
+    Takes the first batch_id seen from a MT-261 movement as the representative batch.
     """
     seen: dict[str, dict] = {}
     for mv in movements:
-        if str(mv.get("movement_type", "")) == "261":
-            mid = str(mv.get("material_id", ""))
-            raw_qty = float(mv.get("quantity") or 0)
-            raw_uom = (mv.get("uom") or "").strip().upper()
-            qty_kg = raw_qty / 1000.0 if raw_uom == "G" else raw_qty
-            display_uom = "KG" if raw_uom in ("G", "KG") else mv.get("uom")
-            if mid not in seen:
-                seen[mid] = {
-                    "material_id": mid,
-                    "material_name": mv.get("material_name"),
-                    "batch_id": mv.get("batch_id"),
-                    "total_qty": 0.0,
-                    "uom": display_uom,
-                }
-            seen[mid]["total_qty"] += qty_kg
-    return list(seen.values())
+        mt = str(mv.get("movement_type", ""))
+        if mt not in ("261", "262"):
+            continue
+        mid = str(mv.get("material_id", ""))
+        raw_uom = (mv.get("uom") or "").strip().upper()
+        if raw_uom == "EA":
+            continue
+        raw_qty = float(mv.get("quantity") or 0)
+        qty_kg = raw_qty / 1000.0 if raw_uom == "G" else raw_qty
+        sign = -1.0 if mt == "262" else 1.0
+        if mid not in seen:
+            seen[mid] = {
+                "material_id": mid,
+                "material_name": mv.get("material_name"),
+                "batch_id": mv.get("batch_id") if mt == "261" else None,
+                "total_qty": 0.0,
+                "uom": "KG" if raw_uom in ("G", "KG") else mv.get("uom"),
+            }
+        elif mt == "261" and seen[mid]["batch_id"] is None:
+            seen[mid]["batch_id"] = mv.get("batch_id")
+        seen[mid]["total_qty"] += sign * qty_kg
+    result = []
+    for item in seen.values():
+        item["total_qty"] = round(item["total_qty"], 6)
+        if item["total_qty"] > 0:
+            result.append(item)
+    return result
 
 
 def _to_kg(qty: float, uom: str | None) -> float:
@@ -348,20 +362,28 @@ def _to_kg(qty: float, uom: str | None) -> float:
 
 
 def _movement_summary(movements: list[dict]) -> dict:
-    """Total kg issued (261) and received (101) for the summary strip.
+    """Net kg issued (261 minus 262) and received (101) for the summary strip.
 
-    EA movements are excluded; G quantities are converted to KG before summing.
+    MT-262 (return from production order) is subtracted from MT-261 issues to
+    compute the net issued quantity.  EA movements are excluded; G quantities are
+    converted to KG before summing.  Totals are rounded to 6 decimal places.
     """
     issued = sum(
         _to_kg(float(mv.get("quantity") or 0), mv.get("uom"))
         for mv in movements
         if str(mv.get("movement_type", "")) == "261"
+    ) - sum(
+        _to_kg(float(mv.get("quantity") or 0), mv.get("uom"))
+        for mv in movements
+        if str(mv.get("movement_type", "")) == "262"
     )
     received = sum(
         _to_kg(float(mv.get("quantity") or 0), mv.get("uom"))
         for mv in movements
         if str(mv.get("movement_type", "")) == "101"
     )
+    issued = round(issued, 6)
+    received = round(received, 6)
     return {
         "qty_issued_kg": issued if issued > 0 else None,
         "qty_received_kg": received if received > 0 else None,
