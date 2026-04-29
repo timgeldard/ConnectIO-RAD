@@ -11,7 +11,7 @@ import { ORDERS } from './data/mock'
 
 type View =
   | { name: 'list' }
-  | { name: 'detail'; order: any }
+  | { name: 'detail'; order: any; from: 'list' | 'planning' }
   | { name: 'planning' }
   | { name: 'pours' }
 
@@ -47,8 +47,8 @@ export default function App() {
     ;(window as any).__navigateToOrder = (poId: string | number, ctx: any) => {
       const list = ORDERS as any[]
       let order = list.find(o => o.processOrderId === String(poId))
+      const c = ctx || {}
       if (!order) {
-        const c = ctx || {}
         const start = c.start || (Date.now() - 4 * HOUR)
         const end = c.end || null
         order = {
@@ -81,7 +81,7 @@ export default function App() {
           __planningShortageETA: c.shortageETA || null,
         }
       }
-      setView({ name: 'detail', order })
+      setView({ name: 'detail', order, from: c._from === 'planning' ? 'planning' : 'list' })
       window.scrollTo(0, 0)
     }
     return () => {
@@ -97,7 +97,7 @@ export default function App() {
         <main className="main">
           {view.name === 'list' && (
             <OrderList
-              onOpen={(order) => { setView({ name: 'detail', order }); window.scrollTo(0, 0) }}
+              onOpen={(order) => { setView({ name: 'detail', order, from: 'list' }); window.scrollTo(0, 0) }}
               lineFilter={lineFilter}
               setLineFilter={setLineFilter}
             />
@@ -105,7 +105,11 @@ export default function App() {
           {view.name === 'detail' && (
             <OrderDetail
               order={view.order}
-              onBack={() => { setView({ name: 'list' }); window.scrollTo(0, 0) }}
+              from={view.from}
+              onBack={() => {
+                setView(view.from === 'planning' ? { name: 'planning' } : { name: 'list' })
+                window.scrollTo(0, 0)
+              }}
             />
           )}
           {view.name === 'planning' && <PlanningBoard />}

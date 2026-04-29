@@ -527,6 +527,7 @@ function BlockDetailDrawer({ block, onClose, t }) {
     if (!block.poId) return;
     if (window.__navigateToOrder) {
       window.__navigateToOrder(block.poId, {
+        _from: 'planning',
         start: block.start,
         end: block.end,
         materialId: block.materialId,
@@ -705,6 +706,7 @@ function BacklogRail({ backlog, NOW, hovered, setHovered, t }) {
                     e.stopPropagation();
                     if (window.__navigateToOrder) {
                       window.__navigateToOrder(item.poId, {
+                        _from: 'planning',
                         materialId: item.materialId,
                         label: item.product,
                         category: item.category,

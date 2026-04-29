@@ -28,7 +28,7 @@ function fmtDateTime(ms) {
     d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-function OrderDetail({ order, onBack }) {
+function OrderDetail({ order, onBack, from = 'list' }) {
   const { t } = useT();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +63,9 @@ function OrderDetail({ order, onBack }) {
   return (
     <>
       <TopBar
-        trail={[t.operations, t.crumbManufacturing, t.crumbOrders, orderId]}
+        trail={from === 'planning'
+          ? [t.operations, t.crumbManufacturing || 'Manufacturing', t.navPlanning, orderId]
+          : [t.operations, t.crumbManufacturing, t.crumbOrders, orderId]}
         onTrailClick={(i) => { if (i === 2) onBack(); }}
       />
 
