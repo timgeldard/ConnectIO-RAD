@@ -534,7 +534,7 @@ function InspectionsSection({ detail, t, view, setView }) {
                     </td>
                     <td className="mono" style={{fontSize:11.5,color:'var(--ink-500)'}}>{ins.specification || '—'}</td>
                     <td>
-                      {ins.qualitativeResult != null ? (
+                      {ins.qualitativeResult ? (
                         <span className={`qual-result ${ins.judgement === 'A' ? 'pass' : 'fail'}`}>
                           {ins.qualitativeResult}
                         </span>
