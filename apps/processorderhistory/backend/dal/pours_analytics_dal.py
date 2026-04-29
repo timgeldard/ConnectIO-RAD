@@ -1,16 +1,20 @@
 """DAL for pour analytics — goods-issue movement aggregations.
 
-Runs 4 Databricks queries in parallel (asyncio.gather):
+Runs 3–4 Databricks queries in parallel (asyncio.gather):
   1. events_range  — movement type-261 events for the requested date range
-  2. daily30d      — daily pour count by line, last 30 days (always fixed, used for context chart)
-  3. hourly24h     — hourly pour count by line, last 24h (always fixed, used for context chart)
-  4. scheduled     — silver scheduled order count for the requested date range
+  2. daily30d      — daily pour count, last 30 days (always fixed, used for context chart)
+  3. hourly24h     — hourly pour count, last 24h (always fixed, used for context chart)
+  4. prior7d       — events for the 7 days before date_from (only when date_from is supplied)
 
-``daily30d`` and ``hourly24h`` return dicts keyed by line_id (plus "ALL") with
-zero-padded series ready for the trend charts.
+Note: line attribution (silver_process_order JOIN) and planned pour count
+(silver_process_order scheduled query) have been removed pending universal access
+to the connected_plant_prod.silver schema.  All events return line_id = 'ALL'
+and planned_24h is always None.
 
-If ``date_from`` / ``date_to`` are omitted the events and scheduled queries fall
-back to a 24-hour rolling window for backward compatibility.
+``daily30d`` and ``hourly24h`` series are keyed by 'ALL' only (no per-line breakdown).
+
+If ``date_from`` / ``date_to`` are omitted the events query falls back to a
+24-hour rolling window for backward compatibility.
 
 TODO — shift attribution:
   Shift is currently unresolved (all events have shift=None).  Proper resolution
@@ -26,7 +30,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Optional
 
-from backend.db import run_sql_async, silver_tbl, sql_param, tbl
+from backend.db import run_sql_async, sql_param, tbl
 
 _MS_PER_HOUR = 3_600_000
 _MS_PER_DAY = 86_400_000
@@ -44,6 +48,7 @@ async def _q_events_range(
     """Movement type-261 events for the requested date range, including process order and operator.
 
     Falls back to the last-24h rolling window when no dates are supplied.
+    line_id is hardcoded to 'ALL' — per-line attribution requires silver schema access.
     """
     if date_from and date_to:
         date_clause = (
@@ -65,13 +70,11 @@ async def _q_events_range(
             adp.SOURCE_ST                                                      AS source_type,
             adp.`USER`                                                         AS operator,
             CAST(UNIX_TIMESTAMP(adp.DATE_TIME_OF_ENTRY) * 1000 AS BIGINT)     AS ts_ms,
-            COALESCE(spo.PROCESS_LINE, 'UNKNOWN')                              AS line_id
+            'ALL'                                                               AS line_id
         FROM {tbl('vw_gold_adp_movement')} adp
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = adp.MATERIAL_ID
            AND m.LANGUAGE_ID = 'E'
-        LEFT JOIN {silver_tbl('silver_process_order')} spo
-            ON spo.PROCESS_ORDER_ID = adp.PROCESS_ORDER_ID
         WHERE adp.MOVEMENT_TYPE = '261'
           AND adp.UOM != 'EA'
           {date_clause}
@@ -81,40 +84,36 @@ async def _q_events_range(
 
 
 async def _q_daily30d(token: str) -> list[dict]:
-    """Daily pour count by line over the last 30 days (always fixed; feeds the context chart)."""
+    """Daily pour count over the last 30 days (always fixed; feeds the context chart)."""
     query = f"""
         SELECT
             CAST(UNIX_TIMESTAMP(DATE_TRUNC('day', adp.DATE_TIME_OF_ENTRY)) * 1000 AS BIGINT)
                 AS day_ms,
-            COALESCE(spo.PROCESS_LINE, 'UNKNOWN') AS line_id,
-            COUNT(*)                               AS pour_count
+            'ALL'    AS line_id,
+            COUNT(*) AS pour_count
         FROM {tbl('vw_gold_adp_movement')} adp
-        LEFT JOIN {silver_tbl('silver_process_order')} spo
-            ON spo.PROCESS_ORDER_ID = adp.PROCESS_ORDER_ID
         WHERE adp.MOVEMENT_TYPE = '261'
           AND adp.UOM != 'EA'
           AND adp.DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 30 DAYS
-        GROUP BY day_ms, line_id
+        GROUP BY day_ms
         ORDER BY day_ms
     """
     return await run_sql_async(token, query, endpoint_hint="poh.pours.daily30d")
 
 
 async def _q_hourly24h(token: str) -> list[dict]:
-    """Hourly pour count by line over the last 24 hours (always fixed; feeds the context chart)."""
+    """Hourly pour count over the last 24 hours (always fixed; feeds the context chart)."""
     query = f"""
         SELECT
             CAST(UNIX_TIMESTAMP(DATE_TRUNC('hour', adp.DATE_TIME_OF_ENTRY)) * 1000 AS BIGINT)
                 AS hour_ms,
-            COALESCE(spo.PROCESS_LINE, 'UNKNOWN') AS line_id,
-            COUNT(*)                               AS pour_count
+            'ALL'    AS line_id,
+            COUNT(*) AS pour_count
         FROM {tbl('vw_gold_adp_movement')} adp
-        LEFT JOIN {silver_tbl('silver_process_order')} spo
-            ON spo.PROCESS_ORDER_ID = adp.PROCESS_ORDER_ID
         WHERE adp.MOVEMENT_TYPE = '261'
           AND adp.UOM != 'EA'
           AND adp.DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 24 HOURS
-        GROUP BY hour_ms, line_id
+        GROUP BY hour_ms
         ORDER BY hour_ms
     """
     return await run_sql_async(token, query, endpoint_hint="poh.pours.hourly24h")
@@ -128,6 +127,7 @@ async def _q_prior7d_events(
 
     Used by the card view to compute per-entity averages over days with activity.
     Returns an empty list when date_from is not supplied (rolling-window mode).
+    line_id is hardcoded to 'ALL' — per-line attribution requires silver schema access.
     """
     if not date_from:
         return []
@@ -142,13 +142,11 @@ async def _q_prior7d_events(
             adp.SOURCE_ST                                                      AS source_type,
             adp.`USER`                                                         AS operator,
             CAST(UNIX_TIMESTAMP(adp.DATE_TIME_OF_ENTRY) * 1000 AS BIGINT)     AS ts_ms,
-            COALESCE(spo.PROCESS_LINE, 'UNKNOWN')                              AS line_id
+            'ALL'                                                               AS line_id
         FROM {tbl('vw_gold_adp_movement')} adp
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = adp.MATERIAL_ID
            AND m.LANGUAGE_ID = 'E'
-        LEFT JOIN {silver_tbl('silver_process_order')} spo
-            ON spo.PROCESS_ORDER_ID = adp.PROCESS_ORDER_ID
         WHERE adp.MOVEMENT_TYPE = '261'
           AND adp.UOM != 'EA'
           AND DATE(adp.DATE_TIME_OF_ENTRY) >= DATE_ADD(CAST(:date_from AS DATE), -7)
@@ -157,48 +155,6 @@ async def _q_prior7d_events(
     """
     params = [sql_param("date_from", date_from)]
     return await run_sql_async(token, query, params, endpoint_hint="poh.pours.prior7d")
-
-
-async def _q_scheduled_range(
-    token: str,
-    plant_id: Optional[str],
-    date_from: Optional[str],
-    date_to: Optional[str],
-) -> list[dict]:
-    """Count of silver process orders scheduled to start in the requested date range.
-
-    Falls back to the last-24h rolling window when no dates are supplied.
-    """
-    if date_from and date_to:
-        date_clause = (
-            "AND DATE(SCHEDULED_START) >= :date_from"
-            " AND DATE(SCHEDULED_START) <= :date_to"
-        )
-    else:
-        date_clause = (
-            "AND SCHEDULED_START >= current_timestamp() - INTERVAL 24 HOURS"
-            " AND SCHEDULED_START < current_timestamp()"
-        )
-
-    plant_clause = "AND PLANT_ID = :plant_id" if plant_id else ""
-
-    params: list[dict] = []
-    if plant_id:
-        params.append(sql_param("plant_id", plant_id))
-    if date_from and date_to:
-        params.append(sql_param("date_from", date_from))
-        params.append(sql_param("date_to", date_to))
-
-    query = f"""
-        SELECT COUNT(DISTINCT PROCESS_ORDER_ID) AS scheduled_count
-        FROM {silver_tbl('silver_process_order')}
-        WHERE 1=1
-          {plant_clause}
-          {date_clause}
-    """
-    return await run_sql_async(
-        token, query, params or None, endpoint_hint="poh.pours.scheduled_range"
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -226,7 +182,8 @@ def _build_daily_series(
 ) -> tuple[dict[str, list[dict]], list[str]]:
     """Build zero-padded 30-day series keyed by line_id plus 'ALL'.
 
-    Returns (series_by_line, sorted_line_ids).
+    Returns (series_by_line, sorted_line_ids).  'ALL' is excluded from
+    sorted_line_ids since it is always present as a synthetic aggregate.
     """
     now_day_ms = (now_ms // _MS_PER_DAY) * _MS_PER_DAY
     day_buckets = [now_day_ms - (29 - i) * _MS_PER_DAY for i in range(30)]
@@ -240,7 +197,7 @@ def _build_daily_series(
         sparse[(d_ms, line)] = sparse.get((d_ms, line), 0) + count
         all_daily[d_ms] = all_daily.get(d_ms, 0) + count
 
-    lines = sorted({line for (_, line) in sparse})
+    lines = sorted({line for (_, line) in sparse if line != "ALL"})
 
     series_by_line: dict[str, list[dict]] = {
         "ALL": [
@@ -276,7 +233,7 @@ def _build_hourly_series(
         sparse[(h_ms, line)] = sparse.get((h_ms, line), 0) + count
         all_hourly[h_ms] = all_hourly.get(h_ms, 0) + count
 
-    lines = sorted({line for (_, line) in sparse})
+    lines = sorted({line for (_, line) in sparse if line != "ALL"})
 
     series_by_line: dict[str, list[dict]] = {
         "ALL": [
@@ -304,38 +261,36 @@ async def fetch_pours_analytics(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
 ) -> dict:
-    """Fetch pour analytics via 5 parallel Databricks queries.
+    """Fetch pour analytics via 3–4 parallel Databricks queries.
 
-    Returns pre-aggregated daily/hourly context series keyed by line_id plus 'ALL',
+    Returns pre-aggregated daily/hourly context series keyed by 'ALL',
     the raw event list for the requested date range (used by the Breakdown), and
     raw events for the 7 days prior to date_from (used for the card view averages).
     If ``date_from`` / ``date_to`` are omitted, events default to the last-24h window
     and prior7d is empty.
+
+    ``planned_24h`` is always ``None`` — planned pour count requires silver schema
+    access that is not universally available.  ``lines`` is always ``[]`` for the
+    same reason; the frontend always uses the 'ALL' aggregate series.
     """
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
 
-    events_rows, daily_rows, hourly_rows, scheduled_rows, prior7d_rows = await asyncio.gather(
+    events_rows, daily_rows, hourly_rows, prior7d_rows = await asyncio.gather(
         _q_events_range(token, date_from, date_to),
         _q_daily30d(token),
         _q_hourly24h(token),
-        _q_scheduled_range(token, plant_id, date_from, date_to),
         _q_prior7d_events(token, date_from),
     )
 
     events = [_coerce_event(r) for r in events_rows]
     prior7d = [_coerce_event(r) for r in prior7d_rows]
-    daily_series, daily_lines = _build_daily_series(daily_rows, now_ms)
+    daily_series, _ = _build_daily_series(daily_rows, now_ms)
     hourly_series = _build_hourly_series(hourly_rows, now_ms)
-
-    hourly_lines = sorted({k for k in hourly_series if k != "ALL"})
-    lines = sorted(set(daily_lines) | set(hourly_lines))
-
-    scheduled_count = int(scheduled_rows[0]["scheduled_count"]) if scheduled_rows else 0
 
     return {
         "now_ms": now_ms,
-        "planned_24h": scheduled_count,
-        "lines": lines,
+        "planned_24h": None,
+        "lines": [],
         "events": events,
         "prior7d": prior7d,
         "daily30d": daily_series,

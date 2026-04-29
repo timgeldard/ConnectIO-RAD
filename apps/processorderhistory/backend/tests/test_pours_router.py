@@ -10,28 +10,28 @@ client = TestClient(app)
 
 _ANALYTICS_PAYLOAD = {
     "now_ms": 1700000000000,
-    "planned_24h": 42,
-    "lines": ["MIX-04", "SPD-02"],
-    "events_24h": [
+    "planned_24h": None,
+    "lines": [],
+    "events": [
         {
+            "process_order": "PO001",
             "material_name": "Whey Protein",
             "quantity": 250.0,
             "uom": "KG",
             "source_area": "STOR-01",
+            "source_type": "WH",
             "operator": "M.BRENNAN",
             "ts_ms": 1699913600000,
-            "utc_hour": 10,
-            "shift": "A",
-            "line_id": "MIX-04",
+            "shift": None,
+            "line_id": "ALL",
         }
     ],
+    "prior7d": [],
     "daily30d": {
         "ALL": [{"date": 1697328000000, "actual": 15, "target": None, "planned": None}],
-        "MIX-04": [{"date": 1697328000000, "actual": 8, "target": None, "planned": None}],
     },
     "hourly24h": {
         "ALL": [{"hour": 1699910400000, "actual": 3, "target": None}],
-        "MIX-04": [{"hour": 1699910400000, "actual": 3, "target": None}],
     },
 }
 
@@ -49,24 +49,31 @@ def test_post_pours_analytics_returns_200(mock_analytics):
     response = client.post("/api/pours/analytics", json={})
     assert response.status_code == 200
     data = response.json()
-    assert data["planned_24h"] == 42
+    assert data["planned_24h"] is None
     assert "lines" in data
-    assert "events_24h" in data
+    assert "events" in data
     assert "daily30d" in data
     assert "hourly24h" in data
     assert "now_ms" in data
-    mock_analytics.assert_called_once_with("token", plant_id=None)
+    mock_analytics.assert_called_once_with("token", plant_id=None, date_from=None, date_to=None)
 
 
 def test_post_pours_analytics_passes_plant_id(mock_analytics):
     client.post("/api/pours/analytics", json={"plant_id": "P001"})
-    mock_analytics.assert_called_once_with("token", plant_id="P001")
+    mock_analytics.assert_called_once_with("token", plant_id="P001", date_from=None, date_to=None)
+
+
+def test_post_pours_analytics_passes_date_range(mock_analytics):
+    client.post("/api/pours/analytics", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
+    mock_analytics.assert_called_once_with(
+        "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07"
+    )
 
 
 def test_post_pours_analytics_returns_full_shape(mock_analytics):
     response = client.post("/api/pours/analytics", json={})
     data = response.json()
-    for key in ("now_ms", "planned_24h", "lines", "events_24h", "daily30d", "hourly24h"):
+    for key in ("now_ms", "planned_24h", "lines", "events", "prior7d", "daily30d", "hourly24h"):
         assert key in data, f"Missing key: {key}"
     assert "ALL" in data["daily30d"]
     assert "ALL" in data["hourly24h"]

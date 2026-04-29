@@ -33,7 +33,7 @@ export interface HourSeries {
 /** Full pour analytics payload from POST /api/pours/analytics. */
 export interface PoursData {
   now_ms: number
-  planned_24h: number
+  planned_24h: number | null
   lines: string[]
   events: PourEvent[]
   prior7d: PourEvent[]

@@ -44,7 +44,7 @@ function usePoursData(): { data: PoursData | null; error: string | null } {
 interface FilteredPours {
   events: PourEvent[]
   actual: number
-  planned: number
+  planned: number | null
   planVsActualPct: number
   daily30d: DaySeries[]
   hourly24h: HourSeries[]
@@ -205,7 +205,7 @@ interface PourKpiCardsProps {
 
 export function PourKpiCards({ lineFilter }: PourKpiCardsProps) {
   const { data } = usePoursData()
-  const f = useFilteredPours(data, lineFilter)
+  const f = useFilteredPours(data, 'ALL')
 
   if (!f || !data) {
     return (
@@ -220,7 +220,7 @@ export function PourKpiCards({ lineFilter }: PourKpiCardsProps) {
     )
   }
 
-  const { actual, planned, planVsActualPct } = f
+  const { actual, planned } = f
 
   return (
     <div className="pour-kpi-strip">
@@ -228,7 +228,6 @@ export function PourKpiCards({ lineFilter }: PourKpiCardsProps) {
         <span className="pss-eyebrow">{I.package}<span>Pour performance · last 24h</span></span>
         <span className="pss-meta mono">
           {new Date(data.now_ms).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-          {lineFilter !== 'ALL' && <span className="pss-line-pill">· {lineFilter}</span>}
         </span>
         <div style={{ flex: 1 }} />
         <a className="pss-link" onClick={() => (window as any).__navigateToPourAnalytics?.()}>
@@ -243,20 +242,13 @@ export function PourKpiCards({ lineFilter }: PourKpiCardsProps) {
         </div>
         <div className="pour-kpi tone-planned">
           <div className="pk-l">{I.calendar}<span>Planned / 24h</span></div>
-          <div className="pk-v mono">{planned.toLocaleString()}</div>
+          <div className="pk-v mono">{planned != null ? planned.toLocaleString() : '—'}</div>
           <div className="pk-sub">scheduled goods-issues</div>
         </div>
-        <div className={`pour-kpi tone-actual ${planVsActualPct >= 95 ? 'good' : planVsActualPct >= 80 ? 'ok' : 'bad'}`}>
+        <div className="pour-kpi tone-actual">
           <div className="pk-l">{I.trending}<span>Actual / 24h</span></div>
           <div className="pk-v mono">{actual.toLocaleString()}</div>
-          <div className="pk-sub">
-            <span className={`pk-delta ${planVsActualPct >= 95 ? 'pos' : planVsActualPct >= 85 ? 'neut' : 'neg'}`}>
-              {planVsActualPct}% of plan
-            </span>
-          </div>
-          <div className="pk-bar">
-            <div className="pk-fill act" style={{ width: `${Math.min(100, planned ? (actual / planned) * 100 : 0)}%` }} />
-          </div>
+          <div className="pk-sub">pours recorded</div>
         </div>
       </div>
     </div>
@@ -277,7 +269,6 @@ interface BreakdownProps {
 const KEY_FNS: Record<string, (p: PourEvent) => string> = {
   operator:       p => p.operator ?? '—',
   shift:          p => p.shift != null ? `Shift ${p.shift}` : '—',
-  line:           p => p.line_id,
   source:         p => p.source_area ?? '—',
   source_type:    p => p.source_type ?? '—',
   process_order:  p => p.process_order ?? '—',
@@ -286,7 +277,6 @@ const KEY_FNS: Record<string, (p: PourEvent) => string> = {
 const DIM_LABEL: Record<string, string> = {
   operator:      'Operator',
   shift:         'Shift',
-  line:          'Line',
   source:        'Source area',
   source_type:   'Source type',
   process_order: 'Process Order',
@@ -399,7 +389,6 @@ function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: Breakdown
               {[
                 { k: 'operator', label: 'Operator' },
                 { k: 'shift', label: 'Shift' },
-                { k: 'line', label: 'Line' },
                 { k: 'source_type', label: 'Source type' },
                 { k: 'source', label: 'Source area' },
                 { k: 'process_order', label: 'Process Order' },
@@ -503,7 +492,6 @@ function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: Breakdown
 
 export function PourAnalyticsPage() {
   const { t } = useT()
-  const [lineFilter, setLineFilter] = useState('ALL')
   const [sourceTypeFilter, setSourceTypeFilter] = useState('ALL')
   const [dateFrom, setDateFrom] = useState(todayISO)
   const [dateTo, setDateTo] = useState(todayISO)
@@ -521,7 +509,7 @@ export function PourAnalyticsPage() {
     return () => { cancelled = true }
   }, [dateFrom, dateTo])
 
-  const f = useFilteredPours(pageData, lineFilter)
+  const f = useFilteredPours(pageData, 'ALL')
 
   if (error) {
     return (
@@ -532,9 +520,8 @@ export function PourAnalyticsPage() {
     )
   }
 
-  const lines = pageData?.lines ?? []
   const days = daysInRange(dateFrom, dateTo)
-  const planned = f?.planned ?? 0
+  const planned = f?.planned ?? null
   const daily30d = f?.daily30d ?? []
   const hourly24h = f?.hourly24h ?? []
 
@@ -549,14 +536,13 @@ export function PourAnalyticsPage() {
   )
   const prior7d = useMemo(() => {
     let list = pageData?.prior7d ?? []
-    if (lineFilter !== 'ALL') list = list.filter(e => e.line_id === lineFilter)
     if (sourceTypeFilter !== 'ALL') list = list.filter(e => e.source_type === sourceTypeFilter)
     return list
-  }, [pageData, lineFilter, sourceTypeFilter])
+  }, [pageData, sourceTypeFilter])
 
   const actual = events.length
   const target = DAILY_TARGET * days
-  const planVsActualPct = planned ? Math.round((actual / planned) * 100) : 0
+  const planVsActualPct = planned != null && planned > 0 ? Math.round((actual / planned) * 100) : null
 
   const todayStr = todayISO()
 
@@ -593,7 +579,6 @@ export function PourAnalyticsPage() {
               style={{ border: 'none', background: 'transparent', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }}
             />
           </div>
-          <PourLineFilter value={lineFilter} onChange={setLineFilter} lines={lines} />
           {sourceTypes.length > 0 && (
             <div className="pss-filter">
               <label className="pss-flbl">{I.package}<span>Source type</span></label>
@@ -626,19 +611,21 @@ export function PourAnalyticsPage() {
             </div>
             <div className="pour-kpi tone-planned">
               <div className="pk-l">{I.calendar}<span>Planned</span></div>
-              <div className="pk-v mono">{planned.toLocaleString()}</div>
+              <div className="pk-v mono">{planned != null ? planned.toLocaleString() : '—'}</div>
               <div className="pk-sub">scheduled goods-issues</div>
             </div>
-            <div className={`pour-kpi tone-actual ${planVsActualPct >= 95 ? 'good' : planVsActualPct >= 80 ? 'ok' : 'bad'}`}>
+            <div className={`pour-kpi tone-actual ${planVsActualPct == null ? '' : planVsActualPct >= 95 ? 'good' : planVsActualPct >= 80 ? 'ok' : 'bad'}`}>
               <div className="pk-l">{I.trending}<span>Actual</span></div>
               <div className="pk-v mono">{actual.toLocaleString()}</div>
-              <div className="pk-sub">
-                <span className={`pk-delta ${planVsActualPct >= 95 ? 'pos' : planVsActualPct >= 85 ? 'neut' : 'neg'}`}>
-                  {planVsActualPct}% of plan
-                </span>
-              </div>
+              {planVsActualPct != null && (
+                <div className="pk-sub">
+                  <span className={`pk-delta ${planVsActualPct >= 95 ? 'pos' : planVsActualPct >= 85 ? 'neut' : 'neg'}`}>
+                    {planVsActualPct}% of plan
+                  </span>
+                </div>
+              )}
               <div className="pk-bar">
-                <div className="pk-fill act" style={{ width: `${Math.min(100, planned ? (actual / planned) * 100 : 0)}%` }} />
+                <div className="pk-fill act" style={{ width: `${Math.min(100, planned != null && planned > 0 ? (actual / planned) * 100 : 0)}%` }} />
               </div>
             </div>
           </div>
