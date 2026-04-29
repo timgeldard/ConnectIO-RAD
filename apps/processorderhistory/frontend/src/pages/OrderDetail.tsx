@@ -534,13 +534,13 @@ function InspectionsSection({ detail, t, view, setView }) {
                     </td>
                     <td className="mono" style={{fontSize:11.5,color:'var(--ink-500)'}}>{ins.specification || '—'}</td>
                     <td>
-                      {ins.quantitativeResult != null ? (
-                        <span className="mono" style={{fontSize:13,fontWeight:500}}>
-                          {ins.quantitativeResult} <span style={{color:'var(--ink-400)',fontSize:11}}>{ins.uom}</span>
-                        </span>
-                      ) : ins.qualitativeResult != null ? (
+                      {ins.qualitativeResult != null ? (
                         <span className={`qual-result ${ins.judgement === 'A' ? 'pass' : 'fail'}`}>
                           {ins.qualitativeResult}
+                        </span>
+                      ) : ins.quantitativeResult != null ? (
+                        <span className="mono" style={{fontSize:13,fontWeight:500}}>
+                          {ins.quantitativeResult} <span style={{color:'var(--ink-400)',fontSize:11}}>{ins.uom}</span>
                         </span>
                       ) : (
                         <span style={{color:'var(--ink-400)'}}>—</span>
