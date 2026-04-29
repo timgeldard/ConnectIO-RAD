@@ -55,6 +55,7 @@ export async function fetchDayView(params?: {
   const res = await fetch('/api/dayview', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({
       day: params?.day ?? null,
       plant_id: params?.plantId ?? null,

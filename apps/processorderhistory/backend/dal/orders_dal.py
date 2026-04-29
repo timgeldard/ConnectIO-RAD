@@ -83,13 +83,15 @@ async def fetch_orders_list(
             SELECT
                 PROCESS_ORDER_ID,
                 SUM(CASE
-                    WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                    WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                    ELSE QUANTITY
+                    WHEN MOVEMENT_TYPE = '101' THEN
+                        CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
+                    WHEN MOVEMENT_TYPE = '102' THEN
+                        -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
+                    ELSE 0
                 END)       AS actual_qty,
                 'KG'       AS qty_uom
             FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE = '101'
+            WHERE MOVEMENT_TYPE IN ('101', '102')
             GROUP BY PROCESS_ORDER_ID
         )
         SELECT

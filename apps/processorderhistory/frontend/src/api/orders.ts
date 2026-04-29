@@ -170,6 +170,7 @@ export async function fetchOrders(params: {
   const res = await fetch('/api/orders', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({
       plant_id: params.plantId ?? null,
       limit: params.limit ?? 2000,
@@ -308,7 +309,7 @@ function mapUsageDecision(raw: Record<string, unknown>): UsageDecision {
 }
 
 export async function fetchOrderDetail(orderId: string): Promise<OrderDetailData> {
-  const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}`)
+  const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}`, { credentials: 'include' })
   if (!res.ok) {
     const text = await res.text().catch(() => '')
     throw new Error(`Order detail fetch failed (${res.status}): ${text}`)

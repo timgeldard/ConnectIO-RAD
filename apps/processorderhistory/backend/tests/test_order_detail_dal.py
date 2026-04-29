@@ -277,18 +277,25 @@ def test_movement_summary_issued_none_when_fully_reversed():
     assert result["qty_issued_kg"] is None
 
 
-def test_movement_summary_rounds_to_6dp():
+def test_movement_summary_subtracts_102_from_received():
     movements = [
-        {"movement_type": "261", "quantity": 1000.0, "uom": "G"},  # → 1.0 KG
-        {"movement_type": "262", "quantity": 1.0, "uom": "G"},    # → 0.001 KG
+        {"movement_type": "101", "quantity": 100.0, "uom": "KG"},
+        {"movement_type": "102", "quantity": 10.0, "uom": "KG"},
+        {"movement_type": "261", "quantity": 50.0, "uom": "KG"},
     ]
     result = dal._movement_summary(movements)
-    assert result["qty_issued_kg"] == round(0.999, 6)
+    assert result["qty_received_kg"] == 90.0
+    assert result["qty_issued_kg"] == 50.0
 
 
-# ---------------------------------------------------------------------------
-# _time_summary
-# ---------------------------------------------------------------------------
+def test_movement_summary_received_none_when_fully_reversed():
+    movements = [
+        {"movement_type": "101", "quantity": 50.0, "uom": "KG"},
+        {"movement_type": "102", "quantity": 50.0, "uom": "KG"},
+    ]
+    result = dal._movement_summary(movements)
+    assert result["qty_received_kg"] is None
+
 
 def test_time_summary_sums_across_phases():
     phases = [

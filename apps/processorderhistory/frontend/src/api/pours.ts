@@ -49,6 +49,7 @@ export async function fetchPoursAnalytics(params?: {
   const res = await fetch('/api/pours/analytics', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({
       plant_id: params?.plantId ?? null,
       date_from: params?.dateFrom ?? null,

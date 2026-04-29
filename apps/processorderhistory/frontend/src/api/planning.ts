@@ -76,6 +76,7 @@ export async function fetchPlanningSchedule(params?: {
   const res = await fetch('/api/planning/schedule', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ plant_id: params?.plantId ?? null }),
   })
   if (!res.ok) {

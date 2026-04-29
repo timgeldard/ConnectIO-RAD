@@ -6,7 +6,7 @@ export interface CurrentUser {
 }
 
 export async function fetchCurrentUser(): Promise<CurrentUser> {
-  const res = await fetch('/api/me')
+  const res = await fetch('/api/me', { credentials: 'include' })
   if (!res.ok) throw new Error(`/api/me failed (${res.status})`)
   return res.json() as Promise<CurrentUser>
 }
