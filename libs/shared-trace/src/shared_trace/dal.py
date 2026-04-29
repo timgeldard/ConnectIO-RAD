@@ -166,8 +166,8 @@ class TraceCoreDal:
             ),
             mb AS (
               SELECT
-                COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Production' THEN ABS_QUANTITY ELSE 0 END), 0) AS total_produced,
-                COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment'   THEN ABS_QUANTITY ELSE 0 END), 0) AS total_shipped
+                COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Production' THEN BALANCE_QTY ELSE 0 END), 0) AS total_produced,
+                COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment'   THEN -BALANCE_QTY ELSE 0 END), 0) AS total_shipped
               FROM {self.tbl('gold_batch_mass_balance_v')}
               WHERE BATCH_ID = :batch_id
                 AND MOVEMENT_CATEGORY NOT LIKE 'STO%'
@@ -200,8 +200,8 @@ class TraceCoreDal:
             ),
             mb AS (
               SELECT
-                COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Production' THEN ABS_QUANTITY ELSE 0 END), 0) AS total_produced,
-                COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment'   THEN ABS_QUANTITY ELSE 0 END), 0) AS total_shipped
+                COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Production' THEN BALANCE_QTY ELSE 0 END), 0) AS total_produced,
+                COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment'   THEN -BALANCE_QTY ELSE 0 END), 0) AS total_shipped
               FROM {self.tbl('gold_batch_mass_balance_v')}
               WHERE MATERIAL_ID = :material_id AND BATCH_ID = :batch_id
                 AND MOVEMENT_CATEGORY NOT LIKE 'STO%'
@@ -414,14 +414,14 @@ class TraceCoreDal:
                 MAX_BY(PROCESS_ORDER_ID, POSTING_DATE) AS process_order,
                 MAX_BY(PLANT_ID, POSTING_DATE) AS prod_plant_id,
                 COALESCE(MAX(UOM), 'KG') AS uom,
-                COALESCE(SUM(ABS_QUANTITY), 0) AS qty_produced
+                COALESCE(SUM(BALANCE_QTY), 0) AS qty_produced
               FROM prod
             ),
             mb_totals AS (
               SELECT
-                COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment' THEN ABS_QUANTITY ELSE 0 END), 0) AS qty_shipped,
-                COALESCE(SUM(CASE WHEN MOVEMENT_TYPE IN ('261','262','201','202') THEN ABS_QUANTITY ELSE 0 END), 0) AS qty_consumed,
-                COALESCE(SUM(CASE WHEN MOVEMENT_TYPE IN ('701','702','711','712','531','532') THEN ABS_QUANTITY ELSE 0 END), 0) AS qty_adjusted
+                COALESCE(SUM(CASE WHEN MOVEMENT_CATEGORY = 'Shipment' THEN -BALANCE_QTY ELSE 0 END), 0) AS qty_shipped,
+                COALESCE(SUM(CASE WHEN MOVEMENT_TYPE IN ('261','262','201','202') THEN -BALANCE_QTY ELSE 0 END), 0) AS qty_consumed,
+                COALESCE(SUM(CASE WHEN MOVEMENT_TYPE IN ('701','702','711','712','531','532') THEN BALANCE_QTY ELSE 0 END), 0) AS qty_adjusted
               FROM {self.tbl('gold_batch_mass_balance_mat')}
               WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat
                 AND COALESCE(MOVEMENT_CATEGORY, '') NOT LIKE 'STO%'
@@ -541,13 +541,7 @@ class TraceCoreDal:
                 POSTING_DATE,
                 MOVEMENT_TYPE,
                 MOVEMENT_CATEGORY,
-                CASE
-                  WHEN MOVEMENT_CATEGORY = 'Production' THEN ABS_QUANTITY
-                  WHEN MOVEMENT_CATEGORY = 'Shipment' THEN -ABS_QUANTITY
-                  WHEN MOVEMENT_TYPE IN ('261','262','201','202') THEN -ABS_QUANTITY
-                  WHEN MOVEMENT_TYPE IN ('701','702','711','712','531','532') THEN -ABS_QUANTITY
-                  ELSE BALANCE_QTY
-                END AS delta
+                BALANCE_QTY AS delta
               FROM {self.tbl('gold_batch_mass_balance_mat')}
               WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat
                 AND COALESCE(MOVEMENT_CATEGORY, '') NOT LIKE 'STO%'
@@ -1112,7 +1106,7 @@ class TraceCoreDal:
             ) stk ON stk.MATERIAL_ID = dt.material_id AND stk.BATCH_ID = dt.batch_id
             LEFT JOIN (
               SELECT MATERIAL_ID, BATCH_ID,
-                SUM(CASE WHEN MOVEMENT_CATEGORY = 'Production' THEN ABS_QUANTITY ELSE 0 END) AS qty_produced
+                SUM(CASE WHEN MOVEMENT_CATEGORY = 'Production' THEN BALANCE_QTY ELSE 0 END) AS qty_produced
               FROM {self.tbl('gold_batch_mass_balance_mat')}
               WHERE (MATERIAL_ID, BATCH_ID) IN (SELECT material_id, batch_id FROM distinct_trace)
               GROUP BY MATERIAL_ID, BATCH_ID
@@ -1132,7 +1126,7 @@ class TraceCoreDal:
         events_query = f"""
             WITH mb_events AS (
               SELECT DISTINCT
-                POSTING_DATE, MOVEMENT_TYPE, PLANT_ID, ABS_QUANTITY, UOM, PROCESS_ORDER_ID
+                POSTING_DATE, MOVEMENT_TYPE, PLANT_ID, BALANCE_QTY, UOM, PROCESS_ORDER_ID
               FROM {self.tbl('gold_batch_mass_balance_mat')}
               WHERE MATERIAL_ID = :mat AND BATCH_ID = :bat
                 AND (
@@ -1158,7 +1152,7 @@ class TraceCoreDal:
                 END AS category,
                 COALESCE(MOVEMENT_TYPE, '') AS type,
                 COALESCE(PLANT_ID, '') AS plant,
-                CASE WHEN MOVEMENT_TYPE = '101' THEN ABS_QUANTITY ELSE -ABS_QUANTITY END AS qty,
+                BALANCE_QTY AS qty,
                 COALESCE(UOM, 'KG') AS uom,
                 CAST(NULL AS STRING) AS customer,
                 CAST(NULL AS STRING) AS country,

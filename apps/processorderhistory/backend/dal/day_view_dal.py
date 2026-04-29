@@ -22,7 +22,7 @@ import asyncio
 from datetime import datetime, date as _date, timezone
 from typing import Optional
 
-from backend.db import run_sql_async, silver_tbl, sql_param, tbl
+from backend.db import run_sql_async, sql_param, tbl
 
 _MS_PER_DAY = 86_400_000
 _MS_PER_SEC = 1_000
@@ -82,7 +82,7 @@ async def _q_blocks(token: str, day: str, plant_id: Optional[str]) -> list[dict]
         )
         SELECT
             gpo.PROCESS_ORDER_ID                                                AS process_order_id,
-            COALESCE(spo.PROCESS_LINE, 'UNKNOWN')                              AS line_id,
+            COALESCE(gpo.PRODUCTION_LINE, 'UNKNOWN')                           AS line_id,
             gpo.STATUS                                                          AS order_status,
             gpo.MATERIAL_ID                                                     AS material_id,
             COALESCE(m.MATERIAL_NAME, gpo.MATERIAL_ID)                         AS material_name,
@@ -92,8 +92,6 @@ async def _q_blocks(token: str, day: str, plant_id: Optional[str]) -> list[dict]
         FROM day_conf dc
         JOIN {tbl('vw_gold_process_order')} gpo
             ON gpo.PROCESS_ORDER_ID = dc.PROCESS_ORDER_ID
-        LEFT JOIN {silver_tbl('silver_process_order')} spo
-            ON spo.PROCESS_ORDER_ID = dc.PROCESS_ORDER_ID
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = gpo.MATERIAL_ID
            AND m.LANGUAGE_ID = 'E'
