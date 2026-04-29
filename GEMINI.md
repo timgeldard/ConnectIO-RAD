@@ -21,8 +21,8 @@ We maintain a strict "no regressions" and "verified logic" policy:
 - **Infrastructure**: If an app lacks a testing framework, you MUST set it up (Vitest/Pytest) as part of your first task in that app.
 
 ## 4. Mandatory 100% i18n Translation Coverage
-We support 13 standard languages (en, de, fr, es, ja, pt, id, ms, ga, pl, nl, uk, da).
-- **Enforcement**: Every frontend string MUST have a translation for ALL 13 languages in `src/i18n/resources.json`.
+We support 16 standard languages (en, de, fr, es, ja, pt, id, ms, ga, pl, nl, uk, da, vi, zh-Hans, zh-Hant).
+- **Enforcement**: Every frontend string MUST have a translation for ALL 16 languages in `src/i18n/resources.json`.
 - **Validation**: `python3 scripts/validate_i18n.py` is enforced via pre-commit hook.
 - **Drift**: All languages must have the exact same keys and placeholders as the English (`en`) reference.
 

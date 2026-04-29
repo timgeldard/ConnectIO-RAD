@@ -11,7 +11,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REQUIRED_LANGUAGES = ("en", "de", "fr", "es", "ja", "pt", "id", "ms", "ga", "pl", "nl", "uk", "da")
+REQUIRED_LANGUAGES = ("en", "de", "fr", "es", "ja", "pt", "id", "ms", "ga", "pl", "nl", "uk", "da", "vi", "zh-Hans", "zh-Hant")
 PLACEHOLDER_RE = re.compile(r"\{\{\s*([A-Za-z0-9_]+)\s*\}\}")
 
 

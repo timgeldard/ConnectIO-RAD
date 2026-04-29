@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 
-export type LanguageCode = 'en' | 'fr' | 'es' | 'de' | 'zh-Hans' | 'zh-Hant' | 'ja' | 'pt' | 'id' | 'ms' | 'ga' | 'pl' | 'nl' | 'uk' | 'da'
+export type LanguageCode = 'en' | 'fr' | 'es' | 'de' | 'ja' | 'pt' | 'id' | 'ms' | 'ga' | 'pl' | 'nl' | 'uk' | 'da' | 'vi' | 'zh-Hans' | 'zh-Hant'
 export type TranslationValues = Record<string, string | number | boolean | null | undefined>
 export type LocaleResources = Partial<Record<LanguageCode, Record<string, string>>>
 
@@ -25,8 +25,6 @@ export const supportedLanguages: LanguageOption[] = [
   { code: 'fr', label: 'French', nativeLabel: 'Français', enabled: true },
   { code: 'es', label: 'Spanish', nativeLabel: 'Español', enabled: true },
   { code: 'de', label: 'German', nativeLabel: 'Deutsch', enabled: true },
-  { code: 'zh-Hans', label: 'Simplified Chinese', nativeLabel: '简体中文', enabled: true },
-  { code: 'zh-Hant', label: 'Traditional Chinese', nativeLabel: '繁體中文', enabled: true },
   { code: 'ja', label: 'Japanese', nativeLabel: '日本語', enabled: true },
   { code: 'pt', label: 'Portuguese', nativeLabel: 'Português', enabled: true },
   { code: 'id', label: 'Indonesian', nativeLabel: 'Bahasa Indonesia', enabled: true },
@@ -36,6 +34,9 @@ export const supportedLanguages: LanguageOption[] = [
   { code: 'nl', label: 'Dutch', nativeLabel: 'Nederlands', enabled: true },
   { code: 'uk', label: 'Ukrainian', nativeLabel: 'Українська', enabled: true },
   { code: 'da', label: 'Danish', nativeLabel: 'Dansk', enabled: true },
+  { code: 'vi', label: 'Vietnamese', nativeLabel: 'Tiếng Việt', enabled: true },
+  { code: 'zh-Hans', label: 'Simplified Chinese', nativeLabel: '简体中文', enabled: true },
+  { code: 'zh-Hant', label: 'Traditional Chinese', nativeLabel: '繁體中文', enabled: true },
 ]
 
 const DEFAULT_LANGUAGE: LanguageCode = 'en'
