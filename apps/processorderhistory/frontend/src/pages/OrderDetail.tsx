@@ -131,7 +131,10 @@ function OrderDetail({ order, onBack, from = 'list' }) {
 
             <section id="sec-phases" className="section-block">
               <SectionHeader icon={DI.layers} label={t.secPhases || 'Phases & timing'} />
-              <PhasesSection detail={detail} t={t} />
+              <div className="phases-eq-grid">
+                <PhasesSection detail={detail} t={t} />
+                <EquipmentCard detail={detail} t={t} />
+              </div>
             </section>
 
             <section id="sec-materials" className="section-block">
@@ -267,7 +270,6 @@ function ActivitySection({ detail, t }) {
 
       <div className="side-stack">
         <DowntimeCard detail={detail} t={t} />
-        <EquipmentCard detail={detail} t={t} />
       </div>
     </div>
   );

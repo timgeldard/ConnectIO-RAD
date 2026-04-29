@@ -1439,6 +1439,7 @@ button { font-family: inherit; }
 
 /* Detail grid for timeline section (timeline + side cards) */
 .timeline-grid { grid-template-columns: 1.6fr 1fr; }
+.phases-eq-grid { display: grid; grid-template-columns: 65fr 35fr; gap: 16px; align-items: start; }
 
 /* Phase table */
 .phase-tbl {
