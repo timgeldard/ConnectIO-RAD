@@ -463,7 +463,7 @@ function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: Breakdown
               <div key={g.key} className="pa-card">
                 <div className="pa-card-name" title={g.key}>{g.key}</div>
                 <div className="pa-card-count mono">{g.count.toLocaleString()}</div>
-                <div className="pa-card-count-label">pours · {(g.kg / 1000).toFixed(2)} t</div>
+                <div className="pa-card-count-label">pours · {g.kg.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg</div>
                 {!isPoOrder && (
                   <div className="pa-card-avg">
                     {dayAvg != null
