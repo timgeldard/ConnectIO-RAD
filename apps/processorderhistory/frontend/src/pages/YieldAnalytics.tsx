@@ -236,10 +236,10 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
     groupBy === 'material' ? (o.material_name || o.material_id) : o.process_order_id
 
   const groups = useMemo(() => {
-    const map = new Map<string, { key: string; qtyIssued: number; qtyReceived: number; orderCount: number }>()
+    const map = new Map<string, { key: string; qtyIssued: number; qtyReceived: number; orderCount: number; materialName: string; materialId: string }>()
     orders.forEach(o => {
       const k = keyFn(o)
-      if (!map.has(k)) map.set(k, { key: k, qtyIssued: 0, qtyReceived: 0, orderCount: 0 })
+      if (!map.has(k)) map.set(k, { key: k, qtyIssued: 0, qtyReceived: 0, orderCount: 0, materialName: o.material_name || o.material_id, materialId: o.material_id })
       const e = map.get(k)!
       e.qtyIssued += o.qty_issued_kg
       e.qtyReceived += o.qty_received_kg
@@ -386,7 +386,17 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
               <div key={g.key} className="pa-row">
                 <div className="pa-row-name">
                   <span className="pa-row-rank mono">#{i + 1}</span>
-                  <span>{g.key}</span>
+                  {isPoOrder ? (
+                    <span>
+                      <button
+                        className="pa-po-link"
+                        onClick={() => (window as any).__navigateToOrder?.(g.key, { label: g.materialName, materialId: g.materialId, _from: 'yield' })}
+                      >{g.key}</button>
+                      <span className="pa-po-material">{g.materialName}</span>
+                    </span>
+                  ) : (
+                    <span>{g.key}</span>
+                  )}
                 </div>
                 <div className="pa-row-count mono" style={{ color, fontWeight: 600 }}>
                   {g.yieldPct != null ? g.yieldPct.toFixed(1) + '%' : '—'}
@@ -422,7 +432,18 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
             const color = yieldColor(g.yieldPct)
             return (
               <div key={g.key} className="pa-card">
-                <div className="pa-card-name" title={g.key}>{g.key}</div>
+                {isPoOrder ? (
+                  <>
+                    <button
+                      className="pa-po-link"
+                      onClick={() => (window as any).__navigateToOrder?.(g.key, { label: g.materialName, materialId: g.materialId, _from: 'yield' })}
+                      style={{ marginBottom: 2 }}
+                    >{g.key}</button>
+                    <div className="pa-card-name" title={g.materialName}>{g.materialName}</div>
+                  </>
+                ) : (
+                  <div className="pa-card-name" title={g.key}>{g.key}</div>
+                )}
                 <div className="pa-card-count mono" style={{ color }}>
                   {g.yieldPct != null ? g.yieldPct.toFixed(1) + '%' : '—'}
                 </div>

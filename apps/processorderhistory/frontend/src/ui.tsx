@@ -163,14 +163,7 @@ export function Sidebar({ active = 'orders', onNavigate = () => {}, user }: Side
       <div className="sidebar-label">{t.sectionOperate}</div>
       <div className="sidebar-section">
         <div className={cls('planning')} onClick={() => onNavigate('planning')}>{cloneElement(I.layers as ReactElement, { className: 'ico' })}<span>{t.navPlanning}</span></div>
-        <div className={cls('lines')} onClick={() => onNavigate('lines')}>{cloneElement(I.factory as ReactElement, { className: 'ico' })}<span>{t.navLines}</span></div>
         <div className={cls('orders')} onClick={() => onNavigate('orders')}>{cloneElement(I.history as ReactElement, { className: 'ico' })}<span>{t.navOrders}</span></div>
-        <div className={cls('materials')} onClick={() => onNavigate('materials')}>{cloneElement(I.package as ReactElement, { className: 'ico' })}<span>{t.navMaterials}</span></div>
-      </div>
-
-      <div className="sidebar-label">{t.sectionQuality}</div>
-      <div className="sidebar-section">
-        <div className={cls('qa')} onClick={() => onNavigate('qa')}>{cloneElement(I.beaker as ReactElement, { className: 'ico' })}<span>{t.navQA}</span></div>
       </div>
 
       <div className="sidebar-label">{t.sectionInsights}</div>

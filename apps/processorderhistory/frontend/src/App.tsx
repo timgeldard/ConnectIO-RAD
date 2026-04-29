@@ -93,7 +93,7 @@ export default function App() {
           __planningShortageETA: c.shortageETA || null,
         }
       }
-      const fromView = c._from === 'planning' ? 'planning' : c._from === 'day-view' ? 'day-view' : 'list'
+      const fromView = c._from === 'planning' ? 'planning' : c._from === 'day-view' ? 'day-view' : c._from === 'yield' ? 'yield' : 'list'
       setView({ name: 'detail', order, from: fromView })
       window.scrollTo(0, 0)
     }
@@ -122,6 +122,7 @@ export default function App() {
               onBack={() => {
                 if (view.from === 'planning') setView({ name: 'planning' })
                 else if (view.from === 'day-view') setView({ name: 'day-view' })
+                else if (view.from === 'yield') setView({ name: 'yield' })
                 else setView({ name: 'list' })
                 window.scrollTo(0, 0)
               }}

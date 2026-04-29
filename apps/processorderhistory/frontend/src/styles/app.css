@@ -3372,6 +3372,18 @@ button { font-family: inherit; }
   font-size: 12.5px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.pa-po-link {
+  background: none; border: none; padding: 0; margin: 0;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+  color: var(--valentia-slate); cursor: pointer; text-decoration: underline;
+  text-underline-offset: 2px; display: block;
+}
+.pa-po-link:hover { color: var(--forest); }
+.pa-po-material {
+  font-size: 11px; font-weight: 400; color: var(--ink-500);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: block; max-width: 260px;
+}
 .pa-row-rank {
   font-size: 10.5px;
   color: var(--ink-400);
