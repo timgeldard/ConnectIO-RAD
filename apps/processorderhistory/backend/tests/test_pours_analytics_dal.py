@@ -16,7 +16,6 @@ def test_coerce_event_converts_values():
     assert result["quantity"] == 250.5
     assert result["ts_ms"] == 1700000000000
     assert result["source_type"] == "WH"
-    assert result["shift"] is None
 
 
 def test_coerce_event_handles_nulls():
@@ -25,7 +24,6 @@ def test_coerce_event_handles_nulls():
     assert result["quantity"] == 0.0
     assert result["ts_ms"] == 0
     assert result["source_type"] is None
-    assert result["shift"] is None
 
 
 def test_coerce_event_rounds_quantity_to_6dp():
@@ -174,7 +172,6 @@ def test_fetch_pours_analytics_returns_full_shape(monkeypatch):
     assert result["lines"] == []
     assert len(result["events"]) == 1
     assert result["events"][0]["quantity"] == 250.0
-    assert result["events"][0]["shift"] is None
     assert result["prior7d"] == []
     assert "ALL" in result["daily30d"]
     assert len(result["daily30d"]["ALL"]) == 30

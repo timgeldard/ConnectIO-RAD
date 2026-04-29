@@ -17,19 +17,7 @@ from the movements list in Python, keeping the query count at 8.
 import asyncio
 from typing import Optional
 
-from backend.db import run_sql_async, sql_param, tbl
-
-_STATUS_EXPR = """
-    CASE po.STATUS
-        WHEN 'IN PROGRESS'            THEN 'running'
-        WHEN 'Tulip Load In Progress' THEN 'running'
-        WHEN 'COMPLETED'              THEN 'completed'
-        WHEN 'CLOSED'                 THEN 'completed'
-        WHEN 'ON HOLD'                THEN 'onhold'
-        WHEN 'CANCELLED'              THEN 'cancelled'
-        ELSE 'released'
-    END
-""".strip()
+from backend.db import ORDER_STATUS_EXPR, run_sql_async, sql_param, tbl
 
 
 # ---------------------------------------------------------------------------
@@ -45,7 +33,7 @@ async def _q_header(token: str, order_id: str) -> list[dict]:
             po.MATERIAL_ID                                                   AS material_id,
             po.PLANT_ID                                                      AS plant_id,
             po.STATUS                                                        AS raw_status,
-            {_STATUS_EXPR}                                                   AS status,
+            {ORDER_STATUS_EXPR}                                              AS status,
             COALESCE(m.MATERIAL_NAME, po.MATERIAL_DESCRIPTION)               AS material_name,
             m.MATERIAL_CATEGORY                                              AS material_category,
             pom.BATCH_ID                                                     AS batch_id,

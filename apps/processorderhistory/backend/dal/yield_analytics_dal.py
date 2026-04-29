@@ -29,12 +29,6 @@ _MS_PER_HOUR = 3_600_000
 _MS_PER_DAY  = 86_400_000
 TARGET_YIELD_PCT = 95.0
 
-_QTY_EXPR = """COALESCE(SUM(CASE
-    WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-    ELSE QUANTITY
-END), 0.0)"""
-
-
 # ---------------------------------------------------------------------------
 # Individual query coroutines
 # ---------------------------------------------------------------------------

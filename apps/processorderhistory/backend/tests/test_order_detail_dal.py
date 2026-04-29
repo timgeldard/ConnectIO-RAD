@@ -139,6 +139,35 @@ def test_coerce_usage_decision_handles_nulls():
 
 
 # ---------------------------------------------------------------------------
+# _to_kg
+# ---------------------------------------------------------------------------
+
+def test_to_kg_ea_returns_zero():
+    assert dal._to_kg(500.0, "EA") == 0.0
+
+
+def test_to_kg_g_divides_by_1000():
+    assert dal._to_kg(1000.0, "G") == 1.0
+
+
+def test_to_kg_kg_passthrough():
+    assert dal._to_kg(500.0, "KG") == 500.0
+
+
+def test_to_kg_case_insensitive():
+    assert dal._to_kg(1000.0, "g") == 1.0
+    assert dal._to_kg(500.0, "ea") == 0.0
+
+
+def test_to_kg_none_uom_passthrough():
+    assert dal._to_kg(500.0, None) == 500.0
+
+
+def test_to_kg_whitespace_stripped():
+    assert dal._to_kg(1000.0, "  G  ") == 1.0
+
+
+# ---------------------------------------------------------------------------
 # _derive_materials
 # ---------------------------------------------------------------------------
 

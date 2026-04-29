@@ -93,3 +93,16 @@ def tz_date(col: str, tz: str) -> str:
     ``tz`` must be a value returned by ``validate_timezone``.
     """
     return f"DATE(CONVERT_TIMEZONE('UTC', '{tz}', {col}))"
+
+
+ORDER_STATUS_EXPR = """
+    CASE po.STATUS
+        WHEN 'IN PROGRESS'            THEN 'running'
+        WHEN 'Tulip Load In Progress' THEN 'running'
+        WHEN 'COMPLETED'              THEN 'completed'
+        WHEN 'CLOSED'                 THEN 'completed'
+        WHEN 'ON HOLD'                THEN 'onhold'
+        WHEN 'CANCELLED'              THEN 'cancelled'
+        ELSE 'released'
+    END
+""".strip()

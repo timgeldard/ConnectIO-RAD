@@ -84,6 +84,7 @@ async def _q_events_range(
           AND adp.UOM != 'EA'
           {date_clause}
         ORDER BY adp.DATE_TIME_OF_ENTRY
+        LIMIT 50000
     """
     return await run_sql_async(token, query, params, endpoint_hint="poh.pours.events_range")
 
@@ -171,6 +172,7 @@ async def _q_prior7d_events(
           AND {tz_date('adp.DATE_TIME_OF_ENTRY', tz)} >= DATE_ADD(CAST(:date_from AS DATE), -7)
           AND {tz_date('adp.DATE_TIME_OF_ENTRY', tz)} <  CAST(:date_from AS DATE)
         ORDER BY adp.DATE_TIME_OF_ENTRY
+        LIMIT 50000
     """
     params = [sql_param("date_from", date_from)]
     return await run_sql_async(token, query, params, endpoint_hint="poh.pours.prior7d")
@@ -191,7 +193,6 @@ def _coerce_event(row: dict) -> dict:
     row["ts_ms"] = int(v) if v is not None else 0
     v = row.get("source_type")
     row["source_type"] = str(v).strip() if v is not None else None
-    row["shift"] = None  # TODO: resolve from shift-pattern table (see module docstring)
     return row
 
 
