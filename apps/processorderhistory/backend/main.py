@@ -12,6 +12,7 @@ from backend.routers.me_router import router as me_router
 from backend.routers.orders import router as orders_router
 from backend.routers.order_detail_router import router as order_detail_router
 from backend.routers.pours_router import router as pours_router
+from backend.routers.planning_router import router as planning_router
 
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 
@@ -20,6 +21,7 @@ app.include_router(me_router, prefix="/api")
 app.include_router(orders_router, prefix="/api")
 app.include_router(order_detail_router, prefix="/api")
 app.include_router(pours_router, prefix="/api")
+app.include_router(planning_router, prefix="/api")
 
 
 @app.get("/api/health")

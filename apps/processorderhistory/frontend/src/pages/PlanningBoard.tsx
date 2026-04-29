@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../i18n/context'
 import { I as DI, TopBar } from '../ui'
-import { buildPlanningData } from '../data/mock'
+import { fetchPlanningSchedule } from '../api/planning'
 
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
@@ -38,11 +38,59 @@ function fmtRelativeDue(ms, now) {
 // =====================================================
 function PlanningBoard() {
   const { t } = useT();
-  const data = useMemo(() => buildPlanningData(), []);
+  const [scheduleData, setScheduleData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [zoom, setZoom] = useState('week');  // 'day' | 'week'
   const [selectedBlock, setSelectedBlock] = useState(null);
   const [hoveredBacklog, setHoveredBacklog] = useState(null);
-  const [showWm, setShowWm] = useState(true);
+  const [showWm, setShowWm] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchPlanningSchedule()
+      .then(d => { setScheduleData(d); setLoading(false); })
+      .catch(e => { setError(String(e)); setLoading(false); });
+  }, []);
+
+  // Build Gantt-compatible data object from API response
+  const data = useMemo(() => {
+    if (!scheduleData) return null;
+    const lines = scheduleData.lines.map(id => ({ id, name: id, cap: '—', shift: '—' }));
+    return {
+      NOW: scheduleData.now_ms,
+      today: scheduleData.today_ms,
+      windowStart: scheduleData.window_start_ms,
+      windowEnd: scheduleData.window_end_ms,
+      lines,
+      blocks: scheduleData.blocks,
+      backlog: scheduleData.backlog,
+      wmTransfers: [],
+      kpis: scheduleData.kpis,
+    };
+  }, [scheduleData]);
+
+  if (loading) {
+    return (
+      <>
+        <TopBar trail={[t.operations, t.crumbManufacturing || 'Manufacturing', t.navPlanning]} />
+        <div className="loading-state" style={{padding:'48px',textAlign:'center',color:'var(--ink-400)'}}>
+          Loading schedule…
+        </div>
+      </>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <>
+        <TopBar trail={[t.operations, t.crumbManufacturing || 'Manufacturing', t.navPlanning]} />
+        <div className="error-state" style={{padding:'48px',textAlign:'center',color:'var(--danger)'}}>
+          {error || 'No data available.'}
+        </div>
+      </>
+    );
+  }
 
   // Time window
   const windowStart = data.windowStart;
@@ -84,7 +132,7 @@ function PlanningBoard() {
             </h1>
             <div className="detail-product">
               {t.planningSubtitle}
-              <span className="sku">8 lines · {data.kpis.backlogCount} in backlog · auto-refresh 60s</span>
+              <span className="sku">{data.lines.length} lines · {data.kpis.backlogCount} in backlog</span>
             </div>
           </div>
           <div className="detail-actions">
@@ -102,7 +150,7 @@ function PlanningBoard() {
             {DI.calendar}<span>{fmtDate(windowStart)} – {fmtDate(windowEnd - 1)}</span>
           </button>
           <button className="chip">
-            {DI.factory}<span>All plants · 8 lines</span>
+            {DI.factory}<span>All plants · {data.lines.length} lines</span>
           </button>
           <button className="chip">
             {DI.filter}<span>All categories</span>
