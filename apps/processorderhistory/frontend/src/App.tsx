@@ -6,14 +6,16 @@ import { OrderList } from './pages/OrderList'
 import { OrderDetail } from './pages/OrderDetail'
 import { PlanningBoard } from './pages/PlanningBoard'
 import { PourAnalyticsPage } from './pages/PourAnalytics'
+import { DayView } from './pages/DayView'
 import { fetchCurrentUser, type CurrentUser } from './api/me'
 import { ORDERS } from './data/mock'
 
 type View =
   | { name: 'list' }
-  | { name: 'detail'; order: any; from: 'list' | 'planning' }
+  | { name: 'detail'; order: any; from: 'list' | 'planning' | 'day-view' }
   | { name: 'planning' }
   | { name: 'pours' }
+  | { name: 'day-view' }
 
 const HOUR = 3600 * 1000
 
@@ -29,12 +31,14 @@ export default function App() {
   const sidebarActive =
     view.name === 'planning' ? 'planning' :
     view.name === 'pours' ? 'pours' :
+    view.name === 'day-view' ? 'day-view' :
     'orders'
 
   const onNavigate = (key: string) => {
     if (key === 'planning') setView({ name: 'planning' })
     else if (key === 'orders') setView({ name: 'list' })
     else if (key === 'pours') setView({ name: 'pours' })
+    else if (key === 'day-view') setView({ name: 'day-view' })
     window.scrollTo(0, 0)
   }
 
@@ -81,7 +85,8 @@ export default function App() {
           __planningShortageETA: c.shortageETA || null,
         }
       }
-      setView({ name: 'detail', order, from: c._from === 'planning' ? 'planning' : 'list' })
+      const fromView = c._from === 'planning' ? 'planning' : c._from === 'day-view' ? 'day-view' : 'list'
+      setView({ name: 'detail', order, from: fromView })
       window.scrollTo(0, 0)
     }
     return () => {
@@ -107,13 +112,16 @@ export default function App() {
               order={view.order}
               from={view.from}
               onBack={() => {
-                setView(view.from === 'planning' ? { name: 'planning' } : { name: 'list' })
+                if (view.from === 'planning') setView({ name: 'planning' })
+                else if (view.from === 'day-view') setView({ name: 'day-view' })
+                else setView({ name: 'list' })
                 window.scrollTo(0, 0)
               }}
             />
           )}
           {view.name === 'planning' && <PlanningBoard />}
           {view.name === 'pours' && <PourAnalyticsPage />}
+          {view.name === 'day-view' && <DayView />}
         </main>
       </div>
     </LangProvider>

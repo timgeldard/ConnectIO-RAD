@@ -175,6 +175,7 @@ export function Sidebar({ active = 'orders', onNavigate = () => {}, user }: Side
 
       <div className="sidebar-label">{t.sectionInsights}</div>
       <div className="sidebar-section">
+        <div className={cls('day-view')} onClick={() => onNavigate('day-view')}>{cloneElement(I.clock as ReactElement, { className: 'ico' })}<span>{t.navDayView || 'Day view'}</span></div>
         <div className={cls('pours')} onClick={() => onNavigate('pours')}>{cloneElement(I.package as ReactElement, { className: 'ico' })}<span>{t.navPours || 'Pour analytics'}</span></div>
         <div className={cls('yield')} onClick={() => onNavigate('yield')}>{cloneElement(I.trending as ReactElement, { className: 'ico' })}<span>{t.navYield}</span></div>
       </div>
