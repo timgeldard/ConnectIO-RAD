@@ -3744,7 +3744,6 @@ button { font-family: inherit; }
 .dv-line-row {
   display: flex;
   border-bottom: 1px solid var(--stone-100);
-  min-height: 52px;
 }
 .dv-line-row:last-child { border-bottom: 0; }
 .dv-line-label {
@@ -3765,7 +3764,6 @@ button { font-family: inherit; }
   flex: 1;
   position: relative;
   background: #fff;
-  min-height: 52px;
 }
 
 /* Gridlines */
@@ -3788,10 +3786,10 @@ button { font-family: inherit; }
   z-index: 3;
 }
 
-/* Gantt blocks */
+/* Gantt blocks — top is set inline per swimlane */
 .dv-block {
   position: absolute;
-  top: 6px; bottom: 6px;
+  height: 28px;
   border-radius: 4px;
   cursor: pointer;
   overflow: hidden;

@@ -35,6 +35,30 @@ const KIND_COLOR: Record<string, string> = {
 // ---- Tick marks: 00:00, 04:00, 08:00, 12:00, 16:00, 20:00, 24:00 ----
 const TIME_TICKS = [0, 4, 8, 12, 16, 20, 24]
 
+// ---- Swimlane stacking constants ----
+const BLOCK_H = 28
+const LANE_GAP = 3
+const LANE_PAD = 5
+
+/** Greedy interval scheduling: assign each block a lane index so no two
+ *  overlapping blocks share a lane.  Blocks sorted by start time. */
+function assignLanes(blocks: DayBlock[]): Map<string, number> {
+  const sorted = [...blocks].sort((a, b) => a.start - b.start)
+  const laneEnds: number[] = []
+  const result = new Map<string, number>()
+  for (const b of sorted) {
+    let lane = laneEnds.findIndex(end => b.start >= end)
+    if (lane === -1) lane = laneEnds.length
+    laneEnds[lane] = b.end
+    result.set(b.id, lane)
+  }
+  return result
+}
+
+function laneCount(m: Map<string, number>): number {
+  return m.size === 0 ? 1 : Math.max(...m.values()) + 1
+}
+
 // ====================================================================
 // KPI Strip
 // ====================================================================
@@ -150,6 +174,14 @@ function DayGantt({
     return map
   }, [downtime])
 
+  const lanesByLine = useMemo(() => {
+    const map: Record<string, Map<string, number>> = {}
+    for (const lineId of lines) {
+      map[lineId] = assignLanes(blocksByLine[lineId] ?? [])
+    }
+    return map
+  }, [lines, blocksByLine])
+
   return (
     <div className="dv-gantt">
       {/* Time axis header */}
@@ -171,10 +203,13 @@ function DayGantt({
         lines.map(lineId => {
           const lineBlocks = blocksByLine[lineId] ?? []
           const lineDowntime = downtimeByLine[lineId] ?? []
+          const laneMap = lanesByLine[lineId] ?? new Map<string, number>()
+          const numLanes = laneCount(laneMap)
+          const timelineH = LANE_PAD * 2 + numLanes * BLOCK_H + Math.max(0, numLanes - 1) * LANE_GAP
           return (
             <div key={lineId} className="dv-line-row">
               <div className="dv-line-label">{lineId}</div>
-              <div className="dv-timeline">
+              <div className="dv-timeline" style={{ height: timelineH + 'px' }}>
                 {/* Gridlines at tick positions */}
                 {TIME_TICKS.map(h => (
                   <div key={h} className="dv-gridline" style={{ left: `${(h / 24) * 100}%` }} />
@@ -185,10 +220,12 @@ function DayGantt({
                   <div className="dv-now-line" style={{ left: `${nowX}%` }} />
                 )}
 
-                {/* Blocks */}
+                {/* Blocks — stacked into lanes to separate concurrent orders */}
                 {lineBlocks.map(b => {
                   const left = toX(b.start, dayStart)
                   const width = Math.max(0.3, toX(b.end, dayStart) - left)
+                  const lane = laneMap.get(b.id) ?? 0
+                  const blockTop = LANE_PAD + lane * (BLOCK_H + LANE_GAP)
                   return (
                     <div
                       key={b.id}
@@ -196,6 +233,7 @@ function DayGantt({
                       style={{
                         left: `${left}%`,
                         width: `${width}%`,
+                        top: blockTop + 'px',
                         background: KIND_COLOR[b.kind] ?? KIND_COLOR.onhold,
                       }}
                       title={`${b.label} · ${fmtHHMM(b.start)}–${fmtHHMM(b.end)}`}
@@ -206,7 +244,7 @@ function DayGantt({
                   )
                 })}
 
-                {/* Downtime overlays */}
+                {/* Downtime overlays — span full timeline height */}
                 {lineDowntime.map((d, i) => {
                   const left = toX(d.start, dayStart)
                   const width = Math.max(0.2, toX(d.end, dayStart) - left)
