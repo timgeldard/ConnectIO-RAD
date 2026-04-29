@@ -144,14 +144,54 @@ function BlockDrawer({ block, onClose }: { block: DayBlock; onClose: () => void 
 }
 
 // ====================================================================
+// Downtime detail drawer
+// ====================================================================
+function DowntimeDrawer({ downtime, onClose }: { downtime: DayDowntime; onClose: () => void }) {
+  const durationMin = ((downtime.end - downtime.start) / 60_000).toFixed(0)
+  const rows = [
+    ['Line', downtime.lineId],
+    ['Process order', downtime.poId || '—'],
+    ['Start', fmtHHMM(downtime.start)],
+    ['End', fmtHHMM(downtime.end)],
+    ['Duration', durationMin + ' min'],
+    ['Issue type', downtime.issueType || '—'],
+    ['Issue title', downtime.issueTitle || '—'],
+    ['Reason code', downtime.reasonCode || '—'],
+  ]
+  return (
+    <div className="dv-drawer-backdrop" onClick={onClose}>
+      <div className="dv-drawer" onClick={e => e.stopPropagation()}>
+        <div className="dv-drawer-header">
+          <div>
+            <div className="dv-drawer-title">{downtime.issueTitle || downtime.issueType || 'Downtime event'}</div>
+            <div className="dv-drawer-sub">{downtime.lineId} · {fmtHHMM(downtime.start)}–{fmtHHMM(downtime.end)}</div>
+          </div>
+          <button className="dv-drawer-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="dv-drawer-body">
+          {rows.map(([k, v]) => (
+            <div key={k} className="dv-drawer-row">
+              <span className="dv-drawer-key">{k}</span>
+              <span className="dv-drawer-val">{v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ====================================================================
 // Gantt
 // ====================================================================
 function DayGantt({
   data,
   onBlockClick,
+  onDowntimeClick,
 }: {
   data: DayViewData
   onBlockClick: (b: DayBlock) => void
+  onDowntimeClick: (d: DayDowntime) => void
 }) {
   const { day_start_ms: dayStart, day_end_ms: dayEnd, lines, blocks, downtime } = data
   const nowMs = Date.now()
@@ -244,7 +284,7 @@ function DayGantt({
                   )
                 })}
 
-                {/* Downtime overlays — span full timeline height */}
+                {/* Downtime overlays — span full timeline height, clickable */}
                 {lineDowntime.map((d, i) => {
                   const left = toX(d.start, dayStart)
                   const width = Math.max(0.2, toX(d.end, dayStart) - left)
@@ -254,6 +294,7 @@ function DayGantt({
                       className="dv-downtime"
                       style={{ left: `${left}%`, width: `${width}%` }}
                       title={d.issueTitle ?? d.issueType ?? 'Downtime'}
+                      onClick={() => onDowntimeClick(d)}
                     />
                   )
                 })}
@@ -325,6 +366,7 @@ export function DayView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedBlock, setSelectedBlock] = useState<DayBlock | null>(null)
+  const [selectedDowntime, setSelectedDowntime] = useState<DayDowntime | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -363,20 +405,27 @@ export function DayView() {
         <div className="dv-header">
           <div>
             <h1 className="dv-title">Day view</h1>
-            <p className="dv-subtitle">Actual production activity by line — ADP movements</p>
+            <p className="dv-subtitle">Actual production activity by line — SAP confirmation records</p>
           </div>
           <Legend />
         </div>
 
-        <DateNav day={day} onChange={d => { setDay(d); setSelectedBlock(null) }} />
+        <DateNav day={day} onChange={d => { setDay(d); setSelectedBlock(null); setSelectedDowntime(null) }} />
 
         <KpiStrip kpis={data.kpis} />
 
-        <DayGantt data={data} onBlockClick={setSelectedBlock} />
+        <DayGantt
+          data={data}
+          onBlockClick={b => { setSelectedBlock(b); setSelectedDowntime(null) }}
+          onDowntimeClick={d => { setSelectedDowntime(d); setSelectedBlock(null) }}
+        />
       </div>
 
       {selectedBlock && (
         <BlockDrawer block={selectedBlock} onClose={() => setSelectedBlock(null)} />
+      )}
+      {selectedDowntime && (
+        <DowntimeDrawer downtime={selectedDowntime} onClose={() => setSelectedDowntime(null)} />
       )}
     </>
   )

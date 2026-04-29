@@ -3809,16 +3809,18 @@ button { font-family: inherit; }
   text-overflow: ellipsis;
 }
 
-/* Downtime overlay */
+/* Downtime overlay — clickable */
 .dv-downtime {
   position: absolute;
   top: 0; bottom: 0;
   background: #DC2626;
   opacity: .22;
-  pointer-events: none;
   z-index: 3;
   border-radius: 2px;
+  cursor: pointer;
+  transition: opacity .12s;
 }
+.dv-downtime:hover { opacity: .38; }
 
 /* Empty state */
 .dv-empty {

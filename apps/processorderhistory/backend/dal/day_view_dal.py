@@ -1,10 +1,12 @@
 """DAL for Day View — single-day production Gantt built from actual activity.
 
 Runs 2 Databricks queries in parallel (asyncio.gather):
-  1. blocks   — process orders with ADP movement activity on the selected day,
-                enriched with gold status and material name.
-                Block start/end are derived from first/last movement timestamp
-                on the day, so only orders with real goods-issue activity appear.
+  1. blocks   — process orders with confirmation activity on the selected day.
+                Block start/end = MIN(START_TIMESTAMP) / MAX(END_TIMESTAMP) from
+                vw_gold_confirmation, giving true SAP confirmation window rather
+                than ADP goods-movement timestamps.  Confirmed output qty is still
+                derived from vw_gold_adp_movement MOVEMENT_TYPE='101'.
+                Orders with no confirmation on the day are excluded via INNER JOIN.
   2. downtime — downtime records whose START_TIME falls on the selected day,
                 joined to process orders for line attribution.
 
@@ -41,12 +43,15 @@ _EXCLUDED = "'CREATED', 'RELEASED', 'CANCELLED', 'DELETED'"
 # ---------------------------------------------------------------------------
 
 async def _q_blocks(token: str, day: str, plant_id: Optional[str]) -> list[dict]:
-    """Process orders with ADP movement activity on ``day``.
+    """Process orders with confirmation activity on ``day``.
 
-    Uses a CTE to aggregate first/last movement timestamps per order on the day.
-    Orders with no movements (planned / future orders) are excluded by the INNER
-    JOIN to the CTE.  Joins to the gold process order and material views for
-    status, quantities, and label.
+    Two CTEs run in a single statement:
+      - day_conf    — MIN(START_TIMESTAMP) / MAX(END_TIMESTAMP) from
+                      vw_gold_confirmation, giving the true SAP confirmation
+                      window for each order.  INNER JOIN ensures orders with
+                      no confirmation on the day are excluded.
+      - receipt_qty — MOVEMENT_TYPE='101' goods-receipt qty from
+                      vw_gold_adp_movement for confirmed output display.
     """
     plant_clause = "AND gpo.PLANT_ID = :plant_id" if plant_id else ""
     params: list[dict] = [sql_param("day", day)]
@@ -54,16 +59,23 @@ async def _q_blocks(token: str, day: str, plant_id: Optional[str]) -> list[dict]
         params.append(sql_param("plant_id", plant_id))
 
     query = f"""
-        WITH day_movements AS (
+        WITH day_conf AS (
             SELECT
                 PROCESS_ORDER_ID,
-                CAST(UNIX_TIMESTAMP(MIN(DATE_TIME_OF_ENTRY)) * 1000 AS BIGINT) AS first_ms,
-                CAST(UNIX_TIMESTAMP(MAX(DATE_TIME_OF_ENTRY)) * 1000 AS BIGINT) AS last_ms,
+                CAST(UNIX_TIMESTAMP(MIN(START_TIMESTAMP)) * 1000 AS BIGINT) AS first_ms,
+                CAST(UNIX_TIMESTAMP(MAX(END_TIMESTAMP))   * 1000 AS BIGINT) AS last_ms
+            FROM {tbl('vw_gold_confirmation')}
+            WHERE DATE(START_TIMESTAMP) = CAST(:day AS DATE)
+            GROUP BY PROCESS_ORDER_ID
+        ),
+        receipt_qty AS (
+            SELECT
+                PROCESS_ORDER_ID,
                 COALESCE(SUM(CASE
                     WHEN MOVEMENT_TYPE = '101' AND UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
                     WHEN MOVEMENT_TYPE = '101' AND UPPER(TRIM(UOM)) != 'EA' THEN QUANTITY
                     ELSE 0
-                END), 0.0)                                                     AS confirmed_qty
+                END), 0.0)                                                   AS confirmed_qty
             FROM {tbl('vw_gold_adp_movement')}
             WHERE DATE(DATE_TIME_OF_ENTRY) = CAST(:day AS DATE)
             GROUP BY PROCESS_ORDER_ID
@@ -74,20 +86,22 @@ async def _q_blocks(token: str, day: str, plant_id: Optional[str]) -> list[dict]
             gpo.STATUS                                                          AS order_status,
             gpo.MATERIAL_ID                                                     AS material_id,
             COALESCE(m.MATERIAL_NAME, gpo.MATERIAL_ID)                         AS material_name,
-            dm.first_ms,
-            dm.last_ms,
-            dm.confirmed_qty
-        FROM day_movements dm
+            dc.first_ms,
+            dc.last_ms,
+            COALESCE(rq.confirmed_qty, 0.0)                                    AS confirmed_qty
+        FROM day_conf dc
         JOIN {tbl('vw_gold_process_order')} gpo
-            ON gpo.PROCESS_ORDER_ID = dm.PROCESS_ORDER_ID
+            ON gpo.PROCESS_ORDER_ID = dc.PROCESS_ORDER_ID
         LEFT JOIN {silver_tbl('silver_process_order')} spo
-            ON spo.PROCESS_ORDER_ID = dm.PROCESS_ORDER_ID
+            ON spo.PROCESS_ORDER_ID = dc.PROCESS_ORDER_ID
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = gpo.MATERIAL_ID
            AND m.LANGUAGE_ID = 'E'
+        LEFT JOIN receipt_qty rq
+            ON rq.PROCESS_ORDER_ID = dc.PROCESS_ORDER_ID
         WHERE gpo.STATUS NOT IN ({_EXCLUDED})
           {plant_clause}
-        ORDER BY line_id, dm.first_ms
+        ORDER BY line_id, dc.first_ms
     """
     return await run_sql_async(token, query, params, endpoint_hint="poh.dayview.blocks")
 
@@ -225,9 +239,9 @@ async def fetch_day_view(
     downtime overlays, KPIs, and day boundary milliseconds for the frontend
     time axis.
 
-    Only orders with goods-issue activity on ``day`` are included — planned
+    Only orders with confirmation activity on ``day`` are included — planned
     (CREATED/RELEASED) and zero-activity orders are excluded automatically by
-    the inner join to the movements CTE.
+    the inner join to the day_conf CTE.
     """
     resolved_day = _parse_day(day)
     day_dt = _date.fromisoformat(resolved_day)
