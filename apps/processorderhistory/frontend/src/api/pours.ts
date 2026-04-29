@@ -36,6 +36,7 @@ export interface PoursData {
   planned_24h: number
   lines: string[]
   events: PourEvent[]
+  prior7d: PourEvent[]
   daily30d: Record<string, DaySeries[]>
   hourly24h: Record<string, HourSeries[]>
 }

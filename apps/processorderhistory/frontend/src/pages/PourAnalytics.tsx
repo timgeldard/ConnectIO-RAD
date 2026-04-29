@@ -269,27 +269,42 @@ export function PourKpiCards({ lineFilter }: PourKpiCardsProps) {
 
 interface BreakdownProps {
   events: PourEvent[]
+  prior7d: PourEvent[]
   dateFrom: string
   dateTo: string
 }
 
-function PourAnalyticsBreakdown({ events, dateFrom, dateTo }: BreakdownProps) {
+const KEY_FNS: Record<string, (p: PourEvent) => string> = {
+  operator:       p => p.operator ?? '—',
+  shift:          p => p.shift != null ? `Shift ${p.shift}` : '—',
+  line:           p => p.line_id,
+  source:         p => p.source_area ?? '—',
+  source_type:    p => p.source_type ?? '—',
+  process_order:  p => p.process_order ?? '—',
+}
+
+const DIM_LABEL: Record<string, string> = {
+  operator:      'Operator',
+  shift:         'Shift',
+  line:          'Line',
+  source:        'Source area',
+  source_type:   'Source type',
+  process_order: 'Process Order',
+}
+
+function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: BreakdownProps) {
   const [activeTab, setActiveTab] = useState<'analysis' | 'download'>('analysis')
   const [groupBy, setGroupBy] = useState('operator')
   const [sortBy, setSortBy] = useState('count')
+  const [cardView, setCardView] = useState(false)
+
+  const keyFn = KEY_FNS[groupBy] ?? ((p: PourEvent) => p.line_id)
+  const isPoOrder = groupBy === 'process_order'
 
   const groups = useMemo(() => {
-    const keyFn: Record<string, (p: PourEvent) => string> = {
-      operator: p => p.operator ?? '—',
-      shift: p => p.shift != null ? `Shift ${p.shift}` : '—',
-      line: p => p.line_id,
-      source: p => p.source_area ?? '—',
-      source_type: p => p.source_type ?? '—',
-      process_order: p => p.process_order ?? '—',
-    }
     const map = new Map<string, { key: string; count: number; kg: number }>()
     events.forEach(p => {
-      const k = keyFn[groupBy](p)
+      const k = keyFn(p)
       if (!map.has(k)) map.set(k, { key: k, count: 0, kg: 0 })
       const e = map.get(k)!
       e.count++
@@ -298,21 +313,36 @@ function PourAnalyticsBreakdown({ events, dateFrom, dateTo }: BreakdownProps) {
     let arr = Array.from(map.values())
     if (sortBy === 'count') arr.sort((a, b) => b.count - a.count)
     else arr.sort((a, b) => a.key.localeCompare(b.key))
+    if (isPoOrder) arr = arr.slice(0, 30)
     return arr
-  }, [events, groupBy, sortBy])
+  }, [events, groupBy, sortBy, keyFn, isPoOrder])
+
+  const prior7dAvg = useMemo(() => {
+    if (isPoOrder || !prior7d.length) return new Map<string, number>()
+    const daily = new Map<string, Map<string, number>>()
+    prior7d.forEach(p => {
+      const k = keyFn(p)
+      const day = new Date(p.ts_ms).toISOString().slice(0, 10)
+      if (!daily.has(k)) daily.set(k, new Map())
+      const dm = daily.get(k)!
+      dm.set(day, (dm.get(day) ?? 0) + 1)
+    })
+    const result = new Map<string, number>()
+    daily.forEach((dm, k) => {
+      const activeDays = dm.size
+      if (activeDays > 0) {
+        const total = Array.from(dm.values()).reduce((a, b) => a + b, 0)
+        result.set(k, total / activeDays)
+      }
+    })
+    return result
+  }, [prior7d, groupBy, keyFn, isPoOrder])
 
   const total = groups.reduce((a, g) => a + g.count, 0)
   const max = Math.max(1, ...groups.map(g => g.count))
   const avg = groups.length ? total / groups.length : 0
 
-  const dimLabel: Record<string, string> = {
-    operator: 'Operator',
-    shift: 'Shift',
-    line: 'Line',
-    source: 'Source area',
-    source_type: 'Source type',
-    process_order: 'Process Order',
-  }
+  const dimLabel = DIM_LABEL
 
   function handleDownload() {
     const header = ['Timestamp', 'Process Order', 'Line', 'Operator', 'Shift', 'Source Type', 'Source Area', 'Quantity (kg)', 'UOM']
@@ -382,11 +412,16 @@ function PourAnalyticsBreakdown({ events, dateFrom, dateTo }: BreakdownProps) {
               <button className={sortBy === 'count' ? 'active' : ''} onClick={() => setSortBy('count')}>Count</button>
               <button className={sortBy === 'name' ? 'active' : ''} onClick={() => setSortBy('name')}>Name</button>
             </div>
+            <div className="pa-seg">
+              <span className="pa-seg-l">View</span>
+              <button className={!cardView ? 'active' : ''} onClick={() => setCardView(false)}>Table</button>
+              <button className={cardView ? 'active' : ''} onClick={() => setCardView(true)}>Cards</button>
+            </div>
           </div>
         )}
       </div>
 
-      {activeTab === 'analysis' && (
+      {activeTab === 'analysis' && !cardView && (
         <div className="pa-bars">
           <div className="pa-bars-head">
             <div>{dimLabel[groupBy]}</div>
@@ -417,6 +452,30 @@ function PourAnalyticsBreakdown({ events, dateFrom, dateTo }: BreakdownProps) {
             )
           })}
           {groups.length === 0 && <div className="pa-empty">No pours match.</div>}
+        </div>
+      )}
+
+      {activeTab === 'analysis' && cardView && (
+        <div className="pa-card-grid">
+          {groups.map(g => {
+            const dayAvg = prior7dAvg.get(g.key) ?? null
+            return (
+              <div key={g.key} className="pa-card">
+                <div className="pa-card-name" title={g.key}>{g.key}</div>
+                <div className="pa-card-count mono">{g.count.toLocaleString()}</div>
+                <div className="pa-card-count-label">pours · {(g.kg / 1000).toFixed(2)} t</div>
+                {!isPoOrder && (
+                  <div className="pa-card-avg">
+                    {dayAvg != null
+                      ? <><strong>{dayAvg.toFixed(1)}</strong> / day avg · prior 7d</>
+                      : <span style={{ color: 'var(--ink-300)' }}>No prior 7d data</span>
+                    }
+                  </div>
+                )}
+              </div>
+            )
+          })}
+          {groups.length === 0 && <div style={{ padding: '24px', color: 'var(--ink-400)', fontSize: 12 }}>No pours match.</div>}
         </div>
       )}
 
@@ -488,6 +547,12 @@ export function PourAnalyticsPage() {
     () => sourceTypeFilter === 'ALL' ? allEvents : allEvents.filter(e => e.source_type === sourceTypeFilter),
     [allEvents, sourceTypeFilter],
   )
+  const prior7d = useMemo(() => {
+    let list = pageData?.prior7d ?? []
+    if (lineFilter !== 'ALL') list = list.filter(e => e.line_id === lineFilter)
+    if (sourceTypeFilter !== 'ALL') list = list.filter(e => e.source_type === sourceTypeFilter)
+    return list
+  }, [pageData, lineFilter, sourceTypeFilter])
 
   const actual = events.length
   const target = DAILY_TARGET * days
@@ -603,7 +668,7 @@ export function PourAnalyticsPage() {
             </div>
           </div>
 
-          <PourAnalyticsBreakdown events={events} dateFrom={dateFrom} dateTo={dateTo} />
+          <PourAnalyticsBreakdown events={events} prior7d={prior7d} dateFrom={dateFrom} dateTo={dateTo} />
         </div>
       )}
     </>

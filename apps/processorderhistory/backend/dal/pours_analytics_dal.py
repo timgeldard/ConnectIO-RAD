@@ -120,6 +120,45 @@ async def _q_hourly24h(token: str) -> list[dict]:
     return await run_sql_async(token, query, endpoint_hint="poh.pours.hourly24h")
 
 
+async def _q_prior7d_events(
+    token: str,
+    date_from: Optional[str],
+) -> list[dict]:
+    """Movement type-261 events for the 7 days immediately prior to date_from.
+
+    Used by the card view to compute per-entity averages over days with activity.
+    Returns an empty list when date_from is not supplied (rolling-window mode).
+    """
+    if not date_from:
+        return []
+
+    query = f"""
+        SELECT
+            adp.PROCESS_ORDER_ID                                               AS process_order,
+            COALESCE(m.MATERIAL_NAME, adp.MATERIAL_ID)                        AS material_name,
+            adp.QUANTITY                                                       AS quantity,
+            adp.UOM                                                            AS uom,
+            adp.STORAGE_ID                                                     AS source_area,
+            adp.SOURCE_ST                                                      AS source_type,
+            adp.`USER`                                                         AS operator,
+            CAST(UNIX_TIMESTAMP(adp.DATE_TIME_OF_ENTRY) * 1000 AS BIGINT)     AS ts_ms,
+            COALESCE(spo.PROCESS_LINE, 'UNKNOWN')                              AS line_id
+        FROM {tbl('vw_gold_adp_movement')} adp
+        LEFT JOIN {tbl('vw_gold_material')} m
+            ON m.MATERIAL_ID = adp.MATERIAL_ID
+           AND m.LANGUAGE_ID = 'E'
+        LEFT JOIN {silver_tbl('silver_process_order')} spo
+            ON spo.PROCESS_ORDER_ID = adp.PROCESS_ORDER_ID
+        WHERE adp.MOVEMENT_TYPE = '261'
+          AND adp.UOM != 'EA'
+          AND DATE(adp.DATE_TIME_OF_ENTRY) >= DATE_ADD(CAST(:date_from AS DATE), -7)
+          AND DATE(adp.DATE_TIME_OF_ENTRY) <  CAST(:date_from AS DATE)
+        ORDER BY adp.DATE_TIME_OF_ENTRY
+    """
+    params = [sql_param("date_from", date_from)]
+    return await run_sql_async(token, query, params, endpoint_hint="poh.pours.prior7d")
+
+
 async def _q_scheduled_range(
     token: str,
     plant_id: Optional[str],
@@ -265,22 +304,26 @@ async def fetch_pours_analytics(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
 ) -> dict:
-    """Fetch pour analytics via 4 parallel Databricks queries.
+    """Fetch pour analytics via 5 parallel Databricks queries.
 
     Returns pre-aggregated daily/hourly context series keyed by line_id plus 'ALL',
-    plus the raw event list for the requested date range (used by the Breakdown).
-    If ``date_from`` / ``date_to`` are omitted, events default to the last-24h window.
+    the raw event list for the requested date range (used by the Breakdown), and
+    raw events for the 7 days prior to date_from (used for the card view averages).
+    If ``date_from`` / ``date_to`` are omitted, events default to the last-24h window
+    and prior7d is empty.
     """
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
 
-    events_rows, daily_rows, hourly_rows, scheduled_rows = await asyncio.gather(
+    events_rows, daily_rows, hourly_rows, scheduled_rows, prior7d_rows = await asyncio.gather(
         _q_events_range(token, date_from, date_to),
         _q_daily30d(token),
         _q_hourly24h(token),
         _q_scheduled_range(token, plant_id, date_from, date_to),
+        _q_prior7d_events(token, date_from),
     )
 
     events = [_coerce_event(r) for r in events_rows]
+    prior7d = [_coerce_event(r) for r in prior7d_rows]
     daily_series, daily_lines = _build_daily_series(daily_rows, now_ms)
     hourly_series = _build_hourly_series(hourly_rows, now_ms)
 
@@ -294,6 +337,7 @@ async def fetch_pours_analytics(
         "planned_24h": scheduled_count,
         "lines": lines,
         "events": events,
+        "prior7d": prior7d,
         "daily30d": daily_series,
         "hourly24h": hourly_series,
     }
