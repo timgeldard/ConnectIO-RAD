@@ -13,7 +13,9 @@ POST /api/yield/analytics           yield analytics: per-order yield, daily 30d,
 POST /api/quality/analytics         quality analytics: inspection results, RFT daily/hourly series
 POST /api/dayview                   day view: single-day Gantt blocks + downtime
 POST /api/planning/schedule         planning board: ±7-day Gantt blocks, backlog, KPIs
-POST /api/downtime/analytics         downtime pareto: grouped by reason + daily trend
+POST /api/downtime/analytics        downtime pareto: grouped by reason + daily trend
+POST /api/oee/analytics             OEE analytics: weighted trend + per-line performance
+POST /api/adherence/analytics       adherence analytics: OTIF rate trend + order list
 ```
 
 `/api/health` and `/api/ready` come from `shared_api`. `/api/health` returns a
@@ -228,6 +230,94 @@ Response:
 - Timestamp is `USAGE_DECISION_CREATED_DATE` — rows without a usage decision are excluded from date-filtered queries.
 - `judgement`: `"A"` when `INSPECTION_RESULT_VALUATION` starts with `'A'`, else `"R"`.
 - `rft_pct` (right-first-time %) is `null` for zero-result buckets.
+
+### `POST /api/oee/analytics`
+
+Request body (all fields optional):
+
+```json
+{
+  "plant_id": "P001",
+  "date_from": "2024-01-01",
+  "date_to": "2024-01-07",
+  "timezone": "UTC"
+}
+```
+
+Response:
+
+```json
+{
+  "now_ms": 1700000000000,
+  "lines": [
+    {
+      "line_id": "L01",
+      "avg_oee_pct": 82.5,
+      "avg_availability_pct": 88.0,
+      "avg_performance_pct": 95.0,
+      "avg_quality_pct": 99.0,
+      "total_scheduled_m": 1440.0,
+      "total_downtime_m": 172.0,
+      "total_units": 1000.0,
+      "good_units": 990.0
+    }
+  ],
+  "daily30d": [
+    {
+      "date": 1697328000000,
+      "oee": 82.5,
+      "availability": 88.0,
+      "performance": 95.0,
+      "quality": 99.0
+    }
+  ]
+}
+```
+
+### `POST /api/adherence/analytics`
+
+Request body (all fields optional):
+
+```json
+{
+  "plant_id": "P001",
+  "date_from": "2024-01-01",
+  "date_to": "2024-01-07",
+  "timezone": "UTC"
+}
+```
+
+Response:
+
+```json
+{
+  "now_ms": 1700000000000,
+  "orders": [
+    {
+      "order_id": "ORD01",
+      "material_id": "MAT01",
+      "line_id": "L01",
+      "end_ms": 1700000000000,
+      "planned_qty": 100.0,
+      "confirmed_qty": 100.0,
+      "is_on_time": true,
+      "is_in_full": true,
+      "is_otif": true,
+      "delay_days": 0,
+      "qty_variance_pct": 0.0
+    }
+  ],
+  "daily30d": [
+    {
+      "date": 1697328000000,
+      "otif_pct": 95.0,
+      "on_time_pct": 98.0,
+      "in_full_pct": 97.0,
+      "order_count": 20
+    }
+  ]
+}
+```
 
 ### `POST /api/dayview`
 
