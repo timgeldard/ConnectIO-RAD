@@ -124,12 +124,10 @@ async def _q_downtime(token: str, day: str, plant_id: Optional[str]) -> list[dic
             dt.REASON_CODE                                                      AS reason_code,
             dt.ISSUE_TYPE                                                       AS issue_type,
             dt.ISSUE_TITLE                                                      AS issue_title,
-            COALESCE(spo.PROCESS_LINE, 'UNKNOWN')                              AS line_id
+            COALESCE(gpo.PRODUCTION_LINE, 'UNKNOWN')                           AS line_id
         FROM {tbl('vw_gold_downtime_and_issues')} dt
         JOIN {tbl('vw_gold_process_order')} gpo
             ON gpo.PROCESS_ORDER_ID = dt.PROCESS_ORDER_ID
-        LEFT JOIN {silver_tbl('silver_process_order')} spo
-            ON spo.PROCESS_ORDER_ID = dt.PROCESS_ORDER_ID
         WHERE DATE(dt.START_TIME) = CAST(:day AS DATE)
           AND gpo.STATUS NOT IN ({_EXCLUDED})
           {plant_clause}
