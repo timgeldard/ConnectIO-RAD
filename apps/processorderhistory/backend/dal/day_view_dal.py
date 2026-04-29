@@ -58,7 +58,12 @@ async def _q_blocks(token: str, day: str, plant_id: Optional[str]) -> list[dict]
             SELECT
                 PROCESS_ORDER_ID,
                 CAST(UNIX_TIMESTAMP(MIN(DATE_TIME_OF_ENTRY)) * 1000 AS BIGINT) AS first_ms,
-                CAST(UNIX_TIMESTAMP(MAX(DATE_TIME_OF_ENTRY)) * 1000 AS BIGINT) AS last_ms
+                CAST(UNIX_TIMESTAMP(MAX(DATE_TIME_OF_ENTRY)) * 1000 AS BIGINT) AS last_ms,
+                COALESCE(SUM(CASE
+                    WHEN MOVEMENT_TYPE = '101' AND UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                    WHEN MOVEMENT_TYPE = '101' AND UPPER(TRIM(UOM)) != 'EA' THEN QUANTITY
+                    ELSE 0
+                END), 0.0)                                                     AS confirmed_qty
             FROM {tbl('vw_gold_adp_movement')}
             WHERE DATE(DATE_TIME_OF_ENTRY) = CAST(:day AS DATE)
             GROUP BY PROCESS_ORDER_ID
@@ -67,12 +72,11 @@ async def _q_blocks(token: str, day: str, plant_id: Optional[str]) -> list[dict]
             gpo.PROCESS_ORDER_ID                                                AS process_order_id,
             COALESCE(spo.PROCESS_LINE, 'UNKNOWN')                              AS line_id,
             gpo.STATUS                                                          AS order_status,
-            gpo.PLANNED_QTY                                                     AS planned_qty,
-            gpo.CONFIRMED_QTY                                                   AS confirmed_qty,
             gpo.MATERIAL_ID                                                     AS material_id,
             COALESCE(m.MATERIAL_NAME, gpo.MATERIAL_ID)                         AS material_name,
             dm.first_ms,
-            dm.last_ms
+            dm.last_ms,
+            dm.confirmed_qty
         FROM day_movements dm
         JOIN {tbl('vw_gold_process_order')} gpo
             ON gpo.PROCESS_ORDER_ID = dm.PROCESS_ORDER_ID
