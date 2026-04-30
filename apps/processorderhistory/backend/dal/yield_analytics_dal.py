@@ -70,9 +70,20 @@ async def _q_orders_range(
             SELECT
                 PROCESS_ORDER_ID,
                 COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '101' THEN CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
-                    WHEN MOVEMENT_TYPE = '102' THEN -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
-                END), 0.0) AS qty_received_kg,
+                    WHEN MOVEMENT_TYPE = '101' THEN
+                        CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END
+                    WHEN MOVEMENT_TYPE = '102' THEN
+                        -(CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END)
+                END), 0.0)
+ AS qty_received_kg,
                 MAX(DATE_TIME_OF_ENTRY) AS last_receipt_ts
             FROM {tbl('vw_gold_adp_movement')}
             WHERE MOVEMENT_TYPE IN ('101', '102')
@@ -84,9 +95,20 @@ async def _q_orders_range(
             SELECT
                 PROCESS_ORDER_ID,
                 COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '261' THEN CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
-                    WHEN MOVEMENT_TYPE = '262' THEN -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
-                END), 0.0) AS qty_issued_kg
+                    WHEN MOVEMENT_TYPE = '261' THEN
+                        CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END
+                    WHEN MOVEMENT_TYPE = '262' THEN
+                        -(CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END)
+                END), 0.0)
+ AS qty_issued_kg
             FROM {tbl('vw_gold_adp_movement')}
             WHERE MOVEMENT_TYPE IN ('261', '262')
               AND UPPER(TRIM(UOM)) != 'EA'
@@ -130,9 +152,20 @@ async def _q_daily30d(token: str, tz: str) -> list[dict]:
                 {tz_day_ms('DATE_TIME_OF_ENTRY', tz)} AS day_ms,
                 PROCESS_ORDER_ID,
                 COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '101' THEN CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
-                    WHEN MOVEMENT_TYPE = '102' THEN -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
-                END), 0.0) AS qty_received
+                    WHEN MOVEMENT_TYPE = '101' THEN
+                        CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END
+                    WHEN MOVEMENT_TYPE = '102' THEN
+                        -(CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END)
+                END), 0.0)
+ AS qty_received
             FROM {tbl('vw_gold_adp_movement')}
             WHERE MOVEMENT_TYPE IN ('101', '102')
               AND UPPER(TRIM(UOM)) != 'EA'
@@ -144,9 +177,20 @@ async def _q_daily30d(token: str, tz: str) -> list[dict]:
                 {tz_day_ms('DATE_TIME_OF_ENTRY', tz)} AS day_ms,
                 PROCESS_ORDER_ID,
                 COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '261' THEN CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
-                    WHEN MOVEMENT_TYPE = '262' THEN -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
-                END), 0.0) AS qty_issued
+                    WHEN MOVEMENT_TYPE = '261' THEN
+                        CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END
+                    WHEN MOVEMENT_TYPE = '262' THEN
+                        -(CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END)
+                END), 0.0)
+ AS qty_issued
             FROM {tbl('vw_gold_adp_movement')}
             WHERE MOVEMENT_TYPE IN ('261', '262')
               AND UPPER(TRIM(UOM)) != 'EA'
@@ -178,9 +222,20 @@ async def _q_hourly24h(token: str, tz: str) -> list[dict]:
                 {tz_hour_ms('DATE_TIME_OF_ENTRY', tz)} AS hour_ms,
                 PROCESS_ORDER_ID,
                 COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '101' THEN CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
-                    WHEN MOVEMENT_TYPE = '102' THEN -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
-                END), 0.0) AS qty_received
+                    WHEN MOVEMENT_TYPE = '101' THEN
+                        CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END
+                    WHEN MOVEMENT_TYPE = '102' THEN
+                        -(CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END)
+                END), 0.0)
+ AS qty_received
             FROM {tbl('vw_gold_adp_movement')}
             WHERE MOVEMENT_TYPE IN ('101', '102')
               AND UPPER(TRIM(UOM)) != 'EA'
@@ -192,9 +247,20 @@ async def _q_hourly24h(token: str, tz: str) -> list[dict]:
                 {tz_hour_ms('DATE_TIME_OF_ENTRY', tz)} AS hour_ms,
                 PROCESS_ORDER_ID,
                 COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '261' THEN CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
-                    WHEN MOVEMENT_TYPE = '262' THEN -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
-                END), 0.0) AS qty_issued
+                    WHEN MOVEMENT_TYPE = '261' THEN
+                        CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END
+                    WHEN MOVEMENT_TYPE = '262' THEN
+                        -(CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END)
+                END), 0.0)
+ AS qty_issued
             FROM {tbl('vw_gold_adp_movement')}
             WHERE MOVEMENT_TYPE IN ('261', '262')
               AND UPPER(TRIM(UOM)) != 'EA'
@@ -234,9 +300,20 @@ async def _q_prior7d_orders(
             SELECT
                 PROCESS_ORDER_ID,
                 COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '101' THEN CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
-                    WHEN MOVEMENT_TYPE = '102' THEN -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
-                END), 0.0) AS qty_received_kg,
+                    WHEN MOVEMENT_TYPE = '101' THEN
+                        CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END
+                    WHEN MOVEMENT_TYPE = '102' THEN
+                        -(CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END)
+                END), 0.0)
+ AS qty_received_kg,
                 MAX(DATE_TIME_OF_ENTRY) AS last_receipt_ts
             FROM {tbl('vw_gold_adp_movement')}
             WHERE MOVEMENT_TYPE IN ('101', '102')
@@ -249,9 +326,20 @@ async def _q_prior7d_orders(
             SELECT
                 PROCESS_ORDER_ID,
                 COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '261' THEN CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
-                    WHEN MOVEMENT_TYPE = '262' THEN -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
-                END), 0.0) AS qty_issued_kg
+                    WHEN MOVEMENT_TYPE = '261' THEN
+                        CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END
+                    WHEN MOVEMENT_TYPE = '262' THEN
+                        -(CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END)
+                END), 0.0)
+ AS qty_issued_kg
             FROM {tbl('vw_gold_adp_movement')}
             WHERE MOVEMENT_TYPE IN ('261', '262')
               AND UPPER(TRIM(UOM)) != 'EA'

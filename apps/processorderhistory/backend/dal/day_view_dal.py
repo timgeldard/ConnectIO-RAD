@@ -80,12 +80,16 @@ async def _q_blocks(token: str, day: str, plant_id: Optional[str]) -> list[dict]
             SELECT
                 PROCESS_ORDER_ID,
                 COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '101' AND UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                    WHEN MOVEMENT_TYPE = '101' AND UPPER(TRIM(UOM)) != 'EA' THEN QUANTITY
+                    WHEN MOVEMENT_TYPE = '101' THEN
+                        CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
+                    WHEN MOVEMENT_TYPE = '102' THEN
+                        -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
                     ELSE 0
                 END), 0.0)                                                   AS confirmed_qty
             FROM {tbl('vw_gold_adp_movement')}
             WHERE DATE(DATE_TIME_OF_ENTRY) = CAST(:day AS DATE)
+              AND MOVEMENT_TYPE IN ('101', '102')
+              AND UPPER(TRIM(UOM)) != 'EA'
             GROUP BY PROCESS_ORDER_ID
         )
         SELECT
