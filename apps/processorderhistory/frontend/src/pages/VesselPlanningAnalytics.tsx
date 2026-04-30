@@ -241,7 +241,20 @@ function PriorityQueue({
           {filtered.map(o => (
             <tr key={o.po_id} className={`vp-row ${o.feasible ? 'feasible' : 'constrained'}`}>
               <td className="mono vp-rank">{o.rank}</td>
-              <td className="mono">{o.po_id}</td>
+              <td>
+                <button
+                  className="pa-po-link"
+                  onClick={() => (window as any).__navigateToOrder?.(o.po_id, {
+                    _from: 'vessel-planning',
+                    materialId: o.material_id,
+                    label: o.material_name,
+                    plantId: o.plant_id,
+                    start: o.scheduled_start_ms ?? (Date.now() - 4 * 3600 * 1000),
+                  })}
+                >
+                  {o.po_id}
+                </button>
+              </td>
               <td>{o.material_name}</td>
               <td className="mono">
                 {o.scheduled_start_ms ? fmt.date(o.scheduled_start_ms) : <span className="vp-unscheduled">Unscheduled</span>}
