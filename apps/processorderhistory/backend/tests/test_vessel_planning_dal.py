@@ -1,7 +1,14 @@
 """Unit tests for vessel_planning_dal — classifier, coerce helpers, derivation logic, series builder."""
 import pytest
+from unittest.mock import patch
 
 from backend.dal import vessel_planning_dal as dal
+from backend.config import vessel_capacity as vc
+from backend.config.vessel_capacity import check_capacity, get_vessel_capacity
+
+_TEST_CAP_CONFIG = [
+    {"instrument_id": "TK-101", "min_vol": 500.0, "max_vol": 2000.0, "uom": "L", "plant_id": "RCN1"},
+]
 
 # ---------------------------------------------------------------------------
 # _classify_state
@@ -334,3 +341,243 @@ def test_build_daily30d_series_accumulates_multiple_rows_same_bucket():
     result = dal._build_daily30d_series(rows, _NOW_MS)
     hit = next(d for d in result if d["day_ms"] == first_bucket)
     assert hit["event_count"] == 8
+
+
+# ---------------------------------------------------------------------------
+# _state_reason
+# ---------------------------------------------------------------------------
+
+def test_state_reason_running_po():
+    reason = dal._state_reason("IN_USE", "CLEAN", "running", "PO-123")
+    assert "PO-123" in reason
+    assert "Running" in reason
+
+
+def test_state_reason_running_po_unknown_when_no_po_id():
+    reason = dal._state_reason("IN_USE", "IN USE", "running", None)
+    assert "unknown" in reason.lower()
+
+
+def test_state_reason_in_use_keyword():
+    reason = dal._state_reason("IN_USE", "IN USE", None, None)
+    assert "in-use" in reason.lower() or "in_use" in reason.lower() or "in use" in reason.lower()
+
+
+def test_state_reason_dirty_keyword():
+    reason = dal._state_reason("DIRTY", "DIRTY", None, None)
+    assert "dirty" in reason.lower()
+
+
+def test_state_reason_available_keyword():
+    reason = dal._state_reason("AVAILABLE", "CLEAN", None, None)
+    assert "available" in reason.lower()
+
+
+def test_state_reason_unknown_no_status_to():
+    reason = dal._state_reason("UNKNOWN", None, None, None)
+    assert reason  # non-empty
+
+
+def test_state_reason_unknown_unrecognised_status():
+    reason = dal._state_reason("UNKNOWN", "STANDBY MODE", None, None)
+    assert "STANDBY MODE" in reason
+
+
+# ---------------------------------------------------------------------------
+# Evidence fields on released orders
+# ---------------------------------------------------------------------------
+
+def _events_with_ts(*pairs):
+    """Build event rows: pairs of (instrument_id, material_id, change_at_ms)."""
+    return [
+        {"instrument_id": iid, "material_id": mid, "material_name": f"Mat-{mid}", "change_at_ms": ts}
+        for iid, mid, ts in pairs
+    ]
+
+
+def test_evidence_affinity_count_matches_cooccurrence():
+    events = _events_with_ts(
+        ("TK-101", "MAT-A", 1000),
+        ("TK-101", "MAT-A", 2000),
+        ("TK-101", "MAT-A", 3000),
+    )
+    _, orders, _ = dal._derive_planning_data(
+        [_vessel("TK-101", "AVAILABLE")], events, [_released("PO-1", "MAT-A")]
+    )
+    assert orders[0]["evidence_affinity_count"] == 3
+
+
+def test_evidence_affinity_rank_is_1_for_top_vessel():
+    events = _events_with_ts(
+        ("TK-101", "MAT-A", 1000),
+        ("TK-101", "MAT-A", 2000),
+        ("TK-102", "MAT-A", 3000),
+    )
+    vessels = [_vessel("TK-101", "AVAILABLE"), _vessel("TK-102", "AVAILABLE")]
+    _, orders, _ = dal._derive_planning_data(vessels, events, [_released("PO-1", "MAT-A")])
+    assert orders[0]["evidence_affinity_rank"] == 1
+    assert orders[0]["recommended_vessel"] == "TK-101"
+
+
+def test_evidence_candidate_vessel_count():
+    events = _events_with_ts(
+        ("TK-101", "MAT-A", 1000),
+        ("TK-102", "MAT-A", 2000),
+        ("TK-103", "MAT-A", 3000),
+    )
+    vessels = [_vessel("TK-101", "AVAILABLE"), _vessel("TK-102", "AVAILABLE"), _vessel("TK-103", "AVAILABLE")]
+    _, orders, _ = dal._derive_planning_data(vessels, events, [_released("PO-1", "MAT-A")])
+    assert orders[0]["evidence_candidate_vessel_count"] == 3
+
+
+def test_evidence_last_seen_at_ms_is_max_timestamp():
+    events = _events_with_ts(
+        ("TK-101", "MAT-A", 1000),
+        ("TK-101", "MAT-A", 9000),
+        ("TK-101", "MAT-A", 5000),
+    )
+    _, orders, _ = dal._derive_planning_data(
+        [_vessel("TK-101", "AVAILABLE")], events, [_released("PO-1", "MAT-A")]
+    )
+    assert orders[0]["evidence_last_seen_at_ms"] == 9000
+
+
+def test_evidence_source_affinity_history_when_data_exists():
+    events = _events_with_ts(("TK-101", "MAT-A", 1000))
+    _, orders, _ = dal._derive_planning_data(
+        [_vessel("TK-101", "AVAILABLE")], events, [_released("PO-1", "MAT-A")]
+    )
+    assert orders[0]["evidence_source"] == "affinity_history"
+
+
+def test_evidence_source_no_affinity_data_when_no_history():
+    _, orders, _ = dal._derive_planning_data(
+        [_vessel("TK-101", "AVAILABLE")], [], [_released("PO-1", "MAT-A")]
+    )
+    assert orders[0]["evidence_source"] == "no_affinity_data"
+
+
+def test_evidence_notes_contains_capacity_note_when_qty_unknown():
+    events = _events_with_ts(("TK-101", "MAT-A", 1000))
+    _, orders, _ = dal._derive_planning_data(
+        [_vessel("TK-101", "AVAILABLE")], events, [_released("PO-1", "MAT-A")]
+    )
+    assert any("capacity" in n.lower() for n in orders[0]["evidence_notes"])
+
+
+def test_evidence_affinity_rank_none_when_no_affinity():
+    _, orders, _ = dal._derive_planning_data([], [], [_released("PO-1", "MAT-Z")])
+    assert orders[0]["evidence_affinity_rank"] is None
+
+
+def test_evidence_last_seen_none_when_no_history():
+    _, orders, _ = dal._derive_planning_data([], [], [_released("PO-1", "MAT-Z")])
+    assert orders[0]["evidence_last_seen_at_ms"] is None
+
+
+# ---------------------------------------------------------------------------
+# Capacity config helpers
+# ---------------------------------------------------------------------------
+
+def test_check_capacity_within_range():
+    with patch.object(vc, "VESSEL_CAPACITY", _TEST_CAP_CONFIG):
+        fits, note = check_capacity("TK-101", 1000.0, plant_id="RCN1")
+    assert fits is True
+    assert "fits" in note
+
+
+def test_check_capacity_over_max_excluded():
+    with patch.object(vc, "VESSEL_CAPACITY", _TEST_CAP_CONFIG):
+        fits, note = check_capacity("TK-101", 3000.0, plant_id="RCN1")
+    assert fits is False
+    assert "excluded" in note
+
+
+def test_check_capacity_under_min_excluded():
+    with patch.object(vc, "VESSEL_CAPACITY", _TEST_CAP_CONFIG):
+        fits, note = check_capacity("TK-101", 10.0, plant_id="RCN1")
+    assert fits is False
+    assert "excluded" in note
+
+
+def test_check_capacity_no_config_degrades_gracefully():
+    fits, note = check_capacity("TK-UNKNOWN", 1000.0)
+    assert fits is True
+    assert "no capacity config" in note
+
+
+def test_get_vessel_capacity_plant_specific_wins():
+    global_entry = {"instrument_id": "TK-101", "min_vol": 100.0, "max_vol": 5000.0, "uom": "L"}
+    config = [_TEST_CAP_CONFIG[0], global_entry]
+    with patch.object(vc, "VESSEL_CAPACITY", config):
+        result = get_vessel_capacity("TK-101", plant_id="RCN1")
+    assert result is not None
+    assert result["min_vol"] == 500.0
+
+
+# ---------------------------------------------------------------------------
+# New vessel evidence fields
+# ---------------------------------------------------------------------------
+
+def test_vessel_state_reason_present_on_every_vessel():
+    rows = [
+        _vessel("TK-A", "AVAILABLE"),
+        _vessel("TK-B", "DIRTY"),
+        _vessel("TK-C", "IN_USE"),
+        _vessel("TK-D", "UNKNOWN"),
+    ]
+    vessels, _, _ = dal._derive_planning_data(rows, [], [])
+    for v in vessels:
+        assert "state_reason" in v
+        assert v["state_reason"]  # non-empty string
+
+
+def test_vessel_blocked_order_count_matches_blocked_orders_len():
+    events = _events_with_ts(
+        ("TK-101", "MAT-A", 1000),
+        ("TK-101", "MAT-A", 2000),
+    )
+    released = [_released("PO-1", "MAT-A"), _released("PO-2", "MAT-A")]
+    vessels, _, _ = dal._derive_planning_data([_vessel("TK-101", "DIRTY")], events, released)
+    tk = next(v for v in vessels if v["instrument_id"] == "TK-101")
+    assert tk["blocked_order_count"] == len(tk["blocked_orders"])
+    assert tk["blocked_order_count"] == 2
+
+
+def test_vessel_top_affinity_material_count():
+    events = _events_with_ts(
+        ("TK-101", "MAT-A", 1000),
+        ("TK-101", "MAT-B", 2000),
+        ("TK-101", "MAT-C", 3000),
+    )
+    vessels, _, _ = dal._derive_planning_data([_vessel("TK-101", "AVAILABLE")], events, [])
+    tk = next(v for v in vessels if v["instrument_id"] == "TK-101")
+    assert tk["top_affinity_material_count"] == 3
+
+
+def test_vessel_action_reason_includes_waiting_count_for_dirty():
+    events = _events_with_ts(("TK-101", "MAT-A", 1000))
+    released = [_released("PO-1", "MAT-A"), _released("PO-2", "MAT-A")]
+    vessels, _, _ = dal._derive_planning_data([_vessel("TK-101", "DIRTY")], events, released)
+    tk = next(v for v in vessels if v["instrument_id"] == "TK-101")
+    assert tk["action_reason"] is not None
+    assert "2" in tk["action_reason"] or "waiting" in tk["action_reason"].lower()
+
+
+def test_vessel_action_reason_none_for_available_vessel():
+    vessels, _, _ = dal._derive_planning_data([_vessel("TK-101", "AVAILABLE")], [], [])
+    tk = next(v for v in vessels if v["instrument_id"] == "TK-101")
+    assert tk["action_reason"] is None
+
+
+def test_vessel_state_reason_running_po_contains_po_id():
+    row = {**_LATEST_ROW, "order_status": "running", "process_order_id": "PO-XYZ", "status_to": "CLEAN"}
+    vessels, _, _ = dal._derive_planning_data([row], [], [])
+    tk = vessels[0]
+    assert "PO-XYZ" in tk["state_reason"]
+
+
+def test_vessel_blocked_order_count_zero_when_no_blocked():
+    vessels, _, _ = dal._derive_planning_data([_vessel("TK-101", "AVAILABLE")], [], [])
+    tk = vessels[0]
+    assert tk["blocked_order_count"] == 0

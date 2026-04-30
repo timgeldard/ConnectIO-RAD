@@ -42,8 +42,8 @@ const CONFIDENCE_LABELS: Record<string, string> = {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function VesselStateBadge({ state }: { state: VesselState }) {
-  return <span className={`vp-state-badge ${state.toLowerCase().replace('_', '-')}`}>{STATE_LABELS[state]}</span>
+function VesselStateBadge({ state, reason }: { state: VesselState; reason?: string | null }) {
+  return <span className={`vp-state-badge ${state.toLowerCase().replace('_', '-')}`} title={reason ?? undefined}>{STATE_LABELS[state]}</span>
 }
 
 function ConstraintBadge({ type }: { type: string | null }) {
@@ -53,6 +53,24 @@ function ConstraintBadge({ type }: { type: string | null }) {
 
 function ConfidenceDot({ level }: { level: string }) {
   return <span className={`vp-confidence ${level}`} title={`Heuristic confidence: ${CONFIDENCE_LABELS[level] ?? level}`}>{CONFIDENCE_LABELS[level] ?? level}</span>
+}
+
+function EvidenceSummary({ order }: { order: import('../api/vessel_planning').ReleasedOrder }) {
+  const { evidence_affinity_count, evidence_candidate_vessel_count, evidence_last_seen_at_ms, evidence_source, evidence_notes } = order
+  const lastSeenLabel = evidence_last_seen_at_ms ? fmt.shortDate(evidence_last_seen_at_ms) : null
+  const primary = evidence_source === 'no_affinity_data'
+    ? 'no affinity data'
+    : evidence_affinity_count > 0
+      ? `${evidence_affinity_count} prior use${evidence_affinity_count !== 1 ? 's' : ''}`
+      : `${evidence_candidate_vessel_count} candidate${evidence_candidate_vessel_count !== 1 ? 's' : ''}`
+  const secondary = lastSeenLabel ? `last seen ${lastSeenLabel}` : null
+  const capacityNote = evidence_notes.find(n => n.includes('capacity'))
+  return (
+    <div className="vp-evidence">
+      <span className="vp-evidence-primary">{primary}{secondary ? ` · ${secondary}` : ''}</span>
+      {capacityNote && <span className="vp-evidence-note">{capacityNote}</span>}
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -171,7 +189,7 @@ function PlanningBoard({
             <tr key={v.instrument_id} className={`vp-row state-${v.state.toLowerCase().replace('_', '-')}`}>
               <td className="vp-cell-id mono">{v.instrument_id}</td>
               <td className="vp-cell-type">{v.equipment_type ?? '—'}</td>
-              <td><VesselStateBadge state={v.state} /></td>
+              <td><VesselStateBadge state={v.state} reason={v.state_reason} /></td>
               <td className="mono">{v.current_po_id ?? '—'}</td>
               <td>{v.current_material_name ?? '—'}</td>
               <td className="mono">
@@ -189,7 +207,12 @@ function PlanningBoard({
               </td>
               <td className="vp-cell-action">
                 {v.recommended_action
-                  ? <span className={`vp-action priority-${v.action_priority ?? 3}`}>{v.recommended_action}</span>
+                  ? (
+                    <div>
+                      <span className={`vp-action priority-${v.action_priority ?? 3}`}>{v.recommended_action}</span>
+                      {v.action_reason && <div className="vp-action-reason">{v.action_reason}</div>}
+                    </div>
+                  )
                   : <span className="vp-no-action">—</span>
                 }
               </td>
@@ -230,11 +253,10 @@ function PriorityQueue({
             <th>PO</th>
             <th>Material</th>
             <th>Scheduled start</th>
-            <th>Feasibility</th>
-            <th>Constraint</th>
+            <th>Status</th>
             <th>Likely vessels</th>
-            <th>Recommendation</th>
-            <th>Confidence</th>
+            <th>Evidence</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -260,22 +282,24 @@ function PriorityQueue({
                 {o.scheduled_start_ms ? fmt.date(o.scheduled_start_ms) : <span className="vp-unscheduled">Unscheduled</span>}
               </td>
               <td>
-                <ConstraintBadge type={o.constraint_type} />
+                <div className="vp-status-cell">
+                  <ConstraintBadge type={o.constraint_type} />
+                  <ConfidenceDot level={o.heuristic_confidence} />
+                </div>
               </td>
-              <td>{o.constraint_type ? CONSTRAINT_LABELS[o.constraint_type] ?? o.constraint_type : '—'}</td>
               <td className="mono vp-vessels-cell">
                 {o.likely_vessels.length > 0
                   ? o.likely_vessels.slice(0, 3).join(', ')
                   : <span className="vp-no-affinity">None on record</span>
                 }
               </td>
+              <td><EvidenceSummary order={o} /></td>
               <td className="vp-cell-action">
                 {o.recommendation
                   ? <span className={o.feasible ? 'vp-rec-feasible' : 'vp-rec-constrained'}>{o.recommendation}</span>
                   : '—'
                 }
               </td>
-              <td><ConfidenceDot level={o.heuristic_confidence} /></td>
             </tr>
           ))}
         </tbody>
