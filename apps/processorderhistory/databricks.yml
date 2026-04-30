@@ -30,3 +30,4 @@ resources:
       source_code_path: .
       user_api_scopes:
         - sql
+        - dashboards.genie

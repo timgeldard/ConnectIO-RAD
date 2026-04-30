@@ -10,6 +10,7 @@ export interface PourEvent {
   source_area: string | null
   source_type: string | null
   process_order: string | null
+  material_name: string | null
   quantity: number
   uom: string | null
   shift: string | null

@@ -45,6 +45,7 @@ async def _q_events_range(
     token: str,
     date_from: Optional[str],
     date_to: Optional[str],
+    plant_id: Optional[str],
     tz: str,
 ) -> list[dict]:
     """Movement type-261 events for the requested date range, including process order and operator.
@@ -61,7 +62,13 @@ async def _q_events_range(
         params = [sql_param("date_from", date_from), sql_param("date_to", date_to)]
     else:
         date_clause = "AND adp.DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 24 HOURS"
-        params = None
+        params = []
+
+    plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
+    if plant_id:
+        params.append(sql_param("plant_id", plant_id))
+
+    final_params = params if params else None
 
     query = f"""
         SELECT
@@ -80,24 +87,30 @@ async def _q_events_range(
             CAST(UNIX_TIMESTAMP(adp.DATE_TIME_OF_ENTRY) * 1000 AS BIGINT)     AS ts_ms,
             'ALL'                                                               AS line_id
         FROM {tbl('vw_gold_adp_movement')} adp
+        JOIN {tbl('vw_gold_process_order')} po
+            ON po.PROCESS_ORDER_ID = adp.PROCESS_ORDER_ID
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = adp.MATERIAL_ID
            AND m.LANGUAGE_ID = 'E'
         WHERE adp.MOVEMENT_TYPE IN ('261', '262')
           AND UPPER(TRIM(adp.UOM)) != 'EA'
           {date_clause}
+          {plant_clause}
         ORDER BY adp.DATE_TIME_OF_ENTRY
         LIMIT 50000
     """
-    return await run_sql_async(token, query, params, endpoint_hint="poh.pours.events_range")
+    return await run_sql_async(token, query, final_params, endpoint_hint="poh.pours.events_range")
 
 
-async def _q_daily30d(token: str, tz: str) -> list[dict]:
+async def _q_daily30d(token: str, plant_id: Optional[str], tz: str) -> list[dict]:
     """Net daily pour count over the last 30 days bucketed by local calendar day.
 
     MT-261 events count +1; MT-262 reversals count -1 to give the net pour count.
     Day boundaries align to local midnight in ``tz``.
     """
+    plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
+    params: Optional[list[dict]] = [sql_param("plant_id", plant_id)] if plant_id else None
+
     query = f"""
         SELECT
             {tz_day_ms('adp.DATE_TIME_OF_ENTRY', tz)} AS day_ms,
@@ -106,21 +119,27 @@ async def _q_daily30d(token: str, tz: str) -> list[dict]:
                      WHEN adp.MOVEMENT_TYPE = '262' THEN -1
                      ELSE 0 END) AS pour_count
         FROM {tbl('vw_gold_adp_movement')} adp
+        JOIN {tbl('vw_gold_process_order')} po
+            ON po.PROCESS_ORDER_ID = adp.PROCESS_ORDER_ID
         WHERE adp.MOVEMENT_TYPE IN ('261', '262')
           AND UPPER(TRIM(adp.UOM)) != 'EA'
           AND adp.DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 30 DAYS
+          {plant_clause}
         GROUP BY day_ms
         ORDER BY day_ms
     """
-    return await run_sql_async(token, query, endpoint_hint="poh.pours.daily30d")
+    return await run_sql_async(token, query, params, endpoint_hint="poh.pours.daily30d")
 
 
-async def _q_hourly24h(token: str, tz: str) -> list[dict]:
+async def _q_hourly24h(token: str, plant_id: Optional[str], tz: str) -> list[dict]:
     """Net hourly pour count over the last 24 hours bucketed by local calendar hour.
 
     MT-261 events count +1; MT-262 reversals count -1 to give the net pour count.
     Hour boundaries align to local hour starts in ``tz``.
     """
+    plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
+    params: Optional[list[dict]] = [sql_param("plant_id", plant_id)] if plant_id else None
+
     query = f"""
         SELECT
             {tz_hour_ms('adp.DATE_TIME_OF_ENTRY', tz)} AS hour_ms,
@@ -129,18 +148,22 @@ async def _q_hourly24h(token: str, tz: str) -> list[dict]:
                      WHEN adp.MOVEMENT_TYPE = '262' THEN -1
                      ELSE 0 END) AS pour_count
         FROM {tbl('vw_gold_adp_movement')} adp
+        JOIN {tbl('vw_gold_process_order')} po
+            ON po.PROCESS_ORDER_ID = adp.PROCESS_ORDER_ID
         WHERE adp.MOVEMENT_TYPE IN ('261', '262')
           AND UPPER(TRIM(adp.UOM)) != 'EA'
           AND adp.DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 24 HOURS
+          {plant_clause}
         GROUP BY hour_ms
         ORDER BY hour_ms
     """
-    return await run_sql_async(token, query, endpoint_hint="poh.pours.hourly24h")
+    return await run_sql_async(token, query, params, endpoint_hint="poh.pours.hourly24h")
 
 
 async def _q_prior7d_events(
     token: str,
     date_from: Optional[str],
+    plant_id: Optional[str],
     tz: str,
 ) -> list[dict]:
     """Movement type-261 events for the 7 days immediately prior to date_from.
@@ -153,6 +176,11 @@ async def _q_prior7d_events(
     if not date_from:
         return []
 
+    plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
+    params = [sql_param("date_from", date_from)]
+    if plant_id:
+        params.append(sql_param("plant_id", plant_id))
+
     query = f"""
         SELECT
             adp.PROCESS_ORDER_ID                                               AS process_order,
@@ -170,6 +198,8 @@ async def _q_prior7d_events(
             CAST(UNIX_TIMESTAMP(adp.DATE_TIME_OF_ENTRY) * 1000 AS BIGINT)     AS ts_ms,
             'ALL'                                                               AS line_id
         FROM {tbl('vw_gold_adp_movement')} adp
+        JOIN {tbl('vw_gold_process_order')} po
+            ON po.PROCESS_ORDER_ID = adp.PROCESS_ORDER_ID
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = adp.MATERIAL_ID
            AND m.LANGUAGE_ID = 'E'
@@ -177,10 +207,10 @@ async def _q_prior7d_events(
           AND UPPER(TRIM(adp.UOM)) != 'EA'
           AND {tz_date('adp.DATE_TIME_OF_ENTRY', tz)} >= DATE_ADD(CAST(:date_from AS DATE), -7)
           AND {tz_date('adp.DATE_TIME_OF_ENTRY', tz)} <  CAST(:date_from AS DATE)
+          {plant_clause}
         ORDER BY adp.DATE_TIME_OF_ENTRY
         LIMIT 50000
     """
-    params = [sql_param("date_from", date_from)]
     return await run_sql_async(token, query, params, endpoint_hint="poh.pours.prior7d")
 
 
@@ -322,10 +352,10 @@ async def fetch_pours_analytics(
     now_ms = int(datetime.now(dt_timezone.utc).timestamp() * 1000)
 
     events_rows, daily_rows, hourly_rows, prior7d_rows = await asyncio.gather(
-        _q_events_range(token, date_from, date_to, timezone),
-        _q_daily30d(token, timezone),
-        _q_hourly24h(token, timezone),
-        _q_prior7d_events(token, date_from, timezone),
+        _q_events_range(token, date_from, date_to, plant_id, timezone),
+        _q_daily30d(token, plant_id, timezone),
+        _q_hourly24h(token, plant_id, timezone),
+        _q_prior7d_events(token, date_from, plant_id, timezone),
     )
 
     events = [_coerce_event(r) for r in events_rows]

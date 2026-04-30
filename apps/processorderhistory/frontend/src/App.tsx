@@ -11,10 +11,12 @@ import { YieldAnalyticsPage } from './pages/YieldAnalytics'
 import { QualityAnalyticsPage } from './pages/QualityAnalytics'
 import { fetchCurrentUser, type CurrentUser } from './api/me'
 import { ORDERS } from './data/mock'
+import { GenieDrawer } from './genie/GenieDrawer'
+import { buildGeniePageContext } from './genie/pageContext'
 
 type View =
   | { name: 'list' }
-  | { name: 'detail'; order: any; from: 'list' | 'planning' | 'day-view' }
+  | { name: 'detail'; order: any; from: 'list' | 'planning' | 'day-view' | 'pours' | 'yield' | 'quality' }
   | { name: 'planning' }
   | { name: 'pours' }
   | { name: 'day-view' }
@@ -27,6 +29,7 @@ export default function App() {
   const [view, setView] = useState<View>({ name: 'list' })
   const [lineFilter, setLineFilter] = useState('ALL')
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [genieOpen, setGenieOpen] = useState(false)
 
   useEffect(() => {
     fetchCurrentUser().then(u => setCurrentUser(u)).catch(() => {})
@@ -93,7 +96,7 @@ export default function App() {
           __planningShortageETA: c.shortageETA || null,
         }
       }
-      const fromView = c._from === 'planning' ? 'planning' : c._from === 'day-view' ? 'day-view' : c._from === 'yield' ? 'yield' : 'list'
+      const fromView = c._from === 'planning' ? 'planning' : c._from === 'day-view' ? 'day-view' : c._from === 'pours' ? 'pours' : c._from === 'yield' ? 'yield' : c._from === 'quality' ? 'quality' : 'list'
       setView({ name: 'detail', order, from: fromView })
       window.scrollTo(0, 0)
     }
@@ -122,7 +125,9 @@ export default function App() {
               onBack={() => {
                 if (view.from === 'planning') setView({ name: 'planning' })
                 else if (view.from === 'day-view') setView({ name: 'day-view' })
+                else if (view.from === 'pours') setView({ name: 'pours' })
                 else if (view.from === 'yield') setView({ name: 'yield' })
+                else if (view.from === 'quality') setView({ name: 'quality' })
                 else setView({ name: 'list' })
                 window.scrollTo(0, 0)
               }}
@@ -134,6 +139,12 @@ export default function App() {
           {view.name === 'yield' && <YieldAnalyticsPage />}
           {view.name === 'quality' && <QualityAnalyticsPage />}
         </main>
+        <GenieDrawer
+          open={genieOpen}
+          onOpen={() => setGenieOpen(true)}
+          onClose={() => setGenieOpen(false)}
+          pageContext={buildGeniePageContext(view, lineFilter)}
+        />
       </div>
     </LangProvider>
   )

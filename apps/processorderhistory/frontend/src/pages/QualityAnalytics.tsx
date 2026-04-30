@@ -13,16 +13,22 @@ import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n/context'
 import { I, TopBar } from '../ui'
 import { fetchQualityAnalytics, type QualityData, type QualityResultRow, type QualityDaySeries, type QualityHourSeries } from '../api/quality'
+import {
+  AnalyticsFilterBar,
+  AnalyticsCorrelationPanel,
+  ContributorsPanel,
+  DeltaPill,
+  inBucket,
+  todayISO,
+  useAnalyticsFilters,
+  type BucketSelection,
+} from './analyticsShared'
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /** Returns the current date in ISO 8601 format (YYYY-MM-DD). */
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
 /**
  * Formats a UTC-epoch millisecond timestamp as a short day label.
  * @param ms - Epoch milliseconds.
@@ -59,6 +65,7 @@ function QualityTrendChart({
   daily30d,
   hourly24h,
   defaultRange = '30d',
+  onSelectBucket,
 }) {
   const [range, setRange] = useState(defaultRange)
   const [tooltip, setTooltip] = useState(null)
@@ -144,17 +151,28 @@ function QualityTrendChart({
                 <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">now</text>
               </>
             )}
-            <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
-              onMouseMove={e => {
-                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
-                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
-                const ctm = svg.getScreenCTM(); if (!ctm) return
-                const { x } = pt.matrixTransform(ctm.inverse())
-                const idx = Math.max(0, Math.min(hourly24h.length - 1, Math.round(((x - padL) / innerW) * (hourly24h.length - 1))))
-                const d = hourly24h[idx]
-                setTooltip({ x: lineX(idx), y: lineY(d.rft_pct ?? 0), label: fmtHour(d.hour), value: d.rft_pct != null ? d.rft_pct.toFixed(1) + '%' : '—' })
-              }}
-            />
+            {hourly24h.length > 0 && (
+              <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
+                onMouseMove={e => {
+                  const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                  const ctm = svg.getScreenCTM(); if (!ctm) return
+                  const { x } = pt.matrixTransform(ctm.inverse())
+                  const idx = Math.max(0, Math.min(hourly24h.length - 1, Math.round(((x - padL) / innerW) * (hourly24h.length - 1))))
+                  const d = hourly24h[idx]
+                  setTooltip({ x: lineX(idx), y: lineY(d.rft_pct ?? 0), label: fmtHour(d.hour), value: d.rft_pct != null ? d.rft_pct.toFixed(1) + '%' : '—' })
+                }}
+                onClick={e => {
+                  const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                  const ctm = svg.getScreenCTM(); if (!ctm) return
+                  const { x } = pt.matrixTransform(ctm.inverse())
+                  const idx = Math.max(0, Math.min(hourly24h.length - 1, Math.round(((x - padL) / innerW) * (hourly24h.length - 1))))
+                  const d = hourly24h[idx]
+                  onSelectBucket?.({ metric: 'Quality', kind: 'hour', startMs: d.hour, endMs: d.hour + 3_600_000, label: fmtHour(d.hour) })
+                }}
+              />
+            )}
           </>
         ) : (
           // Daily bar chart — total results, coloured by RFT%
@@ -183,19 +201,30 @@ function QualityTrendChart({
                 <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">today</text>
               </>
             )}
-            <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
-              onMouseMove={e => {
-                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
-                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
-                const ctm = svg.getScreenCTM(); if (!ctm) return
-                const { x } = pt.matrixTransform(ctm.inverse())
-                const idx = Math.max(0, Math.min(barData.length - 1, Math.floor((x - padL) / barSlot)))
-                const d = barData[idx]
-                const total = d.accepted + d.rejected
-                const h = Math.max((total / maxTotal) * innerH, 0)
-                setTooltip({ x: padL + idx * barSlot + 1 + barW / 2, y: padT + innerH - h, label: fmtDay(d.date), value: d.rft_pct != null ? d.rft_pct.toFixed(1) + '% RFT' : '—' })
-              }}
-            />
+            {barData.length > 0 && (
+              <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
+                onMouseMove={e => {
+                  const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                  const ctm = svg.getScreenCTM(); if (!ctm) return
+                  const { x } = pt.matrixTransform(ctm.inverse())
+                  const idx = Math.max(0, Math.min(barData.length - 1, Math.floor((x - padL) / barSlot)))
+                  const d = barData[idx]
+                  const total = d.accepted + d.rejected
+                  const h = Math.max((total / maxTotal) * innerH, 0)
+                  setTooltip({ x: padL + idx * barSlot + 1 + barW / 2, y: padT + innerH - h, label: fmtDay(d.date), value: d.rft_pct != null ? d.rft_pct.toFixed(1) + '% RFT' : '—' })
+                }}
+                onClick={e => {
+                  const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                  const ctm = svg.getScreenCTM(); if (!ctm) return
+                  const { x } = pt.matrixTransform(ctm.inverse())
+                  const idx = Math.max(0, Math.min(barData.length - 1, Math.floor((x - padL) / barSlot)))
+                  const d = barData[idx]
+                  onSelectBucket?.({ metric: 'Quality', kind: 'day', startMs: d.date, endMs: d.date + 86_400_000, label: fmtDay(d.date) })
+                }}
+              />
+            )}
           </>
         )}
 
@@ -488,22 +517,26 @@ function QualityAnalyticsBreakdown({ rows, prior7d, dateFrom, dateTo }: Breakdow
  */
 export function QualityAnalyticsPage() {
   const { t } = useT()
-  const [materialFilter, setMaterialFilter] = useState('ALL')
-  const [dateFrom, setDateFrom] = useState(todayISO)
-  const [dateTo, setDateTo] = useState(todayISO)
+  const { filters, setFilters } = useAnalyticsFilters()
   const [pageData, setPageData] = useState<QualityData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selection, setSelection] = useState<BucketSelection | null>(null)
+
+  const materialFilter = filters.material
+  const dateFrom = filters.dateFrom
+  const dateTo = filters.dateTo
+  const plantId = filters.plantId === 'ALL' ? undefined : filters.plantId
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError(null)
-    fetchQualityAnalytics({ date_from: dateFrom, date_to: dateTo })
+    fetchQualityAnalytics({ plant_id: plantId, date_from: dateFrom, date_to: dateTo })
       .then(d => { if (!cancelled) { setPageData(d); setLoading(false) } })
       .catch(e => { if (!cancelled) { setError(String(e)); setLoading(false) } })
     return () => { cancelled = true }
-  }, [dateFrom, dateTo])
+  }, [plantId, dateFrom, dateTo])
 
   const trail = [t.operations || 'Operations', t.sectionInsights || 'Insights', 'Quality analytics']
 
@@ -534,8 +567,11 @@ export function QualityAnalyticsPage() {
   const rftPct = total > 0 ? (accepted / total) * 100 : null
   const rejectPct = total > 0 ? (rejected / total) * 100 : null
   const qualityTone = rftPct == null ? '' : rftPct >= 98 ? 'good' : rftPct >= 95 ? 'ok' : 'bad'
-
-  const todayStr = todayISO()
+  const priorAccepted = prior7d.filter(r => r.judgement === 'A').length
+  const priorRejected = prior7d.filter(r => r.judgement === 'R').length
+  const priorTotal = priorAccepted + priorRejected
+  const priorRftPct = filters.compare === 'prior7d' && priorTotal > 0 ? (priorAccepted / priorTotal) * 100 : null
+  const selectedRows = selection ? rows.filter(r => inBucket(r.result_date_ms, selection)) : []
 
   if (error) {
     return (
@@ -559,37 +595,13 @@ export function QualityAnalyticsPage() {
             right-first-time rate, and the materials or characteristics driving quality losses.
           </p>
         </div>
-        <div className="page-head-actions">
-          <div className="date-pick">
-            {I.calendar}
-            <input
-              type="date"
-              value={dateFrom}
-              max={dateTo || todayStr}
-              onChange={e => setDateFrom(e.target.value)}
-              style={{ border: 'none', background: 'transparent', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }}
-            />
-            <span className="sep">→</span>
-            <input
-              type="date"
-              value={dateTo}
-              min={dateFrom}
-              max={todayStr}
-              onChange={e => setDateTo(e.target.value)}
-              style={{ border: 'none', background: 'transparent', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }}
-            />
-          </div>
-          {materials.length > 0 && (
-            <div className="pss-filter">
-              <label className="pss-flbl">{I.package}<span>Material</span></label>
-              <select value={materialFilter} onChange={e => setMaterialFilter(e.target.value)}>
-                <option value="ALL">All materials · {materials.length}</option>
-                {materials.map(mat => <option key={mat} value={mat}>{mat}</option>)}
-              </select>
-            </div>
-          )}
-        </div>
       </div>
+
+      <AnalyticsFilterBar
+        filters={filters}
+        onChange={patch => { setFilters(patch); setSelection(null) }}
+        materials={materials}
+      />
 
       {loading && (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-400)' }}>
@@ -604,6 +616,7 @@ export function QualityAnalyticsPage() {
             <div className={`pour-kpi tone-actual ${qualityTone}`}>
               <div className="pk-l">{I.check}<span>Accepted results</span></div>
               <div className="pk-v mono">{accepted.toLocaleString()}</div>
+              {filters.compare === 'prior7d' && <DeltaPill current={rftPct} prior={priorRftPct} />}
               <div className="pk-sub">
                 {rftPct != null && (
                   <span className={`pk-delta ${qualityTone === 'good' ? 'pos' : qualityTone === 'ok' ? 'neut' : 'neg'}`}>
@@ -621,6 +634,7 @@ export function QualityAnalyticsPage() {
             <div className="pour-kpi tone-target">
               <div className="pk-l">{I.trending}<span>Right first time</span></div>
               <div className="pk-v mono">{rftPct != null ? rftPct.toFixed(1) + '%' : '—'}</div>
+              {filters.compare === 'prior7d' && <DeltaPill current={rftPct} prior={priorRftPct} />}
               <div className="pk-sub">{total.toLocaleString()} results inspected</div>
             </div>
 
@@ -639,9 +653,31 @@ export function QualityAnalyticsPage() {
           </div>
 
           <div className="pour-trends">
-            <QualityTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="30d" />
-            <QualityTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="24h" />
+            <QualityTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="30d" onSelectBucket={setSelection} />
+            <QualityTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="24h" onSelectBucket={setSelection} />
           </div>
+
+          <AnalyticsCorrelationPanel filters={filters} />
+
+          <ContributorsPanel
+            title="Quality contributors"
+            selection={selection}
+            count={selectedRows.length}
+            onClear={() => setSelection(null)}
+          >
+            {selectedRows.slice(0, 50).map((r, i) => (
+              <div className="cp-row" key={`${r.process_order}-${r.characteristic_id}-${i}`}>
+                <button
+                  className="pa-po-link mono"
+                  onClick={() => (window as any).__navigateToOrder?.(r.process_order, { label: r.material_name, materialId: r.material_id, _from: 'quality' })}
+                >{r.process_order}</button>
+                <span>{r.characteristic_description || r.characteristic_id}</span>
+                <span className="muted">{r.material_name}</span>
+                <span className="mono">{r.judgement === 'A' ? 'Accepted' : 'Rejected'}</span>
+              </div>
+            ))}
+            {selectedRows.length === 0 && <div className="cp-empty">No inspection results in this bucket.</div>}
+          </ContributorsPanel>
 
           <QualityAnalyticsBreakdown rows={rows} prior7d={prior7d} dateFrom={dateFrom} dateTo={dateTo} />
         </div>

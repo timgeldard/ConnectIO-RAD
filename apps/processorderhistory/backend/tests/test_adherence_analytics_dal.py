@@ -75,6 +75,20 @@ def test_build_daily_series_sparse_row_fills_correctly():
     assert hit["order_count"] == 20
 
 
+def test_build_daily_series_matches_utc_date_rows_to_local_buckets():
+    """UTC-midnight metric dates still land in local-day buckets for non-UTC zones."""
+    now_ms = int(datetime(2024, 7, 10, 12, tzinfo=dt_timezone.utc).timestamp() * 1000)
+    raw_day_ms = int(datetime(2024, 7, 8, tzinfo=dt_timezone.utc).timestamp() * 1000)
+    expected_bucket_ms = int(datetime(2024, 7, 7, 23, tzinfo=dt_timezone.utc).timestamp() * 1000)
+
+    rows = [{"day_ms": raw_day_ms, "otif_pct": "95.0", "order_count": "20"}]
+    series = dal._build_daily_series(rows, now_ms, "Europe/Dublin")
+
+    hit = next(d for d in series if d["date"] == expected_bucket_ms)
+    assert hit["otif_pct"] == 95.0
+    assert hit["order_count"] == 20
+
+
 # ---------------------------------------------------------------------------
 # fetch_adherence_analytics (orchestrator)
 # ---------------------------------------------------------------------------

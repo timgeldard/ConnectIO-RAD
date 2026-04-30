@@ -19,6 +19,7 @@ from backend.routers.quality_router import router as quality_router
 from backend.routers.downtime_router import router as downtime_router
 from backend.routers.oee_router import router as oee_router
 from backend.routers.adherence_router import router as adherence_router
+from backend.routers.genie_router import router as genie_router
 
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 
@@ -34,6 +35,7 @@ app.include_router(quality_router, prefix="/api")
 app.include_router(downtime_router, prefix="/api")
 app.include_router(oee_router, prefix="/api")
 app.include_router(adherence_router, prefix="/api")
+app.include_router(genie_router, prefix="/api")
 
 
 @app.get("/api/health")

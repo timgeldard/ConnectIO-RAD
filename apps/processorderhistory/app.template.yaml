@@ -1,6 +1,11 @@
 # Databricks Apps configuration — generated from app.template.yaml by `make render-app-config`
 # Do not edit app.yaml directly; edit this template instead.
 # auth_type and requested_scopes are configured via the App Settings UI (User authorization).
+resources:
+  genie-space:
+    type: genie
+    id: "${GENIE_SPACE_ID}"
+
 command:
   - uvicorn
   - backend.main:app
@@ -18,3 +23,5 @@ env:
     value: "${POH_SCHEMA}"
   - name: APP_TRUST_X_FORWARDED_HOST
     value: "true"
+  - name: GENIE_SPACE_ID
+    valueFrom: genie-space
