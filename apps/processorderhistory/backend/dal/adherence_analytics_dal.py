@@ -123,6 +123,8 @@ def _build_daily_series(daily_rows: list[dict], now_ms: int, tz_name: str = "UTC
     for r in daily_rows:
         try:
             raw_day_ms = int(r.get("day_ms") or 0)
+            # Metric views emit date keys at UTC midnight; remap them through the
+            # user's timezone so non-UTC local-day buckets still match.
             d_ms = int(
                 datetime.fromtimestamp(raw_day_ms / 1000, tz=dt_timezone.utc)
                 .astimezone(tz)

@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useT } from '../i18n/context'
 import { I } from '../ui'
 import type { GeniePageContext } from '../api/genie'
 import { useGenieConversation } from './useGenieConversation'
@@ -22,17 +23,26 @@ function ResultTable({ rows, columns }: { rows: Record<string, unknown>[]; colum
   )
 }
 
+/** Props for the contextual Genie assistant drawer. */
+export interface GenieDrawerProps {
+  /** Whether the Genie drawer is currently visible. */
+  open: boolean
+  /** Opens the Genie drawer from the fixed trigger button. */
+  onOpen: () => void
+  /** Closes the Genie drawer. */
+  onClose: () => void
+  /** Ephemeral context from the active Process Order History page. */
+  pageContext: GeniePageContext
+}
+
+/** Contextual right-side assistant for Databricks Genie conversations. */
 export function GenieDrawer({
   open,
   onOpen,
   onClose,
   pageContext,
-}: {
-  open: boolean
-  onOpen: () => void
-  onClose: () => void
-  pageContext: GeniePageContext
-}) {
+}: GenieDrawerProps) {
+  const { t } = useT()
   const [prompt, setPrompt] = useState('')
   const getContext = useCallback(() => pageContext, [pageContext])
   const genie = useGenieConversation(getContext)
@@ -47,44 +57,46 @@ export function GenieDrawer({
   return (
     <>
       <button className="genie-trigger" onClick={open ? onClose : onOpen}>
-        {I.message}<span>Ask Genie</span>
+        {I.message}<span>{t.genieAsk}</span>
       </button>
-      {open && <div className="genie-backdrop" onClick={onClose} />}
-      <aside className={`genie-drawer ${open ? 'open' : ''}`} aria-hidden={!open}>
+      {open && (
+      <>
+      <div className="genie-backdrop" onClick={onClose} />
+      <aside className="genie-drawer open">
         <div className="genie-head">
           <div>
-            <div className="genie-eyebrow">Databricks Genie</div>
-            <h2>{I.message}<span>Ask Genie</span></h2>
+            <div className="genie-eyebrow">{t.genieEyebrow}</div>
+            <h2>{I.message}<span>{t.genieAsk}</span></h2>
           </div>
           <div className="genie-head-actions">
-            <button className="btn secondary" onClick={genie.reset}>{I.refresh}<span>New chat</span></button>
-            <button className="icon-btn" onClick={onClose} title="Close Genie">{I.x}</button>
+            <button className="btn secondary" onClick={genie.reset}>{I.refresh}<span>{t.genieNewChat}</span></button>
+            <button className="icon-btn" onClick={onClose} title={t.genieClose}>{I.x}</button>
           </div>
         </div>
 
         <div className="genie-context">
           <span>{pageContext.mode.replaceAll('_', ' ')}</span>
-          <strong>{pageContext.selected_process_order || pageContext.selected_material || pageContext.selected_plant || 'Global context'}</strong>
+          <strong>{pageContext.selected_process_order || pageContext.selected_material || pageContext.selected_plant || t.genieGlobalContext}</strong>
         </div>
 
         <div className="genie-messages">
           {genie.turns.length === 0 && (
             <div className="genie-welcome">
-              Ask about the current order, filtered list, or analytics screen. Genie will receive this page context with your question.
+              {t.genieWelcome}
             </div>
           )}
           {genie.turns.map(turn => (
             <div key={turn.id} className={`genie-msg ${turn.role}`}>
-              <div className="genie-msg-role">{turn.role === 'user' ? 'You' : 'Genie'}</div>
+              <div className="genie-msg-role">{turn.role === 'user' ? t.genieYou : t.genieName}</div>
               <div className="genie-msg-body">
-                {turn.content || (turn.status === 'IN_PROGRESS' ? 'Thinking...' : '')}
+                {turn.content || (turn.status === 'IN_PROGRESS' ? t.genieThinking : '')}
                 {turn.error && <div className="genie-error">{turn.error}</div>}
                 {turn.attachments?.map((a, i) => (
                   <div className="genie-attachment" key={a.attachmentId || `${turn.id}-${i}`}>
                     {a.text && <p>{a.text}</p>}
                     {a.sql && (
                       <details>
-                        <summary>Show SQL</summary>
+                        <summary>{t.genieShowSql}</summary>
                         <pre>{a.sql}</pre>
                       </details>
                     )}
@@ -113,13 +125,15 @@ export function GenieDrawer({
                 submit()
               }
             }}
-            placeholder="Ask about this screen..."
+            placeholder={t.geniePlaceholder}
           />
           <button className="btn primary" disabled={!prompt.trim() || genie.thinking} onClick={submit}>
-            {genie.thinking ? I.clock : I.arrowR}<span>{genie.thinking ? 'Thinking' : 'Send'}</span>
+            {genie.thinking ? I.clock : I.arrowR}<span>{genie.thinking ? t.genieThinkingShort : t.genieSend}</span>
           </button>
         </div>
       </aside>
+      </>
+      )}
     </>
   )
 }

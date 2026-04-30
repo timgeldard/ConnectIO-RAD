@@ -1,9 +1,8 @@
-// @ts-nocheck
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { I } from '../ui'
-import { fetchPoursAnalytics } from '../api/pours'
-import { fetchYieldAnalytics } from '../api/yield'
-import { fetchQualityAnalytics } from '../api/quality'
+import { fetchPoursAnalytics, type PoursData } from '../api/pours'
+import { fetchYieldAnalytics, type YieldData } from '../api/yield'
+import { fetchQualityAnalytics, type QualityData } from '../api/quality'
 
 export type CompareMode = 'none' | 'prior7d'
 
@@ -24,6 +23,19 @@ export interface BucketSelection {
   label: string
 }
 
+interface CorrelationData {
+  pours: PoursData
+  yieldData: YieldData
+  quality: QualityData
+}
+
+interface CorrelationSignal {
+  tone: 'bad' | 'good' | 'ok' | 'neut'
+  title: string
+  value: string
+  body: string
+}
+
 const QUERY_KEYS = {
   plantId: 'plant',
   lineId: 'line',
@@ -31,6 +43,10 @@ const QUERY_KEYS = {
   dateFrom: 'from',
   dateTo: 'to',
   compare: 'compare',
+}
+
+function coerceCompareMode(value: string | null | undefined, fallback: CompareMode): CompareMode {
+  return value === 'none' || value === 'prior7d' ? value : fallback
 }
 
 export function todayISO(): string {
@@ -47,7 +63,7 @@ export function useAnalyticsFilters(defaults?: Partial<AnalyticsFilters>) {
       material: params.get(QUERY_KEYS.material) || defaults?.material || 'ALL',
       dateFrom: params.get(QUERY_KEYS.dateFrom) || defaults?.dateFrom || fallbackToday,
       dateTo: params.get(QUERY_KEYS.dateTo) || defaults?.dateTo || fallbackToday,
-      compare: (params.get(QUERY_KEYS.compare) as CompareMode) || defaults?.compare || 'prior7d',
+      compare: coerceCompareMode(params.get(QUERY_KEYS.compare), defaults?.compare || 'prior7d'),
     }
   })
 
@@ -205,7 +221,7 @@ export function ContributorsPanel({
   title: string
   selection: BucketSelection | null
   count: number
-  children: React.ReactNode
+  children: ReactNode
   onClear: () => void
 }) {
   if (!selection) return null
@@ -231,6 +247,10 @@ function avg(nums: number[]): number | null {
   return nums.reduce((a, n) => a + n, 0) / nums.length
 }
 
+function isNumber(value: number | null | undefined): value is number {
+  return value != null
+}
+
 function topEntry(map: Map<string, number>): [string, number] | null {
   let best: [string, number] | null = null
   map.forEach((value, key) => {
@@ -240,7 +260,7 @@ function topEntry(map: Map<string, number>): [string, number] | null {
 }
 
 export function AnalyticsCorrelationPanel({ filters }: { filters: AnalyticsFilters }) {
-  const [state, setState] = useState<{ loading: boolean; error: string | null; data: any }>({
+  const [state, setState] = useState<{ loading: boolean; error: string | null; data: CorrelationData | null }>({
     loading: true,
     error: null,
     data: null,
@@ -289,8 +309,8 @@ export function AnalyticsCorrelationPanel({ filters }: { filters: AnalyticsFilte
     })
     const hotspot = topEntry(materialScores)
 
-    const currentYield = avg(yieldData.orders.map(o => o.yield_pct).filter(v => v != null))
-    const priorYield = avg(yieldData.prior7d.map(o => o.yield_pct).filter(v => v != null))
+    const currentYield = avg(yieldData.orders.map(o => o.yield_pct).filter(isNumber))
+    const priorYield = avg(yieldData.prior7d.map(o => o.yield_pct).filter(isNumber))
     const currentRejectPct = quality.rows.length
       ? (rejected.length / quality.rows.length) * 100
       : null
@@ -300,7 +320,7 @@ export function AnalyticsCorrelationPanel({ filters }: { filters: AnalyticsFilte
       : null
     const pourDelta = percentDelta(pours.events.length, pours.prior7d.length)
 
-    const result = []
+    const result: CorrelationSignal[] = []
     result.push({
       tone: overlap.length > 0 ? 'bad' : 'good',
       title: 'Yield and quality overlap',

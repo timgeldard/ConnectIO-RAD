@@ -151,26 +151,28 @@ function QualityTrendChart({
                 <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">now</text>
               </>
             )}
-            <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
-              onMouseMove={e => {
-                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
-                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
-                const ctm = svg.getScreenCTM(); if (!ctm) return
-                const { x } = pt.matrixTransform(ctm.inverse())
-                const idx = Math.max(0, Math.min(hourly24h.length - 1, Math.round(((x - padL) / innerW) * (hourly24h.length - 1))))
-                const d = hourly24h[idx]
-                setTooltip({ x: lineX(idx), y: lineY(d.rft_pct ?? 0), label: fmtHour(d.hour), value: d.rft_pct != null ? d.rft_pct.toFixed(1) + '%' : '—' })
-              }}
-              onClick={e => {
-                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
-                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
-                const ctm = svg.getScreenCTM(); if (!ctm) return
-                const { x } = pt.matrixTransform(ctm.inverse())
-                const idx = Math.max(0, Math.min(hourly24h.length - 1, Math.round(((x - padL) / innerW) * (hourly24h.length - 1))))
-                const d = hourly24h[idx]
-                onSelectBucket?.({ metric: 'Quality', kind: 'hour', startMs: d.hour, endMs: d.hour + 3_600_000, label: fmtHour(d.hour) })
-              }}
-            />
+            {hourly24h.length > 0 && (
+              <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
+                onMouseMove={e => {
+                  const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                  const ctm = svg.getScreenCTM(); if (!ctm) return
+                  const { x } = pt.matrixTransform(ctm.inverse())
+                  const idx = Math.max(0, Math.min(hourly24h.length - 1, Math.round(((x - padL) / innerW) * (hourly24h.length - 1))))
+                  const d = hourly24h[idx]
+                  setTooltip({ x: lineX(idx), y: lineY(d.rft_pct ?? 0), label: fmtHour(d.hour), value: d.rft_pct != null ? d.rft_pct.toFixed(1) + '%' : '—' })
+                }}
+                onClick={e => {
+                  const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                  const ctm = svg.getScreenCTM(); if (!ctm) return
+                  const { x } = pt.matrixTransform(ctm.inverse())
+                  const idx = Math.max(0, Math.min(hourly24h.length - 1, Math.round(((x - padL) / innerW) * (hourly24h.length - 1))))
+                  const d = hourly24h[idx]
+                  onSelectBucket?.({ metric: 'Quality', kind: 'hour', startMs: d.hour, endMs: d.hour + 3_600_000, label: fmtHour(d.hour) })
+                }}
+              />
+            )}
           </>
         ) : (
           // Daily bar chart — total results, coloured by RFT%
@@ -199,28 +201,30 @@ function QualityTrendChart({
                 <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">today</text>
               </>
             )}
-            <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
-              onMouseMove={e => {
-                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
-                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
-                const ctm = svg.getScreenCTM(); if (!ctm) return
-                const { x } = pt.matrixTransform(ctm.inverse())
-                const idx = Math.max(0, Math.min(barData.length - 1, Math.floor((x - padL) / barSlot)))
-                const d = barData[idx]
-                const total = d.accepted + d.rejected
-                const h = Math.max((total / maxTotal) * innerH, 0)
-                setTooltip({ x: padL + idx * barSlot + 1 + barW / 2, y: padT + innerH - h, label: fmtDay(d.date), value: d.rft_pct != null ? d.rft_pct.toFixed(1) + '% RFT' : '—' })
-              }}
-              onClick={e => {
-                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
-                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
-                const ctm = svg.getScreenCTM(); if (!ctm) return
-                const { x } = pt.matrixTransform(ctm.inverse())
-                const idx = Math.max(0, Math.min(barData.length - 1, Math.floor((x - padL) / barSlot)))
-                const d = barData[idx]
-                onSelectBucket?.({ metric: 'Quality', kind: 'day', startMs: d.date, endMs: d.date + 86_400_000, label: fmtDay(d.date) })
-              }}
-            />
+            {barData.length > 0 && (
+              <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
+                onMouseMove={e => {
+                  const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                  const ctm = svg.getScreenCTM(); if (!ctm) return
+                  const { x } = pt.matrixTransform(ctm.inverse())
+                  const idx = Math.max(0, Math.min(barData.length - 1, Math.floor((x - padL) / barSlot)))
+                  const d = barData[idx]
+                  const total = d.accepted + d.rejected
+                  const h = Math.max((total / maxTotal) * innerH, 0)
+                  setTooltip({ x: padL + idx * barSlot + 1 + barW / 2, y: padT + innerH - h, label: fmtDay(d.date), value: d.rft_pct != null ? d.rft_pct.toFixed(1) + '% RFT' : '—' })
+                }}
+                onClick={e => {
+                  const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                  const ctm = svg.getScreenCTM(); if (!ctm) return
+                  const { x } = pt.matrixTransform(ctm.inverse())
+                  const idx = Math.max(0, Math.min(barData.length - 1, Math.floor((x - padL) / barSlot)))
+                  const d = barData[idx]
+                  onSelectBucket?.({ metric: 'Quality', kind: 'day', startMs: d.date, endMs: d.date + 86_400_000, label: fmtDay(d.date) })
+                }}
+              />
+            )}
           </>
         )}
 

@@ -1,6 +1,7 @@
 """Backend proxy for Databricks Genie Conversation API."""
 from typing import Any, Optional
 
+from anyio.to_thread import run_sync
 from fastapi import APIRouter, Header, Query
 from pydantic import BaseModel, Field
 
@@ -36,7 +37,8 @@ async def genie_start(
 ):
     token = resolve_genie_token(x_forwarded_access_token, authorization)
     content = compose_genie_content(body.prompt, body.page_context)
-    return normalize_start_response(start_conversation(token, content))
+    response = await run_sync(start_conversation, token, content)
+    return normalize_start_response(response)
 
 
 @router.post("/genie/followup")
@@ -47,7 +49,7 @@ async def genie_followup(
 ):
     token = resolve_genie_token(x_forwarded_access_token, authorization)
     content = compose_genie_content(body.prompt, body.page_context)
-    response = create_followup(token, body.conversation_id, content)
+    response = await run_sync(create_followup, token, body.conversation_id, content)
     return normalize_start_response({"conversation": {"id": body.conversation_id}, "message": response})
 
 
@@ -59,7 +61,8 @@ async def genie_message(
     authorization: Optional[str] = Header(default=None),
 ):
     token = resolve_genie_token(x_forwarded_access_token, authorization)
-    return normalize_message(get_message(token, conversation_id, message_id))
+    response = await run_sync(get_message, token, conversation_id, message_id)
+    return normalize_message(response)
 
 
 @router.get("/genie/query-result")
@@ -71,5 +74,5 @@ async def genie_query_result(
     authorization: Optional[str] = Header(default=None),
 ):
     token = resolve_genie_token(x_forwarded_access_token, authorization)
-    result = get_query_result(token, conversation_id, message_id, attachment_id)
+    result = await run_sync(get_query_result, token, conversation_id, message_id, attachment_id)
     return normalize_query_result(result)
