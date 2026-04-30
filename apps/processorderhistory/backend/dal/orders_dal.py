@@ -54,7 +54,7 @@ async def fetch_orders_list(
         actual_qty, qty_uom.
     """
     plant_clause = "WHERE po.PLANT_ID = :plant_id" if plant_id else ""
-    params: list[dict] = [sql_param("limit", limit)]
+    params: list[dict] = []
     if plant_id:
         params.append(sql_param("plant_id", plant_id))
 
@@ -119,7 +119,7 @@ async def fetch_orders_list(
         LEFT JOIN receipt_agg ra      ON ra.PROCESS_ORDER_ID = po.PROCESS_ORDER_ID
         {plant_clause}
         ORDER BY ca.start_ts DESC NULLS LAST
-        LIMIT :limit  -- safe: validated int clamped to [1, 5000] by OrderListRequest
+        LIMIT {limit}  -- safe: validated int clamped to [1, 5000] by OrderListRequest
     """
 
     rows = await run_sql_async(token, query, params, endpoint_hint="poh.orders.list")
