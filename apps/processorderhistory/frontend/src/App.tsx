@@ -9,6 +9,7 @@ import { PourAnalyticsPage } from './pages/PourAnalytics'
 import { DayView } from './pages/DayView'
 import { YieldAnalyticsPage } from './pages/YieldAnalytics'
 import { QualityAnalyticsPage } from './pages/QualityAnalytics'
+import { VesselPlanningAnalyticsPage } from './pages/VesselPlanningAnalytics'
 import { fetchCurrentUser, type CurrentUser } from './api/me'
 import { ORDERS } from './data/mock'
 import { GenieDrawer } from './genie/GenieDrawer'
@@ -16,12 +17,13 @@ import { buildGeniePageContext } from './genie/pageContext'
 
 type View =
   | { name: 'list' }
-  | { name: 'detail'; order: any; from: 'list' | 'planning' | 'day-view' | 'pours' | 'yield' | 'quality' }
+  | { name: 'detail'; order: any; from: 'list' | 'planning' | 'day-view' | 'pours' | 'yield' | 'quality' | 'vessel-planning' }
   | { name: 'planning' }
   | { name: 'pours' }
   | { name: 'day-view' }
   | { name: 'yield' }
   | { name: 'quality' }
+  | { name: 'vessel-planning' }
 
 const HOUR = 3600 * 1000
 
@@ -41,6 +43,7 @@ export default function App() {
     view.name === 'day-view' ? 'day-view' :
     view.name === 'yield' ? 'yield' :
     view.name === 'quality' ? 'quality' :
+    view.name === 'vessel-planning' ? 'vessel-planning' :
     'orders'
 
   const onNavigate = (key: string) => {
@@ -50,6 +53,7 @@ export default function App() {
     else if (key === 'day-view') setView({ name: 'day-view' })
     else if (key === 'yield') setView({ name: 'yield' })
     else if (key === 'quality') setView({ name: 'quality' })
+    else if (key === 'vessel-planning') setView({ name: 'vessel-planning' })
     window.scrollTo(0, 0)
   }
 
@@ -96,7 +100,7 @@ export default function App() {
           __planningShortageETA: c.shortageETA || null,
         }
       }
-      const fromView = c._from === 'planning' ? 'planning' : c._from === 'day-view' ? 'day-view' : c._from === 'pours' ? 'pours' : c._from === 'yield' ? 'yield' : c._from === 'quality' ? 'quality' : 'list'
+      const fromView = c._from === 'planning' ? 'planning' : c._from === 'day-view' ? 'day-view' : c._from === 'pours' ? 'pours' : c._from === 'yield' ? 'yield' : c._from === 'quality' ? 'quality' : c._from === 'vessel-planning' ? 'vessel-planning' : 'list'
       setView({ name: 'detail', order, from: fromView })
       window.scrollTo(0, 0)
     }
@@ -128,6 +132,7 @@ export default function App() {
                 else if (view.from === 'pours') setView({ name: 'pours' })
                 else if (view.from === 'yield') setView({ name: 'yield' })
                 else if (view.from === 'quality') setView({ name: 'quality' })
+                else if (view.from === 'vessel-planning') setView({ name: 'vessel-planning' })
                 else setView({ name: 'list' })
                 window.scrollTo(0, 0)
               }}
@@ -138,6 +143,7 @@ export default function App() {
           {view.name === 'day-view' && <DayView />}
           {view.name === 'yield' && <YieldAnalyticsPage />}
           {view.name === 'quality' && <QualityAnalyticsPage />}
+          {view.name === 'vessel-planning' && <VesselPlanningAnalyticsPage />}
         </main>
         <GenieDrawer
           open={genieOpen}

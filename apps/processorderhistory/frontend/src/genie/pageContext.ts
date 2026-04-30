@@ -38,7 +38,7 @@ export function buildGeniePageContext(view: any, lineFilter?: string): GeniePage
     lineFilter && lineFilter !== 'ALL' ? `line filter ${lineFilter}` : null,
   ].filter(Boolean)
 
-  if (view?.name === 'list' || view?.name === 'pours' || view?.name === 'yield' || view?.name === 'quality') {
+  if (view?.name === 'list' || view?.name === 'pours' || view?.name === 'yield' || view?.name === 'quality' || view?.name === 'vessel-planning') {
     return {
       mode: 'filtered_result_set',
       selected_process_order: null,
