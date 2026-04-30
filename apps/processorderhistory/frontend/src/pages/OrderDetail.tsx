@@ -65,7 +65,13 @@ function OrderDetail({ order, onBack, from = 'list' }) {
       <TopBar
         trail={from === 'planning'
           ? [t.operations, t.crumbManufacturing || 'Manufacturing', t.navPlanning, orderId]
-          : [t.operations, t.crumbManufacturing, t.crumbOrders, orderId]}
+          : from === 'pours'
+            ? [t.operations, t.sectionInsights || 'Insights', t.navPours || 'Pour analytics', orderId]
+            : from === 'yield'
+              ? [t.operations, t.sectionInsights || 'Insights', t.navYield || 'Yield analytics', orderId]
+              : from === 'quality'
+                ? [t.operations, t.sectionInsights || 'Insights', t.navQuality || 'Quality analytics', orderId]
+                : [t.operations, t.crumbManufacturing, t.crumbOrders, orderId]}
         onTrailClick={(i) => { if (i === 2) onBack(); }}
       />
 

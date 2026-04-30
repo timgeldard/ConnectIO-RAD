@@ -226,3 +226,21 @@ def test_fetch_quality_analytics_prior7d_empty_when_no_date_from(monkeypatch):
 
     assert len(calls) == 3
     assert result["prior7d"] == []
+
+
+def test_trend_queries_count_null_valuations_as_rejected(monkeypatch):
+    queries: list[str] = []
+
+    async def recording_mock(_token, query, _params=None, **_kwargs):
+        queries.append(query)
+        return []
+
+    monkeypatch.setattr(dal, "run_sql_async", recording_mock)
+
+    asyncio.run(dal._q_daily30d("token", None, "UTC"))
+    asyncio.run(dal._q_hourly24h("token", None, "UTC"))
+
+    assert len(queries) == 2
+    for query in queries:
+        assert "ELSE 1" in query
+        assert "INSPECTION_RESULT_VALUATION NOT LIKE" not in query

@@ -14,6 +14,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n/context'
 import { I, TopBar } from '../ui'
 import { fetchPoursAnalytics, type PoursData, type PourEvent, type DaySeries, type HourSeries } from '../api/pours'
+import {
+  AnalyticsFilterBar,
+  AnalyticsCorrelationPanel,
+  ContributorsPanel,
+  DeltaPill,
+  inBucket,
+  todayISO,
+  useAnalyticsFilters,
+  type BucketSelection,
+} from './analyticsShared'
 
 const DAILY_TARGET = 350
 
@@ -73,10 +83,6 @@ function useFilteredPours(data: PoursData | null, lineFilter: string): FilteredP
 // Helpers
 // ---------------------------------------------------------------------------
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
 function fmtDay(ms: number) {
   return new Date(ms).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
 }
@@ -110,10 +116,12 @@ function PourTrendChart({
   daily30d,
   hourly24h,
   defaultRange = '30d',
+  onSelectBucket,
 }: {
   daily30d: DaySeries[]
   hourly24h: HourSeries[]
   defaultRange?: Range
+  onSelectBucket?: (selection: BucketSelection) => void
 }) {
   const [range, setRange] = useState<Range>(defaultRange)
   const [tooltip, setTooltip] = useState<TooltipData | null>(null)
@@ -196,6 +204,15 @@ function PourTrendChart({
                 const d = hourly24h[idx]
                 setTooltip({ x: lineX(idx), y: lineY(d.actual), label: fmtHour(d.hour), value: d.actual.toLocaleString() })
               }}
+              onClick={e => {
+                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                const ctm = svg.getScreenCTM(); if (!ctm) return
+                const { x } = pt.matrixTransform(ctm.inverse())
+                const idx = Math.max(0, Math.min(hourly24h.length - 1, Math.round(((x - CL) / IW) * (hourly24h.length - 1))))
+                const d = hourly24h[idx]
+                onSelectBucket?.({ metric: 'Pours', kind: 'hour', startMs: d.hour, endMs: d.hour + 3_600_000, label: fmtHour(d.hour) })
+              }}
             />
           </>
         )}
@@ -226,6 +243,15 @@ function PourTrendChart({
                 const d = barData[idx]
                 const h = Math.max((d.actual / maxBarV) * IH, 0)
                 setTooltip({ x: CL + idx * barSlot + 1 + barW / 2, y: CT + IH - h, label: fmtDay(d.date), value: d.actual.toLocaleString() })
+              }}
+              onClick={e => {
+                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                const ctm = svg.getScreenCTM(); if (!ctm) return
+                const { x } = pt.matrixTransform(ctm.inverse())
+                const idx = Math.max(0, Math.min(barData.length - 1, Math.floor((x - CL) / barSlot)))
+                const d = barData[idx]
+                onSelectBucket?.({ metric: 'Pours', kind: 'day', startMs: d.date, endMs: d.date + 86_400_000, label: fmtDay(d.date) })
               }}
             />
           </>
@@ -564,22 +590,26 @@ function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: Breakdown
 
 export function PourAnalyticsPage() {
   const { t } = useT()
+  const { filters, setFilters } = useAnalyticsFilters()
   const [sourceTypeFilter, setSourceTypeFilter] = useState('ALL')
-  const [dateFrom, setDateFrom] = useState(todayISO)
-  const [dateTo, setDateTo] = useState(todayISO)
   const [pageData, setPageData] = useState<PoursData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selection, setSelection] = useState<BucketSelection | null>(null)
+
+  const dateFrom = filters.dateFrom
+  const dateTo = filters.dateTo
+  const plantId = filters.plantId === 'ALL' ? undefined : filters.plantId
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError(null)
-    fetchPoursAnalytics({ dateFrom, dateTo })
+    fetchPoursAnalytics({ plantId, dateFrom, dateTo })
       .then(d => { if (!cancelled) { setPageData(d); setLoading(false) } })
       .catch(e => { if (!cancelled) { setError(String(e)); setLoading(false) } })
     return () => { cancelled = true }
-  }, [dateFrom, dateTo])
+  }, [plantId, dateFrom, dateTo])
 
   const f = useFilteredPours(pageData, 'ALL')
 
@@ -615,8 +645,8 @@ export function PourAnalyticsPage() {
   const actual = events.length
   const target = DAILY_TARGET * days
   const planVsActualPct = planned != null && planned > 0 ? Math.round((actual / planned) * 100) : null
-
-  const todayStr = todayISO()
+  const priorActual = filters.compare === 'prior7d' ? prior7d.length : null
+  const selectedEvents = selection ? events.filter(e => inBucket(e.ts_ms, selection)) : []
 
   return (
     <>
@@ -631,39 +661,17 @@ export function PourAnalyticsPage() {
             line, source area, or process order to see who's pouring what — and where bottlenecks form.
           </p>
         </div>
-        <div className="page-head-actions">
-          <div className="date-pick">
-            {I.calendar}
-            <input
-              type="date"
-              value={dateFrom}
-              max={dateTo || todayStr}
-              onChange={e => setDateFrom(e.target.value)}
-              style={{ border: 'none', background: 'transparent', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }}
-            />
-            <span className="sep">→</span>
-            <input
-              type="date"
-              value={dateTo}
-              min={dateFrom}
-              max={todayStr}
-              onChange={e => setDateTo(e.target.value)}
-              style={{ border: 'none', background: 'transparent', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }}
-            />
-          </div>
-          {sourceTypes.length > 0 && (
-            <div className="pss-filter">
-              <label className="pss-flbl">{I.package}<span>Source type</span></label>
-              <select value={sourceTypeFilter} onChange={e => setSourceTypeFilter(e.target.value)}>
-                <option value="ALL">All types · {sourceTypes.length}</option>
-                {sourceTypes.map(st => (
-                  <option key={st} value={st}>{st}</option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
       </div>
+
+      <AnalyticsFilterBar
+        filters={filters}
+        onChange={patch => { setFilters(patch); setSelection(null) }}
+        showMaterial={false}
+        showSourceType
+        sourceTypes={sourceTypes}
+        sourceType={sourceTypeFilter}
+        onSourceTypeChange={value => { setSourceTypeFilter(value); setSelection(null) }}
+      />
 
       {loading && (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-400)' }}>
@@ -689,6 +697,7 @@ export function PourAnalyticsPage() {
             <div className={`pour-kpi tone-actual ${planVsActualPct == null ? '' : planVsActualPct >= 95 ? 'good' : planVsActualPct >= 80 ? 'ok' : 'bad'}`}>
               <div className="pk-l">{I.trending}<span>Actual</span></div>
               <div className="pk-v mono">{actual.toLocaleString()}</div>
+              {filters.compare === 'prior7d' && <DeltaPill current={actual} prior={priorActual} />}
               {planVsActualPct != null && (
                 <div className="pk-sub">
                   <span className={`pk-delta ${planVsActualPct >= 95 ? 'pos' : planVsActualPct >= 85 ? 'neut' : 'neg'}`}>
@@ -703,9 +712,35 @@ export function PourAnalyticsPage() {
           </div>
 
           <div className="pour-trends">
-            <PourTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="30d" />
-            <PourTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="24h" />
+            <PourTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="30d" onSelectBucket={setSelection} />
+            <PourTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="24h" onSelectBucket={setSelection} />
           </div>
+
+          <AnalyticsCorrelationPanel filters={filters} />
+
+          <ContributorsPanel
+            title="Pour contributors"
+            selection={selection}
+            count={selectedEvents.length}
+            onClear={() => setSelection(null)}
+          >
+            {selectedEvents.slice(0, 50).map((e, i) => (
+              <div className="cp-row" key={`${e.ts_ms}-${e.process_order}-${i}`}>
+                <span className="mono">{fmtHour(e.ts_ms)}</span>
+                <span>
+                  {e.process_order ? (
+                    <button
+                      className="pa-po-link mono"
+                      onClick={() => (window as any).__navigateToOrder?.(e.process_order, { label: e.material_name, _from: 'pours' })}
+                    >{e.process_order}</button>
+                  ) : '—'} · {e.material_name || 'Material'}
+                </span>
+                <span className="muted">{e.source_type || '—'}</span>
+                <span className="mono">{e.quantity.toFixed(3)} kg</span>
+              </div>
+            ))}
+            {selectedEvents.length === 0 && <div className="cp-empty">No pour events in this bucket.</div>}
+          </ContributorsPanel>
 
           <PourAnalyticsBreakdown events={events} prior7d={prior7d} dateFrom={dateFrom} dateTo={dateTo} />
         </div>

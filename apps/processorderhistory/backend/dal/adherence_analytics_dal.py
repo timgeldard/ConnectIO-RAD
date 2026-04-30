@@ -122,7 +122,14 @@ def _build_daily_series(daily_rows: list[dict], now_ms: int, tz_name: str = "UTC
     daily_dict: dict[int, dict] = {}
     for r in daily_rows:
         try:
-            d_ms = int(r.get("day_ms") or 0)
+            raw_day_ms = int(r.get("day_ms") or 0)
+            d_ms = int(
+                datetime.fromtimestamp(raw_day_ms / 1000, tz=dt_timezone.utc)
+                .astimezone(tz)
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .astimezone(dt_timezone.utc)
+                .timestamp() * 1000
+            )
             daily_dict[d_ms] = {
                 "otif_pct": float(r.get("otif_pct") or 0.0),
                 "on_time_pct": float(r.get("on_time_pct") or 0.0),

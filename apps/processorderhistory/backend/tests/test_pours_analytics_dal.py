@@ -211,3 +211,33 @@ def test_fetch_pours_analytics_with_date_range(monkeypatch):
     ))
     assert len(calls) == 4  # prior7d fires because date_from is set
     assert len(result["prior7d"]) == 1
+
+
+def test_fetch_pours_analytics_applies_plant_filter_to_all_queries(monkeypatch):
+    calls: list[tuple[str, list[dict] | None]] = []
+    original_mock = _make_sql_mock([
+        [_EVENT_ROW],  # events_range
+        [_DAILY_ROW],  # daily30d
+        [_HOURLY_ROW], # hourly24h
+        [_EVENT_ROW],  # prior7d
+    ])
+
+    async def recording_mock(token, query, params=None, **kwargs):
+        calls.append((query, params))
+        return await original_mock(token, query, params, **kwargs)
+
+    monkeypatch.setattr(dal, "run_sql_async", recording_mock)
+    result = asyncio.run(dal.fetch_pours_analytics(
+        "token",
+        plant_id="IE01",
+        date_from="2024-01-01",
+        date_to="2024-01-07",
+    ))
+
+    assert len(calls) == 4
+    assert len(result["events"]) == 1
+    for query, params in calls:
+        assert "vw_gold_process_order" in query
+        assert "po.PLANT_ID = :plant_id" in query
+        assert params is not None
+        assert any(p["name"] == "plant_id" and p["value"] == "IE01" for p in params)

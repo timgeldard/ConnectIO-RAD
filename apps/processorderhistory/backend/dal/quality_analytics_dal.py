@@ -114,7 +114,10 @@ async def _q_daily30d(token: str, plant_id: Optional[str], tz: str) -> list[dict
         SELECT
             {tz_day_ms('ud.USAGE_DECISION_CREATED_DATE', tz)} AS day_ms,
             COUNT(CASE WHEN ir.INSPECTION_RESULT_VALUATION LIKE 'A%' THEN 1 END) AS accepted_count,
-            COUNT(CASE WHEN ir.INSPECTION_RESULT_VALUATION NOT LIKE 'A%' THEN 1 END) AS rejected_count
+            COUNT(CASE
+                WHEN ir.INSPECTION_RESULT_VALUATION LIKE 'A%' THEN NULL
+                ELSE 1
+            END) AS rejected_count
         FROM {tbl('vw_gold_inspection_result')} ir
         JOIN {tbl('vw_gold_process_order')} po
             ON po.PROCESS_ORDER_ID = ir.PROCESS_ORDER_ID
@@ -140,7 +143,10 @@ async def _q_hourly24h(token: str, plant_id: Optional[str], tz: str) -> list[dic
         SELECT
             {tz_hour_ms('ud.USAGE_DECISION_CREATED_DATE', tz)} AS hour_ms,
             COUNT(CASE WHEN ir.INSPECTION_RESULT_VALUATION LIKE 'A%' THEN 1 END) AS accepted_count,
-            COUNT(CASE WHEN ir.INSPECTION_RESULT_VALUATION NOT LIKE 'A%' THEN 1 END) AS rejected_count
+            COUNT(CASE
+                WHEN ir.INSPECTION_RESULT_VALUATION LIKE 'A%' THEN NULL
+                ELSE 1
+            END) AS rejected_count
         FROM {tbl('vw_gold_inspection_result')} ir
         JOIN {tbl('vw_gold_process_order')} po
             ON po.PROCESS_ORDER_ID = ir.PROCESS_ORDER_ID

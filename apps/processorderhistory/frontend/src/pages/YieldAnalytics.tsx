@@ -13,13 +13,20 @@ import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n/context'
 import { I, TopBar } from '../ui'
 import { fetchYieldAnalytics, type YieldData, type YieldOrder, type YieldDaySeries, type YieldHourSeries } from '../api/yield'
+import {
+  AnalyticsFilterBar,
+  AnalyticsCorrelationPanel,
+  ContributorsPanel,
+  DeltaPill,
+  inBucket,
+  todayISO,
+  useAnalyticsFilters,
+  type BucketSelection,
+} from './analyticsShared'
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Returns today's date as an ISO-8601 date string (YYYY-MM-DD). */
-function todayISO(): string { return new Date().toISOString().slice(0, 10) }
 
 /** Formats an epoch-ms timestamp as a short GB date, e.g. "29 Apr". */
 function fmtDay(ms: number) { return new Date(ms).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) }
@@ -45,6 +52,7 @@ function YieldTrendChart({
   hourly24h,
   targetYield,
   defaultRange = '30d',
+  onSelectBucket,
 }) {
   const [range, setRange] = useState(defaultRange)
   const [tooltip, setTooltip] = useState(null)
@@ -155,6 +163,15 @@ function YieldTrendChart({
                 const d = hourly24h[idx]
                 setTooltip({ x: lineX(idx), y: lineY(d.avg_yield_pct ?? 0), label: fmtHour(d.hour), value: d.avg_yield_pct != null ? d.avg_yield_pct.toFixed(1) + '%' : '—' })
               }}
+              onClick={e => {
+                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                const ctm = svg.getScreenCTM(); if (!ctm) return
+                const { x } = pt.matrixTransform(ctm.inverse())
+                const idx = Math.max(0, Math.min(hourly24h.length - 1, Math.round(((x - padL) / innerW) * (hourly24h.length - 1))))
+                const d = hourly24h[idx]
+                onSelectBucket?.({ metric: 'Yield', kind: 'hour', startMs: d.hour, endMs: d.hour + 3_600_000, label: fmtHour(d.hour) })
+              }}
             />
           </>
         )}
@@ -182,6 +199,15 @@ function YieldTrendChart({
                 const idx = Math.max(0, Math.min(barData.length - 1, Math.floor((x - padL) / barSlot)))
                 const d = barData[idx]
                 setTooltip({ x: padL + idx * barSlot + 1 + barW / 2, y: barY(d.avg_yield_pct), label: fmtDay(d.date), value: d.avg_yield_pct != null ? d.avg_yield_pct.toFixed(1) + '%' : '—' })
+              }}
+              onClick={e => {
+                const svg = e.currentTarget.ownerSVGElement; if (!svg) return
+                const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+                const ctm = svg.getScreenCTM(); if (!ctm) return
+                const { x } = pt.matrixTransform(ctm.inverse())
+                const idx = Math.max(0, Math.min(barData.length - 1, Math.floor((x - padL) / barSlot)))
+                const d = barData[idx]
+                onSelectBucket?.({ metric: 'Yield', kind: 'day', startMs: d.date, endMs: d.date + 86_400_000, label: fmtDay(d.date) })
               }}
             />
           </>
@@ -496,22 +522,26 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
  */
 export function YieldAnalyticsPage() {
   const { t } = useT()
-  const [dateFrom, setDateFrom] = useState(todayISO)
-  const [dateTo, setDateTo] = useState(todayISO)
-  const [materialFilter, setMaterialFilter] = useState('ALL')
+  const { filters, setFilters } = useAnalyticsFilters()
   const [pageData, setPageData] = useState<YieldData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selection, setSelection] = useState<BucketSelection | null>(null)
+
+  const dateFrom = filters.dateFrom
+  const dateTo = filters.dateTo
+  const materialFilter = filters.material
+  const plantId = filters.plantId === 'ALL' ? undefined : filters.plantId
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError(null)
-    fetchYieldAnalytics({ date_from: dateFrom, date_to: dateTo })
+    fetchYieldAnalytics({ plant_id: plantId, date_from: dateFrom, date_to: dateTo })
       .then(d => { if (!cancelled) { setPageData(d); setLoading(false) } })
       .catch(e => { if (!cancelled) { setError(String(e)); setLoading(false) } })
     return () => { cancelled = true }
-  }, [dateFrom, dateTo])
+  }, [plantId, dateFrom, dateTo])
 
   const orders = pageData?.orders ?? []
   const prior7d = pageData?.prior7d ?? []
@@ -536,8 +566,14 @@ export function YieldAnalyticsPage() {
   const totalLossKg = filteredOrders.reduce((a, o) => a + (o.loss_kg ?? 0), 0)
   const yieldTone = avgYield == null ? '' : avgYield >= targetYield ? 'good' : avgYield >= 85 ? 'ok' : 'bad'
 
-
-  const todayStr = todayISO()
+  const priorValidOrders = filteredPrior7d.filter(o => o.yield_pct != null)
+  const priorAvgYield = filters.compare === 'prior7d' && priorValidOrders.length
+    ? priorValidOrders.reduce((a, o) => a + o.yield_pct, 0) / priorValidOrders.length
+    : null
+  const priorLossKg = filters.compare === 'prior7d'
+    ? filteredPrior7d.reduce((a, o) => a + (o.loss_kg ?? 0), 0)
+    : null
+  const selectedOrders = selection ? filteredOrders.filter(o => inBucket(o.order_date_ms, selection)) : []
 
   if (error) {
     return (
@@ -573,39 +609,13 @@ export function YieldAnalyticsPage() {
             Drill in by material or order to identify where losses are occurring.
           </p>
         </div>
-        <div className="page-head-actions">
-          <div className="date-pick">
-            {I.calendar}
-            <input
-              type="date"
-              value={dateFrom}
-              max={dateTo || todayStr}
-              onChange={e => setDateFrom(e.target.value)}
-              style={{ border: 'none', background: 'transparent', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }}
-            />
-            <span className="sep">→</span>
-            <input
-              type="date"
-              value={dateTo}
-              min={dateFrom}
-              max={todayStr}
-              onChange={e => setDateTo(e.target.value)}
-              style={{ border: 'none', background: 'transparent', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }}
-            />
-          </div>
-          {allMaterials.length > 0 && (
-            <div className="pss-filter">
-              <label className="pss-flbl">{I.flask}<span>Material</span></label>
-              <select value={materialFilter} onChange={e => setMaterialFilter(e.target.value)}>
-                <option value="ALL">All materials · {allMaterials.length}</option>
-                {allMaterials.map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
       </div>
+
+      <AnalyticsFilterBar
+        filters={filters}
+        onChange={patch => { setFilters(patch); setSelection(null) }}
+        materials={allMaterials}
+      />
 
       {loading && (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-400)' }}>
@@ -624,11 +634,13 @@ export function YieldAnalyticsPage() {
             <div className="pour-kpi tone-planned">
               <div className="pk-l">{I.flask}<span>Average yield</span></div>
               <div className="pk-v mono">{avgYield != null ? avgYield.toFixed(1) + '%' : '—'}</div>
+              {filters.compare === 'prior7d' && <DeltaPill current={avgYield} prior={priorAvgYield} />}
               <div className="pk-sub">{validOrders.length} orders · selected period</div>
             </div>
             <div className={`pour-kpi tone-actual ${yieldTone}`}>
               <div className="pk-l">{I.trending}<span>Total loss</span></div>
               <div className="pk-v mono">{totalLossKg.toFixed(1)} kg</div>
+              {filters.compare === 'prior7d' && <DeltaPill current={totalLossKg} prior={priorLossKg} invert suffix="%" />}
               <div className="pk-sub">
                 <span className={`pk-delta ${avgYield == null ? 'neut' : avgYield >= targetYield ? 'pos' : avgYield >= 85 ? 'neut' : 'neg'}`}>
                   {avgYield != null ? avgYield.toFixed(1) + '% avg yield' : '—'}
@@ -638,9 +650,31 @@ export function YieldAnalyticsPage() {
           </div>
 
           <div className="pour-trends">
-            <YieldTrendChart daily30d={daily30d} hourly24h={hourly24h} targetYield={targetYield} defaultRange="30d" />
-            <YieldTrendChart daily30d={daily30d} hourly24h={hourly24h} targetYield={targetYield} defaultRange="24h" />
+            <YieldTrendChart daily30d={daily30d} hourly24h={hourly24h} targetYield={targetYield} defaultRange="30d" onSelectBucket={setSelection} />
+            <YieldTrendChart daily30d={daily30d} hourly24h={hourly24h} targetYield={targetYield} defaultRange="24h" onSelectBucket={setSelection} />
           </div>
+
+          <AnalyticsCorrelationPanel filters={filters} />
+
+          <ContributorsPanel
+            title="Yield contributors"
+            selection={selection}
+            count={selectedOrders.length}
+            onClear={() => setSelection(null)}
+          >
+            {selectedOrders.slice(0, 50).map(o => (
+              <div className="cp-row" key={o.process_order_id}>
+                <button
+                  className="pa-po-link mono"
+                  onClick={() => (window as any).__navigateToOrder?.(o.process_order_id, { label: o.material_name, materialId: o.material_id, _from: 'yield' })}
+                >{o.process_order_id}</button>
+                <span>{o.material_name}</span>
+                <span className="mono">{o.yield_pct != null ? o.yield_pct.toFixed(1) + '%' : '—'}</span>
+                <span className="mono">{o.loss_kg != null ? o.loss_kg.toFixed(1) + ' kg' : '—'}</span>
+              </div>
+            ))}
+            {selectedOrders.length === 0 && <div className="cp-empty">No yield orders in this bucket.</div>}
+          </ContributorsPanel>
 
           <YieldBreakdown
             orders={filteredOrders}
