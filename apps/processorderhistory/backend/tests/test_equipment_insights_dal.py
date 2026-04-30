@@ -1,6 +1,6 @@
 """Tests for equipment_insights_dal — pure Python derivation helpers."""
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 from datetime import datetime, timezone as dt_timezone
 
 from backend.dal.equipment_insights_dal import (

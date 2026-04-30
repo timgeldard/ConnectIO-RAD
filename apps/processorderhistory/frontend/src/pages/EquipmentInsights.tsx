@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useEffect, useState } from 'react'
 import { I, TopBar, fmt } from '../ui'
+import { useT } from '../i18n/context'
 import {
   fetchEquipmentInsights,
   type EquipmentInsightsData,
@@ -311,6 +312,7 @@ function ScaleVerificationPlaceholder() {
 
 /** Equipment Insights page — instrument estate, readiness, and activity. */
 export function EquipmentInsightsPage() {
+  const { t } = useT()
   const [plantId, setPlantId] = useState('')
   const [data, setData] = useState<EquipmentInsightsData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -332,11 +334,11 @@ export function EquipmentInsightsPage() {
 
   return (
     <>
-      <TopBar trail={['Insights', 'Equipment insights']} />
+      <TopBar trail={[t.sectionInsights || 'Insights', t.navEquipmentInsights || 'Equipment insights']} />
 
       <div className="page-head">
         <div>
-          <div className="page-eyebrow">{I.cpu}<span>Insights</span></div>
+          <div className="page-eyebrow">{I.cpu}<span>{t.sectionInsights || 'Insights'}</span></div>
           <h1 className="page-title">Equipment insights</h1>
           <p className="page-sub">
             Instrument estate, live readiness state, and activity trends.
