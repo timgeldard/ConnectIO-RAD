@@ -505,7 +505,9 @@
     "trace.overview.countries.subtitle.other": "通过 {{deliveries}} 次交货到达 {{countries}} 个国家",
     "trace.overview.customers.title": "主要客户",
     "trace.overview.customers.subtitle.one": "{{customers}} 个客户 · 总计 {{quantity}} {{uom}}",
-    "trace.overview.customers.subtitle.other": "{{customers}} 个客户 · 总计 {{quantity}} {{uom}}"
+    "trace.overview.customers.subtitle.other": "{{customers}} 个客户 · 总计 {{quantity}} {{uom}}",
+    "trace.overview.deliveries.title": "最近发货",
+    "trace.overview.deliveries.subtitle": "按日期排序的最近 8 次发货"
   },
   "zh-Hant": {
     "shared.language.label": "語言",
@@ -588,7 +590,9 @@
     "trace.overview.countries.subtitle.other": "通過 {{deliveries}} 次交货到達 {{countries}} 個國家",
     "trace.overview.customers.title": "主要客戶",
     "trace.overview.customers.subtitle.one": "{{customers}} 個客戶 · 總計 {{quantity}} {{uom}}",
-    "trace.overview.customers.subtitle.other": "{{customers}} 個客戶 · 總計 {{quantity}} {{uom}}"
+    "trace.overview.customers.subtitle.other": "{{customers}} 個客戶 · 總計 {{quantity}} {{uom}}",
+    "trace.overview.deliveries.title": "最近發貨",
+    "trace.overview.deliveries.subtitle": "按日期排序的最近 8 次發貨"
   },
   "pt": {
     "shared.language.label": "Idioma",

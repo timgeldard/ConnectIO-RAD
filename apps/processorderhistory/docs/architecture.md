@@ -22,18 +22,31 @@ and readiness endpoints — see *Wiring real data* below.
 ## Components
 
 ```
-frontend/src/App.tsx                    Top-level layout + view router (list / detail / planning / pours)
+frontend/src/App.tsx                    Top-level layout + view router (list / detail / analytics pages)
 frontend/src/ui.tsx                     Sidebar, TopBar, StatusBadge, Check, Sparkline, fmt, icons
 frontend/src/i18n/context.tsx           Local LangProvider/useT() hook used by every page
 frontend/src/i18n/dictionary.ts         Strings keyed by `t.foo` (en/fr/de/es)
-frontend/src/i18n/resources.json        Generated from dictionary.ts; satisfies validate_i18n.py
-frontend/src/data/mock.ts               Pseudo-random fixtures (orders, pours, planning, BOM, quality)
-frontend/src/pages/OrderList.tsx        List + filters + KPI strip + pour KPIs
-frontend/src/pages/OrderDetail.tsx      Detail (header, BOM, pours, inspection, timeline, allergens)
-frontend/src/pages/PlanningBoard.tsx    24h Gantt + backlog rail
-frontend/src/pages/PourAnalytics.tsx    Trend charts + group-by breakdown + KPI tiles + line filter
-backend/main.py                         FastAPI entry, /api/health + /api/ready + SPA fallback
-backend/{routers,schemas,dal}/          Stubs — to be filled when real data is wired
+frontend/src/i18n/resources.json        Namespaced poh.* keys for validate_i18n.py (not runtime)
+frontend/src/api/                       Typed fetch helpers + response mappers, one file per endpoint
+frontend/src/pages/OrderList.tsx        Order list + filters + KPI strip
+frontend/src/pages/OrderDetail.tsx      Detail: header, BOM, movements, inspection, timeline
+frontend/src/pages/PlanningBoard.tsx    ±7-day Gantt + backlog rail
+frontend/src/pages/PourAnalytics.tsx    Pour trend charts + group-by breakdown + KPI tiles
+frontend/src/pages/YieldAnalytics.tsx   Yield % trend + per-order drill-through
+frontend/src/pages/QualityAnalytics.tsx RFT trend + inspection result cards
+backend/main.py                         FastAPI entry, /api/health + /api/ready + 8 data routers + SPA fallback
+backend/db.py                           SQL helpers: tbl(), silver_tbl(), validate_timezone(), run_sql_async
+backend/routers/orders.py              POST /api/orders — order list
+backend/routers/order_detail_router.py GET /api/orders/{id} — full order detail
+backend/routers/pours_router.py        POST /api/pours/analytics
+backend/routers/yield_router.py        POST /api/yield/analytics
+backend/routers/quality_router.py      POST /api/quality/analytics
+backend/routers/day_view_router.py     POST /api/dayview
+backend/routers/planning_router.py     POST /api/planning/schedule
+backend/routers/me_router.py           GET /api/me
+backend/routers/downtime_router.py     POST /api/downtime/analytics
+backend/dal/                            One DAL module per router; all SQL lives here
+backend/schemas/                        Pydantic request models
 ```
 
 The view router is a tiny custom switcher in `App.tsx` (no React Router
@@ -42,27 +55,17 @@ pour analytics from KPI strip) is exposed via two `window` hooks
 (`__navigateToOrder`, `__navigateToPourAnalytics`) — preserved verbatim from
 the prototype to keep the JSX→TSX port mechanical.
 
-## Wiring real data
+## Data layer
 
-The prototype was built around the dashboard
-`Process Order Cockpit 2026-03-18 19_49_53.lvdash.json` and references
-`connected_plant_uat.csm_process_order_history.*` views. The path forward:
+All SQL queries target gold-layer views only (Rule 1.1).  `day_view_dal` and 
+`planning_dal` are approved exceptions that also read 
+`silver.silver_process_order` for `PROCESS_LINE` and `SCHEDULED_START` columns 
+not yet promoted to a gold view.
 
-1. **DAL layer** under `backend/dal/` with query helpers against
-   `connected_plant_uat.gold` (per CLAUDE.md: gold-only — never bronze/silver).
-   Catalog and schema come from `POH_CATALOG` / `POH_SCHEMA` env (rendered
-   from `app.template.yaml`).
-2. **Routers** under `backend/routers/` — orders list/detail, pours, planning
-   slots, KPI rollups. POST endpoints, rate-limited via slowapi, freshness
-   tagged via `shared_db.freshness`.
-3. **Replace** the `import { ORDERS, buildDetail, buildPlanningData,
-   buildPoursData } from '~/data/mock'` calls with `fetch('/api/...')` +
-   typed mappers, mirroring the trace2 `data/api.ts` pattern.
-
-The `// @ts-nocheck` directives at the top of each ported source file are
-intentional — they keep velocity on the initial port. As real types land
-(once entities.yaml is extended with POH-specific tables), prefer tightening
-them file-by-file rather than en bloc.
+Catalog and schema come from `POH_CATALOG` / `POH_SCHEMA` env vars (rendered
+from `app.template.yaml`).  SQL helpers use `tbl()` for the app schema and
+`silver_tbl()` for the silver layer.  All user-supplied values use `:param`
+named parameters — never f-string interpolation.
 
 ## i18n
 
@@ -90,9 +93,9 @@ delete `dictionary.ts`.
 
 | Surface | State |
 |---|---|
-| Frontend pages | Ported from prototype; consume mock data |
-| Frontend i18n | en/fr/de/es ported; later prototype keys backfilled with English |
+| Frontend pages | ✅ all pages wired to real data (orders, detail, pours, planning, day view, yield, quality) |
+| Frontend i18n | en/fr/de/es ported; `dictionary.ts` and `resources.json` not auto-synced |
 | Backend health/ready | ✅ |
-| Backend orders/pours/planning | ❌ — stubs only |
-| Tests | One smoke test (renders OrderList against mock data) |
+| Backend routers | ✅ 9 data endpoints live — orders, detail, pours, yield, quality, day view, planning, downtime, /me |
+| Tests | Passing; high unit test coverage (target >95%) |
 | Deploy | `make deploy PROFILE=uat` works once shared libs are present |

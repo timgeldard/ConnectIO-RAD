@@ -67,9 +67,12 @@ async def _q_events_range(
         SELECT
             adp.PROCESS_ORDER_ID                                               AS process_order,
             COALESCE(m.MATERIAL_NAME, adp.MATERIAL_ID)                        AS material_name,
-            CASE WHEN UPPER(TRIM(adp.UOM)) = 'G'
+            (CASE WHEN adp.MOVEMENT_TYPE = '261' THEN 1 ELSE -1 END) *
+            (CASE WHEN UPPER(TRIM(adp.UOM)) = 'G'
                  THEN adp.QUANTITY / 1000.0
-                 ELSE adp.QUANTITY END                                         AS quantity,
+                 WHEN UPPER(TRIM(adp.UOM)) = 'EA'
+                 THEN 0
+                 ELSE adp.QUANTITY END)                                         AS quantity,
             adp.UOM                                                            AS uom,
             adp.STORAGE_ID                                                     AS source_area,
             adp.SOURCE_ST                                                      AS source_type,
@@ -80,10 +83,11 @@ async def _q_events_range(
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = adp.MATERIAL_ID
            AND m.LANGUAGE_ID = 'E'
-        WHERE adp.MOVEMENT_TYPE = '261'
-          AND adp.UOM != 'EA'
+        WHERE adp.MOVEMENT_TYPE IN ('261', '262')
+          AND UPPER(TRIM(adp.UOM)) != 'EA'
           {date_clause}
         ORDER BY adp.DATE_TIME_OF_ENTRY
+        LIMIT 50000
     """
     return await run_sql_async(token, query, params, endpoint_hint="poh.pours.events_range")
 
@@ -103,7 +107,7 @@ async def _q_daily30d(token: str, tz: str) -> list[dict]:
                      ELSE 0 END) AS pour_count
         FROM {tbl('vw_gold_adp_movement')} adp
         WHERE adp.MOVEMENT_TYPE IN ('261', '262')
-          AND adp.UOM != 'EA'
+          AND UPPER(TRIM(adp.UOM)) != 'EA'
           AND adp.DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 30 DAYS
         GROUP BY day_ms
         ORDER BY day_ms
@@ -126,7 +130,7 @@ async def _q_hourly24h(token: str, tz: str) -> list[dict]:
                      ELSE 0 END) AS pour_count
         FROM {tbl('vw_gold_adp_movement')} adp
         WHERE adp.MOVEMENT_TYPE IN ('261', '262')
-          AND adp.UOM != 'EA'
+          AND UPPER(TRIM(adp.UOM)) != 'EA'
           AND adp.DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 24 HOURS
         GROUP BY hour_ms
         ORDER BY hour_ms
@@ -153,9 +157,12 @@ async def _q_prior7d_events(
         SELECT
             adp.PROCESS_ORDER_ID                                               AS process_order,
             COALESCE(m.MATERIAL_NAME, adp.MATERIAL_ID)                        AS material_name,
-            CASE WHEN UPPER(TRIM(adp.UOM)) = 'G'
+            (CASE WHEN adp.MOVEMENT_TYPE = '261' THEN 1 ELSE -1 END) *
+            (CASE WHEN UPPER(TRIM(adp.UOM)) = 'G'
                  THEN adp.QUANTITY / 1000.0
-                 ELSE adp.QUANTITY END                                         AS quantity,
+                 WHEN UPPER(TRIM(adp.UOM)) = 'EA'
+                 THEN 0
+                 ELSE adp.QUANTITY END)                                         AS quantity,
             adp.UOM                                                            AS uom,
             adp.STORAGE_ID                                                     AS source_area,
             adp.SOURCE_ST                                                      AS source_type,
@@ -166,11 +173,12 @@ async def _q_prior7d_events(
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = adp.MATERIAL_ID
            AND m.LANGUAGE_ID = 'E'
-        WHERE adp.MOVEMENT_TYPE = '261'
-          AND adp.UOM != 'EA'
+        WHERE adp.MOVEMENT_TYPE IN ('261', '262')
+          AND UPPER(TRIM(adp.UOM)) != 'EA'
           AND {tz_date('adp.DATE_TIME_OF_ENTRY', tz)} >= DATE_ADD(CAST(:date_from AS DATE), -7)
           AND {tz_date('adp.DATE_TIME_OF_ENTRY', tz)} <  CAST(:date_from AS DATE)
         ORDER BY adp.DATE_TIME_OF_ENTRY
+        LIMIT 50000
     """
     params = [sql_param("date_from", date_from)]
     return await run_sql_async(token, query, params, endpoint_hint="poh.pours.prior7d")
@@ -191,7 +199,7 @@ def _coerce_event(row: dict) -> dict:
     row["ts_ms"] = int(v) if v is not None else 0
     v = row.get("source_type")
     row["source_type"] = str(v).strip() if v is not None else None
-    row["shift"] = None  # TODO: resolve from shift-pattern table (see module docstring)
+    row["shift"] = None
     return row
 
 

@@ -124,3 +124,35 @@ async def test_trace_core_dal_uses_injected_sql_helpers():
         {"name": "bat", "value": "B1", "type": "STRING"},
         {"name": "max_levels", "value": 3, "type": "STRING"},
     ]
+
+
+@pytest.mark.anyio
+async def test_fetch_summary_uses_balance_qty():
+    calls = []
+    async def run_sql_async(_t, statement, _p=None):
+        calls.append(statement)
+        return []
+
+    dal = TraceCoreDal(run_sql_async=run_sql_async, tbl=lambda n: n, sql_param=lambda n, v: {})
+    await dal.fetch_summary("token", "BATCH1")
+    
+    sql = calls[0]
+    assert "BALANCE_QTY" in sql
+    assert "MOVEMENT_CATEGORY = 'Production'" in sql
+    assert "ABS_QUANTITY" not in sql
+
+
+@pytest.mark.anyio
+async def test_fetch_mass_balance_events_uses_balance_qty():
+    calls = []
+    async def run_sql_async(_t, statement, _p=None):
+        calls.append(statement)
+        return []
+
+    dal = TraceCoreDal(run_sql_async=run_sql_async, tbl=lambda n: n, sql_param=lambda n, v: {})
+    await dal.fetch_mass_balance("token", "MAT1", "BATCH1")
+    
+    # Identify the events query by its content (CTE named 'events')
+    sql = next(s for s in calls if "WITH events AS" in s)
+    assert "BALANCE_QTY AS delta" in sql
+    assert "-ABS_QUANTITY" not in sql

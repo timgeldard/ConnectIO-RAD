@@ -15,19 +15,7 @@ Status mapping (SAP → UI):
 """
 from typing import Optional
 
-from backend.db import run_sql_async, sql_param, tbl
-
-_STATUS_EXPR = """
-    CASE po.STATUS
-        WHEN 'IN PROGRESS'            THEN 'running'
-        WHEN 'Tulip Load In Progress' THEN 'running'
-        WHEN 'COMPLETED'              THEN 'completed'
-        WHEN 'CLOSED'                 THEN 'completed'
-        WHEN 'ON HOLD'                THEN 'onhold'
-        WHEN 'CANCELLED'              THEN 'cancelled'
-        ELSE 'released'
-    END
-""".strip()
+from backend.db import ORDER_STATUS_EXPR, run_sql_async, sql_param, tbl
 
 
 def _coerce_row(row: dict) -> dict:
@@ -66,7 +54,7 @@ async def fetch_orders_list(
         actual_qty, qty_uom.
     """
     plant_clause = "WHERE po.PLANT_ID = :plant_id" if plant_id else ""
-    params: list[dict] = []
+    params: list[dict] = [sql_param("limit", limit)]
     if plant_id:
         params.append(sql_param("plant_id", plant_id))
 
@@ -83,13 +71,24 @@ async def fetch_orders_list(
             SELECT
                 PROCESS_ORDER_ID,
                 SUM(CASE
-                    WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                    WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                    ELSE QUANTITY
+                    WHEN MOVEMENT_TYPE = '101' THEN
+                        CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END
+                    WHEN MOVEMENT_TYPE = '102' THEN
+                        -(CASE
+                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
+                            WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0
+                            ELSE QUANTITY
+                        END)
+                    ELSE 0
                 END)       AS actual_qty,
                 'KG'       AS qty_uom
             FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE = '101'
+            WHERE MOVEMENT_TYPE IN ('101', '102')
+              AND UPPER(TRIM(UOM)) != 'EA'
             GROUP BY PROCESS_ORDER_ID
         )
         SELECT
@@ -99,7 +98,7 @@ async def fetch_orders_list(
             COALESCE(m.MATERIAL_NAME, po.MATERIAL_DESCRIPTION)         AS material_name,
             m.MATERIAL_CATEGORY                                        AS material_category,
             po.PLANT_ID                                                AS plant_id,
-            {_STATUS_EXPR}                                             AS status,
+            {ORDER_STATUS_EXPR}                                        AS status,
             CAST(UNIX_TIMESTAMP(ca.start_ts) * 1000 AS BIGINT)        AS start_ms,
             CAST(UNIX_TIMESTAMP(ca.end_ts)   * 1000 AS BIGINT)        AS end_ms,
             CASE
@@ -120,7 +119,7 @@ async def fetch_orders_list(
         LEFT JOIN receipt_agg ra      ON ra.PROCESS_ORDER_ID = po.PROCESS_ORDER_ID
         {plant_clause}
         ORDER BY ca.start_ts DESC NULLS LAST
-        LIMIT {limit}
+        LIMIT :limit  -- safe: validated int clamped to [1, 5000] by OrderListRequest
     """
 
     rows = await run_sql_async(token, query, params, endpoint_hint="poh.orders.list")

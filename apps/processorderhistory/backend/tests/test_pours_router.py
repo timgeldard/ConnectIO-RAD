@@ -22,7 +22,6 @@ _ANALYTICS_PAYLOAD = {
             "source_type": "WH",
             "operator": "M.BRENNAN",
             "ts_ms": 1699913600000,
-            "shift": None,
             "line_id": "ALL",
         }
     ],

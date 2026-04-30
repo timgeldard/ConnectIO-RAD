@@ -97,6 +97,7 @@ async def _q_results_range(
           {date_clause}
           {plant_clause}
         ORDER BY result_date_ms
+        LIMIT 50000
     """
     return await run_sql_async(token, query, final_params, endpoint_hint="poh.quality.results_range")
 
@@ -209,6 +210,7 @@ async def _q_prior7d_results(
           AND {tz_date('ud.USAGE_DECISION_CREATED_DATE', tz)} <  CAST(:date_from AS DATE)
           {plant_clause}
         ORDER BY result_date_ms
+        LIMIT 50000
     """
     return await run_sql_async(token, query, params, endpoint_hint="poh.quality.prior7d")
 

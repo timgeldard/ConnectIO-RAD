@@ -41,6 +41,13 @@ export interface PoursData {
   hourly24h: Record<string, HourSeries[]>
 }
 
+/**
+ * Fetch pour analytics (trends and event logs) for a specific plant and date range.
+ *
+ * @param params Optional filters for plant ID and date range (YYYY-MM-DD).
+ * @returns A promise resolving to the PoursData payload.
+ * @throws Error if the API request fails.
+ */
 export async function fetchPoursAnalytics(params?: {
   plantId?: string
   dateFrom?: string
@@ -49,6 +56,7 @@ export async function fetchPoursAnalytics(params?: {
   const res = await fetch('/api/pours/analytics', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({
       plant_id: params?.plantId ?? null,
       date_from: params?.dateFrom ?? null,

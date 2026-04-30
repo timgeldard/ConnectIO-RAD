@@ -12,6 +12,7 @@ from backend.dal import order_detail_dal as dal
 # ---------------------------------------------------------------------------
 
 def test_coerce_header_converts_timestamps():
+    """Verify that manufacture and expiry date strings are converted to integers."""
     row = {"manufacture_date_ms": "1700000000000", "expiry_date_ms": "1710000000000"}
     result = dal._coerce_header(row)
     assert result["manufacture_date_ms"] == 1700000000000
@@ -19,6 +20,7 @@ def test_coerce_header_converts_timestamps():
 
 
 def test_coerce_header_handles_null_timestamps():
+    """Verify that null manufacture and expiry dates are preserved."""
     row = {"manufacture_date_ms": None, "expiry_date_ms": None}
     result = dal._coerce_header(row)
     assert result["manufacture_date_ms"] is None
@@ -136,6 +138,35 @@ def test_coerce_usage_decision_handles_nulls():
     result = dal._coerce_usage_decision(row)
     assert result["created_date_ms"] is None
     assert result["quality_score"] is None
+
+
+# ---------------------------------------------------------------------------
+# _to_kg
+# ---------------------------------------------------------------------------
+
+def test_to_kg_ea_returns_zero():
+    assert dal._to_kg(500.0, "EA") == 0.0
+
+
+def test_to_kg_g_divides_by_1000():
+    assert dal._to_kg(1000.0, "G") == 1.0
+
+
+def test_to_kg_kg_passthrough():
+    assert dal._to_kg(500.0, "KG") == 500.0
+
+
+def test_to_kg_case_insensitive():
+    assert dal._to_kg(1000.0, "g") == 1.0
+    assert dal._to_kg(500.0, "ea") == 0.0
+
+
+def test_to_kg_none_uom_passthrough():
+    assert dal._to_kg(500.0, None) == 500.0
+
+
+def test_to_kg_whitespace_stripped():
+    assert dal._to_kg(1000.0, "  G  ") == 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -277,18 +308,25 @@ def test_movement_summary_issued_none_when_fully_reversed():
     assert result["qty_issued_kg"] is None
 
 
-def test_movement_summary_rounds_to_6dp():
+def test_movement_summary_subtracts_102_from_received():
     movements = [
-        {"movement_type": "261", "quantity": 1000.0, "uom": "G"},  # → 1.0 KG
-        {"movement_type": "262", "quantity": 1.0, "uom": "G"},    # → 0.001 KG
+        {"movement_type": "101", "quantity": 100.0, "uom": "KG"},
+        {"movement_type": "102", "quantity": 10.0, "uom": "KG"},
+        {"movement_type": "261", "quantity": 50.0, "uom": "KG"},
     ]
     result = dal._movement_summary(movements)
-    assert result["qty_issued_kg"] == round(0.999, 6)
+    assert result["qty_received_kg"] == 90.0
+    assert result["qty_issued_kg"] == 50.0
 
 
-# ---------------------------------------------------------------------------
-# _time_summary
-# ---------------------------------------------------------------------------
+def test_movement_summary_received_none_when_fully_reversed():
+    movements = [
+        {"movement_type": "101", "quantity": 50.0, "uom": "KG"},
+        {"movement_type": "102", "quantity": 50.0, "uom": "KG"},
+    ]
+    result = dal._movement_summary(movements)
+    assert result["qty_received_kg"] is None
+
 
 def test_time_summary_sums_across_phases():
     phases = [

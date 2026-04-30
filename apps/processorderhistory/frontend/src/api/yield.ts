@@ -53,6 +53,7 @@ export async function fetchYieldAnalytics(params?: {
   const res = await fetch('/api/yield/analytics', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({
       plant_id: params?.plant_id ?? null,
       date_from: params?.date_from ?? null,

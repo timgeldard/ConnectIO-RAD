@@ -17,19 +17,7 @@ from the movements list in Python, keeping the query count at 8.
 import asyncio
 from typing import Optional
 
-from backend.db import run_sql_async, sql_param, tbl
-
-_STATUS_EXPR = """
-    CASE po.STATUS
-        WHEN 'IN PROGRESS'            THEN 'running'
-        WHEN 'Tulip Load In Progress' THEN 'running'
-        WHEN 'COMPLETED'              THEN 'completed'
-        WHEN 'CLOSED'                 THEN 'completed'
-        WHEN 'ON HOLD'                THEN 'onhold'
-        WHEN 'CANCELLED'              THEN 'cancelled'
-        ELSE 'released'
-    END
-""".strip()
+from backend.db import ORDER_STATUS_EXPR, run_sql_async, sql_param, tbl
 
 
 # ---------------------------------------------------------------------------
@@ -45,7 +33,7 @@ async def _q_header(token: str, order_id: str) -> list[dict]:
             po.MATERIAL_ID                                                   AS material_id,
             po.PLANT_ID                                                      AS plant_id,
             po.STATUS                                                        AS raw_status,
-            {_STATUS_EXPR}                                                   AS status,
+            {ORDER_STATUS_EXPR}                                              AS status,
             COALESCE(m.MATERIAL_NAME, po.MATERIAL_DESCRIPTION)               AS material_name,
             m.MATERIAL_CATEGORY                                              AS material_category,
             pom.BATCH_ID                                                     AS batch_id,
@@ -362,11 +350,12 @@ def _to_kg(qty: float, uom: str | None) -> float:
 
 
 def _movement_summary(movements: list[dict]) -> dict:
-    """Net kg issued (261 minus 262) and received (101) for the summary strip.
+    """Net kg issued (261 minus 262) and received (101 minus 102) for the summary strip.
 
     MT-262 (return from production order) is subtracted from MT-261 issues to
-    compute the net issued quantity.  EA movements are excluded; G quantities are
-    converted to KG before summing.  Totals are rounded to 6 decimal places.
+    compute the net issued quantity.  Similarly, MT-102 (production reversal)
+    is subtracted from MT-101 receipts.  EA movements are excluded; G quantities
+    are converted to KG before summing.  Totals are rounded to 6 decimal places.
     """
     issued = sum(
         _to_kg(float(mv.get("quantity") or 0), mv.get("uom"))
@@ -381,6 +370,10 @@ def _movement_summary(movements: list[dict]) -> dict:
         _to_kg(float(mv.get("quantity") or 0), mv.get("uom"))
         for mv in movements
         if str(mv.get("movement_type", "")) == "101"
+    ) - sum(
+        _to_kg(float(mv.get("quantity") or 0), mv.get("uom"))
+        for mv in movements
+        if str(mv.get("movement_type", "")) == "102"
     )
     issued = round(issued, 6)
     received = round(received, 6)

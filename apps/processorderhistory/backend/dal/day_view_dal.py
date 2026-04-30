@@ -10,6 +10,14 @@ Runs 2 Databricks queries in parallel (asyncio.gather):
   2. downtime — downtime records whose START_TIME falls on the selected day,
                 joined to process orders for line attribution.
 
+Both queries join to ``silver.silver_process_order`` to retrieve the 
+``PROCESS_LINE`` column.
+
+.. note::
+   For now, silver lookups on PROCESS_LINE are to stay as this column has not 
+   yet been promoted to the gold-layer view for this application.
+   TODO: Move to gold-layer PRODUCTION_LINE once schema promotion is confirmed stable.
+
 CREATED, RELEASED, CANCELLED, and DELETED orders are excluded to satisfy the
 "no planned orders, no zero-activity orders" requirement.
 
@@ -72,12 +80,16 @@ async def _q_blocks(token: str, day: str, plant_id: Optional[str]) -> list[dict]
             SELECT
                 PROCESS_ORDER_ID,
                 COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '101' AND UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                    WHEN MOVEMENT_TYPE = '101' AND UPPER(TRIM(UOM)) != 'EA' THEN QUANTITY
+                    WHEN MOVEMENT_TYPE = '101' THEN
+                        CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END
+                    WHEN MOVEMENT_TYPE = '102' THEN
+                        -(CASE WHEN UPPER(TRIM(UOM)) = 'G' THEN QUANTITY / 1000.0 ELSE QUANTITY END)
                     ELSE 0
                 END), 0.0)                                                   AS confirmed_qty
             FROM {tbl('vw_gold_adp_movement')}
             WHERE DATE(DATE_TIME_OF_ENTRY) = CAST(:day AS DATE)
+              AND MOVEMENT_TYPE IN ('101', '102')
+              AND UPPER(TRIM(UOM)) != 'EA'
             GROUP BY PROCESS_ORDER_ID
         )
         SELECT
