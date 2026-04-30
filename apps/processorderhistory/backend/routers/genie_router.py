@@ -1,9 +1,9 @@
 """Backend proxy for Databricks Genie Conversation API."""
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 from anyio.to_thread import run_sync
 from fastapi import APIRouter, Header, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend.genie_client import (
     compose_genie_content,
@@ -21,12 +21,14 @@ router = APIRouter()
 
 
 class GenieRequest(BaseModel):
-    prompt: str = Field(min_length=1)
-    page_context: dict[str, Any] = Field(default_factory=dict, alias="pageContext")
+    model_config = ConfigDict(populate_by_name=True)
+
+    prompt: Annotated[str, Field(min_length=1)]
+    page_context: Annotated[dict[str, Any], Field(alias="pageContext")] = {}
 
 
 class GenieFollowupRequest(GenieRequest):
-    conversation_id: str = Field(alias="conversationId")
+    conversation_id: Annotated[str, Field(alias="conversationId")]
 
 
 @router.post("/genie/start")
