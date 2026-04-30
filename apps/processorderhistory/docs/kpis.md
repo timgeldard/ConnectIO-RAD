@@ -175,6 +175,49 @@ These cards are computed in the browser by fetching pour, yield, and quality ana
 | Quality drag | Percent | Current reject rate with prior reject-rate context | Reject rate is `rejected / total inspection rows * 100`. |
 | Pour volume pressure | Count | Current pour event count, with percent change versus prior 7 days | Tone becomes unfavorable when pour count is up more than 20% while yield is down versus prior. |
 
+
+## Equipment Insights KPIs
+
+Source files:
+- `frontend/src/pages/EquipmentInsights.tsx`
+- `backend/dal/equipment_insights_dal.py`
+- `frontend/src/api/equipment_insights.ts`
+
+### Estate
+
+| KPI | Display | Calculation | Source data | Notes |
+| --- | --- | --- | --- | --- |
+| Total instruments | Count | `COUNT(*)` from vw_gold_instrument | `vw_gold_instrument` | Excludes Single-Use Vessel rows. |
+| Equipment types | Count | Distinct EQUIPMENT_TYPE values excluding Uncategorised | Derived via `_aggregate_by_type` | Requires subtype-to-type mapping until EQUIPMENT_TYPE is promoted from bronze. |
+| Uncategorised instruments | Count | Instruments whose EQUIPMENT_SUB_TYPE maps to no known type | `_SUBTYPE_TO_TYPE` mapping | Shown only when count > 0. Includes NULL EQUIPMENT_SUB_TYPE rows. |
+
+### State / Readiness
+
+State is classified from the most recent `STATUS_TO` per instrument in `vw_gold_equipment_history` (last 90 days).  
+Classification uses substring keyword matching against three frozensets (IN_USE_KEYWORDS, DIRTY_KEYWORDS, AVAILABLE_KEYWORDS).
+
+| KPI | Display | Calculation | Source data | Notes |
+| --- | --- | --- | --- | --- |
+| In use | Count / % | Instruments whose latest STATUS_TO matches in-use keywords | `vw_gold_equipment_history` latest-event CTE | Keywords: IN USE, RUNNING, OCCUPIED, ACTIVE, PRODUCTION, PROCESS, etc. |
+| Dirty / needs clean | Count / % | Instruments whose latest STATUS_TO matches dirty keywords | `vw_gold_equipment_history` | Keywords: DIRTY, CIP REQUIRED, SOAKING, AWAITING CLEAN, etc. |
+| Available / clean | Count / % | Instruments whose latest STATUS_TO matches available keywords | `vw_gold_equipment_history` | Keywords: AVAILABLE, CLEAN, READY, IDLE, SANITISED, etc. |
+| Unknown | Count / % | Instruments with no keyword match or no history in the last 90 days | `vw_gold_equipment_history` | NULL STATUS_TO also maps to unknown. |
+
+### Activity
+
+| KPI | Display | Calculation | Source data | Notes |
+| --- | --- | --- | --- | --- |
+| Peak active instruments / day | Count | Max of the 30-day daily series | `vw_gold_equipment_history` | Shown as chart meta-label. |
+| Peak active instruments / hour | Count | Max of the 24-hour hourly series | `vw_gold_equipment_history` | Shown as chart meta-label. |
+| Daily active instruments trend | Count per day | `COUNT(DISTINCT INSTRUMENT_ID)` per local calendar day, last 30 days | `vw_gold_equipment_history` | Zero-padded; day boundaries align to browser timezone. |
+| Hourly active instruments trend | Count per hour | `COUNT(DISTINCT INSTRUMENT_ID)` per local hour, last 24 hours | `vw_gold_equipment_history` | Zero-padded; hour boundaries align to browser timezone. |
+
+### Verification / Compliance
+
+| KPI | Display | Calculation | Source data | Notes |
+| --- | --- | --- | --- | --- |
+| Scale verification | Placeholder | Not implemented | `scale_verification_results` (RESTRICTED) | Blocked pending a Unity Catalogue consumption view for `connected_plant_prod.tulip.scale_verification_results`. Frontend shows an amber badge with a TODO note. |
+
 ## Backend Analytics Metrics Not Currently Exposed As A Primary Page
 
 The backend also contains OEE, schedule adherence, and downtime analytics DALs and routers. These metrics are part of the processorderhistory API surface even though they do not currently have a dedicated frontend page in this app shell.

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Header
 from pydantic import BaseModel
 
 from backend.dal.equipment_insights_dal import fetch_equipment_insights
-from backend.db import check_warehouse_config, resolve_token
+from backend.db import check_warehouse_config, resolve_token, validate_timezone
 
 router = APIRouter()
 
@@ -14,6 +14,7 @@ class EquipmentInsightsRequest(BaseModel):
     """Request body for the equipment insights endpoint."""
 
     plant_id: Optional[str] = None
+    timezone: str = "UTC"
 
 
 @router.post("/equipment-insights/summary")
@@ -22,14 +23,20 @@ async def get_equipment_insights(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
-    """Return equipment master distribution from vw_gold_instrument.
+    """Return equipment master distribution and live activity from vw_gold_instrument and vw_gold_equipment_history.
 
-    Provides instrument counts grouped by EQUIPMENT_TYPE for the Equipment Insights
-    dashboard.  Scale verification data is not included — see the TODO in the
-    frontend EquipmentInsights page for the placeholder.
+    Provides instrument counts by EQUIPMENT_TYPE (estate), instrument state distribution
+    (in_use / dirty / available / unknown from latest STATUS_TO), and active-instrument
+    trend series (30-day daily and 24-hour hourly) for the Equipment Insights dashboard.
+
+    Scale verification data is not included — see the TODO in the frontend
+    EquipmentInsights page for the placeholder.
 
     Optional ``plant_id`` filter restricts results to a single plant.
+    ``timezone`` is an IANA timezone name used for day/hour bucket alignment; invalid
+    values are silently coerced to UTC.
     """
     token = resolve_token(x_forwarded_access_token, authorization)
     check_warehouse_config()
-    return await fetch_equipment_insights(token, plant_id=body.plant_id)
+    tz = validate_timezone(body.timezone)
+    return await fetch_equipment_insights(token, plant_id=body.plant_id, timezone=tz)
