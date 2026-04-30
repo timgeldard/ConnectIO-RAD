@@ -164,6 +164,7 @@ export function Sidebar({ active = 'orders', onNavigate = () => {}, user }: Side
       <div className="sidebar-section">
         <div className={cls('planning')} onClick={() => onNavigate('planning')}>{cloneElement(I.layers as ReactElement, { className: 'ico' })}<span>{t.navPlanning}</span></div>
         <div className={cls('orders')} onClick={() => onNavigate('orders')}>{cloneElement(I.history as ReactElement, { className: 'ico' })}<span>{t.navOrders}</span></div>
+        <div className={cls('vessel-planning')} onClick={() => onNavigate('vessel-planning')}>{cloneElement(I.cpu as ReactElement, { className: 'ico' })}<span>{t.navVesselPlanning || 'Vessel planning'}</span></div>
       </div>
 
       <div className="sidebar-label">{t.sectionInsights}</div>
@@ -172,7 +173,6 @@ export function Sidebar({ active = 'orders', onNavigate = () => {}, user }: Side
         <div className={cls('pours')} onClick={() => onNavigate('pours')}>{cloneElement(I.package as ReactElement, { className: 'ico' })}<span>{t.navPours || 'Pour analytics'}</span></div>
         <div className={cls('yield')} onClick={() => onNavigate('yield')}>{cloneElement(I.trending as ReactElement, { className: 'ico' })}<span>{t.navYield}</span></div>
         <div className={cls('quality')} onClick={() => onNavigate('quality')}>{cloneElement(I.shield as ReactElement, { className: 'ico' })}<span>{t.navQuality || 'Quality analytics'}</span></div>
-        <div className={cls('vessel-planning')} onClick={() => onNavigate('vessel-planning')}>{cloneElement(I.cpu as ReactElement, { className: 'ico' })}<span>{t.navVesselPlanning || 'Vessel planning'}</span></div>
       </div>
 
       <div className="sidebar-foot">

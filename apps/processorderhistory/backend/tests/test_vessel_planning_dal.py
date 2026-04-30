@@ -1,4 +1,4 @@
-"""Unit tests for vessel_planning_dal — classifier, coerce helpers, derivation logic, series builder."""
+"""Unit tests for vessel_planning_dal — classifier, coerce helpers, derivation logic."""
 import pytest
 from unittest.mock import patch
 
@@ -297,50 +297,6 @@ def test_blocked_orders_capped_at_ten():
     vessels, _, _ = dal._derive_planning_data([_vessel("TK-X", "DIRTY")], events, released)
     tk = next(v for v in vessels if v["instrument_id"] == "TK-X")
     assert len(tk["blocked_orders"]) == 10
-
-
-# ---------------------------------------------------------------------------
-# _build_daily30d_series
-# ---------------------------------------------------------------------------
-
-_NOW_MS = 1_700_000_000_000
-_MS_PER_DAY = 86_400_000
-
-
-def test_build_daily30d_series_always_30_buckets():
-    result = dal._build_daily30d_series([], _NOW_MS)
-    assert len(result) == 30
-
-
-def test_build_daily30d_series_zero_padded():
-    result = dal._build_daily30d_series([], _NOW_MS)
-    assert all(d["event_count"] == 0 for d in result)
-
-
-def test_build_daily30d_series_fills_matching_bucket():
-    first_bucket = result = dal._build_daily30d_series([], _NOW_MS)[0]["day_ms"]
-    rows = [{"day_ms": first_bucket, "event_count": 7}]
-    result = dal._build_daily30d_series(rows, _NOW_MS)
-    hit = next(d for d in result if d["day_ms"] == first_bucket)
-    assert hit["event_count"] == 7
-
-
-def test_build_daily30d_series_ignores_out_of_range():
-    ancient_day_ms = _NOW_MS - 60 * _MS_PER_DAY
-    rows = [{"day_ms": ancient_day_ms, "event_count": 99}]
-    result = dal._build_daily30d_series(rows, _NOW_MS)
-    assert all(d["event_count"] == 0 for d in result)
-
-
-def test_build_daily30d_series_accumulates_multiple_rows_same_bucket():
-    first_bucket = dal._build_daily30d_series([], _NOW_MS)[0]["day_ms"]
-    rows = [
-        {"day_ms": first_bucket, "event_count": 3},
-        {"day_ms": first_bucket, "event_count": 5},
-    ]
-    result = dal._build_daily30d_series(rows, _NOW_MS)
-    hit = next(d for d in result if d["day_ms"] == first_bucket)
-    assert hit["event_count"] == 8
 
 
 # ---------------------------------------------------------------------------

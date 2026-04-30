@@ -87,38 +87,16 @@ export interface VesselKpis {
   unblock_action_count: number
 }
 
-/** One day bucket in the 30-day activity trend. */
-export interface DayActivity {
-  day_ms: number
-  event_count: number
-}
-
-/** A single equipment history event row. */
-export interface EquipmentEvent {
-  instrument_id: string
-  equipment_type: string | null
-  status_from: string | null
-  status_to: string | null
-  change_at_ms: number
-  process_order_id: string | null
-  material_id: string | null
-  material_name: string | null
-  plant_id: string | null
-  order_status: string | null
-}
-
 /** Full vessel planning analytics payload from POST /api/vessel-planning/analytics. */
 export interface VesselPlanningData {
   now_ms: number
   kpis: VesselKpis
   vessels: VesselInfo[]
   released_orders: ReleasedOrder[]
-  daily30d: DayActivity[]
-  equipment_events: EquipmentEvent[]
 }
 
 /**
- * Fetch vessel planning analytics: live vessel states, priority queue, and activity trend.
+ * Fetch vessel planning analytics: live vessel states and priority queue.
  *
  * @param params Optional filters for plant ID and date range (YYYY-MM-DD).
  * @returns A promise resolving to the VesselPlanningData payload.

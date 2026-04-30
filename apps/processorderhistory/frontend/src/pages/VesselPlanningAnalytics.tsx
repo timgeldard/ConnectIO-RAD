@@ -309,109 +309,6 @@ function PriorityQueue({
 }
 
 // ---------------------------------------------------------------------------
-// Activity trend chart (SVG bar chart)
-// ---------------------------------------------------------------------------
-
-function ActivityTrendChart({ data }: { data: VesselPlanningData['daily30d'] }) {
-  if (!data.length) return null
-  const max = Math.max(...data.map(d => d.event_count), 1)
-  const W = 600
-  const H = 80
-  const barW = Math.max(1, (W / data.length) - 2)
-
-  return (
-    <div className="vp-trend-wrap">
-      <div className="vp-section-eyebrow">Equipment activity · last 30 days</div>
-      <svg className="vp-trend-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-        {data.map((d, i) => {
-          const barH = Math.max(1, (d.event_count / max) * (H - 4))
-          const x = i * (W / data.length)
-          return (
-            <rect
-              key={d.day_ms}
-              x={x}
-              y={H - barH}
-              width={barW}
-              height={barH}
-              className="vp-trend-bar"
-              rx={1}
-            >
-              <title>{fmt.shortDate(d.day_ms)} — {d.event_count} events</title>
-            </rect>
-          )
-        })}
-      </svg>
-      <div className="vp-trend-labels">
-        <span className="mono">{data.length > 0 ? fmt.shortDate(data[0].day_ms) : ''}</span>
-        <span className="mono">{data.length > 0 ? fmt.shortDate(data[data.length - 1].day_ms) : ''}</span>
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Equipment event history table
-// ---------------------------------------------------------------------------
-
-function EquipmentHistory({
-  events,
-  vesselFilter,
-}: {
-  events: VesselPlanningData['equipment_events']
-  vesselFilter: string
-}) {
-  const [expanded, setExpanded] = useState(false)
-  const filtered = vesselFilter === 'ALL'
-    ? events
-    : events.filter(e => e.instrument_id === vesselFilter)
-  const visible = expanded ? filtered : filtered.slice(0, 100)
-
-  if (filtered.length === 0) {
-    return <div className="vp-empty-state">No equipment events in the selected period.</div>
-  }
-
-  return (
-    <div className="vp-board-wrap">
-      <table className="vp-table vp-history-table">
-        <thead>
-          <tr>
-            <th>Vessel</th>
-            <th>Type</th>
-            <th>Status from</th>
-            <th>Status to</th>
-            <th>Changed at</th>
-            <th>PO</th>
-            <th>Material</th>
-          </tr>
-        </thead>
-        <tbody>
-          {visible.map((e, i) => (
-            <tr key={`${e.instrument_id}-${e.change_at_ms}-${i}`}>
-              <td className="mono">{e.instrument_id}</td>
-              <td>{e.equipment_type ?? '—'}</td>
-              <td className="vp-status-text">{e.status_from ?? '—'}</td>
-              <td className="vp-status-text">{e.status_to ?? '—'}</td>
-              <td className="mono">
-                {e.change_at_ms ? `${fmt.shortDate(e.change_at_ms)} ${fmt.time(e.change_at_ms)}` : '—'}
-              </td>
-              <td className="mono">{e.process_order_id ?? '—'}</td>
-              <td>{e.material_name ?? '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {!expanded && filtered.length > 100 && (
-        <div className="vp-show-more">
-          <button className="vp-show-more-btn" onClick={() => setExpanded(true)}>
-            Show all {filtered.length.toLocaleString()} rows
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
 // Page root
 // ---------------------------------------------------------------------------
 
@@ -434,7 +331,7 @@ export function VesselPlanningAnalyticsPage() {
 
   const [stateFilter, setStateFilter] = useState<string>('ALL')
   const [vesselSearch, setVesselSearch] = useState('')
-  const [activeTab, setActiveTab] = useState<'board' | 'queue' | 'history'>('board')
+  const [activeTab, setActiveTab] = useState<'board' | 'queue'>('board')
 
   const plantId = filters.plantId === 'ALL' ? undefined : filters.plantId
 
@@ -458,18 +355,13 @@ export function VesselPlanningAnalyticsPage() {
     return Array.from(seen).sort()
   }, [state.data])
 
-  const vesselIds = useMemo(() => {
-    if (!state.data) return []
-    return state.data.vessels.map(v => v.instrument_id).sort()
-  }, [state.data])
-
   return (
     <div className="vp-page">
-      <TopBar trail={['Manufacturing', 'Vessel planning']} />
+      <TopBar trail={['Operate', 'Vessel planning']} />
 
       <div className="page-head">
         <div>
-          <div className="page-eyebrow">Manufacturing · Runcorn plant</div>
+          <div className="page-eyebrow">Operate · Runcorn plant</div>
           <h1 className="page-title">{I.cpu}<span>Vessel Planning</span></h1>
           <p className="page-sub">
             Live vessel availability, material-vessel affinity, and constrained released order queue.
@@ -516,13 +408,6 @@ export function VesselPlanningAnalyticsPage() {
                 {state.data.released_orders.length}
               </span>
             )}
-          </button>
-          <button
-            className={`vp-tab ${activeTab === 'history' ? 'active' : ''}`}
-            onClick={() => setActiveTab('history')}
-          >
-            {I.history}<span>Event history</span>
-            {state.data && <span className="vp-tab-count">{state.data.equipment_events.length.toLocaleString()}</span>}
           </button>
         </div>
 
@@ -583,43 +468,6 @@ export function VesselPlanningAnalyticsPage() {
                   materialFilter={filters.material}
                 />
             }
-          </section>
-        )}
-
-        {/* Event history */}
-        {activeTab === 'history' && (
-          <section className="vp-section">
-            <div className="vp-section-controls">
-              <div className="vp-section-head">
-                <div className="cp-eyebrow">Equipment event log</div>
-                <h2>Raw history — {filters.dateFrom} to {filters.dateTo}</h2>
-              </div>
-              <div className="vp-filters">
-                <select
-                  className="vp-select"
-                  value={stateFilter === 'ALL' ? 'ALL' : stateFilter}
-                  onChange={e => setStateFilter(e.target.value)}
-                >
-                  <option value="ALL">All vessels</option>
-                  {vesselIds.map(id => <option key={id} value={id}>{id}</option>)}
-                </select>
-              </div>
-            </div>
-
-            {state.loading
-              ? <div className="vp-loading">Loading equipment events…</div>
-              : <EquipmentHistory
-                  events={state.data?.equipment_events ?? []}
-                  vesselFilter={stateFilter}
-                />
-            }
-          </section>
-        )}
-
-        {/* Activity trend */}
-        {state.data && !state.loading && (
-          <section className="vp-section vp-trend-section">
-            <ActivityTrendChart data={state.data.daily30d} />
           </section>
         )}
 
