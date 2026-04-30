@@ -7,6 +7,12 @@ Runs 2 Databricks queries in parallel (asyncio.gather):
                representing work not yet appearing on the Gantt
 
 Block start times come from ``silver_process_order.SCHEDULED_START``.
+
+.. note::
+   For now, silver lookups on PROCESS_LINE and SCHEDULED_START are to stay as 
+   these columns have not yet been promoted to the gold-layer view for this 
+   application.
+   TODO: Move to gold-layer view once schema promotion is confirmed stable.
 Block end times default to start + 8 h — no PLANNED_DURATION_HRS column has
 been confirmed available in ``vw_gold_process_order`` for this app; update
 ``_DEFAULT_BLOCK_HRS`` (or add a query column) once confirmed queryable.

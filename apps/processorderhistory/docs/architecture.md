@@ -57,9 +57,10 @@ the prototype to keep the JSX→TSX port mechanical.
 
 ## Data layer
 
-All SQL queries target gold-layer views only (Rule 1.1).  `planning_dal` is an 
-approved exception that also reads `silver.silver_process_order` for the 
-`SCHEDULED_START` column not yet promoted to a gold view.
+All SQL queries target gold-layer views only (Rule 1.1).  `day_view_dal` and 
+`planning_dal` are approved exceptions that also read 
+`silver.silver_process_order` for `PROCESS_LINE` and `SCHEDULED_START` columns 
+not yet promoted to a gold view.
 
 Catalog and schema come from `POH_CATALOG` / `POH_SCHEMA` env vars (rendered
 from `app.template.yaml`).  SQL helpers use `tbl()` for the app schema and

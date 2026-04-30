@@ -10,6 +10,14 @@ Runs 2 Databricks queries in parallel (asyncio.gather):
   2. downtime — downtime records whose START_TIME falls on the selected day,
                 joined to process orders for line attribution.
 
+Both queries join to ``silver.silver_process_order`` to retrieve the 
+``PROCESS_LINE`` column.
+
+.. note::
+   For now, silver lookups on PROCESS_LINE are to stay as this column has not 
+   yet been promoted to the gold-layer view for this application.
+   TODO: Move to gold-layer PRODUCTION_LINE once schema promotion is confirmed stable.
+
 CREATED, RELEASED, CANCELLED, and DELETED orders are excluded to satisfy the
 "no planned orders, no zero-activity orders" requirement.
 
@@ -22,7 +30,7 @@ import asyncio
 from datetime import datetime, date as _date, timezone
 from typing import Optional
 
-from backend.db import run_sql_async, sql_param, tbl
+from backend.db import run_sql_async, silver_tbl, sql_param, tbl
 
 _MS_PER_DAY = 86_400_000
 _MS_PER_SEC = 1_000
@@ -82,7 +90,7 @@ async def _q_blocks(token: str, day: str, plant_id: Optional[str]) -> list[dict]
         )
         SELECT
             gpo.PROCESS_ORDER_ID                                                AS process_order_id,
-            COALESCE(gpo.PRODUCTION_LINE, 'UNKNOWN')                           AS line_id,
+            COALESCE(spo.PROCESS_LINE, 'UNKNOWN')                              AS line_id,
             gpo.STATUS                                                          AS order_status,
             gpo.MATERIAL_ID                                                     AS material_id,
             COALESCE(m.MATERIAL_NAME, gpo.MATERIAL_ID)                         AS material_name,
@@ -92,6 +100,8 @@ async def _q_blocks(token: str, day: str, plant_id: Optional[str]) -> list[dict]
         FROM day_conf dc
         JOIN {tbl('vw_gold_process_order')} gpo
             ON gpo.PROCESS_ORDER_ID = dc.PROCESS_ORDER_ID
+        LEFT JOIN {silver_tbl('silver_process_order')} spo
+            ON spo.PROCESS_ORDER_ID = dc.PROCESS_ORDER_ID
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = gpo.MATERIAL_ID
            AND m.LANGUAGE_ID = 'E'
@@ -124,10 +134,12 @@ async def _q_downtime(token: str, day: str, plant_id: Optional[str]) -> list[dic
             dt.REASON_CODE                                                      AS reason_code,
             dt.ISSUE_TYPE                                                       AS issue_type,
             dt.ISSUE_TITLE                                                      AS issue_title,
-            COALESCE(gpo.PRODUCTION_LINE, 'UNKNOWN')                           AS line_id
+            COALESCE(spo.PROCESS_LINE, 'UNKNOWN')                              AS line_id
         FROM {tbl('vw_gold_downtime_and_issues')} dt
         JOIN {tbl('vw_gold_process_order')} gpo
             ON gpo.PROCESS_ORDER_ID = dt.PROCESS_ORDER_ID
+        LEFT JOIN {silver_tbl('silver_process_order')} spo
+            ON spo.PROCESS_ORDER_ID = dt.PROCESS_ORDER_ID
         WHERE DATE(dt.START_TIME) = CAST(:day AS DATE)
           AND gpo.STATUS NOT IN ({_EXCLUDED})
           {plant_clause}
