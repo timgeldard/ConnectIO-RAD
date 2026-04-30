@@ -41,6 +41,11 @@ def silver_tbl(name: str) -> str:
     return f"`{POH_CATALOG}`.`silver`.`{name}`"
 
 
+def instrument_tbl(name: str) -> str:
+    """Return a fully-qualified backtick-quoted table reference for the csm_equipment_history schema."""
+    return f"`{POH_CATALOG}`.`csm_equipment_history`.`{name}`"
+
+
 async def run_sql_async(
     token: str,
     statement: str,

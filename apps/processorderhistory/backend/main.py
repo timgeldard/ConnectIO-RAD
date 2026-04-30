@@ -21,6 +21,7 @@ from backend.routers.oee_router import router as oee_router
 from backend.routers.adherence_router import router as adherence_router
 from backend.routers.genie_router import router as genie_router
 from backend.routers.vessel_planning_router import router as vessel_planning_router
+from backend.routers.equipment_insights_router import router as equipment_insights_router
 
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 
@@ -38,6 +39,7 @@ app.include_router(oee_router, prefix="/api")
 app.include_router(adherence_router, prefix="/api")
 app.include_router(genie_router, prefix="/api")
 app.include_router(vessel_planning_router, prefix="/api")
+app.include_router(equipment_insights_router, prefix="/api")
 
 
 @app.get("/api/health")

@@ -10,6 +10,7 @@ import { DayView } from './pages/DayView'
 import { YieldAnalyticsPage } from './pages/YieldAnalytics'
 import { QualityAnalyticsPage } from './pages/QualityAnalytics'
 import { VesselPlanningAnalyticsPage } from './pages/VesselPlanningAnalytics'
+import { EquipmentInsightsPage } from './pages/EquipmentInsights'
 import { fetchCurrentUser, type CurrentUser } from './api/me'
 import { ORDERS } from './data/mock'
 import { GenieDrawer } from './genie/GenieDrawer'
@@ -24,6 +25,7 @@ type View =
   | { name: 'yield' }
   | { name: 'quality' }
   | { name: 'vessel-planning' }
+  | { name: 'equipment-insights' }
 
 const HOUR = 3600 * 1000
 
@@ -44,6 +46,7 @@ export default function App() {
     view.name === 'yield' ? 'yield' :
     view.name === 'quality' ? 'quality' :
     view.name === 'vessel-planning' ? 'vessel-planning' :
+    view.name === 'equipment-insights' ? 'equipment-insights' :
     'orders'
 
   const onNavigate = (key: string) => {
@@ -54,6 +57,7 @@ export default function App() {
     else if (key === 'yield') setView({ name: 'yield' })
     else if (key === 'quality') setView({ name: 'quality' })
     else if (key === 'vessel-planning') setView({ name: 'vessel-planning' })
+    else if (key === 'equipment-insights') setView({ name: 'equipment-insights' })
     window.scrollTo(0, 0)
   }
 
@@ -144,6 +148,7 @@ export default function App() {
           {view.name === 'yield' && <YieldAnalyticsPage />}
           {view.name === 'quality' && <QualityAnalyticsPage />}
           {view.name === 'vessel-planning' && <VesselPlanningAnalyticsPage />}
+          {view.name === 'equipment-insights' && <EquipmentInsightsPage />}
         </main>
         <GenieDrawer
           open={genieOpen}

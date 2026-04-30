@@ -1651,6 +1651,117 @@ entities:
       - "When locked limits exist, they take precedence over dynamic limits in spc_quality_metrics"
       - "App writes via INSERT — migration 000_setup_locked_limits.sql creates the table"
 
+  # ===========================================================================
+  # POH APP — Equipment History Views (csm_equipment_history schema)
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # VIEW: vw_gold_instrument
+  # ---------------------------------------------------------------------------
+  - name: vw_gold_instrument
+    business_name: Instrument Master
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Equipment/instrument master registry for the plant. One row per
+      instrument. Contains equipment type, plant assignment, and descriptive
+      attributes. Used as the source of truth for the Equipment Insights
+      dashboard — counts and type distributions are derived from this view.
+      Located in the csm_equipment_history schema; use instrument_tbl() helper.
+    grain: One row per INSTRUMENT_ID
+    primary_keys: [INSTRUMENT_ID]
+    preferred_synonyms:
+      - instrument
+      - equipment
+      - vessel
+      - instrument master
+    important_dimensions:
+      - name: INSTRUMENT_ID
+        type: STRING
+        description: Unique identifier for the instrument/equipment
+      - name: EQUIPMENT_TYPE
+        type: STRING
+        description: Classification of the instrument (e.g., Bioreactor, Tank, Skid)
+      - name: PLANT_ID
+        type: STRING
+        description: Plant the instrument is assigned to
+    traps:
+      - "Single-Use Vessel rows are excluded from Equipment Insights counts — filter EQUIPMENT_TYPE != 'Single-Use Vessel'"
+      - "EQUIPMENT_TYPE can be NULL — use COALESCE(EQUIPMENT_TYPE, 'Unknown') in aggregations"
+    notes:
+      - "Accessed via instrument_tbl('vw_gold_instrument') not tbl() — different schema (csm_equipment_history)"
+      - "Scale verification data is NOT in this view — see scale_verification_results (RESTRICTED)"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: vw_gold_equipment_history
+  # ---------------------------------------------------------------------------
+  - name: vw_gold_equipment_history
+    business_name: Equipment History
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Historical state-change events for plant equipment. Each row is a
+      transition for a specific instrument between statuses (e.g., CLEAN →
+      IN_USE → DIRTY). Used by the Vessel Planning page for heuristic vessel
+      state classification and material affinity derivation.
+      Located in the csm_equipment_history schema; use instrument_tbl() helper.
+    grain: One row per state-change event (INSTRUMENT_ID, change_at_ms)
+    primary_keys: [INSTRUMENT_ID, change_at_ms]
+    preferred_synonyms:
+      - equipment history
+      - vessel history
+      - instrument events
+    important_dimensions:
+      - name: INSTRUMENT_ID
+        type: STRING
+        description: Instrument identifier
+      - name: STATUS_TO
+        type: STRING
+        description: State the instrument transitioned into
+      - name: STATUS_FROM
+        type: STRING
+        description: State the instrument transitioned from
+      - name: MATERIAL_ID
+        type: STRING
+        description: Material being processed during this event (nullable)
+      - name: PLANT_ID
+        type: STRING
+        description: Plant code
+      - name: change_at_ms
+        type: BIGINT
+        description: UTC epoch milliseconds of the state change
+    traps:
+      - "Accessed via instrument_tbl('vw_gold_equipment_history'), not tbl()"
+      - "STATUS_TO keywords for state classification are heuristic — see vessel_planning_dal.py for the exact keyword sets"
+
+  # ---------------------------------------------------------------------------
+  # TABLE: scale_verification_results (RESTRICTED — do not query directly)
+  # ---------------------------------------------------------------------------
+  - name: scale_verification_results
+    business_name: Scale Verification Results
+    type: fact
+    tier: RESTRICTED
+    approved_for_agent_use: false
+    business_purpose: >
+      Scale calibration and verification records from Tulip. Tracks pass/fail
+      status for each scale across periodic verification rounds.
+      Located in connected_plant_prod.tulip schema (different catalog path).
+    grain: One row per verification event
+    primary_keys: []
+    preferred_synonyms:
+      - scale verification
+      - calibration
+      - scale results
+    traps:
+      - "DO NOT QUERY — requires a Unity Catalogue consumption view that does not yet exist"
+      - "Querying directly will crash the app with a UC permission error"
+      - "The Equipment Insights page has a placeholder for this data with a TODO note"
+    notes:
+      - "TODO: create a UC consumption view (connected_plant_prod.csm_equipment_history.vw_scale_verification or similar) before enabling queries"
+      - "Not in csm_equipment_history schema — it lives in connected_plant_prod.tulip.scale_verification_results"
+
   # ---------------------------------------------------------------------------
   # APP TABLE: spc_exclusions
   # ---------------------------------------------------------------------------

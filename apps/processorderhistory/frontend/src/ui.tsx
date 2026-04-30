@@ -173,6 +173,7 @@ export function Sidebar({ active = 'orders', onNavigate = () => {}, user }: Side
         <div className={cls('pours')} onClick={() => onNavigate('pours')}>{cloneElement(I.package as ReactElement, { className: 'ico' })}<span>{t.navPours || 'Pour analytics'}</span></div>
         <div className={cls('yield')} onClick={() => onNavigate('yield')}>{cloneElement(I.trending as ReactElement, { className: 'ico' })}<span>{t.navYield}</span></div>
         <div className={cls('quality')} onClick={() => onNavigate('quality')}>{cloneElement(I.shield as ReactElement, { className: 'ico' })}<span>{t.navQuality || 'Quality analytics'}</span></div>
+        <div className={cls('equipment-insights')} onClick={() => onNavigate('equipment-insights')}>{cloneElement(I.beaker as ReactElement, { className: 'ico' })}<span>{t.navEquipmentInsights || 'Equipment insights'}</span></div>
       </div>
 
       <div className="sidebar-foot">
