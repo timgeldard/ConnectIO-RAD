@@ -1,7 +1,7 @@
-"""Tests for equipment_insights_dal — _derive_equipment_insights derivation logic."""
+"""Tests for equipment_insights_dal — _aggregate_by_type and _derive_equipment_insights."""
 import pytest
 
-from backend.dal.equipment_insights_dal import _derive_equipment_insights
+from backend.dal.equipment_insights_dal import _aggregate_by_type, _derive_equipment_insights
 
 
 # ---------------------------------------------------------------------------
@@ -103,3 +103,73 @@ def test_string_instrument_count_coerced():
     result = _derive_equipment_insights(rows)
     assert result["total_instrument_count"] == 15
     assert result["type_distribution"][0]["count"] == 15
+
+
+# ---------------------------------------------------------------------------
+# _aggregate_by_type
+# ---------------------------------------------------------------------------
+
+def _sub_row(sub_type, count):
+    return {"equipment_sub_type": sub_type, "instrument_count": count}
+
+
+def test_aggregate_vessel_subtypes_merge_into_vessel():
+    rows = [_sub_row("Fixed", 37), _sub_row("Mobile", 61), _sub_row("Mobile-FixBin", 81), _sub_row("ZIBC", 15)]
+    result = _aggregate_by_type(rows)
+    totals = {r["equipment_type"]: r["instrument_count"] for r in result}
+    assert totals["Vessel"] == 194
+
+
+def test_aggregate_scale_subtypes_merge_into_scale():
+    rows = [_sub_row("Connected Scale", 45), _sub_row("Manual Scale", 36)]
+    result = _aggregate_by_type(rows)
+    totals = {r["equipment_type"]: r["instrument_count"] for r in result}
+    assert totals["Scale"] == 81
+
+
+def test_aggregate_auxiliary_subtypes_merge():
+    rows = [
+        _sub_row("Bucket", 29), _sub_row("Buckets", 2),
+        _sub_row("CCP Screen", 33), _sub_row("Other", 1), _sub_row("Pump", 14),
+    ]
+    result = _aggregate_by_type(rows)
+    totals = {r["equipment_type"]: r["instrument_count"] for r in result}
+    assert totals["Auxiliary Equipment"] == 79
+
+
+def test_aggregate_null_subtype_becomes_uncategorised():
+    rows = [_sub_row(None, 47), _sub_row(None, 32)]
+    result = _aggregate_by_type(rows)
+    totals = {r["equipment_type"]: r["instrument_count"] for r in result}
+    assert totals["Uncategorised"] == 79
+
+
+def test_aggregate_unknown_subtype_becomes_uncategorised():
+    rows = [_sub_row("SomeNewType", 10)]
+    result = _aggregate_by_type(rows)
+    totals = {r["equipment_type"]: r["instrument_count"] for r in result}
+    assert totals["Uncategorised"] == 10
+
+
+def test_aggregate_sorted_descending_by_count():
+    rows = [_sub_row("Fixed", 37), _sub_row("Connected Scale", 45), _sub_row("Bucket", 10)]
+    result = _aggregate_by_type(rows)
+    counts = [r["instrument_count"] for r in result]
+    assert counts == sorted(counts, reverse=True)
+
+
+def test_aggregate_empty_returns_empty():
+    assert _aggregate_by_type([]) == []
+
+
+def test_aggregate_full_permutations_total():
+    """All known permutations sum to 433."""
+    rows = [
+        _sub_row("Buckets", 2), _sub_row("Bucket", 29), _sub_row("CCP Screen", 33),
+        _sub_row("Other", 1), _sub_row("Pump", 14),
+        _sub_row(None, 47), _sub_row(None, 32),
+        _sub_row("Connected Scale", 45), _sub_row("Manual Scale", 36),
+        _sub_row("Fixed", 37), _sub_row("Mobile", 61), _sub_row("Mobile-FixBin", 81), _sub_row("ZIBC", 15),
+    ]
+    result = _aggregate_by_type(rows)
+    assert sum(r["instrument_count"] for r in result) == 433
