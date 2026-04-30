@@ -24,4 +24,4 @@ env:
   - name: APP_TRUST_X_FORWARDED_HOST
     value: "true"
   - name: GENIE_SPACE_ID
-    valueFrom: genie-space
+    value: "${GENIE_SPACE_ID}"
