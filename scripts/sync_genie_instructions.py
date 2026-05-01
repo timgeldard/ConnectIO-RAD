@@ -172,13 +172,13 @@ def sync(genie_dir: Path, token: str, space_id: str, dry_run: bool) -> None:
     print(f"  {len(queries)} trusted SQL queries")
 
     if dry_run:
-        print("[sync_genie] Dry run — no API calls made.")
+        print("[sync_genie] Dry run -- no API calls made.")
         for inst in text_instructions:
             print(f"  [text] {inst['title']}")
         for j in joins:
-            print(f"  [join] {j.get('name', '?')}: {j.get('left_table')} → {j.get('right_table')}")
+            print(f"  [join] {j.get('name', '?')}: {j.get('left_table')} -> {j.get('right_table')}")
         for e in expressions:
-            print(f"  [expr] {e.get('name')} — {e.get('display_name', '')}")
+            print(f"  [expr] {e.get('name')}: {e.get('display_name', '')}")
         for q in queries:
             print(f"  [query] {q['title']}")
         return
