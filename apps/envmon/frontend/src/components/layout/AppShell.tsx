@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
-import { LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n';
+import { I18nProvider, LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n';
+import resources from '../../i18n/resources.json';
 import {
   AppShell as SharedAppShell,
   Sidebar,

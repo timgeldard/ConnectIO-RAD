@@ -3,24 +3,32 @@ from fastapi.testclient import TestClient
 
 from backend.main import app
 import backend.routers.exclusions as exclusions
+from shared_auth import require_user
 
 
 client = TestClient(app)
 
 
 def test_save_exclusions_no_token():
-    response = client.post(
-        "/api/spc/exclusions",
-        json={
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
-            "chart_type": "imr",
-            "justification": "test justification",
-            "excluded_points": [],
-        },
-    )
-
-    assert response.status_code == 401
+    # Remove the global mock from conftest to test real auth behavior
+    app.dependency_overrides.pop(require_user, None)
+    try:
+        response = client.post(
+            "/api/spc/exclusions",
+            json={
+                "material_id": "MAT-1",
+                "mic_id": "MIC-1",
+                "chart_type": "imr",
+                "justification": "test justification",
+                "excluded_points": [],
+            },
+        )
+        assert response.status_code == 401
+    finally:
+        # Restore mock for other tests (though conftest fixture teardown will clear it anyway)
+        from shared_auth import require_user as req
+        from shared_auth import UserIdentity
+        app.dependency_overrides[req] = lambda: UserIdentity(user_id="test-user", raw_token="fake-token")
 
 
 def test_save_exclusions_invalid_chart_type():
@@ -64,7 +72,6 @@ def test_save_exclusions_persists_snapshot(monkeypatch):
     async def fake_run_sql_async(*_args, **_kwargs):
         return [{"user_id": "qa@example.com", "event_ts": "2026-04-13 08:00:00"}]
 
-    monkeypatch.setattr(exclusions, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(exclusions, "insert_spc_exclusion_snapshot", fake_insert)
     monkeypatch.setattr(exclusions, "run_sql_async", fake_run_sql_async)
@@ -95,7 +102,6 @@ def test_save_exclusions_actor_lookup_failure(monkeypatch):
     async def fake_run_sql_async(*_args, **_kwargs):
         raise RuntimeError("warehouse unavailable")
 
-    monkeypatch.setattr(exclusions, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(exclusions, "insert_spc_exclusion_snapshot", fake_insert)
     monkeypatch.setattr(exclusions, "run_sql_async", fake_run_sql_async)
@@ -152,7 +158,6 @@ class pytest_http_exception:
         return True
 
 def test_get_exclusions_returns_none_when_empty(monkeypatch):
-    monkeypatch.setattr(exclusions, "resolve_token", lambda *args: "token")
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
     
     async def fake_run_sql_async(*args, **kwargs):
@@ -167,7 +172,6 @@ def test_get_exclusions_returns_none_when_empty(monkeypatch):
     assert response.json()["exclusions"] is None
 
 def test_save_exclusions_sql_error(monkeypatch):
-    monkeypatch.setattr(exclusions, "resolve_token", lambda *args: "token")
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
     
     async def fake_insert(*args, **kwargs):

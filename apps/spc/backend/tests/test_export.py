@@ -16,7 +16,6 @@ def test_openapi_includes_export_route():
 
 
 def test_export_scorecard_csv_returns_200(monkeypatch):
-    monkeypatch.setattr(export_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     async def fake_fetch_scorecard(_token, _body):
@@ -55,7 +54,6 @@ def test_export_scorecard_csv_returns_200(monkeypatch):
 
 
 def test_export_attribute_chart_csv_returns_200(monkeypatch):
-    monkeypatch.setattr(export_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     async def fake_fetch_attribute_chart_data(_token, body):
@@ -92,7 +90,6 @@ def test_export_attribute_chart_csv_returns_200(monkeypatch):
 
 
 def test_export_np_chart_csv_uses_nonconforming_columns(monkeypatch):
-    monkeypatch.setattr(export_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     async def fake_fetch_attribute_chart_data(_token, _body):
@@ -126,7 +123,6 @@ def test_export_np_chart_csv_uses_nonconforming_columns(monkeypatch):
 
 
 def test_export_chart_data_forwards_operation_scope(monkeypatch):
-    monkeypatch.setattr(export_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     async def fake_fetch_chart_data(_token, body):
@@ -177,7 +173,6 @@ def test_export_attribute_chart_requires_chart_type():
 
 
 def test_export_scorecard_excel_returns_200(monkeypatch):
-    monkeypatch.setattr(export_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     async def fake_fetch_scorecard(_token, _body):
@@ -215,7 +210,6 @@ def test_export_scorecard_excel_returns_200(monkeypatch):
 
 
 def test_export_signals_csv_returns_200(monkeypatch):
-    monkeypatch.setattr(export_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     signals = [
@@ -241,7 +235,6 @@ def test_export_signals_csv_returns_200(monkeypatch):
 
 
 def test_export_signals_excel_returns_200(monkeypatch):
-    monkeypatch.setattr(export_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     signals = [

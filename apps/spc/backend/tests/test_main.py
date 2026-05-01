@@ -22,7 +22,7 @@ def test_health_returns_200():
 def test_health_debug_hidden_in_production(monkeypatch):
     monkeypatch.setattr(main_module, "ENABLE_DEBUG_ENDPOINTS", False)
 
-    response = client.get("/api/health/debug")
+    response = client.get("/api/health/debug", headers={"x-forwarded-access-token": "token"})
 
     assert response.status_code == 404
 
@@ -45,7 +45,7 @@ def test_health_debug_visible_in_development(monkeypatch):
 def test_test_query_hidden_in_production(monkeypatch):
     monkeypatch.setattr(main_module, "ENABLE_DEBUG_ENDPOINTS", False)
 
-    response = client.get("/api/test-query")
+    response = client.get("/api/test-query", headers={"x-forwarded-access-token": "token"})
 
     assert response.status_code == 404
 

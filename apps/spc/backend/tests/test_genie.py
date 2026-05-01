@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from backend.main import app
 import backend.routers.genie as genie
+from shared_auth import require_user
 
 
 client = TestClient(app)
@@ -27,9 +28,15 @@ def test_genie_missing_space_id(monkeypatch):
 def test_genie_no_token(monkeypatch):
     monkeypatch.setattr(genie, "_GENIE_SPACE_ID", "space-1")
 
-    response = client.post("/api/spc/genie/message", json={"message": "hello"})
-
-    assert response.status_code == 401
+    # Clear override to test real auth
+    app.dependency_overrides.pop(require_user, None)
+    try:
+        response = client.post("/api/spc/genie/message", json={"message": "hello"})
+        assert response.status_code == 401
+    finally:
+        # Restore mock
+        from shared_auth import UserIdentity, require_user as req
+        app.dependency_overrides[req] = lambda: UserIdentity(user_id="test-user", raw_token="fake-token")
 
 
 def test_genie_new_conversation_returns_answer(monkeypatch):

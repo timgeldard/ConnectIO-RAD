@@ -1,11 +1,12 @@
 """Quality analytics router — POST /api/quality/analytics."""
 from typing import Optional
 
-from fastapi import APIRouter, Header
+from shared_auth import UserIdentity, require_user
+from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
 from backend.dal.quality_analytics_dal import fetch_quality_analytics
-from backend.db import check_warehouse_config, resolve_token, validate_timezone
+from backend.db import check_warehouse_config, validate_timezone
 
 router = APIRouter()
 
@@ -20,10 +21,8 @@ class QualityAnalyticsRequest(BaseModel):
 
 
 @router.post("/quality/analytics")
-async def get_quality_analytics(
-    body: QualityAnalyticsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+async def get_quality_analytics(body: QualityAnalyticsRequest,
+    user: UserIdentity = Depends(require_user)
 ):
     """Return quality analytics: 30-day daily series, 24h hourly series, and inspection
     result rows for the requested date range.
@@ -34,7 +33,7 @@ async def get_quality_analytics(
     (YYYY-MM-DD); omitting both returns the last-24h rolling window.
     Judgement: values starting with 'A' are accepted, all others are rejected.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     return await fetch_quality_analytics(
         token,

@@ -1,6 +1,6 @@
 [app]
-name = "spc-tim"
-bundle_name = "spc-tim"
+name = "spc"
+bundle_name = "spc"
 default_profile = "uat"
 template = "app.template.yaml"
 config_output = "app.yaml"
@@ -37,8 +37,10 @@ after_bundle = [
 DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/e76480b94bea6ed5"
 TRACE_CATALOG = "connected_plant_uat"
 TRACE_SCHEMA = "gold"
+GENIE_SPACE_ID = "01f134d334681d2398e1205b9b2739c4"
 
 [profiles.prod.env]
 DATABRICKS_WAREHOUSE_HTTP_PATH = ""
 TRACE_CATALOG = ""
 TRACE_SCHEMA = "gold"
+GENIE_SPACE_ID = "01f1446c282c1f29815ef4dfa6824739"

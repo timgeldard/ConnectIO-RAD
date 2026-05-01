@@ -262,13 +262,12 @@ async def spc_p_chart_data(
 async def spc_count_chart_data(
     request: Request,
     body: CountChartDataRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     """
     Retrieve data specifically aggregated for C-Charts or U-Charts (Count of Defects).
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         rows = await fetch_count_chart_data(

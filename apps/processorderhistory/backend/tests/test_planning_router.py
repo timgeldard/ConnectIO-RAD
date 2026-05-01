@@ -73,7 +73,6 @@ _SCHEDULE_PAYLOAD = {
 
 @pytest.fixture
 def mock_schedule(monkeypatch):
-    monkeypatch.setattr(planning_router, "resolve_token", lambda *_: "token")
     monkeypatch.setattr(planning_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=_SCHEDULE_PAYLOAD)
     monkeypatch.setattr(planning_router, "fetch_planning_schedule", mock)

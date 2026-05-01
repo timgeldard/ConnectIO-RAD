@@ -4,10 +4,11 @@ PUT  /api/em/plant-geo/{plant_id} — upsert lat/lon for one plant (admin only)
 """
 from typing import Optional
 
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Depends, Header
 from pydantic import BaseModel
+from shared_auth import UserIdentity, require_user
 
-from backend.utils.db import resolve_token, run_sql_async, sql_param
+from backend.utils.db import run_sql_async, sql_param
 from backend.utils.em_config import PLANT_GEO_TBL
 
 router = APIRouter()
@@ -28,10 +29,9 @@ class PlantGeoEntry(BaseModel):
 
 @router.get("/plant-geo", response_model=list[PlantGeoEntry])
 async def list_plant_geo(
-    x_forwarded_access_token: Optional[str] = Header(None),
-    authorization: Optional[str] = Header(None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     rows = await run_sql_async(
         token,
         f"SELECT plant_id, lat, lon, updated_at, updated_by FROM {PLANT_GEO_TBL} ORDER BY plant_id",
@@ -52,10 +52,9 @@ async def list_plant_geo(
 async def upsert_plant_geo(
     plant_id: str,
     body: PlantGeoUpsert,
-    x_forwarded_access_token: Optional[str] = Header(None),
-    authorization: Optional[str] = Header(None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     params = [
         sql_param("plant_id", plant_id),
         sql_param("lat",      str(body.lat)),

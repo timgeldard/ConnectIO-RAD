@@ -1,11 +1,12 @@
 """Vessel planning analytics router — POST /api/vessel-planning/analytics."""
 from typing import Optional
 
-from fastapi import APIRouter, Header
+from shared_auth import UserIdentity, require_user
+from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
 from backend.dal.vessel_planning_dal import fetch_vessel_planning_analytics
-from backend.db import check_warehouse_config, resolve_token, validate_timezone
+from backend.db import check_warehouse_config, validate_timezone
 
 router = APIRouter()
 
@@ -20,10 +21,8 @@ class VesselPlanningRequest(BaseModel):
 
 
 @router.post("/vessel-planning/analytics")
-async def get_vessel_planning_analytics(
-    body: VesselPlanningRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+async def get_vessel_planning_analytics(body: VesselPlanningRequest,
+    user: UserIdentity = Depends(require_user)
 ):
     """Return vessel planning analytics: live vessel states, priority queue, and activity trend.
 
@@ -36,7 +35,7 @@ async def get_vessel_planning_analytics(
     Omitting both defaults to the last 30 days.  Vessel state always reflects the latest
     event within the 90-day lookback, independent of the date filter.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     return await fetch_vessel_planning_analytics(
         token,

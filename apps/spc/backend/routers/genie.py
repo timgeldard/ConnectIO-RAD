@@ -107,7 +107,7 @@ def _extract_text(msg: dict) -> str:
     return msg.get("error") or "No response received from Genie."
 
 
-@router.post("/genie")
+@router.post("/genie/message")
 async def genie_message(
     req: GenieRequest,
     user: UserIdentity = Depends(require_user),

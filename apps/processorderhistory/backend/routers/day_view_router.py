@@ -1,11 +1,12 @@
 """Day View router — POST /api/dayview."""
 from typing import Optional
 
-from fastapi import APIRouter, Header
+from shared_auth import UserIdentity, require_user
+from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
 from backend.dal.day_view_dal import fetch_day_view
-from backend.db import check_warehouse_config, resolve_token
+from backend.db import check_warehouse_config
 
 router = APIRouter()
 
@@ -18,10 +19,8 @@ class DayViewRequest(BaseModel):
 
 
 @router.post("/dayview")
-async def get_day_view(
-    body: DayViewRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+async def get_day_view(body: DayViewRequest,
+    user: UserIdentity = Depends(require_user)
 ):
     """Return Day View data: Gantt blocks and downtime for a single production day.
 
@@ -30,6 +29,6 @@ async def get_day_view(
     movements are excluded automatically.  ``day`` is an ISO date string
     (YYYY-MM-DD); omitting it defaults to today UTC.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     return await fetch_day_view(token, day=body.day, plant_id=body.plant_id)

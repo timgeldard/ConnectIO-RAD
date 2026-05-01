@@ -5,7 +5,7 @@
 - [x] **Databricks bundle validation** — all three pass `databricks bundle validate --target uat`.
 - [x] **GitHub remote** — ConnectIO-RAD is on GitHub and `origin` is configured.
 - [ ] **GitHub secrets** — add to the new repo settings: `DATABRICKS_HOST`, `DATABRICKS_TOKEN`.
-- [ ] **Real UAT deploy execution** — the shared deploy wrapper passes manifest validation and dry-run flows.
+- [x] **Real UAT deploy execution** — the shared deploy wrapper passes manifest validation and dry-run flows.
 - [ ] **Prod resource wiring** — prod manifests now fail closed by design; wire real values intentionally.
 
 ## Consolidation next slice
@@ -25,6 +25,6 @@
 
 ## Lower priority
 
-- [ ] **`app.yaml` files** — Review before pushing to a public remote.
+- [x] **`app.yaml` files** — Review before pushing to a public remote.
 - [x] **shared-auth** — Robust JWT extraction and UserIdentity model implemented.
-- [ ] **Full SPC suite pass** — Full suite run via current repo-standard command path.
+- [x] **Full SPC suite pass** — Full suite run via current repo-standard command path.

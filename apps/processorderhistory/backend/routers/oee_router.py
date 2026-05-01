@@ -1,11 +1,12 @@
 """OEE analytics router — POST /api/oee/analytics."""
 from typing import Optional
 
-from fastapi import APIRouter, Header
+from shared_auth import UserIdentity, require_user
+from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
 from backend.dal.oee_analytics_dal import fetch_oee_analytics
-from backend.db import check_warehouse_config, resolve_token, validate_timezone
+from backend.db import check_warehouse_config, validate_timezone
 
 router = APIRouter()
 
@@ -20,17 +21,15 @@ class OEEAnalyticsRequest(BaseModel):
 
 
 @router.post("/oee/analytics")
-async def get_oee_analytics(
-    body: OEEAnalyticsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+async def get_oee_analytics(body: OEEAnalyticsRequest,
+    user: UserIdentity = Depends(require_user)
 ):
     """Return OEE analytics: 30-day weighted trend and per-line performance.
 
     ``date_from`` / ``date_to`` are ISO date strings (YYYY-MM-DD); omitting both
     returns the last 7 days for the per-line aggregation.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     return await fetch_oee_analytics(
         token,

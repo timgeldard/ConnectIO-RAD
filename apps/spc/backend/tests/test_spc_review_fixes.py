@@ -134,7 +134,6 @@ def test_get_exclusions_includes_legacy_plant_fallback(monkeypatch):
         return []
 
     monkeypatch.setattr(exclusions, "run_sql_async", fake_run_sql_async)
-    monkeypatch.setattr(exclusions, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
 
     request = Request({"type": "http", "method": "GET", "headers": []})
@@ -146,15 +145,14 @@ def test_get_exclusions_includes_legacy_plant_fallback(monkeypatch):
         stratify_by="plant_id",
     )
 
+    from shared_auth import UserIdentity
     result = asyncio.run(
-        exclusions.get_exclusions(
+        exclusions.fetch_exclusions(
             request=request,
             query=query,
-            x_forwarded_access_token=None,
-            authorization=None,
+            user=UserIdentity(user_id="test", raw_token="token")
         )
     )
-
     assert result == {"exclusions": None}
     sql, params = calls[0]
     assert "AND stratify_by IS NULL" in sql

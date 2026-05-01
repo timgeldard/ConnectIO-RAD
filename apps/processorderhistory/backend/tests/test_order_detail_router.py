@@ -38,7 +38,6 @@ _DETAIL_PAYLOAD = {
 
 @pytest.fixture
 def mock_detail(monkeypatch):
-    monkeypatch.setattr(detail_router, "resolve_token", lambda *_: "token")
     monkeypatch.setattr(detail_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=_DETAIL_PAYLOAD)
     monkeypatch.setattr(detail_router, "fetch_order_detail", mock)
@@ -47,7 +46,6 @@ def mock_detail(monkeypatch):
 
 @pytest.fixture
 def mock_detail_not_found(monkeypatch):
-    monkeypatch.setattr(detail_router, "resolve_token", lambda *_: "token")
     monkeypatch.setattr(detail_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=None)
     monkeypatch.setattr(detail_router, "fetch_order_detail", mock)

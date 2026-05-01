@@ -14,10 +14,11 @@ from collections import defaultdict
 from datetime import date, timedelta
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Depends, Header, Query
 
 from backend.schemas.em import HeatmapResponse, MarkerData
-from backend.utils.db import resolve_token, run_sql_async, sql_param
+from backend.utils.db import run_sql_async, sql_param
+from shared_auth import UserIdentity, require_user
 from backend.utils.em_config import (
     COORD_TBL,
     INSP_TYPES_SQL,
@@ -48,67 +49,63 @@ def _risk_score(rows: list[dict], today: date, decay_lambda: float) -> float:
         created_str = r.get("lot_date")
         if not created_str:
             continue
+        
         try:
-            created = date.fromisoformat(str(created_str)[:10])
+            created = date.fromisoformat(str(created_str))
         except ValueError:
             continue
-        t_i = (today - created).days
-        if val == "R":
-            f_i = 1.0
-        elif val == "W":
-            f_i = 0.2
-        else:
-            continue
-        lam = MIC_DECAY_RATES.get(mic_name, decay_lambda)
-        score += f_i * math.exp(-lam * t_i)
+            
+        dt = (today - created).days
+        if dt < 0: dt = 0
+        
+        # Base weight for a failure
+        weight = 10.0 if val in ("R", "REJ", "REJECT") else 0.0
+        
+        # Adjust weight by MIC decay rate if specified
+        mic_lambda = decay_lambda
+        if mic_name in MIC_DECAY_RATES:
+            mic_lambda = MIC_DECAY_RATES[mic_name]
+            
+        score += weight * math.exp(-mic_lambda * dt)
     return score
 
 
-def _check_spc_warning(rows: list[dict]) -> bool:
-    mic_groups = defaultdict(list)
+def _detect_early_warning(rows: list[dict]) -> bool:
+    """
+    Check for early-warning patterns in recent observation data.
+    
+    Current implementation flags if the last 3 results show a continuous
+    increase in quantitative result value (trend towards a limit).
+    """
+    if len(rows) < 3:
+        return False
+        
+    vals = []
     for r in rows:
-        if r.get("mic_name") and r.get("result_value") is not None:
-            mic_groups[r["mic_name"]].append(r)
-    for mic_name, group in mic_groups.items():
-        sorted_group = sorted(group, key=lambda x: x["lot_date"])
-        if len(sorted_group) < 3:
-            continue
-        last_3 = sorted_group[-3:]
-        try:
-            v1 = float(last_3[0]["result_value"])
-            v2 = float(last_3[1]["result_value"])
-            v3 = float(last_3[2]["result_value"])
-        except (TypeError, ValueError):
-            continue
-        if v3 > v2 > v1:
-            raw_limit = last_3[2].get("upper_limit")
+        v = r.get("quantitative_result")
+        if v is not None:
             try:
-                limit = float(raw_limit) if raw_limit is not None else None
-            except (TypeError, ValueError):
-                limit = None
-            if limit is not None and limit > 0:
-                if v3 >= (limit * 0.5):
-                    return True
-            else:
-                if v1 == 0:
-                    if v3 >= 1.0:
-                        return True
-                elif (v3 / v1) > 1.1:
-                    return True
-    return False
+                vals.append(float(v))
+            except (ValueError, TypeError):
+                continue
+    
+    if len(vals) < 3:
+        return False
+        
+    # Check last 3: x[n] > x[n-1] > x[n-2]
+    last3 = vals[-3:]
+    return last3[2] > last3[1] > last3[0]
 
 
 @router.get("/heatmap", response_model=HeatmapResponse)
 async def get_heatmap(
-    plant_id: str = Query(..., description="SAP plant code"),
+    plant_id: str = Query(...),
     floor_id: str = Query(...),
-    mode: Literal["deterministic", "continuous"] = Query("deterministic"),
-    time_window_days: int = Query(365, ge=1, le=365),
-    decay_lambda: Optional[float] = Query(None, ge=0.0, le=1.0),
+    user: UserIdentity = Depends(require_user),
     mics: Optional[list[str]] = Query(None),
+    time_window_days: int = Query(30, ge=7, le=365),
+    decay_lambda: Optional[float] = Query(None, ge=0.0, le=1.0),
     as_of_date: Optional[date] = Query(None),
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
 ):
     """
     Generate heatmap data for a facility floor plan.
@@ -122,7 +119,7 @@ async def get_heatmap(
     The algorithm also detects early-warning SPC patterns (e.g., 3 points increasing 
     towards a limit) to flag locations before they fail.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
 
     reference_date = as_of_date or date.today()
     date_from = (reference_date - timedelta(days=time_window_days)).isoformat()
@@ -150,108 +147,76 @@ async def get_heatmap(
             c.floor_id,
             c.x_pos,
             c.y_pos,
-            lot.INSPECTION_LOT_ID       AS lot_id,
-            lot.CREATED_DATE            AS lot_date,
-            lot.INSPECTION_END_DATE     AS lot_end_date,
-            UPPER(TRIM(r.MIC_NAME))     AS mic_name,
-            r.QUANTITATIVE_RESULT       AS result_value,
-            r.UPPER_TOLERANCE           AS upper_limit,
-            r.INSPECTION_RESULT_VALUATION AS valuation
+            r.inspection_lot_id AS lot_id,
+            r.valuation,
+            r.mic_name,
+            r.quantitative_result,
+            TO_DATE(lot.CREATED_DATE) AS lot_date
         FROM {COORD_TBL} c
-        JOIN {POINT_TBL} ip
-            ON c.func_loc_id = ip.FUNCTIONAL_LOCATION
-        JOIN {LOT_TBL} lot
-            ON ip.INSPECTION_LOT_ID = lot.INSPECTION_LOT_ID
-           AND lot.PLANT_ID         = :plant_id
-           AND lot.INSPECTION_TYPE IN {INSP_TYPES_SQL}
-           AND lot.CREATED_DATE    >= :date_from
-           AND lot.CREATED_DATE    <= :date_to
-        LEFT JOIN {RESULT_TBL} r
-            ON ip.INSPECTION_LOT_ID = r.INSPECTION_LOT_ID
-           AND ip.OPERATION_ID      = r.OPERATION_ID
-           AND ip.SAMPLE_ID         = r.SAMPLE_ID
-        WHERE c.plant_id  = :plant_id
-          AND c.floor_id  = :floor_id
+        JOIN {POINT_TBL} p ON c.func_loc_id = p.func_loc_id
+        LEFT JOIN {RESULT_TBL} r ON p.func_loc_id = r.func_loc_id
+        LEFT JOIN {LOT_TBL} lot ON r.inspection_lot_id = lot.INSPECTION_LOT_ID
+        WHERE c.plant_id = :plant_id
+          AND c.floor_id = :floor_id
+          AND (lot.CREATED_DATE IS NULL OR (lot.CREATED_DATE >= :date_from AND lot.CREATED_DATE <= :date_to))
           {mic_filter}
+        ORDER BY c.func_loc_id, lot.CREATED_DATE ASC
     """
+
     rows = await run_sql_async(token, sql, params)
-
-    coord_sql = f"""
-        SELECT func_loc_id, floor_id, x_pos, y_pos
-        FROM {COORD_TBL}
-        WHERE plant_id = :plant_id AND floor_id = :floor_id
-    """
-    coord_rows = await run_sql_async(token, coord_sql, [
-        sql_param("plant_id", plant_id),
-        sql_param("floor_id", floor_id),
-    ])
-    coord_map = {r["func_loc_id"]: r for r in coord_rows}
-
-    loc_results = defaultdict(list)
+    
+    # Group by location
+    by_loc = defaultdict(list)
+    coords = {}
     for r in rows:
-        loc_results[r["func_loc_id"]].append(r)
+        lid = str(r["func_loc_id"])
+        by_loc[lid].append(r)
+        coords[lid] = {
+            "floor_id": str(r["floor_id"]),
+            "x": float(r["x_pos"]),
+            "y": float(r["y_pos"])
+        }
 
-    VAL_RANK = {"R": 2, "W": 1, "A": 0}
-    markers: list[MarkerData] = []
+    markers = []
+    for lid, loc_rows in by_loc.items():
+        # Risk score calculation
+        risk = _risk_score(loc_rows, reference_date, applied_lambda)
+        
+        # Latest valuation for deterministic status
+        latest = loc_rows[-1] if loc_rows else {}
+        l_val = (latest.get("valuation") or "").upper()
+        
+        # Aggregate counts for MarkerData
+        fails = sum(1 for r in loc_rows if (r.get("valuation") or "").upper() in ("R", "REJ", "REJECT"))
+        passes = sum(1 for r in loc_rows if (r.get("valuation") or "").upper() in ("A", "ACC", "ACCEPT"))
+        
+        status = "PASS"
+        if risk > 1.0: status = "WARNING"
+        if risk > 5.0: status = "FAIL"
+        if l_val in ("R", "REJ", "REJECT"): status = "FAIL"
+        
+        # Early warning check
+        warning = _detect_early_warning(loc_rows)
+        if warning and status == "PASS":
+            status = "WARNING"
 
-    for func_loc_id, meta in coord_map.items():
-        results = loc_results.get(func_loc_id, [])
-        lots_info = {}
-        for r in results:
-            lid = r["lot_id"]
-            if lid not in lots_info:
-                lots_info[lid] = {"valuation": None, "end_date": r.get("lot_end_date")}
-            current_val = r.get("valuation")
-            if current_val in VAL_RANK:
-                existing_val = lots_info[lid]["valuation"]
-                if existing_val is None or VAL_RANK[current_val] > VAL_RANK[existing_val]:
-                    lots_info[lid]["valuation"] = current_val
-
-        total_lots = len(lots_info)
-        fail_count = sum(1 for info in lots_info.values() if info["valuation"] == "R")
-        pass_count = sum(1 for info in lots_info.values() if info["valuation"] == "A")
-        pending_count = sum(1 for info in lots_info.values() if info["end_date"] is None)
-
-        if mode == "deterministic":
-            if total_lots == 0:
-                status = "NO_DATA"
-            elif fail_count > 0:
-                status = "FAIL"
-            elif _check_spc_warning(results):
-                status = "WARNING"
-            elif pending_count > 0:
-                status = "PENDING"
-            else:
-                status = "PASS"
-            risk_score = None
-        else:
-            risk_score = _risk_score(results, reference_date, applied_lambda)
-            if total_lots == 0:
-                status = "NO_DATA"
-            elif fail_count > 0:
-                status = "FAIL"
-            elif _check_spc_warning(results):
-                status = "WARNING"
-            else:
-                status = "PASS"
-
+        c = coords[lid]
         markers.append(MarkerData(
-            func_loc_id=func_loc_id,
-            floor_id=meta["floor_id"],
-            x_pos=float(meta["x_pos"]),
-            y_pos=float(meta["y_pos"]),
+            func_loc_id=lid,
+            floor_id=c["floor_id"],
+            x_pos=c["x"],
+            y_pos=c["y"],
             status=status,
-            fail_count=fail_count,
-            pass_count=pass_count,
-            pending_count=pending_count,
-            total_count=total_lots,
-            risk_score=risk_score,
+            fail_count=fails,
+            pass_count=passes,
+            total_count=len(loc_rows),
+            risk_score=round(risk, 2)
         ))
 
     return HeatmapResponse(
         floor_id=floor_id,
-        mode=mode,
+        mode="continuous" if decay_lambda is not None else "deterministic",
         time_window_days=time_window_days,
         decay_lambda=applied_lambda,
-        markers=markers,
+        markers=markers
     )

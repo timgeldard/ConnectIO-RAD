@@ -1,11 +1,12 @@
 """Yield analytics router — POST /api/yield/analytics."""
 from typing import Optional
 
-from fastapi import APIRouter, Header
+from shared_auth import UserIdentity, require_user
+from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
 from backend.dal.yield_analytics_dal import fetch_yield_analytics
-from backend.db import check_warehouse_config, resolve_token, validate_timezone
+from backend.db import check_warehouse_config, validate_timezone
 
 router = APIRouter()
 
@@ -20,10 +21,8 @@ class YieldAnalyticsRequest(BaseModel):
 
 
 @router.post("/yield/analytics")
-async def get_yield_analytics(
-    body: YieldAnalyticsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+async def get_yield_analytics(body: YieldAnalyticsRequest,
+    user: UserIdentity = Depends(require_user)
 ):
     """Return yield analytics: per-order yield, 30-day daily series, 24h hourly series.
 
@@ -31,7 +30,7 @@ async def get_yield_analytics(
     ``date_from`` / ``date_to`` are ISO date strings (YYYY-MM-DD); omitting both
     returns the last-24h rolling window.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     return await fetch_yield_analytics(
         token,

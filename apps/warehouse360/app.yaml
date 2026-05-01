@@ -16,3 +16,5 @@ env:
     value: "connected_plant_uat"
   - name: TRACE_SCHEMA
     value: "wh360"
+  - name: APP_TRUST_X_FORWARDED_HOST
+    value: "true"

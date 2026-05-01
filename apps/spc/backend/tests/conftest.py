@@ -1,5 +1,14 @@
 import pytest
 from unittest.mock import AsyncMock
+from shared_auth import require_user, UserIdentity
+from backend.main import app
+
+@pytest.fixture(autouse=True)
+def mock_require_user():
+    """Mock require_user dependency for all tests."""
+    app.dependency_overrides[require_user] = lambda: UserIdentity(user_id="test-user", raw_token="fake-token")
+    yield
+    app.dependency_overrides.clear()
 
 @pytest.fixture
 def mock_run_sql_async(monkeypatch):

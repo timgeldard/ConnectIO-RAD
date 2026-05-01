@@ -1,11 +1,12 @@
 """Planning board router — POST /api/planning/schedule."""
 from typing import Optional
 
-from fastapi import APIRouter, Header
+from shared_auth import UserIdentity, require_user
+from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
 from backend.dal.planning_dal import fetch_planning_schedule
-from backend.db import check_warehouse_config, resolve_token
+from backend.db import check_warehouse_config
 
 router = APIRouter()
 
@@ -17,10 +18,8 @@ class PlanningScheduleRequest(BaseModel):
 
 
 @router.post("/planning/schedule")
-async def get_planning_schedule(
-    body: PlanningScheduleRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+async def get_planning_schedule(body: PlanningScheduleRequest,
+    user: UserIdentity = Depends(require_user)
 ):
     """Return production planning schedule: Gantt blocks, backlog, and KPIs.
 
@@ -30,6 +29,6 @@ async def get_planning_schedule(
     from block and backlog data; capacity-based metrics return zero until a
     capacity master or schedule adherence metric view is available.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     return await fetch_planning_schedule(token, plant_id=body.plant_id)

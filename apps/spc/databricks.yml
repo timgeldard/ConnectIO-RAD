@@ -1,5 +1,5 @@
 bundle:
-  name: spc-tim
+  name: spc
   databricks_cli_version: '>= 0.283.0'
 
 sync:
@@ -13,7 +13,7 @@ sync:
 
 variables:
   app_name:
-    default: spc-tim
+    default: spc
   warehouse_http_path:
     default: /sql/1.0/warehouses/e76480b94bea6ed5
   trace_catalog:

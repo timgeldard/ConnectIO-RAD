@@ -37,7 +37,6 @@ _ANALYTICS_PAYLOAD = {
 
 @pytest.fixture
 def mock_analytics(monkeypatch):
-    monkeypatch.setattr(pours_router, "resolve_token", lambda *_: "token")
     monkeypatch.setattr(pours_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=_ANALYTICS_PAYLOAD)
     monkeypatch.setattr(pours_router, "fetch_pours_analytics", mock)

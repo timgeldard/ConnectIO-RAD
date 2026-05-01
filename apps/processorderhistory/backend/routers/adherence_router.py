@@ -1,11 +1,12 @@
 """Schedule Adherence analytics router — POST /api/adherence/analytics."""
 from typing import Optional
 
-from fastapi import APIRouter, Header
+from shared_auth import UserIdentity, require_user
+from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
 from backend.dal.adherence_analytics_dal import fetch_adherence_analytics
-from backend.db import check_warehouse_config, resolve_token, validate_timezone
+from backend.db import check_warehouse_config, validate_timezone
 
 router = APIRouter()
 
@@ -20,17 +21,15 @@ class AdherenceAnalyticsRequest(BaseModel):
 
 
 @router.post("/adherence/analytics")
-async def get_adherence_analytics(
-    body: AdherenceAnalyticsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+async def get_adherence_analytics(body: AdherenceAnalyticsRequest,
+    user: UserIdentity = Depends(require_user)
 ):
     """Return schedule adherence analytics: OTIF rate trend and order-level variance.
 
     ``date_from`` / ``date_to`` are ISO date strings (YYYY-MM-DD); omitting both
     returns the last 7 days for the order-level list.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     return await fetch_adherence_analytics(
         token,

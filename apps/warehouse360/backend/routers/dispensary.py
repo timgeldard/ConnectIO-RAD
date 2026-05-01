@@ -2,10 +2,11 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Header, Request
+from shared_auth import UserIdentity, require_user
+from fastapi import Depends, APIRouter, Header, Request
 
 from backend.dal.dispensary import fetch_dispensary_tasks
-from backend.utils.db import attach_data_freshness, check_warehouse_config, resolve_token
+from backend.utils.db import attach_data_freshness, check_warehouse_config
 
 router = APIRouter()
 
@@ -13,13 +14,11 @@ _FRESHNESS_SOURCES = ["wh360_dispensary_tasks_v"]
 
 
 @router.get("/dispensary")
-async def list_dispensary_tasks(
-    request: Request,
+async def list_dispensary_tasks(request: Request,
     plant_id: Optional[str] = None,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user)
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     rows = await fetch_dispensary_tasks(token, plant_id=plant_id)
     return await attach_data_freshness(

@@ -1,11 +1,12 @@
 """Downtime analytics router — POST /api/downtime/analytics."""
 from typing import Optional
 
-from fastapi import APIRouter, Header
+from shared_auth import UserIdentity, require_user
+from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
 from backend.dal.downtime_analytics_dal import fetch_downtime_analytics
-from backend.db import check_warehouse_config, resolve_token, validate_timezone
+from backend.db import check_warehouse_config, validate_timezone
 
 router = APIRouter()
 
@@ -20,10 +21,8 @@ class DowntimeAnalyticsRequest(BaseModel):
 
 
 @router.post("/downtime/analytics")
-async def get_downtime_analytics(
-    body: DowntimeAnalyticsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+async def get_downtime_analytics(body: DowntimeAnalyticsRequest,
+    user: UserIdentity = Depends(require_user)
 ):
     """Return downtime analytics: pareto by reason over the requested date range,
     and a 30-day daily series.
@@ -31,7 +30,7 @@ async def get_downtime_analytics(
     ``date_from`` / ``date_to`` are ISO date strings (YYYY-MM-DD); omitting both
     returns the last-24h rolling window.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     return await fetch_downtime_analytics(
         token,

@@ -11,7 +11,6 @@ client = TestClient(main_module.app)
 
 
 def test_chart_data_returns_paginated_shape(monkeypatch):
-    monkeypatch.setattr(spc_charts_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(spc_charts_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     async def fake_fetch_chart_data_page(*_args, **_kwargs):
@@ -63,7 +62,6 @@ def test_chart_data_returns_paginated_shape(monkeypatch):
 
 
 def test_chart_data_rejects_invalid_cursor(monkeypatch):
-    monkeypatch.setattr(spc_charts_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(spc_charts_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     response = client.post(
@@ -85,7 +83,6 @@ def test_chart_data_rejects_invalid_cursor(monkeypatch):
 
 
 def test_chart_data_skips_normality_fetch_on_non_initial_pages(monkeypatch):
-    monkeypatch.setattr(spc_charts_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(spc_charts_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     async def fake_fetch_chart_data_page(*_args, **_kwargs):
@@ -124,7 +121,6 @@ def test_chart_data_skips_normality_fetch_on_non_initial_pages(monkeypatch):
 
 
 def test_chart_data_survives_spec_drift_summary_failure(monkeypatch):
-    monkeypatch.setattr(spc_charts_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(spc_charts_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     async def fake_fetch_chart_data_page(*_args, **_kwargs):
@@ -300,7 +296,6 @@ def test_fetch_chart_data_page_orderby_uses_cursor_columns(monkeypatch):
 
 
 def test_chart_data_rejects_invalid_stratify_key(monkeypatch):
-    monkeypatch.setattr(spc_charts_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(spc_charts_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     response = client.post(
@@ -319,7 +314,6 @@ def test_chart_data_rejects_invalid_stratify_key(monkeypatch):
 
 
 def test_control_limits_endpoint_returns_governed_metrics(monkeypatch):
-    monkeypatch.setattr(spc_charts_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(spc_charts_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     async def fake_fetch_control_limits(*_args, **_kwargs):

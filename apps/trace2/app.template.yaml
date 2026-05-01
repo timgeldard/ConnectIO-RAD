@@ -10,13 +10,13 @@ command:
 
 env:
   - name: DATABRICKS_WAREHOUSE_HTTP_PATH
-    value: "$DATABRICKS_WAREHOUSE_HTTP_PATH"
+    value: "${DATABRICKS_WAREHOUSE_HTTP_PATH}"
 
   - name: TRACE_CATALOG
-    value: "$TRACE_CATALOG"
+    value: "${TRACE_CATALOG}"
 
   - name: TRACE_SCHEMA
-    value: "$TRACE_SCHEMA"
+    value: "${TRACE_SCHEMA}"
 
   - name: APP_TRUST_X_FORWARDED_HOST
     value: "true"

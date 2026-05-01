@@ -2,10 +2,11 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from shared_auth import UserIdentity, require_user
+from fastapi import Depends, APIRouter, Header, HTTPException, Request
 
 from backend.dal.inbound import fetch_inbound, fetch_receipt_detail
-from backend.utils.db import attach_data_freshness, check_warehouse_config, resolve_token
+from backend.utils.db import attach_data_freshness, check_warehouse_config
 
 router = APIRouter()
 
@@ -16,13 +17,11 @@ _DETAIL_FRESHNESS_SOURCES = [
 
 
 @router.get("/inbound")
-async def list_inbound(
-    request: Request,
+async def list_inbound(request: Request,
     plant_id: Optional[str] = None,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user)
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     rows = await fetch_inbound(token, plant_id=plant_id)
     return await attach_data_freshness(
@@ -34,13 +33,11 @@ async def list_inbound(
 
 
 @router.get("/inbound/{po_id}")
-async def get_receipt(
-    po_id: str,
+async def get_receipt(po_id: str,
     request: Request,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user)
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     detail = await fetch_receipt_detail(token, po_id)
     if detail.get("receipt") is None:
