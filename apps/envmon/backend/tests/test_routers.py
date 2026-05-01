@@ -39,11 +39,11 @@ async def test_list_plants():
 async def test_list_plants_keeps_geo_when_gold_plant_query_fails():
     async def mock_sql_fn(token, sql, params=None, **kwargs):
         s = sql.strip().upper()
-        if "SELECT DISTINCT PLANT_ID" in s:
+        if "SELECT DISTINCT" in s and "PLANT_ID" in s:
             return [{"PLANT_ID": "P225"}]
         if "FROM" in s and "EM_PLANT_GEO" in s:
             return [{"PLANT_ID": "P225", "LAT": 37.4, "LON": -5.9}]
-        if "FROM" in s and "GOLD_PLANT" in s:
+        if "FROM" in s and "GOLD_PLANT" in s and "DISTINCT" not in s:
             raise RuntimeError("missing metadata column")
         if "WITH BASE AS" in s:
             return []
@@ -67,7 +67,7 @@ async def test_list_plants_keeps_geo_when_gold_plant_query_fails():
 async def test_list_plants_accepts_lowercase_plant_id_rows():
     async def mock_sql_fn(token, sql, params=None, **kwargs):
         s = sql.strip().upper()
-        if "SELECT DISTINCT PLANT_ID" in s:
+        if "SELECT DISTINCT" in s and "PLANT_ID" in s:
             return [{"plant_id": "P225"}]
         if "FROM" in s and "EM_PLANT_GEO" in s:
             return [{"plant_id": "P225", "lat": 37.4, "lon": -5.9}]

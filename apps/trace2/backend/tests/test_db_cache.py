@@ -4,11 +4,7 @@ import backend.utils.db as db_module
 
 
 def _clear_cache() -> None:
-    with db_module._sql_cache_lock:
-        db_module._sql_cache.clear()
-        expires = getattr(db_module._sql_cache, "_expires", None)
-        if isinstance(expires, dict):
-            expires.clear()
+    db_module._clear_sql_cache()
 
 
 def test_read_statements_are_cached(monkeypatch):

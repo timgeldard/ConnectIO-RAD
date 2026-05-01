@@ -22,22 +22,41 @@
     },
     "lint": {
       "cache": true,
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"]
+      "inputs": [
+        "pyFiles",
+        "^pyFiles",
+        "sharedGlobals"
+      ]
     },
     "test": {
       "cache": true,
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
-      "dependsOn": ["^test"]
+      "inputs": [
+        "pyFiles",
+        "^pyFiles",
+        "sharedGlobals"
+      ],
+      "dependsOn": [
+        "^test"
+      ]
     },
     "build": {
       "cache": true,
-      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
-      "dependsOn": ["^build"]
+      "inputs": [
+        "tsFiles",
+        "^tsFiles",
+        "sharedGlobals"
+      ],
+      "dependsOn": [
+        "^build"
+      ]
     },
     "deploy": {
       "cache": false,
-      "dependsOn": ["build"]
+      "dependsOn": [
+        "build"
+      ]
     }
   },
-  "defaultProject": "trace2-frontend"
-}
+  "defaultProject": "trace2-frontend",
+  "analytics": false
+  }

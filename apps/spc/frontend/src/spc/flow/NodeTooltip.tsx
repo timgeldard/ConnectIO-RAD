@@ -1,4 +1,4 @@
-import { Icon } from '../../components/ui/Icon'
+import { Icon } from '@connectio/shared-ui'
 
 interface NodeTooltipProps {
   label: string

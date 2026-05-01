@@ -6,7 +6,7 @@ from starlette.requests import Request
 
 from backend.dal import spc_analysis_dal, spc_charts_dal, spc_metadata_dal, spc_shared
 from backend.routers import exclusions
-from backend.routers import spc_common
+from shared_db import utils as spc_common
 from backend.schemas.spc_schemas import ProcessFlowRequest
 
 

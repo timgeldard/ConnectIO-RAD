@@ -13,7 +13,7 @@ import io
 import json
 from typing import Optional
 
-from fastapi import APIRouter, Header, Request
+from fastapi import APIRouter, Depends, Header, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, TypeAdapter, field_validator, model_validator
 import openpyxl
@@ -22,16 +22,16 @@ from openpyxl.utils import get_column_letter
 
 from backend.utils.db import (
     check_warehouse_config,
-    resolve_token,
 )
 from backend.utils.rate_limit import limiter
+from shared_auth import UserIdentity, require_user
 from backend.dal.spc_analysis_dal import fetch_scorecard
 from backend.dal.spc_charts_dal import (
     fetch_chart_data,
     fetch_count_chart_data,
     fetch_p_chart_data,
 )
-from backend.routers.spc_common import handle_sql_error
+from shared_db.utils import handle_sql_error
 from backend.schemas.spc_schemas import _validate_date
 
 router = APIRouter()
@@ -411,11 +411,10 @@ def _rows_to_csv(headers: list[str], rows: list[list]) -> str:
 async def spc_export(
     request: Request,
     body: ExportRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     """Generate an Excel or CSV download for SPC data."""
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
 
     scope = body.export_scope

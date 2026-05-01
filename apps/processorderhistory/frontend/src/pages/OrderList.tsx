@@ -1,7 +1,7 @@
-// @ts-nocheck
-import { cloneElement, useEffect, useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n/context'
-import { I, fmt, TopBar, StatusBadge, Check, Sparkline } from '../ui'
+import { KPI, Icon, TopBar, Button } from '@connectio/shared-ui'
+import { fmt, StatusBadge, Check } from '../ui'
 import { STATUSES } from '../data/mock'
 import { fetchOrders } from '../api/orders'
 import type { Order } from '../api/orders'
@@ -29,7 +29,7 @@ interface OrderListProps {
   setLineFilter?: (value: string) => void
 }
 
-export function OrderList({ onOpen, lineFilter = 'ALL', setLineFilter = () => {} }: OrderListProps) {
+export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
   const { t } = useT()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set())
@@ -44,7 +44,7 @@ export function OrderList({ onOpen, lineFilter = 'ALL', setLineFilter = () => {}
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
-  const [poursToday, setPoursToday] = useState<number | null>(null)
+  const [_poursToday, setPoursToday] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -132,7 +132,7 @@ export function OrderList({ onOpen, lineFilter = 'ALL', setLineFilter = () => {}
       ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
       : { key, dir: key === 'start' ? 'desc' : 'asc' })
   }
-  const sortIcon = (key: SortKey) => sortBy.key !== key ? I.chevD : (sortBy.dir === 'asc' ? I.chevU : I.chevD)
+  const sortIcon = (key: SortKey): any => sortBy.key !== key ? 'chevron-down' : (sortBy.dir === 'asc' ? 'chevron-up' : 'chevron-down')
 
   const allSel = pageOrders.length > 0 && pageOrders.every(o => selected.has(o.id))
   const someSel = pageOrders.some(o => selected.has(o.id)) && !allSel
@@ -141,8 +141,6 @@ export function OrderList({ onOpen, lineFilter = 'ALL', setLineFilter = () => {}
   const totalRunning = filtered.filter(o => o.status === 'running').length
   const onHold = filtered.filter(o => o.status === 'onhold').length
   const ordersThisMonth = orders.filter(o => o.start != null && o.start >= thirtyDaysAgo).length
-  const posStartedToday = filtered.filter(o => isToday(o.start)).length
-  const posCompletedToday = filtered.filter(o => o.status === 'completed' && isToday(o.end)).length
   const avgYield = (() => {
     const ys = filtered.filter(o => o.yieldPct != null).map(o => o.yieldPct as number)
     if (ys.length === 0) return null
@@ -156,252 +154,211 @@ export function OrderList({ onOpen, lineFilter = 'ALL', setLineFilter = () => {}
 
   if (fetchError) {
     return (
-      <>
-        <TopBar trail={[t.operations, t.crumbManufacturing, t.crumbOrders]} />
-        <div style={{ padding: '48px 32px', color: 'var(--sunset)' }}>
-          {I.alert}<span style={{ marginLeft: 8 }}>Failed to load orders: {fetchError}</span>
+      <div className="app-shell-full">
+        <TopBar breadcrumbs={[{ label: t.operations }, { label: t.crumbManufacturing }, { label: t.crumbOrders }]} />
+        <div style={{ padding: '48px 32px', color: 'var(--status-risk)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="alert-triangle" />
+          <span>Failed to load orders: {fetchError}</span>
         </div>
-      </>
+      </div>
     )
   }
 
   return (
-    <>
-      <TopBar trail={[t.operations, t.crumbManufacturing, t.crumbOrders]} />
+    <div className="app-shell-full">
+      <TopBar breadcrumbs={[{ label: t.operations }, { label: t.crumbManufacturing }, { label: t.crumbOrders }]} />
 
-      <div className="page-head">
+      <div className="page-head" style={{ padding: '24px 32px', background: 'var(--surface-0)' }}>
         <div>
-          <div className="page-eyebrow">{I.hexagon}<span>{t.pageEyebrow}</span></div>
-          <h1 className="page-title">{t.pageTitle}</h1>
-          <p className="page-sub">{t.pageSub}</p>
+          <div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="layers" size={14} />
+            <span>{t.pageEyebrow}</span>
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, margin: '8px 0 4px', color: 'var(--text-1)' }}>{t.pageTitle}</h1>
+          <p style={{ fontSize: 13, color: 'var(--text-3)' }}>{t.pageSub}</p>
         </div>
-        <div className="page-head-actions">
-          <button className="btn secondary">{I.printer}<span>{t.actionExport}</span></button>
+        <div className="page-head-actions" style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+          <Button variant="secondary" icon={<Icon name="printer" />}>{t.actionExport}</Button>
         </div>
       </div>
 
-      <div className="kpis">
-        <div className="kpi">
-          <div className="kpi-label">{t.kpiActive}</div>
-          <div className="kpi-value">
-            {loading ? '—' : totalRunning}
-            <span className="kpi-delta neutral">{t.kpiActiveSub}</span>
-          </div>
-          <Sparkline data={[2, 4, 3, 5, 4, 6, 5, 7, 6, 8, 5, 4]} color="var(--sage)" />
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">{t.kpiOrders30}</div>
-          <div className="kpi-value">
-            {loading ? '—' : ordersThisMonth}
-            <span className="kpi-delta up">—</span>
-          </div>
-          <Sparkline data={[12, 18, 15, 22, 19, 24, 28, 25, 30, 27, 29, 33]} color="var(--valentia-slate)" />
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">{t.kpiYield}</div>
-          <div className="kpi-value">
-            {loading ? '—' : (avgYield ?? '—')}
-            {avgYield != null && <span className="kpi-delta up">{t.kpiYieldDelta}</span>}
-          </div>
-          <Sparkline data={[94.1, 94.8, 95.2, 94.5, 95.5, 95.1, 95.8, 96.0, 95.4, 95.9, 96.2, 96.1]} color="#1F6E4A" />
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">{t.kpiHold}</div>
-          <div className="kpi-value">
-            {loading ? '—' : onHold}
-            <span className="kpi-delta down">{t.kpiHoldSub}</span>
-          </div>
-          <Sparkline data={[3, 2, 4, 2, 3, 1, 2, 3, 4, 5, 3, 2]} color="var(--sunset)" />
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">{t.kpiPOsStarted}</div>
-          <div className="kpi-value">{loading ? '—' : posStartedToday}</div>
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">{t.kpiPOsCompleted}</div>
-          <div className="kpi-value">{loading ? '—' : posCompletedToday}</div>
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">{t.kpiPoursToday}</div>
-          <div className="kpi-value">{poursToday ?? '—'}</div>
-        </div>
+      <div className="pour-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, padding: '0 32px 24px', background: 'var(--surface-0)' }}>
+        <KPI
+          label={t.kpiActive}
+          value={loading ? '—' : totalRunning}
+          subtext={t.kpiActiveSub}
+          sparkline={[2, 4, 3, 5, 4, 6, 5, 7, 6, 8, 5, 4]}
+          tone="neutral"
+          icon="activity"
+        />
+        <KPI
+          label={t.kpiOrders30}
+          value={loading ? '—' : ordersThisMonth}
+          sparkline={[12, 18, 15, 22, 19, 24, 28, 25, 30, 27, 29, 33]}
+          tone="neutral"
+          icon="layers"
+        />
+        <KPI
+          label={t.kpiYield}
+          value={loading ? '—' : (avgYield ?? '—')}
+          unit="%"
+          subtext={avgYield != null ? t.kpiYieldDelta : undefined}
+          sparkline={[94.1, 94.8, 95.2, 94.5, 95.5, 95.1, 95.8, 96.0, 95.4, 95.9, 96.2, 96.1]}
+          tone="ok"
+          icon="trending-up"
+        />
+        <KPI
+          label={t.kpiHold}
+          value={loading ? '—' : onHold}
+          subtext={t.kpiHoldSub}
+          sparkline={[3, 2, 4, 2, 3, 1, 2, 3, 4, 5, 3, 2]}
+          tone="risk"
+          icon="alert-triangle"
+        />
       </div>
 
-      <div className="toolbar">
-        <div className="search">
-          {I.search}
-          <input placeholder={t.searchPlaceholder} value={search} onChange={(e) => setSearch(e.target.value)} />
-          <kbd>⌘K</kbd>
+      <div className="toolbar" style={{ padding: '12px 32px', borderBottom: '1px solid var(--line-1)', background: 'var(--surface-sunken)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="search-box" style={{ position: 'relative', width: 300 }}>
+          <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }} />
+          <input 
+            placeholder={t.searchPlaceholder} 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+            style={{ width: '100%', padding: '6px 12px 6px 32px', fontSize: 13, border: '1px solid var(--line-1)', borderRadius: 6, background: 'var(--surface-0)' }}
+          />
         </div>
 
-        <div className="toolbar-divider" />
+        <div style={{ width: 1, height: 24, background: 'var(--line-1)' }} />
 
-        <span className="chip-label">{t.statusLabel}</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase' }}>{t.statusLabel}</span>
         {(STATUSES as any[]).slice(0, 5).map(s => (
           <button
             key={s.key}
             className={`chip ${statusFilter.has(s.key) ? 'active' : ''}`}
             onClick={() => toggleStatus(s.key)}
+            style={{ padding: '4px 10px', borderRadius: 99, border: '1px solid var(--line-1)', background: statusFilter.has(s.key) ? 'var(--surface-0)' : 'transparent', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            <span className={`dot status-${s.key}`} />
+            <span style={{ width: 8, height: 8, borderRadius: 99, background: `var(--status-${s.key === 'running' ? 'ok' : s.key === 'completed' ? 'ok' : s.key === 'onhold' ? 'risk' : 'neutral'})` }} />
             <span>{statusLabel[s.key]}</span>
           </button>
         ))}
 
-        <div className="toolbar-divider" />
+        <div style={{ width: 1, height: 24, background: 'var(--line-1)' }} />
 
-        <div className="date-pick">
-          {I.calendar}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+          <Icon name="calendar" size={14} />
           <input
             type="date"
             value={dateFrom}
             max={dateTo || _today}
             onChange={e => setDateFrom(e.target.value)}
-            style={{ border: 'none', background: 'transparent', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }}
+            style={{ border: 'none', background: 'transparent', font: 'inherit', cursor: 'pointer' }}
           />
-          <span className="sep">→</span>
+          <span style={{ opacity: 0.5 }}>→</span>
           <input
             type="date"
             value={dateTo}
             min={dateFrom}
             max={_today}
             onChange={e => setDateTo(e.target.value)}
-            style={{ border: 'none', background: 'transparent', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }}
+            style={{ border: 'none', background: 'transparent', font: 'inherit', cursor: 'pointer' }}
           />
         </div>
 
-        <select
-          className="chip"
-          value={productFilter || ''}
-          onChange={e => setProductFilter(e.target.value || null)}
-          style={{ cursor: 'pointer' }}
-        >
-          <option value="">{t.productLabel} · {t.productAll}</option>
-          {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-        </select>
+        <div style={{ flex: 1 }} />
 
-        <div className="toolbar-spacer" />
-
-        <button className="btn ghost sm">{I.refresh}<span>{t.refresh}</span></button>
+        <Button variant="ghost" onClick={() => window.location.reload()} icon={<Icon name="refresh" />}>{t.refresh}</Button>
       </div>
 
       {selected.size > 0 && (
-        <div className="bulk-bar">
-          <span className="count-pill">{selected.size}</span>
-          <span>{selected.size === 1 ? t.bulkOrderSing : t.bulkOrderPlural}</span>
-          <div className="b-spacer" />
-          <button>{I.download}<span>{t.bulkExport}</span></button>
-          <button>{I.copy}<span>{t.bulkCompare}</span></button>
-          <button>{I.archive}<span>{t.bulkArchive}</span></button>
-          <button>{I.pause}<span>{t.bulkHold}</span></button>
-          <button className="clear" onClick={() => setSelected(new Set())}>{I.x}<span>{t.bulkClear}</span></button>
+        <div className="bulk-bar" style={{ padding: '8px 32px', background: 'var(--valentia-slate)', color: '#fff', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ background: '#fff', color: 'var(--valentia-slate)', padding: '2px 8px', borderRadius: 4, fontWeight: 700, fontSize: 12 }}>{selected.size}</span>
+          <span style={{ fontWeight: 600 }}>{selected.size === 1 ? t.bulkOrderSing : t.bulkOrderPlural}</span>
+          <div style={{ flex: 1 }} />
+          <button className="btn btn-ghost btn-sm" style={{ color: '#fff' }}><Icon name="download" /><span>{t.bulkExport}</span></button>
+          <button className="btn btn-ghost btn-sm" style={{ color: '#fff' }}><Icon name="copy" /><span>{t.bulkCompare}</span></button>
+          <button className="btn btn-ghost btn-sm" style={{ color: '#fff' }}><Icon name="archive" /><span>{t.bulkArchive}</span></button>
+          <button className="btn btn-ghost btn-sm" style={{ color: '#fff' }} onClick={() => setSelected(new Set())}><Icon name="x" /><span>{t.bulkClear}</span></button>
         </div>
       )}
 
-      <div className="table-wrap">
-        <div className="table-meta">
-          <strong>{loading ? '…' : filtered.length.toLocaleString()}</strong>
-          <span>{t.ordersMatch}</span>
+      <div style={{ padding: '0 32px 48px' }}>
+        <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: 'var(--text-3)' }}>
+          <div>
+            <strong style={{ color: 'var(--text-1)' }}>{loading ? '…' : filtered.length.toLocaleString()}</strong> {t.ordersMatch}
+          </div>
           {(statusFilter.size > 0 || search) && (
-            <button className="btn ghost sm" onClick={() => { setStatusFilter(new Set()); setSearch('') }}>
-              {I.x}<span>{t.clearFilters}</span>
-            </button>
+            <Button variant="ghost" onClick={() => { setStatusFilter(new Set()); setSearch('') }} icon={<Icon name="x" />}>{t.clearFilters}</Button>
           )}
-          <div className="tm-spacer" />
-          <span>
-            {t.sortedBy} <strong>{(t as any)[`sortKey_${sortBy.key}`] || sortBy.key}</strong> ·{' '}
-            {sortBy.dir === 'asc' ? t.sortAsc : t.sortDesc}
-          </span>
         </div>
 
         {loading ? (
-          <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-400)' }}>
+          <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-3)' }}>
             Loading orders…
           </div>
         ) : (
-          <table className="tbl">
-            <thead>
+          <table className="tbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ background: 'var(--surface-sunken)', borderBottom: '1px solid var(--line-1)' }}>
               <tr>
-                <th className="col-check">
+                <th style={{ padding: '12px 16px', textAlign: 'left', width: 40 }}>
                   <Check checked={allSel} indeterminate={someSel} onClick={toggleSelectAllOnPage} />
                 </th>
-                <th className={`col-id ${sortBy.key === 'id' ? 'sorted' : ''}`}>
-                  <span className="sortable" onClick={() => onSort('id')}>{t.colOrderLot} {sortIcon('id')}</span>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => onSort('id')}>{t.colOrderLot} <Icon name={sortIcon('id')} size={12} /></span>
                 </th>
-                <th className={sortBy.key === 'product' ? 'sorted' : ''}>
-                  <span className="sortable" onClick={() => onSort('product')}>{t.colProduct} {sortIcon('product')}</span>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => onSort('product')}>{t.colProduct} <Icon name={sortIcon('product')} size={12} /></span>
                 </th>
-                <th className={`col-status ${sortBy.key === 'status' ? 'sorted' : ''}`}>{t.colStatus}</th>
-                <th className={sortBy.key === 'line' ? 'sorted' : ''}>
-                  <span className="sortable" onClick={() => onSort('line')}>{t.colLine} {sortIcon('line')}</span>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t.colStatus}</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => onSort('line')}>{t.colLine} <Icon name={sortIcon('line')} size={12} /></span>
                 </th>
-                <th className={`col-qty ${sortBy.key === 'qty' ? 'sorted' : ''}`}>
-                  <span className="sortable" onClick={() => onSort('qty')}>{t.colQty} {sortIcon('qty')}</span>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <span style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={() => onSort('qty')}>{t.colQty} <Icon name={sortIcon('qty')} size={12} /></span>
                 </th>
-                <th className={`col-yield ${sortBy.key === 'yield' ? 'sorted' : ''}`}>
-                  <span className="sortable" onClick={() => onSort('yield')}>{t.colYield} {sortIcon('yield')}</span>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <span style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={() => onSort('yield')}>{t.colYield} <Icon name={sortIcon('yield')} size={12} /></span>
                 </th>
-                <th className={`col-date ${sortBy.key === 'start' ? 'sorted' : ''}`}>
-                  <span className="sortable" onClick={() => onSort('start')}>{t.colStarted} {sortIcon('start')}</span>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => onSort('start')}>{t.colStarted} <Icon name={sortIcon('start')} size={12} /></span>
                 </th>
-                <th className="col-end"></th>
+                <th style={{ width: 40 }}></th>
               </tr>
             </thead>
             <tbody>
               {pageOrders.map(o => {
                 const isSel = selected.has(o.id)
-                const yieldClass = o.yieldPct == null ? 'ok' : o.yieldPct >= 95 ? 'good' : o.yieldPct >= 90 ? 'ok' : 'bad'
                 return (
-                  <tr key={o.id} className={isSel ? 'selected' : ''} onClick={() => onOpen(o)}>
-                    <td className="col-check">
+                  <tr key={o.id} style={{ borderBottom: '1px solid var(--line-1)', background: isSel ? 'var(--surface-sunken)' : 'transparent', cursor: 'pointer' }} onClick={() => onOpen(o)}>
+                    <td style={{ padding: '12px 16px' }} onClick={(e) => e.stopPropagation()}>
                       <Check checked={isSel} onClick={() => toggleSelect(o.id)} />
                     </td>
-                    <td className="col-id">
-                      <div className="cell-id">{o.id}<span className="lot">{o.lot ?? '—'}</span></div>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-1)' }}>{o.id}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>{o.lot ?? '—'}</div>
                     </td>
-                    <td>
-                      <div className="cell-product">
-                        {o.product.name}
-                        <span className="sku">{o.product.sku} · {o.product.category}</span>
-                      </div>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-1)' }}>{o.product.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{o.product.sku} · {o.product.category}</div>
                     </td>
-                    <td className="col-status">
+                    <td style={{ padding: '12px 16px' }}>
                       <StatusBadge status={o.status} onClick={(s) => toggleStatus(s)} />
                     </td>
-                    <td>
-                      <div className="cell-product">
-                        {o.line ?? '—'}
-                        <span className="sku">{o.shift ? `${t.shift} ${o.shift}` : '—'}{o.operator ? ` · ${o.operator}` : ''}</span>
-                      </div>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-1)' }}>{o.line ?? '—'}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{o.shift ? `${t.shift} ${o.shift}` : '—'}</div>
                     </td>
-                    <td className="col-qty">
-                      <div className="cell-num">
-                        {o.actualQty != null ? fmt.num(o.actualQty) : '—'}<span className="unit">kg</span>
-                        {o.targetQty != null && (
-                          <div style={{ color: 'var(--ink-400)', fontSize: 11, marginTop: 2 }}>{t.of} {fmt.num(o.targetQty)}</div>
-                        )}
-                      </div>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-1)', fontFamily: 'var(--font-mono)' }}>{o.actualQty != null ? fmt.num(o.actualQty) : '—'}<span style={{ fontSize: 11, fontWeight: 400, marginLeft: 2 }}>kg</span></div>
                     </td>
-                    <td className="col-yield">
-                      {o.yieldPct == null ? (
-                        <div className="cell-num" style={{ color: 'var(--ink-400)' }}>—</div>
-                      ) : (
-                        <div className="yield-bar">
-                          <div className="bar"><div className={`fill ${yieldClass}`} style={{ width: `${Math.min(100, o.yieldPct)}%` }} /></div>
-                          <span className="pct">{o.yieldPct}%</span>
-                        </div>
-                      )}
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      <div style={{ fontWeight: 600, color: o.yieldPct && o.yieldPct >= 95 ? 'var(--status-ok)' : o.yieldPct && o.yieldPct >= 90 ? 'var(--status-warn)' : 'var(--status-risk)', fontFamily: 'var(--font-mono)' }}>{o.yieldPct ? `${o.yieldPct}%` : '—'}</div>
                     </td>
-                    <td className="col-date">
-                      <div className="cell-date">
-                        {o.start != null ? `${fmt.shortDate(o.start)}, ${fmt.time(o.start)}` : '—'}
-                        <span className="time">
-                          {o.durationH != null ? fmt.duration(o.durationH) : ''}
-                          {o.status === 'running' ? ` · ${t.runningSuffix}` : ''}
-                        </span>
-                      </div>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ fontSize: 13, color: 'var(--text-1)' }}>{o.start != null ? fmt.shortDate(o.start) : '—'}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{o.start != null ? fmt.time(o.start) : ''}</div>
                     </td>
-                    <td className="col-end">{cloneElement(I.chevR as ReactElement, { className: 'row-go' })}</td>
+                    <td style={{ padding: '12px 16px' }}><Icon name="chevron-right" style={{ opacity: 0.3 }} /></td>
                   </tr>
                 )
               })}
@@ -410,30 +367,17 @@ export function OrderList({ onOpen, lineFilter = 'ALL', setLineFilter = () => {}
         )}
 
         {!loading && (
-          <div className="pagination">
-            <span>
-              {t.showing}{' '}
-              <strong style={{ color: 'var(--forest)', fontWeight: 600 }}>
-                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)}
-              </strong>{' '}
-              {t.of}{' '}
-              <strong style={{ color: 'var(--forest)', fontWeight: 600 }}>{filtered.length}</strong>
-            </span>
-            <div className="pager-spacer" />
-            <button className="page-btn" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>{I.chevL}</button>
-            <div className="pages">
-              {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
-                const n = i + 1
-                return (
-                  <button key={n} className={`page-btn ${page === n ? 'active' : ''}`} onClick={() => setPage(n)}>{n}</button>
-                )
-              })}
-              {totalPages > 5 && <span style={{ padding: '0 4px', color: 'var(--ink-400)' }}>…</span>}
+          <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: 13, color: 'var(--text-3)' }}>
+              {t.showing} <strong>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)}</strong> {t.of} <strong>{filtered.length}</strong>
             </div>
-            <button className="page-btn" disabled={page === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>{I.chevR}</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="ghost" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} icon={<Icon name="chevron-left" />} />
+              <Button variant="ghost" disabled={page === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} icon={<Icon name="chevron-right" />} />
+            </div>
           </div>
         )}
       </div>
-    </>
+    </div>
   )
 }

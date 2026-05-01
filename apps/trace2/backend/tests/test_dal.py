@@ -35,7 +35,7 @@ async def test_fetch_batch_header():
         "batch_status": "UNRESTRICTED"
     }]
     
-    with patch("backend.dal.trace_dal.run_sql_async", new_callable=AsyncMock) as mock_sql:
+    with patch("backend.dal.trace_dal._trace_core_dal.run_sql_async", new_callable=AsyncMock) as mock_sql:
         mock_sql.return_value = mock_rows
         
         result = await dal.fetch_batch_header("fake-token", "M1", "B1")
@@ -53,7 +53,7 @@ async def test_fetch_recall_readiness():
         # Default header-like response
         return [{"material_id": "M1", "batch_id": "B1"}]
 
-    with patch("backend.dal.trace_dal.run_sql_async", side_effect=mock_sql_fn):
+    with patch("backend.dal.trace_dal._trace_core_dal.run_sql_async", side_effect=mock_sql_fn):
         result = await dal.fetch_recall_readiness("fake-token", "M1", "B1")
         
         assert "header" in result
@@ -64,7 +64,7 @@ async def test_fetch_recall_readiness():
 
 @pytest.mark.asyncio
 async def test_fetch_coa():
-    with patch("backend.dal.trace_dal.run_sql_async", new_callable=AsyncMock) as mock_sql:
+    with patch("backend.dal.trace_dal._trace_core_dal.run_sql_async", new_callable=AsyncMock) as mock_sql:
         mock_sql.side_effect = [
             [{"material_id": "M1", "batch_id": "B1"}], # Header
             [{"mic_code": "MIC1", "mic_name": "MIC 1", "actual_result": "9.5"}] # Results

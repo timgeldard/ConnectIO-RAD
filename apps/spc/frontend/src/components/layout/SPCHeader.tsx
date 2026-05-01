@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n'
-import { Icon } from '../ui/Icon'
+import { Icon } from '@connectio/shared-ui'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from '../../spc/SPCContext'
 
 interface SPCHeaderProps {

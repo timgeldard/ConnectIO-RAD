@@ -26,6 +26,7 @@ def test_ready_returns_503_when_readiness_token_missing(monkeypatch):
 
 
 def test_ready_returns_503_when_warehouse_config_missing(monkeypatch):
+    monkeypatch.setenv("DATABRICKS_READINESS_TOKEN", "fake-token")
     def missing_config():
         raise HTTPException(status_code=500, detail="missing warehouse")
 

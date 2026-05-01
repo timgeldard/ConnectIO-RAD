@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Icon } from '../components/ui/Icon'
+import { Icon } from '@connectio/shared-ui'
 import { shallowEqual, useSPCSelector } from './SPCContext'
 import type { StratifyByKey } from './types'
 

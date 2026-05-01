@@ -1,7 +1,7 @@
-// @ts-nocheck
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { LangProvider } from './i18n/context'
-import { Sidebar } from './ui'
+import { useT } from './i18n/context'
+import { AppShell, Sidebar, type NavGroup } from '@connectio/shared-ui'
 import { OrderList } from './pages/OrderList'
 import { OrderDetail } from './pages/OrderDetail'
 import { PlanningBoard } from './pages/PlanningBoard'
@@ -29,7 +29,8 @@ type View =
 
 const HOUR = 3600 * 1000
 
-export default function App() {
+function AppContent() {
+  const { t } = useT()
   const [view, setView] = useState<View>({ name: 'list' })
   const [lineFilter, setLineFilter] = useState('ALL')
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
@@ -39,7 +40,7 @@ export default function App() {
     fetchCurrentUser().then(u => setCurrentUser(u)).catch(() => {})
   }, [])
 
-  const sidebarActive =
+  const activeId =
     view.name === 'planning' ? 'planning' :
     view.name === 'pours' ? 'pours' :
     view.name === 'day-view' ? 'day-view' :
@@ -60,6 +61,27 @@ export default function App() {
     else if (key === 'equipment-insights') setView({ name: 'equipment-insights' })
     window.scrollTo(0, 0)
   }
+
+  const navGroups: NavGroup[] = useMemo(() => [
+    {
+      label: t.sectionOperate,
+      items: [
+        { id: 'planning', label: t.navPlanning, icon: 'layers' },
+        { id: 'orders',   label: t.navOrders,   icon: 'history' },
+        { id: 'vessel-planning', label: t.navVesselPlanning, icon: 'cpu' },
+      ]
+    },
+    {
+      label: t.sectionInsights,
+      items: [
+        { id: 'day-view', label: t.navDayView, icon: 'clock' },
+        { id: 'pours',    label: t.navPours, icon: 'package' },
+        { id: 'yield',    label: t.navYield,    icon: 'trending-up' },
+        { id: 'quality',  label: t.navQuality, icon: 'shield' },
+        { id: 'equipment-insights', label: t.navEquipmentInsights, icon: 'beaker' },
+      ]
+    }
+  ], [t])
 
   // Cross-view jump used by KPI strip and planning-board drill-throughs.
   useEffect(() => {
@@ -115,48 +137,79 @@ export default function App() {
   }, [])
 
   return (
-    <LangProvider>
-      <div className="app">
-        <Sidebar active={sidebarActive} onNavigate={onNavigate} user={currentUser} />
-        <main className="main">
-          {view.name === 'list' && (
-            <OrderList
-              onOpen={(order) => { setView({ name: 'detail', order, from: 'list' }); window.scrollTo(0, 0) }}
-              lineFilter={lineFilter}
-              setLineFilter={setLineFilter}
-            />
-          )}
-          {view.name === 'detail' && (
-            <OrderDetail
-              order={view.order}
-              from={view.from}
-              onBack={() => {
-                if (view.from === 'planning') setView({ name: 'planning' })
-                else if (view.from === 'day-view') setView({ name: 'day-view' })
-                else if (view.from === 'pours') setView({ name: 'pours' })
-                else if (view.from === 'yield') setView({ name: 'yield' })
-                else if (view.from === 'quality') setView({ name: 'quality' })
-                else if (view.from === 'vessel-planning') setView({ name: 'vessel-planning' })
-                else setView({ name: 'list' })
-                window.scrollTo(0, 0)
-              }}
-            />
-          )}
-          {view.name === 'planning' && <PlanningBoard />}
-          {view.name === 'pours' && <PourAnalyticsPage />}
-          {view.name === 'day-view' && <DayView />}
-          {view.name === 'yield' && <YieldAnalyticsPage />}
-          {view.name === 'quality' && <QualityAnalyticsPage />}
-          {view.name === 'vessel-planning' && <VesselPlanningAnalyticsPage />}
-          {view.name === 'equipment-insights' && <EquipmentInsightsPage />}
-        </main>
-        <GenieDrawer
-          open={genieOpen}
-          onOpen={() => setGenieOpen(true)}
-          onClose={() => setGenieOpen(false)}
-          pageContext={buildGeniePageContext(view, lineFilter)}
+    <AppShell
+      sidebar={
+        <Sidebar
+          appTag="Operations"
+          groups={navGroups}
+          activeId={activeId}
+          onNavigate={onNavigate}
+          footer={
+            <>
+              <div style={{
+                width: 28, height: 28, borderRadius: 999,
+                background: 'var(--sage)', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 700, fontSize: 11, flexShrink: 0,
+              }}>
+                {currentUser?.initials ?? '—'}
+              </div>
+              <div style={{ fontSize: 11.5, lineHeight: 1.3, minWidth: 0, flex: 1 }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {currentUser?.name ?? '…'}
+                </div>
+              </div>
+            </>
+          }
         />
-      </div>
+      }
+    >
+      <main className="main">
+        {view.name === 'list' && (
+          <OrderList
+            onOpen={(order) => { setView({ name: 'detail', order, from: 'list' }); window.scrollTo(0, 0) }}
+            lineFilter={lineFilter}
+            setLineFilter={setLineFilter}
+          />
+        )}
+        {view.name === 'detail' && (
+          <OrderDetail
+            order={view.order}
+            from={view.from}
+            onBack={() => {
+              if (view.from === 'planning') setView({ name: 'planning' })
+              else if (view.from === 'day-view') setView({ name: 'day-view' })
+              else if (view.from === 'pours') setView({ name: 'pours' })
+              else if (view.from === 'yield') setView({ name: 'yield' })
+              else if (view.from === 'quality') setView({ name: 'quality' })
+              else if (view.from === 'vessel-planning') setView({ name: 'vessel-planning' })
+              else setView({ name: 'list' })
+              window.scrollTo(0, 0)
+            }}
+          />
+        )}
+        {view.name === 'planning' && <PlanningBoard />}
+        {view.name === 'pours' && <PourAnalyticsPage />}
+        {view.name === 'day-view' && <DayView />}
+        {view.name === 'yield' && <YieldAnalyticsPage />}
+        {view.name === 'quality' && <QualityAnalyticsPage />}
+        {view.name === 'vessel-planning' && <VesselPlanningAnalyticsPage />}
+        {view.name === 'equipment-insights' && <EquipmentInsightsPage />}
+      </main>
+      <GenieDrawer
+        open={genieOpen}
+        onOpen={() => setGenieOpen(true)}
+        onClose={() => setGenieOpen(false)}
+        pageContext={buildGeniePageContext(view, lineFilter)}
+      />
+    </AppShell>
+  )
+}
+
+export default function App() {
+  return (
+    <LangProvider>
+      <AppContent />
     </LangProvider>
   )
 }

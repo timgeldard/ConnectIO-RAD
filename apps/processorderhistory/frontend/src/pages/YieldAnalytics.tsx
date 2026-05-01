@@ -1,8 +1,6 @@
-// @ts-nocheck
 /**
  * Yield Analytics page — three internal components plus one page export:
- *   - YieldTrendChart30d   : SVG bar chart, daily avg yield % over last 30 days
- *   - YieldTrendChart24h   : SVG area/line chart, hourly avg yield % over last 24h
+ *   - YieldTrendChart      : unified 24h / 7d / 30d toggle with hover tooltip
  *   - YieldBreakdown       : tabbed breakdown table + card view + CSV download
  *   - YieldAnalyticsPage   : full page — KPIs, trend charts, breakdown
  *
@@ -11,7 +9,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n/context'
-import { I, TopBar } from '../ui'
+import { TopBar, Icon, Button, KPI } from '@connectio/shared-ui'
 import { fetchYieldAnalytics, type YieldData, type YieldOrder, type YieldDaySeries, type YieldHourSeries } from '../api/yield'
 import {
   AnalyticsFilterBar,
@@ -19,7 +17,6 @@ import {
   ContributorsPanel,
   DeltaPill,
   inBucket,
-  todayISO,
   useAnalyticsFilters,
   type BucketSelection,
 } from './analyticsShared'
@@ -40,6 +37,13 @@ function fmtHour(ms: number) { return new Date(ms).toLocaleTimeString('en-GB', {
  */
 function periodLabel(a: string, b: string) { return a === b ? a : `${a} → ${b}` }
 
+function getYieldColor(v: number | null, targetYield: number): string {
+  if (v == null) return 'inherit'
+  if (v >= targetYield) return 'var(--status-ok)'
+  if (v >= 85) return 'var(--status-warn)'
+  return 'var(--status-risk)'
+}
+
 // ---------------------------------------------------------------------------
 // YieldTrendChart — unified 24h / 7d / 30d toggle with hover tooltip
 // ---------------------------------------------------------------------------
@@ -53,9 +57,15 @@ function YieldTrendChart({
   targetYield,
   defaultRange = '30d',
   onSelectBucket,
+}: {
+  daily30d: YieldDaySeries[]
+  hourly24h: YieldHourSeries[]
+  targetYield: number
+  defaultRange?: '24h' | '7d' | '30d'
+  onSelectBucket?: (selection: BucketSelection) => void
 }) {
   const [range, setRange] = useState(defaultRange)
-  const [tooltip, setTooltip] = useState(null)
+  const [tooltip, setTooltip] = useState<{ x: number, y: number, label: string, value: string } | null>(null)
 
   const W = 560, H = 110, padL = 28, padR = 6, padT = 6, padB = 16
   const innerW = W - padL - padR
@@ -69,13 +79,13 @@ function YieldTrendChart({
   const barSlot = innerW / Math.max(barData.length, 1)
   const barW = barSlot - 2
 
-  const lineX = (i) => padL + (i / Math.max(hourly24h.length - 1, 1)) * innerW
-  const lineY = (v) => padT + innerH - ((v - minV) / (maxV - minV)) * innerH
-  const barY = (v) => v == null ? padT + innerH : padT + innerH - ((v - minV) / (maxV - minV)) * innerH
-  const barH = (v) => v == null ? 0 : Math.max(((v - minV) / (maxV - minV)) * innerH, 0)
+  const lineX = (i: number) => padL + (i / Math.max(hourly24h.length - 1, 1)) * innerW
+  const lineY = (v: number) => padT + innerH - ((v - minV) / (maxV - minV)) * innerH
+  const barY = (v: number | null) => v == null ? padT + innerH : padT + innerH - ((v - minV) / (maxV - minV)) * innerH
+  const barH = (v: number | null) => v == null ? 0 : Math.max(((v - minV) / (maxV - minV)) * innerH, 0)
 
   // Line chart path (segments break at null values)
-  const lineSegments = []; let seg = []
+  const lineSegments: string[] = []; let seg: string[] = []
   hourly24h.forEach((d, i) => {
     if (d.avg_yield_pct == null) { if (seg.length) { lineSegments.push(seg.join(' ')); seg = [] } }
     else { seg.push(`${seg.length === 0 ? 'M' : 'L'}${lineX(i).toFixed(1)} ${lineY(d.avg_yield_pct).toFixed(1)}`) }
@@ -84,7 +94,7 @@ function YieldTrendChart({
   const linePath = lineSegments.join(' ')
 
   // Area fill segments
-  const areaSegs = []; let aStart = null; let aPts = []
+  const areaSegs: string[] = []; let aStart: { x: string } | null = null; let aPts: string[] = []
   hourly24h.forEach((d, i) => {
     if (d.avg_yield_pct != null) {
       if (!aStart) aStart = { x: lineX(i).toFixed(1) }
@@ -99,7 +109,7 @@ function YieldTrendChart({
   })
   if (aStart && aPts.length > 1) {
     const lx = lineX(hourly24h.length - 1).toFixed(1), bot = (padT + innerH).toFixed(1)
-    areaSegs.push(`M${aPts[0]} ${aPts.slice(1).map(p => `L${p}`).join(' ')} L${lx} ${bot} L${aStart.x} ${bot} Z`)
+    areaSegs.push(`M${aPts[0]} ${aPts.slice(1).map(p => `L${p}`).join(' ')} L${lx} ${bot} L${(aStart as any).x} ${bot} Z`)
   }
 
   const refY = padT + innerH - ((targetYield - minV) / (maxV - minV)) * innerH
@@ -107,53 +117,58 @@ function YieldTrendChart({
   const nonNullBar = barData.filter(d => d.avg_yield_pct != null)
   const nonNullLine = hourly24h.filter(d => d.avg_yield_pct != null)
   const metaLabel = isHourly
-    ? nonNullLine.length > 0 ? `peak ${Math.max(...nonNullLine.map(d => d.avg_yield_pct)).toFixed(1)}%` : null
-    : nonNullBar.length > 0 ? `avg ${(nonNullBar.reduce((a, d) => a + d.avg_yield_pct, 0) / nonNullBar.length).toFixed(1)}% / day` : null
+    ? nonNullLine.length > 0 ? `peak ${Math.max(...nonNullLine.map(d => d.avg_yield_pct ?? 0)).toFixed(1)}%` : null
+    : nonNullBar.length > 0 ? `avg ${(nonNullBar.reduce((a, d) => a + (d.avg_yield_pct ?? 0), 0) / nonNullBar.length).toFixed(1)}% / day` : null
 
   const TW = 86, TH = 28
   const ttx = tooltip ? Math.max(padL + TW / 2, Math.min(W - padR - TW / 2, tooltip.x)) : 0
   const tty = tooltip ? (tooltip.y < padT + TH + 8 ? tooltip.y + TH + 10 : tooltip.y - 6) : 0
 
   return (
-    <div className="pour-trend-card">
-      <div className="ptc-head">
-        <span className="ptc-title">
+    <div className="pour-trend-card" style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, padding: 16 }}>
+      <div className="ptc-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-1)' }}>
           Yield % · {isHourly ? 'last 24 hours' : range === '7d' ? 'last 7 days' : 'last 30 days'}
         </span>
-        {metaLabel && <span className="ptc-meta mono">{metaLabel}</span>}
-        <div className="chart-range-toggle">
+        <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 4, padding: 2 }}>
           {['24h', '7d', '30d'].map(r => (
-            <button key={r} className={range === r ? 'active' : ''} onClick={() => { setRange(r); setTooltip(null) }}>{r}</button>
+            <button 
+              key={r} 
+              className={`btn btn-xs ${range === r ? 'btn-primary' : 'btn-ghost'}`} 
+              style={{ height: 20, fontSize: 9, padding: '0 8px' }}
+              onClick={() => { setRange(r as any); setTooltip(null) }}
+            >
+              {r}
+            </button>
           ))}
         </div>
       </div>
 
       <svg className="pour-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
-        onMouseLeave={() => setTooltip(null)}>
+        onMouseLeave={() => setTooltip(null)} style={{ overflow: 'visible' }}>
 
         {[minV, (minV + maxV) / 2, maxV].map((v, i) => {
           const y = padT + innerH - ((v - minV) / (maxV - minV)) * innerH
           return (
             <g key={i}>
-              <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
-              <text x={padL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{v.toFixed(0)}%</text>
+              <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--line-1)" strokeDasharray="2 3" />
+              <text x={padL - 4} y={y + 3} textAnchor="end" fontSize={9} fill="var(--text-3)">{v.toFixed(0)}%</text>
             </g>
           )
         })}
-        <line x1={padL} y1={refY} x2={W - padR} y2={refY} stroke="var(--valentia-slate)" strokeDasharray="3 3" opacity="0.6" />
-        <text x={W - padR - 2} y={refY - 3} textAnchor="end" className="pour-axis-lbl">{targetYield}%</text>
+        <line x1={padL} y1={refY} x2={W - padR} y2={refY} stroke="var(--brand)" strokeDasharray="3 3" opacity="0.6" />
+        <text x={W - padR - 2} y={refY - 3} textAnchor="end" fontSize={8} fill="var(--brand)">{targetYield}%</text>
 
         {isHourly && hourly24h.length > 0 && (
           <>
-            {areaSegs.map((d, i) => <path key={i} d={d} fill="var(--valentia-slate)" opacity="0.10" />)}
-            {linePath && <path d={linePath} fill="none" stroke="var(--valentia-slate)" strokeWidth="2" />}
+            {areaSegs.map((d, i) => <path key={i} d={d} fill="var(--brand)" opacity="0.08" />)}
+            {linePath && <path d={linePath} fill="none" stroke="var(--brand)" strokeWidth="2" />}
             {hourly24h.map((d, i) => d.avg_yield_pct != null && (
-              <circle key={i} cx={lineX(i)} cy={lineY(d.avg_yield_pct)} r="2.2" fill="var(--valentia-slate)" />
+              <circle key={i} cx={lineX(i)} cy={lineY(d.avg_yield_pct)} r="2.2" fill="var(--brand)" />
             ))}
-            <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtHour(hourly24h[0].hour)}</text>
-            <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtHour(hourly24h[Math.floor(hourly24h.length / 2)].hour)}</text>
-            <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">now</text>
-            <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
+            <text x={padL} y={H} fontSize={9} fill="var(--text-3)">{fmtHour(hourly24h[0].hour)}</text>
+            <text x={W - padR} y={H} textAnchor="end" fontSize={9} fill="var(--text-3)">now</text>
+            <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent" style={{ cursor: 'crosshair' }}
               onMouseMove={e => {
                 const svg = e.currentTarget.ownerSVGElement; if (!svg) return
                 const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
@@ -181,16 +196,15 @@ function YieldTrendChart({
             {barData.map((d, i) => {
               if (d.avg_yield_pct == null) return null
               const bx = padL + i * barSlot + 1
-              const fill = d.avg_yield_pct >= targetYield ? '#1F6E4A' : d.avg_yield_pct >= 85 ? 'var(--sunrise)' : '#C04A1F'
+              const fill = d.avg_yield_pct >= targetYield ? 'var(--status-ok)' : d.avg_yield_pct >= 85 ? 'var(--status-warn)' : 'var(--status-risk)'
               return (
                 <rect key={i} x={bx} y={barY(d.avg_yield_pct)} width={barW} height={barH(d.avg_yield_pct)}
-                  fill={fill} opacity={i === barData.length - 1 ? 1 : 0.82} rx="1" />
+                  fill={fill} opacity={i === barData.length - 1 ? 1 : 0.6} rx="1" />
               )
             })}
-            <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtDay(barData[0].date)}</text>
-            <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtDay(barData[Math.floor(barData.length / 2)].date)}</text>
-            <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">today</text>
-            <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
+            <text x={padL} y={H} fontSize={9} fill="var(--text-3)">{fmtDay(barData[0].date)}</text>
+            <text x={W - padR} y={H} textAnchor="end" fontSize={9} fill="var(--text-3)">today</text>
+            <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent" style={{ cursor: 'crosshair' }}
               onMouseMove={e => {
                 const svg = e.currentTarget.ownerSVGElement; if (!svg) return
                 const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
@@ -215,9 +229,9 @@ function YieldTrendChart({
 
         {tooltip && (
           <g style={{ pointerEvents: 'none' }}>
-            <rect x={ttx - TW / 2} y={tty - TH} width={TW} height={TH} rx={3} fill="var(--ink-900)" opacity={0.88} />
-            <text x={ttx} y={tty - TH + 11} textAnchor="middle" fontSize={8} fill="rgba(255,255,255,0.7)">{tooltip.label}</text>
-            <text x={ttx} y={tty - TH + 23} textAnchor="middle" fontSize={11} fontWeight="600" fill="white">{tooltip.value}</text>
+            <rect x={ttx - TW / 2} y={tty - TH} width={TW} height={TH} rx={3} fill="var(--text-1)" />
+            <text x={ttx} y={tty - TH + 11} textAnchor="middle" fontSize={8} fill="var(--surface-0)" opacity={0.7}>{tooltip.label}</text>
+            <text x={ttx} y={tty - TH + 23} textAnchor="middle" fontSize={11} fontWeight="600" fill="var(--surface-0)">{tooltip.value}</text>
           </g>
         )}
       </svg>
@@ -237,17 +251,6 @@ interface YieldBreakdownProps {
   targetYield: number
 }
 
-/**
- * Tabbed breakdown of yield data.
- * Analysis tab: group by material or process order; table or card view.
- * Download tab: export raw order list as CSV.
- *
- * @param orders      - Filtered YieldOrder list for the selected period.
- * @param prior7d     - Prior 7-day YieldOrder list for trend comparison.
- * @param dateFrom    - Start of selected date range (YYYY-MM-DD).
- * @param dateTo      - End of selected date range (YYYY-MM-DD).
- * @param targetYield - Plant yield target percentage.
- */
 function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: YieldBreakdownProps) {
   const [activeTab, setActiveTab] = useState<'analysis' | 'download'>('analysis')
   const [groupBy, setGroupBy] = useState<'material' | 'process_order'>('material')
@@ -257,7 +260,6 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
   const isPoOrder = groupBy === 'process_order'
   const dimLabel = groupBy === 'material' ? 'Material' : 'Process Order'
 
-  /** Key function extracts the grouping key from a YieldOrder. */
   const keyFn = (o: YieldOrder) =>
     groupBy === 'material' ? (o.material_name || o.material_id) : o.process_order_id
 
@@ -277,7 +279,6 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
       lossKg: g.qtyIssued > 0 ? g.qtyIssued - g.qtyReceived : null,
     }))
     if (sortBy === 'yield') {
-      // Worst yield first; nulls go last
       arr.sort((a, b) => {
         if (a.yieldPct == null && b.yieldPct == null) return 0
         if (a.yieldPct == null) return 1
@@ -291,7 +292,6 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
     return arr
   }, [orders, groupBy, sortBy])
 
-  /** Prior 7-day average yield per group key (material name), using sum-of-received / sum-of-issued. */
   const prior7dAvg = useMemo(() => {
     if (isPoOrder || !prior7d.length) return new Map<string, number>()
     const map = new Map<string, { issued: number; received: number }>()
@@ -311,16 +311,8 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
 
   const validGroups = groups.filter(g => g.yieldPct != null)
   const avgYield = validGroups.length
-    ? validGroups.reduce((a, g) => a + g.yieldPct, 0) / validGroups.length
+    ? validGroups.reduce((a, g) => a + (g.yieldPct ?? 0), 0) / validGroups.length
     : 0
-
-  /** Returns inline color style for a yield percentage value. */
-  function yieldColor(v: number | null): string {
-    if (v == null) return 'inherit'
-    if (v >= targetYield) return '#1F6E4A'
-    if (v >= 85) return 'var(--sunrise)'
-    return '#8B2900'
-  }
 
   function handleDownload() {
     const header = ['Process Order', 'Material ID', 'Material Name', 'Plant', 'Issued (kg)', 'Received (kg)', 'Yield (%)', 'Loss (kg)', 'Date']
@@ -349,162 +341,149 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
     URL.revokeObjectURL(url)
   }
 
-  // Grid template for the extra columns (7 columns vs PourAnalytics's 5)
-  const gridCols = '1fr 80px 1fr 90px 90px 80px 70px'
-
   return (
-    <div className="pour-analytics">
-      <div className="pa-head">
-        <div className="pa-title">
-          {I.trending}
-          <span>Breakdown</span>
-          <span className="pa-meta">
-            {groups.length} groups · {periodLabel(dateFrom, dateTo)} · grouped by {dimLabel.toLowerCase()}
-          </span>
-        </div>
-        <div className="pa-tabs">
-          <button
-            className={activeTab === 'analysis' ? 'active' : ''}
-            onClick={() => setActiveTab('analysis')}
-          >Analysis</button>
-          <button
-            className={activeTab === 'download' ? 'active' : ''}
-            onClick={() => setActiveTab('download')}
-          >{I.download}<span>Download</span></button>
-        </div>
-        {activeTab === 'analysis' && (
-          <div className="pa-controls">
-            <div className="pa-seg">
-              <span className="pa-seg-l">Group by</span>
-              <button className={groupBy === 'material' ? 'active' : ''} onClick={() => setGroupBy('material')}>Material</button>
-              <button className={groupBy === 'process_order' ? 'active' : ''} onClick={() => setGroupBy('process_order')}>Process Order</button>
-            </div>
-            <div className="pa-seg">
-              <span className="pa-seg-l">Sort</span>
-              <button className={sortBy === 'yield' ? 'active' : ''} onClick={() => setSortBy('yield')}>Worst yield first</button>
-              <button className={sortBy === 'name' ? 'active' : ''} onClick={() => setSortBy('name')}>Name</button>
-            </div>
-            <div className="pa-seg">
-              <span className="pa-seg-l">View</span>
-              <button className={!cardView ? 'active' : ''} onClick={() => setCardView(false)}>Table</button>
-              <button className={cardView ? 'active' : ''} onClick={() => setCardView(true)}>Cards</button>
-            </div>
+    <div style={{ marginTop: 48 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--line-1)' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+            <Icon name="trending-up" size={18} />
+            <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Breakdown</h2>
           </div>
-        )}
+          <div style={{ fontSize: 13, color: 'var(--text-3)' }}>
+            {groups.length} groups · {periodLabel(dateFrom, dateTo)} · grouped by {dimLabel.toLowerCase()}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 6, padding: 4 }}>
+          <button className={`btn btn-sm ${activeTab === 'analysis' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('analysis')}>Analysis</button>
+          <button className={`btn btn-sm ${activeTab === 'download' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('download')}>
+            <Icon name="download" size={14} style={{ marginRight: 6 }} />
+            Download
+          </button>
+        </div>
       </div>
 
-      {activeTab === 'analysis' && !cardView && (
-        <div className="pa-bars" style={{ gridTemplateColumns: gridCols }}>
-          <div className="pa-bars-head">
-            <div>{dimLabel}</div>
-            <div className="right">Yield %</div>
-            <div></div>
-            <div className="right">Issued (kg)</div>
-            <div className="right">Received (kg)</div>
-            <div className="right">Loss (kg)</div>
-            <div className="right">vs avg</div>
+      {activeTab === 'analysis' && (
+        <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>Group by</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button className={`btn btn-xs ${groupBy === 'material' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setGroupBy('material')}>Material</button>
+              <button className={`btn btn-xs ${groupBy === 'process_order' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setGroupBy('process_order')}>Process Order</button>
+            </div>
           </div>
-          {groups.map((g, i) => {
-            const vsAvg = g.yieldPct != null ? g.yieldPct - avgYield : null
-            const vsCls = vsAvg == null ? 'neut' : vsAvg > 2 ? 'pos' : vsAvg < -2 ? 'neg' : 'neut'
-            const color = yieldColor(g.yieldPct)
-            return (
-              <div key={g.key} className="pa-row">
-                <div className="pa-row-name">
-                  <span className="pa-row-rank mono">#{i + 1}</span>
-                  {isPoOrder ? (
-                    <span>
-                      <button
-                        className="pa-po-link"
-                        onClick={() => (window as any).__navigateToOrder?.(g.key, { label: g.materialName, materialId: g.materialId, _from: 'yield' })}
-                      >{g.key}</button>
-                      <span className="pa-po-material">{g.materialName}</span>
-                    </span>
-                  ) : (
-                    <span>{g.key}</span>
-                  )}
-                </div>
-                <div className="pa-row-count mono" style={{ color, fontWeight: 600 }}>
-                  {g.yieldPct != null ? g.yieldPct.toFixed(1) + '%' : '—'}
-                </div>
-                <div className="pa-row-bar">
-                  <div
-                    className="pa-row-fill"
-                    style={{
-                      width: `${Math.max(0, Math.min(100, g.yieldPct ?? 0))}%`,
-                      background: color,
-                    }}
-                  />
-                </div>
-                <div className="pa-row-kg mono">{g.qtyIssued.toFixed(1)} kg</div>
-                <div className="pa-row-kg mono">{g.qtyReceived.toFixed(1)} kg</div>
-                <div className="pa-row-kg mono">
-                  {g.lossKg != null ? g.lossKg.toFixed(1) + ' kg' : '—'}
-                </div>
-                <div className={`pa-row-vs mono ${vsCls}`}>
-                  {vsAvg == null ? '—' : (vsAvg >= 0 ? '+' : '') + vsAvg.toFixed(1) + '%'}
-                </div>
-              </div>
-            )
-          })}
-          {groups.length === 0 && <div className="pa-empty">No yield data matches.</div>}
+          <div style={{ flex: 1 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>View</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button className={`btn btn-xs ${!cardView ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setCardView(false)}>Table</button>
+              <button className={`btn btn-xs ${cardView ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setCardView(true)}>Cards</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'analysis' && !cardView && (
+        <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ background: 'var(--surface-sunken)', borderBottom: '1px solid var(--line-1)' }}>
+              <tr>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{dimLabel}</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Yield %</th>
+                <th style={{ padding: '12px 16px', width: 160 }}></th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Issued (kg)</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Received (kg)</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Loss (kg)</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>vs avg</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((g, i) => {
+                const vsAvg = g.yieldPct != null ? g.yieldPct - avgYield : null
+                const color = getYieldColor(g.yieldPct, targetYield)
+                return (
+                  <tr key={g.key} style={{ borderBottom: '1px solid var(--line-1)' }}>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-3)', marginRight: 8, fontFamily: 'var(--font-mono)' }}>#{i + 1}</span>
+                      {isPoOrder ? (
+                        <span>
+                          <button
+                            className="btn btn-link"
+                            style={{ padding: 0, height: 'auto', fontFamily: 'var(--font-mono)' }}
+                            onClick={() => (window as any).__navigateToOrder?.(g.key, { label: g.materialName, materialId: g.materialId, _from: 'yield' })}
+                          >{g.key}</button>
+                          <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-3)' }}>{g.materialName}</span>
+                        </span>
+                      ) : (
+                        <span style={{ fontWeight: 600 }}>{g.key}</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color }}>
+                      {g.yieldPct != null ? g.yieldPct.toFixed(1) + '%' : '—'}
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ height: 6, background: 'var(--surface-sunken)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, g.yieldPct ?? 0))}%`, background: color }} />
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{g.qtyIssued.toFixed(1)}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{g.qtyReceived.toFixed(1)}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{g.lossKg != null ? g.lossKg.toFixed(1) : '—'}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: vsAvg != null && vsAvg >= 0 ? 'var(--status-ok)' : 'var(--status-risk)' }}>
+                      {vsAvg == null ? '—' : (vsAvg >= 0 ? '+' : '') + vsAvg.toFixed(1) + '%'}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
       {activeTab === 'analysis' && cardView && (
-        <div className="pa-card-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
           {groups.map(g => {
             const dayAvg = prior7dAvg.get(g.key) ?? null
-            const color = yieldColor(g.yieldPct)
+            const color = getYieldColor(g.yieldPct, targetYield)
             return (
-              <div key={g.key} className="pa-card">
+              <div key={g.key} style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
                 {isPoOrder ? (
-                  <>
+                  <div style={{ marginBottom: 8 }}>
                     <button
-                      className="pa-po-link"
+                      className="btn btn-link"
+                      style={{ padding: 0, height: 'auto', fontFamily: 'var(--font-mono)' }}
                       onClick={() => (window as any).__navigateToOrder?.(g.key, { label: g.materialName, materialId: g.materialId, _from: 'yield' })}
-                      style={{ marginBottom: 2 }}
                     >{g.key}</button>
-                    <div className="pa-card-name" title={g.materialName}>{g.materialName}</div>
-                  </>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={g.materialName}>{g.materialName}</div>
+                  </div>
                 ) : (
-                  <div className="pa-card-name" title={g.key}>{g.key}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={g.key}>{g.key}</div>
                 )}
-                <div className="pa-card-count mono" style={{ color }}>
+                <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-mono)', color }}>
                   {g.yieldPct != null ? g.yieldPct.toFixed(1) + '%' : '—'}
                 </div>
-                <div className="pa-card-count-label">
-                  {g.orderCount} orders · {g.qtyReceived.toFixed(1)} kg received
+                <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 12 }}>
+                  {g.orderCount} orders · {g.qtyReceived.toFixed(1)} kg rec.
                 </div>
-                {!isPoOrder && (
-                  <div className="pa-card-avg">
-                    {dayAvg != null
-                      ? <><strong>{dayAvg.toFixed(1)}%</strong> yield avg · prior 7d</>
-                      : <span style={{ color: 'var(--ink-300)' }}>No prior 7d data</span>
-                    }
+                {!isPoOrder && dayAvg != null && (
+                  <div style={{ fontSize: 11, padding: '4px 8px', background: 'var(--surface-sunken)', borderRadius: 4 }}>
+                    <strong>{dayAvg.toFixed(1)}%</strong> yield avg · prior 7d
                   </div>
                 )}
               </div>
             )
           })}
-          {groups.length === 0 && (
-            <div style={{ padding: '24px', color: 'var(--ink-400)', fontSize: 12 }}>No yield data matches.</div>
-          )}
         </div>
       )}
 
       {activeTab === 'download' && (
-        <div className="pa-download">
-          <div className="pad-info">
-            <span className="pad-rows mono">{orders.length.toLocaleString()} rows</span>
-            <span>yield orders · {periodLabel(dateFrom, dateTo)}</span>
+        <div style={{ padding: 48, textAlign: 'center', background: 'var(--surface-sunken)', borderRadius: 8 }}>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{orders.length.toLocaleString()} rows</div>
+            <div style={{ color: 'var(--text-3)' }}>yield orders · {periodLabel(dateFrom, dateTo)}</div>
           </div>
-          <div className="pad-cols">
-            Columns: Process Order, Material ID, Material Name, Plant, Issued (kg), Received (kg), Yield (%), Loss (kg), Date
-          </div>
-          <button className="btn primary" onClick={handleDownload}>
-            {I.download}<span>Download CSV</span>
-          </button>
+          <Button variant="primary" onClick={handleDownload} icon={<Icon name="download" />}>
+            Download CSV
+          </Button>
         </div>
       )}
     </div>
@@ -561,14 +540,14 @@ export function YieldAnalyticsPage() {
 
   const validOrders = filteredOrders.filter(o => o.yield_pct != null)
   const avgYield = validOrders.length
-    ? validOrders.reduce((a, o) => a + o.yield_pct, 0) / validOrders.length
+    ? validOrders.reduce((a, o) => a + (o.yield_pct ?? 0), 0) / validOrders.length
     : null
   const totalLossKg = filteredOrders.reduce((a, o) => a + (o.loss_kg ?? 0), 0)
   const yieldTone = avgYield == null ? '' : avgYield >= targetYield ? 'good' : avgYield >= 85 ? 'ok' : 'bad'
 
   const priorValidOrders = filteredPrior7d.filter(o => o.yield_pct != null)
   const priorAvgYield = filters.compare === 'prior7d' && priorValidOrders.length
-    ? priorValidOrders.reduce((a, o) => a + o.yield_pct, 0) / priorValidOrders.length
+    ? priorValidOrders.reduce((a, o) => a + (o.yield_pct ?? 0), 0) / priorValidOrders.length
     : null
   const priorLossKg = filters.compare === 'prior7d'
     ? filteredPrior7d.reduce((a, o) => a + (o.loss_kg ?? 0), 0)
@@ -577,34 +556,25 @@ export function YieldAnalyticsPage() {
 
   if (error) {
     return (
-      <>
-        <TopBar trail={[t.operations || 'Operations', t.sectionInsights || 'Insights', 'Yield analytics']} />
-        <div className="page-error">Failed to load yield analytics: {error}</div>
-      </>
+      <div className="app-shell-full">
+        <TopBar breadcrumbs={[{ label: t.operations }, { label: t.sectionInsights }, { label: 'Yield analytics' }]} />
+        <div style={{ padding: 48, color: 'var(--status-risk)', textAlign: 'center' }}>Failed to load yield analytics: {error}</div>
+      </div>
     )
   }
 
-  // 30-day average for chart label
-  const daily30dNonNull = daily30d.filter(d => d.avg_yield_pct != null)
-  const daily30dAvgLabel = daily30dNonNull.length
-    ? `avg ${daily30dNonNull.reduce((a, d, _, arr) => a + d.avg_yield_pct / arr.length, 0).toFixed(1)}% / day`
-    : null
-
-  // 24h peak for chart label
-  const hourly24hNonNull = hourly24h.filter(d => d.avg_yield_pct != null)
-  const peakHourPct = hourly24hNonNull.length
-    ? Math.max(...hourly24hNonNull.map(d => d.avg_yield_pct))
-    : null
-
   return (
-    <>
-      <TopBar trail={[t.operations || 'Operations', t.sectionInsights || 'Insights', 'Yield analytics']} />
+    <div className="app-shell-full">
+      <TopBar breadcrumbs={[{ label: t.operations }, { label: t.sectionInsights }, { label: 'Yield analytics' }]} />
 
-      <div className="page-head">
+      <div className="page-head" style={{ padding: '24px 32px', background: 'var(--surface-0)' }}>
         <div>
-          <div className="page-eyebrow">{I.trending}<span>Insights</span></div>
-          <h1 className="page-title">Yield analytics</h1>
-          <p className="page-sub">
+          <div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="trending-up" size={14} />
+            <span>Insights</span>
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, margin: '8px 0 4px', color: 'var(--text-1)' }}>Yield analytics</h1>
+          <p style={{ fontSize: 13, color: 'var(--text-3)' }}>
             Track process order yield against the quality threshold across the plant.
             Drill in by material or order to identify where losses are occurring.
           </p>
@@ -618,38 +588,51 @@ export function YieldAnalyticsPage() {
       />
 
       {loading && (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-400)' }}>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-3)' }}>
           Loading yield analytics…
         </div>
       )}
 
       {!loading && (
-        <div className="pa-page-body">
-          <div className="pour-grid pour-grid-page">
-            <div className="pour-kpi tone-target">
-              <div className="pk-l">{I.alert}<span>Target yield</span></div>
-              <div className="pk-v mono">{targetYield.toFixed(0)}%</div>
-              <div className="pk-sub">yield · quality threshold</div>
-            </div>
-            <div className="pour-kpi tone-planned">
-              <div className="pk-l">{I.flask}<span>Average yield</span></div>
-              <div className="pk-v mono">{avgYield != null ? avgYield.toFixed(1) + '%' : '—'}</div>
-              {filters.compare === 'prior7d' && <DeltaPill current={avgYield} prior={priorAvgYield} />}
-              <div className="pk-sub">{validOrders.length} orders · selected period</div>
-            </div>
-            <div className={`pour-kpi tone-actual ${yieldTone}`}>
-              <div className="pk-l">{I.trending}<span>Total loss</span></div>
-              <div className="pk-v mono">{totalLossKg.toFixed(1)} kg</div>
-              {filters.compare === 'prior7d' && <DeltaPill current={totalLossKg} prior={priorLossKg} invert suffix="%" />}
-              <div className="pk-sub">
-                <span className={`pk-delta ${avgYield == null ? 'neut' : avgYield >= targetYield ? 'pos' : avgYield >= 85 ? 'neut' : 'neg'}`}>
-                  {avgYield != null ? avgYield.toFixed(1) + '% avg yield' : '—'}
-                </span>
+        <div style={{ padding: '0 32px 48px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
+            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
+                <Icon name="alert-triangle" size={14} />
+                <span>Target yield</span>
               </div>
+              <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{targetYield.toFixed(0)}%</div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>yield · quality threshold</div>
+            </div>
+            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
+                <Icon name="beaker" size={14} />
+                <span>Average yield</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{avgYield != null ? avgYield.toFixed(1) + '%' : '—'}</div>
+                {filters.compare === 'prior7d' && <DeltaPill current={avgYield} prior={priorAvgYield} />}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>{validOrders.length} orders · selected period</div>
+            </div>
+            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, borderLeft: `4px solid ${yieldTone === 'good' ? 'var(--status-ok)' : yieldTone === 'ok' ? 'var(--status-warn)' : 'var(--status-risk)'}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
+                <Icon name="trending-up" size={14} />
+                <span>Total loss</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{totalLossKg.toFixed(1)} kg</div>
+                {filters.compare === 'prior7d' && <DeltaPill current={totalLossKg} prior={priorLossKg} invert suffix="%" />}
+              </div>
+              {avgYield != null && (
+                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
+                  <span style={{ color: avgYield >= targetYield ? 'var(--status-ok)' : 'var(--status-warn)', fontWeight: 700 }}>{avgYield.toFixed(1)}%</span> avg yield
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="pour-trends">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
             <YieldTrendChart daily30d={daily30d} hourly24h={hourly24h} targetYield={targetYield} defaultRange="30d" onSelectBucket={setSelection} />
             <YieldTrendChart daily30d={daily30d} hourly24h={hourly24h} targetYield={targetYield} defaultRange="24h" onSelectBucket={setSelection} />
           </div>
@@ -662,18 +645,19 @@ export function YieldAnalyticsPage() {
             count={selectedOrders.length}
             onClear={() => setSelection(null)}
           >
-            {selectedOrders.slice(0, 50).map(o => (
-              <div className="cp-row" key={o.process_order_id}>
-                <button
-                  className="pa-po-link mono"
+            {selectedOrders.slice(0, 50).map((o, i) => (
+              <div key={i} style={{ display: 'flex', gap: 16, padding: '8px 0', borderBottom: '1px solid var(--line-1)', fontSize: 13 }}>
+                <button 
+                  className="btn btn-link" 
+                  style={{ padding: 0, height: 'auto', fontFamily: 'var(--font-mono)', width: 100, textAlign: 'left' }}
                   onClick={() => (window as any).__navigateToOrder?.(o.process_order_id, { label: o.material_name, materialId: o.material_id, _from: 'yield' })}
                 >{o.process_order_id}</button>
-                <span>{o.material_name}</span>
-                <span className="mono">{o.yield_pct != null ? o.yield_pct.toFixed(1) + '%' : '—'}</span>
-                <span className="mono">{o.loss_kg != null ? o.loss_kg.toFixed(1) + ' kg' : '—'}</span>
+                <span style={{ flex: 1 }}>{o.material_name}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', width: 80, textAlign: 'right', fontWeight: 600, color: getYieldColor(o.yield_pct, targetYield) }}>{o.yield_pct != null ? o.yield_pct.toFixed(1) + '%' : '—'}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', width: 80, textAlign: 'right', color: 'var(--text-3)' }}>{o.loss_kg != null ? o.loss_kg.toFixed(1) + ' kg' : '—'}</span>
               </div>
             ))}
-            {selectedOrders.length === 0 && <div className="cp-empty">No yield orders in this bucket.</div>}
+            {selectedOrders.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-3)' }}>No yield orders in this bucket.</div>}
           </ContributorsPanel>
 
           <YieldBreakdown
@@ -685,6 +669,6 @@ export function YieldAnalyticsPage() {
           />
         </div>
       )}
-    </>
+    </div>
   )
 }

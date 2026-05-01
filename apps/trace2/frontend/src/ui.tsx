@@ -179,89 +179,9 @@ export function Card({ title, subtitle, action, children, padding = 20, noPad, s
   );
 }
 
-// ---------------------------------------------------------------------------
-// DataTable
-// ---------------------------------------------------------------------------
-
-export interface Column<T> {
-  header: ReactNode;
-  key?: keyof T;
-  align?: "left" | "right" | "center";
-  width?: number | string;
-  mono?: boolean;
-  num?: boolean;
-  muted?: boolean;
-  wrap?: boolean;
-  render?: (row: T, i: number) => ReactNode;
-}
-
-export function DataTable<T>({
-  columns, rows, dense = false, emphasize, rowKey = (_r: T, i: number) => i, onRowClick,
-}: {
-  columns: Column<T>[];
-  rows: T[];
-  dense?: boolean;
-  emphasize?: (row: T, i: number) => boolean;
-  rowKey?: (row: T, i: number) => React.Key;
-  onRowClick?: (row: T, i: number) => void;
-}) {
-  const rowPad = dense ? "6px 12px" : "9px 14px";
-  return (
-    <div style={{ width: "100%", overflowX: "auto" }}>
-      <table style={{
-        width: "100%", borderCollapse: "collapse",
-        fontFamily: "var(--font-sans)", fontSize: 12.5,
-      }}>
-        <thead>
-          <tr>
-            {columns.map((c, i) => (
-              <th key={i} style={{
-                textAlign: c.align || "left",
-                padding: rowPad,
-                color: "var(--ink-3)",
-                fontFamily: "var(--font-mono)",
-                fontWeight: 500, fontSize: 9.5,
-                letterSpacing: "0.12em", textTransform: "uppercase",
-                borderBottom: "1px solid var(--line-2)",
-                background: "var(--panel)", whiteSpace: "nowrap",
-                width: c.width,
-              }}>{c.header}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => {
-            const isEmph = emphasize && emphasize(r, i);
-            const baseBg = isEmph ? "#FEF8E5" : "transparent";
-            return (
-              <tr key={rowKey(r, i)} onClick={onRowClick ? () => onRowClick(r, i) : undefined}
-                style={{ cursor: onRowClick ? "pointer" : "default", background: baseBg }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--brand-10)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = baseBg)}
-              >
-                {columns.map((c, j) => (
-                  <td key={j} style={{
-                    textAlign: c.align || "left",
-                    padding: rowPad,
-                    color: c.muted ? "var(--ink-3)" : "var(--ink)",
-                    fontSize: c.mono ? 11.5 : 12.5,
-                    fontFamily: c.mono ? "var(--font-mono)" : "inherit",
-                    letterSpacing: c.mono ? "0.01em" : "normal",
-                    fontVariantNumeric: c.num ? "tabular-nums" : "normal",
-                    borderBottom: "1px solid var(--line)",
-                    whiteSpace: c.wrap ? "normal" : "nowrap",
-                  }}>
-                    {c.render ? c.render(r, i) : (c.key ? (r[c.key] as ReactNode) : null)}
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+import { DataTable } from "@connectio/shared-ui";
+export type { Column } from "@connectio/shared-ui";
+export { DataTable };
 
 // ---------------------------------------------------------------------------
 // BarChart
@@ -536,56 +456,5 @@ export function DepthControl({ label, value, onChange }: { label: string; value:
   );
 }
 
-// ---------------------------------------------------------------------------
-// Button
-// ---------------------------------------------------------------------------
-
-export function Button({ children, onClick, variant = "ghost", size = "md", icon, active }: {
-  children: ReactNode;
-  onClick?: () => void;
-  variant?: "primary" | "ghost" | "danger";
-  size?: "sm" | "md";
-  icon?: ReactNode;
-  active?: boolean;
-}) {
-  const [hover, setHover] = useState(false);
-
-  function getBg() {
-    if (variant === "primary") return "var(--brand)";
-    if (variant === "danger") {
-      if (active) return "#A63300";
-      return hover ? "#CF3F00" : "var(--sunset)";
-    }
-    if (hover || active) return "var(--slate-surface)";
-    return "var(--paper)";
-  }
-  function getFg() {
-    if (variant === "primary") return "#fff";
-    if (variant === "danger") return "#fff";
-    if (hover || active) return "var(--brand)";
-    return "var(--ink)";
-  }
-  function getBorder() {
-    if (variant === "primary") return "var(--brand)";
-    if (variant === "danger") return active ? "#A63300" : "var(--sunset)";
-    if (hover || active) return "var(--brand)";
-    return "var(--line-2)";
-  }
-
-  const pad = size === "sm" ? "4px 10px" : "7px 14px";
-  const fs = size === "sm" ? 11.5 : 12.5;
-  return (
-    <button onClick={onClick}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{
-        display: "inline-flex", alignItems: "center", gap: 7,
-        padding: pad, fontSize: fs, fontWeight: 500,
-        fontFamily: "var(--font-sans)",
-        background: getBg(), color: getFg(), border: `1px solid ${getBorder()}`,
-        borderRadius: 4, cursor: "pointer",
-        letterSpacing: "0.01em",
-        transition: "all 180ms ease",
-      }}
-    >{icon}{children}</button>
-  );
-}
+import { Button } from "@connectio/shared-ui";
+export { Button };

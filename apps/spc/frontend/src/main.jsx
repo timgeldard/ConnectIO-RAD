@@ -1,9 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClientProvider } from '@tanstack/react-query'
+import '@connectio/shared-ui/styles/kerry-tokens.css'
+import '@connectio/shared-ui/styles/kerry-app.css'
 import './index.css'
-import './styles/kerry-tokens.css'
-import './styles/kerry-app.css'
 import App from './App'
 import { queryClient } from './queryClient'
 

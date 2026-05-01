@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Quality Analytics — one export:
  *   - QualityAnalyticsPage: full insights page — daily/hourly trend charts
@@ -11,7 +10,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n/context'
-import { I, TopBar } from '../ui'
+import { TopBar, Icon, Button, type IconName } from '@connectio/shared-ui'
 import { fetchQualityAnalytics, type QualityData, type QualityResultRow, type QualityDaySeries, type QualityHourSeries } from '../api/quality'
 import {
   AnalyticsFilterBar,
@@ -19,7 +18,6 @@ import {
   ContributorsPanel,
   DeltaPill,
   inBucket,
-  todayISO,
   useAnalyticsFilters,
   type BucketSelection,
 } from './analyticsShared'
@@ -28,7 +26,6 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Returns the current date in ISO 8601 format (YYYY-MM-DD). */
 /**
  * Formats a UTC-epoch millisecond timestamp as a short day label.
  * @param ms - Epoch milliseconds.
@@ -66,9 +63,14 @@ function QualityTrendChart({
   hourly24h,
   defaultRange = '30d',
   onSelectBucket,
+}: {
+  daily30d: QualityDaySeries[]
+  hourly24h: QualityHourSeries[]
+  defaultRange?: '24h' | '7d' | '30d'
+  onSelectBucket?: (selection: BucketSelection) => void
 }) {
   const [range, setRange] = useState(defaultRange)
-  const [tooltip, setTooltip] = useState(null)
+  const [tooltip, setTooltip] = useState<{ x: number, y: number, label: string, value: string } | null>(null)
 
   const W = 560, H = 110, padL = 32, padR = 6, padT = 6, padB = 16
   const innerW = W - padL - padR
@@ -82,12 +84,12 @@ function QualityTrendChart({
   const barSlot = innerW / Math.max(barData.length, 1)
   const barW = barSlot - 2
 
-  const lineX = (i) => padL + (i / Math.max(hourly24h.length - 1, 1)) * innerW
-  const lineY = (v) => padT + innerH - (v / 100) * innerH
+  const lineX = (i: number) => padL + (i / Math.max(hourly24h.length - 1, 1)) * innerW
+  const lineY = (v: number) => padT + innerH - (v / 100) * innerH
   const refY = lineY(98)
 
   // Build contiguous non-null runs for the hourly RFT line
-  const runs = []; let cur = []
+  const runs: any[] = []; let cur: any[] = []
   hourly24h.forEach((d, i) => {
     if (d.rft_pct !== null) { cur.push({ x: lineX(i), y: lineY(d.rft_pct) }) }
     else { if (cur.length > 0) { runs.push(cur); cur = [] } }
@@ -97,62 +99,66 @@ function QualityTrendChart({
   const nonNullBar = barData.filter(d => d.rft_pct != null)
   const nonNullLine = hourly24h.filter(d => d.rft_pct != null)
   const metaLabel = isHourly
-    ? nonNullLine.length > 0 ? `lowest ${Math.min(...nonNullLine.map(d => d.rft_pct)).toFixed(1)}%` : null
-    : nonNullBar.length > 0 ? `avg RFT ${(nonNullBar.reduce((a, d) => a + d.rft_pct, 0) / nonNullBar.length).toFixed(1)}%` : null
+    ? nonNullLine.length > 0 ? `lowest ${Math.min(...nonNullLine.map(d => d.rft_pct ?? 100)).toFixed(1)}%` : null
+    : nonNullBar.length > 0 ? `avg RFT ${(nonNullBar.reduce((a, d) => a + (d.rft_pct ?? 0), 0) / nonNullBar.length).toFixed(1)}%` : null
 
   const TW = 90, TH = 28
   const ttx = tooltip ? Math.max(padL + TW / 2, Math.min(W - padR - TW / 2, tooltip.x)) : 0
   const tty = tooltip ? (tooltip.y < padT + TH + 8 ? tooltip.y + TH + 10 : tooltip.y - 6) : 0
 
   return (
-    <div className="pour-trend-card">
-      <div className="ptc-head">
-        <span className="ptc-title">
+    <div className="pour-trend-card" style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, padding: 16 }}>
+      <div className="ptc-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-1)' }}>
           Quality · {isHourly ? 'last 24 hours' : range === '7d' ? 'last 7 days' : 'last 30 days'}
         </span>
-        {metaLabel && <span className="ptc-meta mono">{metaLabel}</span>}
-        <div className="chart-range-toggle">
+        <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 4, padding: 2 }}>
           {['24h', '7d', '30d'].map(r => (
-            <button key={r} className={range === r ? 'active' : ''} onClick={() => { setRange(r); setTooltip(null) }}>{r}</button>
+            <button 
+              key={r} 
+              className={`btn btn-xs ${range === r ? 'btn-primary' : 'btn-ghost'}`} 
+              style={{ height: 20, fontSize: 9, padding: '0 8px' }}
+              onClick={() => { setRange(r as any); setTooltip(null) }}
+            >
+              {r}
+            </button>
           ))}
         </div>
       </div>
 
       <svg className="pour-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
-        onMouseLeave={() => setTooltip(null)}>
+        onMouseLeave={() => setTooltip(null)} style={{ overflow: 'visible' }}>
 
         {isHourly ? (
-          // Hourly RFT% line chart
           <>
             {['0%', '50%', '100%'].map((lbl, i) => {
               const y = padT + innerH - (i * 0.5) * innerH
               return (
                 <g key={i}>
-                  <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
-                  <text x={padL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{lbl}</text>
+                  <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--line-1)" strokeDasharray="2 3" />
+                  <text x={padL - 4} y={y + 3} textAnchor="end" fontSize={9} fill="var(--text-3)">{lbl}</text>
                 </g>
               )
             })}
-            <line x1={padL} y1={refY} x2={W - padR} y2={refY} stroke="#1F6E4A" strokeDasharray="3 3" strokeWidth="1.5" opacity="0.7" />
-            <text x={padL - 4} y={refY + 3} textAnchor="end" className="pour-axis-lbl" fill="#1F6E4A">98%</text>
-            {runs.map((pts, si) => {
+            <line x1={padL} y1={refY} x2={W - padR} y2={refY} stroke="var(--status-ok)" strokeDasharray="3 3" strokeWidth="1.5" opacity="0.7" />
+            <text x={padL - 4} y={refY + 3} textAnchor="end" fontSize={8} fill="var(--status-ok)">98%</text>
+            {runs.map((pts: any[], si: number) => {
               if (pts.length === 0) return null
-              const lp = pts.map((p, j) => `${j === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+              const lp = pts.map((p: any, j: number) => `${j === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
               const ap = lp + ` L${pts[pts.length-1].x.toFixed(1)} ${bottom.toFixed(1)} L${pts[0].x.toFixed(1)} ${bottom.toFixed(1)} Z`
-              return <g key={si}><path d={ap} fill="var(--valentia-slate)" opacity="0.1" /><path d={lp} fill="none" stroke="var(--valentia-slate)" strokeWidth="2" /></g>
+              return <g key={si}><path d={ap} fill="var(--brand)" opacity="0.08" /><path d={lp} fill="none" stroke="var(--brand)" strokeWidth="2" /></g>
             })}
             {hourly24h.map((d, i) => d.rft_pct !== null && (
-              <circle key={i} cx={lineX(i)} cy={lineY(d.rft_pct)} r="2.2" fill="var(--valentia-slate)" />
+              <circle key={i} cx={lineX(i)} cy={lineY(d.rft_pct)} r="2.2" fill="var(--brand)" />
             ))}
             {hourly24h.length > 0 && (
               <>
-                <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtHour(hourly24h[0].hour)}</text>
-                <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtHour(hourly24h[Math.floor(hourly24h.length / 2)].hour)}</text>
-                <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">now</text>
+                <text x={padL} y={H} fontSize={9} fill="var(--text-3)">{fmtHour(hourly24h[0].hour)}</text>
+                <text x={W - padR} y={H} textAnchor="end" fontSize={9} fill="var(--text-3)">now</text>
               </>
             )}
             {hourly24h.length > 0 && (
-              <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
+              <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent" style={{ cursor: 'crosshair' }}
                 onMouseMove={e => {
                   const svg = e.currentTarget.ownerSVGElement; if (!svg) return
                   const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
@@ -175,14 +181,13 @@ function QualityTrendChart({
             )}
           </>
         ) : (
-          // Daily bar chart — total results, coloured by RFT%
           <>
             {[0, 0.5, 1].map((p, i) => {
               const y = padT + innerH - p * innerH
               return (
                 <g key={i}>
-                  <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
-                  <text x={padL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{Math.round(maxTotal * p)}</text>
+                  <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--line-1)" strokeDasharray="2 3" />
+                  <text x={padL - 4} y={y + 3} textAnchor="end" fontSize={9} fill="var(--text-3)">{Math.round(maxTotal * p)}</text>
                 </g>
               )
             })}
@@ -191,18 +196,17 @@ function QualityTrendChart({
               if (total === 0 || d.rft_pct == null) return null
               const bx = padL + i * barSlot + 1
               const h = (total / maxTotal) * innerH
-              const fill = d.rft_pct >= 98 ? '#1F6E4A' : d.rft_pct >= 95 ? '#B45309' : '#DC2626'
-              return <rect key={i} x={bx} y={padT + innerH - h} width={barW} height={h} fill={fill} opacity={i === barData.length - 1 ? 1 : 0.85} rx="1" />
+              const fill = d.rft_pct >= 98 ? 'var(--status-ok)' : d.rft_pct >= 95 ? 'var(--status-warn)' : 'var(--status-risk)'
+              return <rect key={i} x={bx} y={padT + innerH - h} width={barW} height={h} fill={fill} opacity={i === barData.length - 1 ? 1 : 0.6} rx="1" />
             })}
             {barData.length > 0 && (
               <>
-                <text x={padL} y={H - 4} className="pour-axis-lbl">{fmtDay(barData[0].date)}</text>
-                <text x={padL + innerW / 2} y={H - 4} textAnchor="middle" className="pour-axis-lbl">{fmtDay(barData[Math.floor(barData.length / 2)].date)}</text>
-                <text x={W - padR} y={H - 4} textAnchor="end" className="pour-axis-lbl">today</text>
+                <text x={padL} y={H} fontSize={9} fill="var(--text-3)">{fmtDay(barData[0].date)}</text>
+                <text x={W - padR} y={H} textAnchor="end" fontSize={9} fill="var(--text-3)">today</text>
               </>
             )}
             {barData.length > 0 && (
-              <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent"
+              <rect x={padL} y={padT} width={innerW} height={innerH} fill="transparent" style={{ cursor: 'crosshair' }}
                 onMouseMove={e => {
                   const svg = e.currentTarget.ownerSVGElement; if (!svg) return
                   const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
@@ -230,9 +234,9 @@ function QualityTrendChart({
 
         {tooltip && (
           <g style={{ pointerEvents: 'none' }}>
-            <rect x={ttx - TW / 2} y={tty - TH} width={TW} height={TH} rx={3} fill="var(--ink-900)" opacity={0.88} />
-            <text x={ttx} y={tty - TH + 11} textAnchor="middle" fontSize={8} fill="rgba(255,255,255,0.7)">{tooltip.label}</text>
-            <text x={ttx} y={tty - TH + 23} textAnchor="middle" fontSize={11} fontWeight="600" fill="white">{tooltip.value}</text>
+            <rect x={ttx - TW / 2} y={tty - TH} width={TW} height={TH} rx={3} fill="var(--text-1)" />
+            <text x={ttx} y={tty - TH + 11} textAnchor="middle" fontSize={8} fill="var(--surface-0)" opacity={0.7}>{tooltip.label}</text>
+            <text x={ttx} y={tty - TH + 23} textAnchor="middle" fontSize={11} fontWeight="600" fill="var(--surface-0)">{tooltip.value}</text>
           </g>
         )}
       </svg>
@@ -251,7 +255,6 @@ interface BreakdownProps {
   dateTo: string
 }
 
-/** Maps group-by dimension keys to their row key-extraction functions. */
 const QUALITY_KEY_FNS: Record<string, (r: QualityResultRow) => string> = {
   characteristic: r => r.characteristic_description ?? r.characteristic_id,
   material:       r => r.material_name ?? r.material_id,
@@ -259,7 +262,6 @@ const QUALITY_KEY_FNS: Record<string, (r: QualityResultRow) => string> = {
   judgement:      r => r.judgement === 'A' ? 'Accepted' : 'Rejected',
 }
 
-/** Human-readable column header label for each group-by dimension. */
 const QUALITY_DIM_LABEL: Record<string, string> = {
   characteristic: 'Characteristic',
   material:       'Material',
@@ -267,15 +269,6 @@ const QUALITY_DIM_LABEL: Record<string, string> = {
   judgement:      'Judgement',
 }
 
-/**
- * Interactive breakdown panel for quality results. Supports group-by dimension
- * selection, sort order, table/card view toggle, and CSV download.
- *
- * @param rows     - Filtered inspection result rows for the selected period.
- * @param prior7d  - Rows from the prior 7-day comparison period.
- * @param dateFrom - Start of the selected date range (YYYY-MM-DD).
- * @param dateTo   - End of the selected date range (YYYY-MM-DD).
- */
 function QualityAnalyticsBreakdown({ rows, prior7d, dateFrom, dateTo }: BreakdownProps) {
   const [activeTab, setActiveTab] = useState<'analysis' | 'download'>('analysis')
   const [groupBy, setGroupBy] = useState('characteristic')
@@ -285,7 +278,6 @@ function QualityAnalyticsBreakdown({ rows, prior7d, dateFrom, dateTo }: Breakdow
   const keyFn = QUALITY_KEY_FNS[groupBy] ?? ((r: QualityResultRow) => r.characteristic_id)
   const isPoOrder = groupBy === 'process_order'
 
-  /** Aggregated groups with accepted/rejected counts, order count, and reject %. */
   const groups = useMemo(() => {
     const map = new Map<string, { key: string; accepted: number; rejected: number; orderCount: number; _orders: Set<string> }>()
     rows.forEach(r => {
@@ -309,10 +301,6 @@ function QualityAnalyticsBreakdown({ rows, prior7d, dateFrom, dateTo }: Breakdow
     return arr
   }, [rows, groupBy, sortBy, keyFn, isPoOrder])
 
-  /**
-   * Per-group average daily rejected count from the prior 7-day window.
-   * Not computed for process-order group-by (too granular for trending).
-   */
   const prior7dAvg = useMemo(() => {
     if (isPoOrder || !prior7d.length) return new Map<string, number>()
     const daily = new Map<string, Map<string, number>>()
@@ -335,7 +323,6 @@ function QualityAnalyticsBreakdown({ rows, prior7d, dateFrom, dateTo }: Breakdow
   const maxRejected = Math.max(1, ...groups.map(g => g.rejected))
   const avgRejectPct = groups.length ? groups.reduce((a, g) => a + g.rejectPct, 0) / groups.length : 0
 
-  /** Triggers a CSV download of all raw inspection result rows in the current filter. */
   function handleDownload() {
     const header = [
       'Timestamp', 'Process Order', 'Inspection Lot', 'Material ID', 'Material Name',
@@ -376,127 +363,120 @@ function QualityAnalyticsBreakdown({ rows, prior7d, dateFrom, dateTo }: Breakdow
   }
 
   return (
-    <div className="pour-analytics">
-      <div className="pa-head">
-        <div className="pa-title">
-          {I.shield}
-          <span>Breakdown</span>
-          <span className="pa-meta">
+    <div style={{ marginTop: 48 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--line-1)' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+            <Icon name="shield" size={18} />
+            <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Breakdown</h2>
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-3)' }}>
             {totalResults.toLocaleString()} results · {periodLabel(dateFrom, dateTo)}
             {activeTab === 'analysis' && ` · grouped by ${QUALITY_DIM_LABEL[groupBy].toLowerCase()}`}
-          </span>
-        </div>
-        <div className="pa-tabs">
-          <button
-            className={activeTab === 'analysis' ? 'active' : ''}
-            onClick={() => setActiveTab('analysis')}
-          >Analysis</button>
-          <button
-            className={activeTab === 'download' ? 'active' : ''}
-            onClick={() => setActiveTab('download')}
-          >{I.download}<span>Download</span></button>
-        </div>
-        {activeTab === 'analysis' && (
-          <div className="pa-controls">
-            <div className="pa-seg">
-              <span className="pa-seg-l">Group by</span>
-              {[
-                { k: 'characteristic', label: 'Characteristic' },
-                { k: 'material', label: 'Material' },
-                { k: 'process_order', label: 'Process Order' },
-                { k: 'judgement', label: 'Judgement' },
-              ].map(o => (
-                <button key={o.k} className={groupBy === o.k ? 'active' : ''} onClick={() => setGroupBy(o.k)}>{o.label}</button>
-              ))}
-            </div>
-            <div className="pa-seg">
-              <span className="pa-seg-l">Sort</span>
-              <button className={sortBy === 'rejected' ? 'active' : ''} onClick={() => setSortBy('rejected')}>Rejected</button>
-              <button className={sortBy === 'name' ? 'active' : ''} onClick={() => setSortBy('name')}>Name</button>
-            </div>
-            <div className="pa-seg">
-              <span className="pa-seg-l">View</span>
-              <button className={!cardView ? 'active' : ''} onClick={() => setCardView(false)}>Table</button>
-              <button className={cardView ? 'active' : ''} onClick={() => setCardView(true)}>Cards</button>
-            </div>
           </div>
-        )}
+        </div>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 6, padding: 4 }}>
+          <button className={`btn btn-sm ${activeTab === 'analysis' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('analysis')}>Analysis</button>
+          <button className={`btn btn-sm ${activeTab === 'download' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('download')}>
+            <Icon name="download" size={14} style={{ marginRight: 6 }} />
+            Download
+          </button>
+        </div>
       </div>
 
-      {activeTab === 'analysis' && !cardView && (
-        <div className="pa-bars">
-          <div className="pa-bars-head">
-            <div>{QUALITY_DIM_LABEL[groupBy]}</div>
-            <div className="right">Rejected</div>
-            <div></div>
-            <div className="right">Reject %</div>
-            <div className="right">vs avg</div>
+      {activeTab === 'analysis' && (
+        <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>Group by</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {['characteristic', 'material', 'process_order', 'judgement'].map(k => (
+                <button 
+                  key={k} 
+                  className={`btn btn-xs ${groupBy === k ? 'btn-secondary' : 'btn-ghost'}`} 
+                  onClick={() => setGroupBy(k)}
+                >{QUALITY_DIM_LABEL[k]}</button>
+              ))}
+            </div>
           </div>
-          {groups.map((g, i) => {
-            const vsAvg = avgRejectPct ? ((g.rejectPct - avgRejectPct) / avgRejectPct) * 100 : 0
-            // Higher reject % is bad: positive deviation → neg class; negative deviation → pos class
-            const vsCls = Math.abs(vsAvg) < 8 ? 'neut' : vsAvg > 0 ? 'neg' : 'pos'
-            return (
-              <div key={g.key} className="pa-row">
-                <div className="pa-row-name">
-                  <span className="pa-row-rank mono">#{i + 1}</span>
-                  <span>{g.key}</span>
-                </div>
-                <div className="pa-row-count mono" style={{ color: g.rejected > 0 ? '#DC2626' : undefined }}>
-                  {g.rejected.toLocaleString()}
-                </div>
-                <div className="pa-row-bar">
-                  <div className="pa-row-fill" style={{ width: `${(g.rejected / maxRejected) * 100}%`, background: '#DC262640' }} />
-                </div>
-                <div className="pa-row-kg mono">{g.rejectPct.toFixed(1)}%</div>
-                <div className={`pa-row-vs mono ${vsCls}`}>
-                  {vsAvg >= 0 ? '+' : ''}{vsAvg.toFixed(0)}%
-                </div>
-              </div>
-            )
-          })}
-          {groups.length === 0 && <div className="pa-empty">No results match.</div>}
+          <div style={{ flex: 1 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>View</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button className={`btn btn-xs ${!cardView ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setCardView(false)}>Table</button>
+              <button className={`btn btn-xs ${cardView ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setCardView(true)}>Cards</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'analysis' && !cardView && (
+        <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ background: 'var(--surface-sunken)', borderBottom: '1px solid var(--line-1)' }}>
+              <tr>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{QUALITY_DIM_LABEL[groupBy]}</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Rejected</th>
+                <th style={{ padding: '12px 16px', width: 200 }}></th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Reject %</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>vs avg</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((g, i) => {
+                const vsAvg = avgRejectPct ? ((g.rejectPct - avgRejectPct) / avgRejectPct) * 100 : 0
+                return (
+                  <tr key={g.key} style={{ borderBottom: '1px solid var(--line-1)' }}>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-3)', marginRight: 8, fontFamily: 'var(--font-mono)' }}>#{i + 1}</span>
+                      <span style={{ fontWeight: 600 }}>{g.key}</span>
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: g.rejected > 0 ? 'var(--status-risk)' : 'inherit' }}>{g.rejected.toLocaleString()}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ height: 6, background: 'var(--surface-sunken)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${(g.rejected / maxRejected) * 100}%`, background: 'var(--status-risk)' }} />
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{g.rejectPct.toFixed(1)}%</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: vsAvg <= 0 ? 'var(--status-ok)' : 'var(--status-risk)' }}>
+                      {vsAvg > 0 ? '+' : ''}{vsAvg.toFixed(0)}%
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
       {activeTab === 'analysis' && cardView && (
-        <div className="pa-card-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
           {groups.map(g => {
             const dayAvg = prior7dAvg.get(g.key) ?? null
             return (
-              <div key={g.key} className="pa-card">
-                <div className="pa-card-name" title={g.key}>{g.key}</div>
-                <div className="pa-card-count mono">{g.accepted.toLocaleString()}</div>
-                <div className="pa-card-count-label">
-                  accepted · {g.rejected.toLocaleString()} rejected ({g.rejectPct.toFixed(1)}%)
-                </div>
-                {!isPoOrder && (
-                  <div className="pa-card-avg">
-                    {dayAvg != null
-                      ? <><strong>{dayAvg.toFixed(1)}</strong> rejected / day avg · prior 7d</>
-                      : <span style={{ color: 'var(--ink-300)' }}>No prior 7d data</span>
-                    }
+              <div key={g.key} style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={g.key}>{g.key}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--status-ok)' }}>{g.accepted.toLocaleString()}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 12 }}>accepted · <span style={{ color: g.rejected > 0 ? 'var(--status-risk)' : 'inherit' }}>{g.rejected.toLocaleString()} rejected</span></div>
+                {!isPoOrder && dayAvg != null && (
+                  <div style={{ fontSize: 11, padding: '4px 8px', background: 'var(--surface-sunken)', borderRadius: 4 }}>
+                    <strong>{dayAvg.toFixed(1)}</strong> rejected / day avg · prior 7d
                   </div>
                 )}
               </div>
             )
           })}
-          {groups.length === 0 && <div style={{ padding: '24px', color: 'var(--ink-400)', fontSize: 12 }}>No results match.</div>}
         </div>
       )}
 
       {activeTab === 'download' && (
-        <div className="pa-download">
-          <div className="pad-info">
-            <span className="pad-rows mono">{rows.length.toLocaleString()} rows</span>
-            <span>inspection results · {periodLabel(dateFrom, dateTo)}</span>
+        <div style={{ padding: 48, textAlign: 'center', background: 'var(--surface-sunken)', borderRadius: 8 }}>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{rows.length.toLocaleString()} rows</div>
+            <div style={{ color: 'var(--text-3)' }}>inspection results · {periodLabel(dateFrom, dateTo)}</div>
           </div>
-          <div className="pad-cols">
-            Columns: Timestamp, Process Order, Inspection Lot, Material ID, Material Name, Characteristic ID, Characteristic Description, Sample ID, Specification, Quantitative Result, Qualitative Result, UOM, Judgement, Usage Decision Code, Valuation Code, Quality Score
-          </div>
-          <button className="btn primary" onClick={handleDownload}>
-            {I.download}<span>Download CSV</span>
-          </button>
+          <Button variant="primary" onClick={handleDownload} icon={<Icon name="download" />}>
+            Download CSV
+          </Button>
         </div>
       )}
     </div>
@@ -507,14 +487,6 @@ function QualityAnalyticsBreakdown({ rows, prior7d, dateFrom, dateTo }: Breakdow
 // QualityAnalyticsPage — full page export
 // ---------------------------------------------------------------------------
 
-/**
- * Full-page quality analytics view. Fetches inspection result data for the
- * selected date range, renders KPI summary tiles, 30-day and 24-hour trend
- * charts, and an interactive breakdown panel with download capability.
- *
- * Material filter is applied client-side against the server-provided row set.
- * All `useMemo` hooks are called unconditionally before any early returns.
- */
 export function QualityAnalyticsPage() {
   const { t } = useT()
   const { filters, setFilters } = useAnalyticsFilters()
@@ -538,19 +510,14 @@ export function QualityAnalyticsPage() {
     return () => { cancelled = true }
   }, [plantId, dateFrom, dateTo])
 
-  const trail = [t.operations || 'Operations', t.sectionInsights || 'Insights', 'Quality analytics']
-
-  // All useMemo hooks MUST be called unconditionally before any early returns
   const allRows = pageData?.rows ?? []
   const materials = pageData?.materials ?? []
 
-  /** Inspection result rows filtered to the selected material (or all). */
   const rows = useMemo(
     () => materialFilter === 'ALL' ? allRows : allRows.filter(r => r.material_name === materialFilter || r.material_id === materialFilter),
     [allRows, materialFilter],
   )
 
-  /** Prior 7-day rows filtered to the selected material (or all). */
   const prior7d = useMemo(() => {
     let list = pageData?.prior7d ?? []
     if (materialFilter !== 'ALL') list = list.filter(r => r.material_name === materialFilter || r.material_id === materialFilter)
@@ -560,7 +527,6 @@ export function QualityAnalyticsPage() {
   const daily30d = pageData?.daily30d ?? []
   const hourly24h = pageData?.hourly24h ?? []
 
-  // KPI derivations — plain computations, no hooks
   const accepted = rows.filter(r => r.judgement === 'A').length
   const rejected = rows.filter(r => r.judgement === 'R').length
   const total = accepted + rejected
@@ -575,22 +541,25 @@ export function QualityAnalyticsPage() {
 
   if (error) {
     return (
-      <>
-        <TopBar trail={trail} />
-        <div className="page-error">Failed to load quality analytics: {error}</div>
-      </>
+      <div className="app-shell-full">
+        <TopBar breadcrumbs={[{ label: t.operations }, { label: t.sectionInsights }, { label: 'Quality analytics' }]} />
+        <div style={{ padding: 48, color: 'var(--status-risk)', textAlign: 'center' }}>Failed to load quality analytics: {error}</div>
+      </div>
     )
   }
 
   return (
-    <>
-      <TopBar trail={trail} />
+    <div className="app-shell-full">
+      <TopBar breadcrumbs={[{ label: t.operations }, { label: t.sectionInsights }, { label: 'Quality analytics' }]} />
 
-      <div className="page-head">
+      <div className="page-head" style={{ padding: '24px 32px', background: 'var(--surface-0)' }}>
         <div>
-          <div className="page-eyebrow">{I.shield}<span>Insights</span></div>
-          <h1 className="page-title">Quality analytics</h1>
-          <p className="page-sub">
+          <div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="shield" size={14} />
+            <span>Insights</span>
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, margin: '8px 0 4px', color: 'var(--text-1)' }}>Quality analytics</h1>
+          <p style={{ fontSize: 13, color: 'var(--text-3)' }}>
             Track inspection quality performance across the plant. Monitor accepted vs rejected results,
             right-first-time rate, and the materials or characteristics driving quality losses.
           </p>
@@ -604,55 +573,52 @@ export function QualityAnalyticsPage() {
       />
 
       {loading && (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-400)' }}>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-3)' }}>
           Loading quality analytics…
         </div>
       )}
 
       {!loading && (
-        <div className="pa-page-body">
-          <div className="pour-grid pour-grid-page">
-            {/* Card 1: Accepted results */}
-            <div className={`pour-kpi tone-actual ${qualityTone}`}>
-              <div className="pk-l">{I.check}<span>Accepted results</span></div>
-              <div className="pk-v mono">{accepted.toLocaleString()}</div>
-              {filters.compare === 'prior7d' && <DeltaPill current={rftPct} prior={priorRftPct} />}
-              <div className="pk-sub">
-                {rftPct != null && (
-                  <span className={`pk-delta ${qualityTone === 'good' ? 'pos' : qualityTone === 'ok' ? 'neut' : 'neg'}`}>
-                    {rftPct.toFixed(1)}% RFT
-                  </span>
-                )}
-                {' '}inspection results accepted
+        <div style={{ padding: '0 32px 48px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
+            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, borderLeft: `4px solid ${qualityTone === 'good' ? 'var(--status-ok)' : qualityTone === 'ok' ? 'var(--status-warn)' : 'var(--status-risk)'}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
+                <Icon name="check" size={14} />
+                <span>Accepted results</span>
               </div>
-              <div className="pk-bar">
-                <div className="pk-fill act" style={{ width: `${Math.min(100, rftPct ?? 0)}%` }} />
+              <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{accepted.toLocaleString()}</div>
+              {rftPct != null && (
+                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
+                  <span style={{ color: qualityTone === 'good' ? 'var(--status-ok)' : 'var(--status-warn)', fontWeight: 700 }}>{rftPct.toFixed(1)}% RFT</span>
+                </div>
+              )}
+            </div>
+            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
+                <Icon name="trending-up" size={14} />
+                <span>Right first time</span>
               </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{rftPct != null ? rftPct.toFixed(1) + '%' : '—'}</div>
+                {filters.compare === 'prior7d' && <DeltaPill current={rftPct} prior={priorRftPct} />}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>{total.toLocaleString()} results inspected</div>
             </div>
-
-            {/* Card 2: Right first time */}
-            <div className="pour-kpi tone-target">
-              <div className="pk-l">{I.trending}<span>Right first time</span></div>
-              <div className="pk-v mono">{rftPct != null ? rftPct.toFixed(1) + '%' : '—'}</div>
-              {filters.compare === 'prior7d' && <DeltaPill current={rftPct} prior={priorRftPct} />}
-              <div className="pk-sub">{total.toLocaleString()} results inspected</div>
-            </div>
-
-            {/* Card 3: Rejected results */}
-            <div className="pour-kpi tone-planned">
-              <div className="pk-l">{I.alert}<span>Rejected results</span></div>
-              <div className="pk-v mono">{rejected.toLocaleString()}</div>
+            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
+                <Icon name="alert-triangle" size={14} />
+                <span>Rejected results</span>
+              </div>
+              <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)', color: rejected > 0 ? 'var(--status-risk)' : 'inherit' }}>{rejected.toLocaleString()}</div>
               {rejectPct != null && (
-                <div className="pk-sub">
-                  <span className={`pk-delta ${rejectPct > 5 ? 'neg' : rejectPct > 2 ? 'neut' : 'pos'}`}>
-                    {rejectPct.toFixed(1)}% reject rate
-                  </span>
+                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
+                  <span style={{ color: rejectPct > 5 ? 'var(--status-risk)' : 'var(--status-ok)', fontWeight: 700 }}>{rejectPct.toFixed(1)}%</span> reject rate
                 </div>
               )}
             </div>
           </div>
 
-          <div className="pour-trends">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
             <QualityTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="30d" onSelectBucket={setSelection} />
             <QualityTrendChart daily30d={daily30d} hourly24h={hourly24h} defaultRange="24h" onSelectBucket={setSelection} />
           </div>
@@ -666,22 +632,23 @@ export function QualityAnalyticsPage() {
             onClear={() => setSelection(null)}
           >
             {selectedRows.slice(0, 50).map((r, i) => (
-              <div className="cp-row" key={`${r.process_order}-${r.characteristic_id}-${i}`}>
-                <button
-                  className="pa-po-link mono"
+              <div key={i} style={{ display: 'flex', gap: 16, padding: '8px 0', borderBottom: '1px solid var(--line-1)', fontSize: 13 }}>
+                <button 
+                  className="btn btn-link" 
+                  style={{ padding: 0, height: 'auto', fontFamily: 'var(--font-mono)', width: 100, textAlign: 'left' }}
                   onClick={() => (window as any).__navigateToOrder?.(r.process_order, { label: r.material_name, materialId: r.material_id, _from: 'quality' })}
                 >{r.process_order}</button>
-                <span>{r.characteristic_description || r.characteristic_id}</span>
-                <span className="muted">{r.material_name}</span>
-                <span className="mono">{r.judgement === 'A' ? 'Accepted' : 'Rejected'}</span>
+                <span style={{ flex: 1 }}>{r.characteristic_description || r.characteristic_id}</span>
+                <span style={{ color: 'var(--text-3)', width: 150 }}>{r.material_name}</span>
+                <span style={{ fontWeight: 600, width: 80, textAlign: 'right', color: r.judgement === 'A' ? 'var(--status-ok)' : 'var(--status-risk)' }}>{r.judgement === 'A' ? 'Accepted' : 'Rejected'}</span>
               </div>
             ))}
-            {selectedRows.length === 0 && <div className="cp-empty">No inspection results in this bucket.</div>}
+            {selectedRows.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-3)' }}>No inspection results in this bucket.</div>}
           </ContributorsPanel>
 
           <QualityAnalyticsBreakdown rows={rows} prior7d={prior7d} dateFrom={dateFrom} dateTo={dateTo} />
         </div>
       )}
-    </>
+    </div>
   )
 }

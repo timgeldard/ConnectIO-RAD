@@ -1,7 +1,6 @@
-// @ts-nocheck
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n/context'
-import { TopBar } from '../ui'
+import { TopBar, Icon, Button, KPI } from '@connectio/shared-ui'
 import { fetchDayView } from '../api/day_view'
 import type { DayViewData, DayBlock, DayDowntime } from '../api/day_view'
 
@@ -27,9 +26,9 @@ const toX = (ms: number, dayStart: number) =>
 
 // ---- Block colour ----
 const KIND_COLOR: Record<string, string> = {
-  running: 'var(--valentia-slate)',
-  completed: '#1F6E4A',
-  onhold: '#B45309',
+  running: 'var(--brand)',
+  completed: 'var(--status-ok)',
+  onhold: 'var(--status-warn)',
 }
 
 // ---- Tick marks: 00:00, 04:00, 08:00, 12:00, 16:00, 20:00, 24:00 ----
@@ -37,8 +36,8 @@ const TIME_TICKS = [0, 4, 8, 12, 16, 20, 24]
 
 // ---- Swimlane stacking constants ----
 const BLOCK_H = 28
-const LANE_GAP = 3
-const LANE_PAD = 5
+const LANE_GAP = 4
+const LANE_PAD = 8
 
 /** Greedy interval scheduling: assign each block a lane index so no two
  *  overlapping blocks share a lane.  Blocks sorted by start time. */
@@ -60,123 +59,85 @@ function laneCount(m: Map<string, number>): number {
 }
 
 // ====================================================================
-// KPI Strip
+// Page root
 // ====================================================================
-function KpiStrip({ kpis }: { kpis: DayViewData['kpis'] }) {
-  const cards = [
-    { label: 'Orders', value: String(kpis.orderCount) },
-    { label: 'Completed', value: String(kpis.completedCount) },
-    { label: 'Qty confirmed', value: kpis.confirmedQty.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' KG' },
-    { label: 'Downtime events', value: String(kpis.downtimeEvents) },
-    { label: 'Downtime', value: kpis.downtimeMins > 0 ? kpis.downtimeMins.toFixed(0) + ' min' : '—' },
-  ]
-  return (
-    <div className="dv-kpi-strip">
-      {cards.map(c => (
-        <div key={c.label} className="dv-kpi-card">
-          <div className="dv-kpi-value">{c.value}</div>
-          <div className="dv-kpi-label">{c.label}</div>
-        </div>
-      ))}
-    </div>
-  )
-}
+export function DayView() {
+  const { t } = useT()
+  const [day, setDay] = useState(() => toLocalIso(Date.now()))
+  const [data, setData] = useState<DayViewData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedBlock, setSelectedBlock] = useState<DayBlock | null>(null)
+  const [selectedDowntime, setSelectedDowntime] = useState<DayDowntime | null>(null)
 
-// ====================================================================
-// Block detail drawer (slide-in from the right)
-// ====================================================================
-function BlockDrawer({ block, onClose }: { block: DayBlock; onClose: () => void }) {
-  const kindLabel = block.kind === 'running' ? 'Running' : block.kind === 'completed' ? 'Completed' : 'On hold'
-  const rows = [
-    ['Process order', block.poId],
-    ['Line', block.lineId],
-    ['Material', block.label],
-    ['Material ID', block.sublabel],
-    ['Status', kindLabel],
-    ['Start', fmtHHMM(block.start)],
-    ['End', fmtHHMM(block.end)],
-    ['Duration', ((block.end - block.start) / 3_600_000).toFixed(1) + ' h'],
-    ['Planned qty', block.plannedQty.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' ' + block.uom],
-    ['Confirmed qty', block.confirmedQty.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' ' + block.uom],
-  ]
-  return (
-    <div className="dv-drawer-backdrop" onClick={onClose}>
-      <div className="dv-drawer" onClick={e => e.stopPropagation()}>
-        <div className="dv-drawer-header">
-          <div>
-            <div className="dv-drawer-title">{block.label}</div>
-            <div className="dv-drawer-sub">{block.poId} · {block.lineId}</div>
-          </div>
-          <button className="dv-drawer-close" onClick={onClose}>✕</button>
-        </div>
-        <div className="dv-drawer-body">
-          {rows.map(([k, v]) => (
-            <div key={k} className="dv-drawer-row">
-              <span className="dv-drawer-key">{k}</span>
-              <span className="dv-drawer-val">{v}</span>
-            </div>
-          ))}
-        </div>
-        <div className="dv-drawer-footer">
-          <button
-            className="btn-secondary"
-            onClick={() => {
-              if ((window as any).__navigateToOrder) {
-                (window as any).__navigateToOrder(block.poId, {
-                  _from: 'day-view',
-                  lineId: block.lineId,
-                  label: block.label,
-                  materialId: block.sublabel,
-                  kind: block.kind,
-                  start: block.start,
-                  end: block.end,
-                  qty: block.plannedQty,
-                })
-              }
-            }}
-          >
-            Open order detail
-          </button>
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    fetchDayView({ day })
+      .then(d => { setData(d); setLoading(false) })
+      .catch(e => { setError(String(e)); setLoading(false) })
+  }, [day])
+
+  if (loading) {
+    return (
+      <div className="app-shell-full">
+        <TopBar breadcrumbs={[{ label: t.operations }, { label: 'Insights' }, { label: 'Day view' }]} />
+        <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)' }}>Loading day view…</div>
+      </div>
+    )
+  }
+
+  if (error || !data) {
+    return (
+      <div className="app-shell-full">
+        <TopBar breadcrumbs={[{ label: t.operations }, { label: 'Insights' }, { label: 'Day view' }]} />
+        <div style={{ padding: 48, textAlign: 'center', color: 'var(--status-risk)' }}>
+          {error || 'No data available.'}
         </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
-// ====================================================================
-// Downtime detail drawer
-// ====================================================================
-function DowntimeDrawer({ downtime, onClose }: { downtime: DayDowntime; onClose: () => void }) {
-  const durationMin = ((downtime.end - downtime.start) / 60_000).toFixed(0)
-  const rows = [
-    ['Line', downtime.lineId],
-    ['Process order', downtime.poId || '—'],
-    ['Start', fmtHHMM(downtime.start)],
-    ['End', fmtHHMM(downtime.end)],
-    ['Duration', durationMin + ' min'],
-    ['Issue type', downtime.issueType || '—'],
-    ['Issue title', downtime.issueTitle || '—'],
-    ['Reason code', downtime.reasonCode || '—'],
-  ]
   return (
-    <div className="dv-drawer-backdrop" onClick={onClose}>
-      <div className="dv-drawer" onClick={e => e.stopPropagation()}>
-        <div className="dv-drawer-header">
-          <div>
-            <div className="dv-drawer-title">{downtime.issueTitle || downtime.issueType || 'Downtime event'}</div>
-            <div className="dv-drawer-sub">{downtime.lineId} · {fmtHHMM(downtime.start)}–{fmtHHMM(downtime.end)}</div>
-          </div>
-          <button className="dv-drawer-close" onClick={onClose}>✕</button>
-        </div>
-        <div className="dv-drawer-body">
-          {rows.map(([k, v]) => (
-            <div key={k} className="dv-drawer-row">
-              <span className="dv-drawer-key">{k}</span>
-              <span className="dv-drawer-val">{v}</span>
+    <div className="app-shell-full" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <TopBar breadcrumbs={[{ label: t.operations }, { label: 'Insights' }, { label: 'Day view' }]} />
+      
+      <div style={{ flex: 1, overflowY: 'auto', background: 'var(--surface-sunken)', display: 'flex', flexDirection: 'column' }}>
+        <div className="dv-header" style={{ padding: '24px 32px', background: 'var(--surface-0)', borderBottom: '1px solid var(--line-1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+            <div>
+              <h1 style={{ fontSize: 28, fontWeight: 700, margin: '0 0 4px', color: 'var(--text-1)' }}>Day view</h1>
+              <p style={{ fontSize: 13, color: 'var(--text-3)' }}>Actual production activity by line — SAP confirmation records</p>
             </div>
-          ))}
+            <Legend />
+          </div>
+
+          <DateNav day={day} onChange={d => { setDay(d); setSelectedBlock(null); setSelectedDowntime(null) }} />
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginTop: 24 }}>
+            <KPI label="Orders" value={data.kpis.orderCount} icon="layers" />
+            <KPI label="Completed" value={data.kpis.completedCount} icon="check" tone="ok" />
+            <KPI label="Qty confirmed" value={data.kpis.confirmedQty.toLocaleString()} unit="kg" icon="package" />
+            <KPI label="Downtime events" value={data.kpis.downtimeEvents} icon="alert-triangle" tone={data.kpis.downtimeEvents > 0 ? 'risk' : 'neutral'} />
+            <KPI label="Downtime" value={data.kpis.downtimeMins > 0 ? data.kpis.downtimeMins.toFixed(0) : '0'} unit="min" icon="clock" tone={data.kpis.downtimeMins > 60 ? 'risk' : 'neutral'} />
+          </div>
+        </div>
+
+        <div style={{ padding: '0 32px 48px' }}>
+          <DayGantt
+            data={data}
+            onBlockClick={b => { setSelectedBlock(b); setSelectedDowntime(null) }}
+            onDowntimeClick={d => { setSelectedDowntime(d); setSelectedBlock(null) }}
+          />
         </div>
       </div>
+
+      {selectedBlock && (
+        <BlockDrawer block={selectedBlock} onClose={() => setSelectedBlock(null)} />
+      )}
+      {selectedDowntime && (
+        <DowntimeDrawer downtime={selectedDowntime} onClose={() => setSelectedDowntime(null)} />
+      )}
     </div>
   )
 }
@@ -193,7 +154,7 @@ function DayGantt({
   onBlockClick: (b: DayBlock) => void
   onDowntimeClick: (d: DayDowntime) => void
 }) {
-  const { day_start_ms: dayStart, day_end_ms: dayEnd, lines, blocks, downtime } = data
+  const { day_start_ms: dayStart, lines, blocks, downtime } = data
   const nowMs = Date.now()
   const isToday = data.day === toLocalIso(nowMs)
   const nowX = isToday ? toX(nowMs, dayStart) : null
@@ -223,22 +184,20 @@ function DayGantt({
   }, [lines, blocksByLine])
 
   return (
-    <div className="dv-gantt">
-      {/* Time axis header */}
-      <div className="dv-axis-row">
-        <div className="dv-axis-label-spacer" />
-        <div className="dv-time-axis">
+    <div style={{ marginTop: 32, background: 'var(--surface-0)', border: '1px solid var(--line-1)', borderRadius: 8, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--line-1)', background: 'var(--surface-sunken)' }}>
+        <div style={{ width: 120, flexShrink: 0, borderRight: '1px solid var(--line-1)', padding: '12px 16px', fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}>Line</div>
+        <div style={{ flex: 1, position: 'relative', height: 40 }}>
           {TIME_TICKS.map(h => (
-            <div key={h} className="dv-tick" style={{ left: `${(h / 24) * 100}%` }}>
+            <div key={h} style={{ position: 'absolute', left: `${(h / 24) * 100}%`, transform: 'translateX(-50%)', top: 12, fontSize: 10, fontWeight: 600, color: 'var(--text-3)' }}>
               {h.toString().padStart(2, '0')}:00
             </div>
           ))}
         </div>
       </div>
 
-      {/* Lines */}
       {lines.length === 0 ? (
-        <div className="dv-empty">No production activity recorded for this day.</div>
+        <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)' }}>No production activity recorded for this day.</div>
       ) : (
         lines.map(lineId => {
           const lineBlocks = blocksByLine[lineId] ?? []
@@ -247,20 +206,17 @@ function DayGantt({
           const numLanes = laneCount(laneMap)
           const timelineH = LANE_PAD * 2 + numLanes * BLOCK_H + Math.max(0, numLanes - 1) * LANE_GAP
           return (
-            <div key={lineId} className="dv-line-row">
-              <div className="dv-line-label">{lineId}</div>
-              <div className="dv-timeline" style={{ height: timelineH + 'px' }}>
-                {/* Gridlines at tick positions */}
+            <div key={lineId} style={{ display: 'flex', borderBottom: '1px solid var(--line-1)' }}>
+              <div style={{ width: 120, flexShrink: 0, borderRight: '1px solid var(--line-1)', padding: '16px', display: 'flex', alignItems: 'center', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{lineId}</div>
+              <div style={{ flex: 1, position: 'relative', height: timelineH }}>
                 {TIME_TICKS.map(h => (
-                  <div key={h} className="dv-gridline" style={{ left: `${(h / 24) * 100}%` }} />
+                  <div key={h} style={{ position: 'absolute', top: 0, bottom: 0, left: `${(h / 24) * 100}%`, width: 1, background: 'var(--line-1)', opacity: 0.5 }} />
                 ))}
 
-                {/* Now line (today only) */}
                 {nowX !== null && (
-                  <div className="dv-now-line" style={{ left: `${nowX}%` }} />
+                  <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${nowX}%`, width: 2, background: 'var(--status-risk)', zIndex: 10 }} />
                 )}
 
-                {/* Blocks — stacked into lanes to separate concurrent orders */}
                 {lineBlocks.map(b => {
                   const left = toX(b.start, dayStart)
                   const width = Math.max(0.3, toX(b.end, dayStart) - left)
@@ -269,30 +225,50 @@ function DayGantt({
                   return (
                     <div
                       key={b.id}
-                      className="dv-block"
                       style={{
+                        position: 'absolute',
                         left: `${left}%`,
                         width: `${width}%`,
-                        top: blockTop + 'px',
+                        top: blockTop,
+                        height: BLOCK_H,
                         background: KIND_COLOR[b.kind] ?? KIND_COLOR.onhold,
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        padding: '0 8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: '#fff',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        zIndex: 5
                       }}
                       title={`${b.label} · ${fmtHHMM(b.start)}–${fmtHHMM(b.end)}`}
                       onClick={() => onBlockClick(b)}
                     >
-                      <span className="dv-block-label">{b.label}</span>
+                      {width > 2 && b.label}
                     </div>
                   )
                 })}
 
-                {/* Downtime overlays — span full timeline height, clickable */}
                 {lineDowntime.map((d, i) => {
                   const left = toX(d.start, dayStart)
                   const width = Math.max(0.2, toX(d.end, dayStart) - left)
                   return (
                     <div
                       key={i}
-                      className="dv-downtime"
-                      style={{ left: `${left}%`, width: `${width}%` }}
+                      style={{
+                        position: 'absolute',
+                        left: `${left}%`,
+                        width: `${width}%`,
+                        top: 0,
+                        bottom: 0,
+                        background: 'var(--status-risk)',
+                        opacity: 0.2,
+                        cursor: 'help',
+                        zIndex: 2
+                      }}
                       title={d.issueTitle ?? d.issueType ?? 'Downtime'}
                       onClick={() => onDowntimeClick(d)}
                     />
@@ -308,8 +284,9 @@ function DayGantt({
 }
 
 // ====================================================================
-// Date navigator
+// Components
 // ====================================================================
+
 function DateNav({ day, onChange }: { day: string; onChange: (d: string) => void }) {
   function shift(delta: number) {
     const d = new Date(day + 'T00:00:00Z')
@@ -318,37 +295,32 @@ function DateNav({ day, onChange }: { day: string; onChange: (d: string) => void
   }
   const isToday = day === toLocalIso(Date.now())
   return (
-    <div className="dv-date-nav">
-      <button className="dv-nav-btn" onClick={() => shift(-1)}>←</button>
-      <div className="dv-date-label">
-        <span className="dv-date-main">{fmtDate(day)}</span>
-        {isToday && <span className="dv-today-badge">Today</span>}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <Button variant="secondary" size="sm" onClick={() => shift(-1)} icon={<Icon name="arrow-left" />} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface-sunken)', padding: '4px 16px', borderRadius: 6, border: '1px solid var(--line-1)' }}>
+        <span style={{ fontWeight: 700, fontSize: 16 }}>{fmtDate(day)}</span>
+        {isToday && <span style={{ background: 'var(--status-ok)', color: '#fff', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 99, textTransform: 'uppercase' }}>Today</span>}
       </div>
-      <button className="dv-nav-btn" onClick={() => shift(1)} disabled={isToday}>→</button>
+      <Button variant="secondary" size="sm" onClick={() => shift(1)} disabled={isToday} icon={<Icon name="arrow-right" />} />
       {!isToday && (
-        <button className="dv-nav-today" onClick={() => onChange(toLocalIso(Date.now()))}>
-          Today
-        </button>
+        <Button variant="ghost" size="sm" onClick={() => onChange(toLocalIso(Date.now()))}>Go to today</Button>
       )}
     </div>
   )
 }
 
-// ====================================================================
-// Legend
-// ====================================================================
 function Legend() {
   const items = [
     { color: KIND_COLOR.running, label: 'Running' },
     { color: KIND_COLOR.completed, label: 'Completed' },
     { color: KIND_COLOR.onhold, label: 'On hold' },
-    { color: '#DC2626', label: 'Downtime', opacity: 0.35 },
+    { color: 'var(--status-risk)', label: 'Downtime', opacity: 0.35 },
   ]
   return (
-    <div className="dv-legend">
+    <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--text-2)' }}>
       {items.map(({ color, label, opacity }) => (
-        <div key={label} className="dv-legend-item">
-          <span className="dv-legend-swatch" style={{ background: color, opacity: opacity ?? 1 }} />
+        <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 10, height: 10, borderRadius: 2, background: color, opacity: opacity ?? 1 }} />
           <span>{label}</span>
         </div>
       ))}
@@ -356,77 +328,96 @@ function Legend() {
   )
 }
 
-// ====================================================================
-// Page root
-// ====================================================================
-export function DayView() {
-  const { t } = useT()
-  const [day, setDay] = useState(() => toLocalIso(Date.now()))
-  const [data, setData] = useState<DayViewData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedBlock, setSelectedBlock] = useState<DayBlock | null>(null)
-  const [selectedDowntime, setSelectedDowntime] = useState<DayDowntime | null>(null)
-
-  useEffect(() => {
-    setLoading(true)
-    setError(null)
-    fetchDayView({ day })
-      .then(d => { setData(d); setLoading(false) })
-      .catch(e => { setError(String(e)); setLoading(false) })
-  }, [day])
-
-  const trail = [t.operations, 'Insights', 'Day view']
-
-  if (loading) {
-    return (
-      <>
-        <TopBar trail={trail} />
-        <div className="dv-state-msg">Loading day view…</div>
-      </>
-    )
-  }
-
-  if (error || !data) {
-    return (
-      <>
-        <TopBar trail={trail} />
-        <div className="dv-state-msg" style={{ color: 'var(--danger)' }}>
-          {error || 'No data available.'}
-        </div>
-      </>
-    )
-  }
-
+function BlockDrawer({ block, onClose }: { block: DayBlock; onClose: () => void }) {
+  const kindLabel = block.kind === 'running' ? 'Running' : block.kind === 'completed' ? 'Completed' : 'On hold'
+  const rows = [
+    ['Process order', block.poId],
+    ['Line', block.lineId],
+    ['Material', block.label],
+    ['Material ID', block.sublabel],
+    ['Status', kindLabel],
+    ['Start', fmtHHMM(block.start)],
+    ['End', fmtHHMM(block.end)],
+    ['Duration', ((block.end - block.start) / 3_600_000).toFixed(1) + ' h'],
+    ['Planned qty', block.plannedQty.toLocaleString() + ' ' + block.uom],
+    ['Confirmed qty', block.confirmedQty.toLocaleString() + ' ' + block.uom],
+  ]
   return (
-    <>
-      <TopBar trail={trail} />
-      <div className="dv-page">
-        <div className="dv-header">
-          <div>
-            <h1 className="dv-title">Day view</h1>
-            <p className="dv-subtitle">Actual production activity by line — SAP confirmation records</p>
+    <Drawer title={block.label} sub={block.poId + ' · ' + block.lineId} onClose={onClose}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {rows.map(([k, v]) => (
+          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line-1)', paddingBottom: 8, fontSize: 13 }}>
+            <span style={{ color: 'var(--text-3)' }}>{k}</span>
+            <span style={{ fontWeight: 600 }}>{v}</span>
           </div>
-          <Legend />
-        </div>
-
-        <DateNav day={day} onChange={d => { setDay(d); setSelectedBlock(null); setSelectedDowntime(null) }} />
-
-        <KpiStrip kpis={data.kpis} />
-
-        <DayGantt
-          data={data}
-          onBlockClick={b => { setSelectedBlock(b); setSelectedDowntime(null) }}
-          onDowntimeClick={d => { setSelectedDowntime(d); setSelectedBlock(null) }}
-        />
+        ))}
       </div>
+      <div style={{ marginTop: 32 }}>
+        <Button variant="primary" style={{ width: '100%' }} icon={<Icon name="eye" />}
+          onClick={() => {
+            if ((window as any).__navigateToOrder) {
+              (window as any).__navigateToOrder(block.poId, {
+                _from: 'day-view',
+                lineId: block.lineId,
+                label: block.label,
+                materialId: block.sublabel,
+                kind: block.kind,
+                start: block.start,
+                end: block.end,
+                qty: block.plannedQty,
+              })
+            }
+          }}
+        >
+          Open order detail
+        </Button>
+      </div>
+    </Drawer>
+  )
+}
 
-      {selectedBlock && (
-        <BlockDrawer block={selectedBlock} onClose={() => setSelectedBlock(null)} />
-      )}
-      {selectedDowntime && (
-        <DowntimeDrawer downtime={selectedDowntime} onClose={() => setSelectedDowntime(null)} />
-      )}
-    </>
+function DowntimeDrawer({ downtime, onClose }: { downtime: DayDowntime; onClose: () => void }) {
+  const durationMin = ((downtime.end - downtime.start) / 60_000).toFixed(0)
+  const rows = [
+    ['Line', downtime.lineId],
+    ['Process order', downtime.poId || '—'],
+    ['Start', fmtHHMM(downtime.start)],
+    ['End', fmtHHMM(downtime.end)],
+    ['Duration', durationMin + ' min'],
+    ['Issue type', downtime.issueType || '—'],
+    ['Issue title', downtime.issueTitle || '—'],
+    ['Reason code', downtime.reasonCode || '—'],
+  ]
+  return (
+    <Drawer title={downtime.issueTitle || downtime.issueType || 'Downtime event'} sub={downtime.lineId + ' · ' + fmtHHMM(downtime.start) + '–' + fmtHHMM(downtime.end)} onClose={onClose}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {rows.map(([k, v]) => (
+          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line-1)', paddingBottom: 8, fontSize: 13 }}>
+            <span style={{ color: 'var(--text-3)' }}>{k}</span>
+            <span style={{ fontWeight: 600 }}>{v}</span>
+          </div>
+        ))}
+      </div>
+    </Drawer>
+  )
+}
+
+function Drawer({ title, sub, onClose, children }: { title: string, sub: string, onClose: () => void, children: any }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} onClick={onClose} />
+      <div style={{ position: 'relative', width: 360, background: 'var(--surface-0)', boxShadow: '-10px 0 30px rgba(0,0,0,0.1)', padding: 24, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', marginBottom: 4 }}>{title}</div>
+            <div style={{ fontSize: 13, color: 'var(--text-3)' }}>{sub}</div>
+          </div>
+          <button className="btn btn-ghost btn-xs" onClick={onClose}><Icon name="x" size={20} /></button>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {children}
+        </div>
+      </div>
+    </div>
   )
 }

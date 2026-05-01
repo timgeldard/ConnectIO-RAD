@@ -24,18 +24,24 @@ _ORDER_ROW = {
 }
 
 
+from shared_auth import UserIdentity, require_user
+
 @pytest.fixture
 def mock_orders(monkeypatch):
-    monkeypatch.setattr(orders_router, "resolve_token", lambda *_: "token")
+    async def mock_user():
+        return UserIdentity(user_id="test", raw_token="token")
+    
+    app.dependency_overrides[require_user] = mock_user
     monkeypatch.setattr(orders_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=[_ORDER_ROW])
     monkeypatch.setattr(orders_router, "fetch_orders_list", mock)
-    return mock
+    yield mock
+    app.dependency_overrides.clear()
 
 
 def test_post_orders_returns_200(mock_orders):
     response = client.post("/api/orders", json={})
-    assert response.status_code == 200
+    assert response.status_code == 200, response.json()
     data = response.json()
     assert "orders" in data
     assert "total" in data

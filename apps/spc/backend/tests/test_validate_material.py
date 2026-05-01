@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 import backend.main as main_module
-import backend.routers.spc_common as spc_common
+import shared_db.utils as spc_common
 import backend.routers.spc_metadata as spc_module
 
 
@@ -16,14 +16,14 @@ def test_validate_material_returns_valid_when_freshness_temporarily_unavailable(
     async def fake_validate_material(_token, _material_id):
         return {"material_id": "MAT-1", "material_name": "Material 1"}
 
-    async def failing_attach(_payload, _token, _source_views, *, request_path=None):
+    async def failing_attach_freshness(_payload, _token, _path, _views, **_kwargs):
         raise HTTPException(
             status_code=503,
             detail={"message": "Data freshness lookup failed", "error_id": "fresh-123"},
         )
 
     monkeypatch.setattr(spc_module, "validate_material", fake_validate_material)
-    monkeypatch.setattr(spc_common, "attach_data_freshness", failing_attach)
+    monkeypatch.setattr(spc_module, "attach_data_freshness", failing_attach_freshness)
 
     response = client.post(
         "/api/spc/validate-material",

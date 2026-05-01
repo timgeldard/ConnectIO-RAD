@@ -16,7 +16,7 @@ def install_core_trace_route_stubs(
 ) -> list[dict[str, Any]]:
     freshness_calls: list[dict[str, Any]] = []
 
-    async def attach_payload(payload: dict[str, Any], token: str, request_path: str, source_views: list[str]):
+    async def attach_payload(payload: dict[str, Any], token: str, request_path: str, source_views: list[str], **_kwargs):
         freshness_calls.append(
             {
                 "payload": payload,

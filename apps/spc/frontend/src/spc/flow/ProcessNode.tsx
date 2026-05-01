@@ -1,5 +1,5 @@
 import { memo, useState } from 'react'
-import SparklineMini from './SparklineMini'
+import { SparklineMini } from '@connectio/shared-ui'
 import NodeTooltip from './NodeTooltip'
 import type { ProcessFlowNodeData } from '../types'
 

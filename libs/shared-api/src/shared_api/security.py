@@ -133,35 +133,21 @@ class SameOriginMiddleware(BaseHTTPMiddleware):
             },
         )
 
+from shared_auth import require_user as require_identity
+from shared_auth import resolve_token as auth_resolve_token
+
+...
+
 def resolve_token(
     x_forwarded_access_token: Optional[str],
     authorization: Optional[str],
 ) -> str:
     """
     Resolve the access token from request headers (priority order).
-
-    Args:
-        x_forwarded_access_token: Token injected by the Databricks Apps proxy.
-        authorization: Standard Authorization: Bearer <token> header.
-
-    Returns:
-        The resolved token as a string.
-
-    Raises:
-        HTTPException: 401 if no token is found.
+    
+    Delegates to shared_auth.resolve_token.
     """
-    token = x_forwarded_access_token
-    if token is None and authorization and authorization.startswith("Bearer "):
-        token = authorization[len("Bearer "):]
-    if not token:
-        raise HTTPException(
-            status_code=401,
-            detail=(
-                "No access token present. Expected x-forwarded-access-token "
-                "header (set by Databricks Apps proxy) or Authorization: Bearer."
-            ),
-        )
-    return token
+    return auth_resolve_token(x_forwarded_access_token, authorization)
 
 
 def require_token(
@@ -170,12 +156,20 @@ def require_token(
 ) -> str:
     """
     FastAPI dependency to require a valid access token.
-
-    Args:
-        x_forwarded_access_token: Extracted from x-forwarded-access-token header.
-        authorization: Extracted from Authorization header.
-
-    Returns:
-        The resolved token.
+    
+    Delegates to shared_auth.resolve_token.
     """
-    return resolve_token(x_forwarded_access_token, authorization)
+    return auth_resolve_token(x_forwarded_access_token, authorization)
+
+
+async def require_user(
+    request: Request,
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    """
+    FastAPI dependency to require a valid user identity.
+    
+    Delegates to shared_auth.require_user.
+    """
+    return await require_identity(request, x_forwarded_access_token, authorization)

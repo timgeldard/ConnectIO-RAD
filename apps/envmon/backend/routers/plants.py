@@ -9,10 +9,11 @@ import asyncio
 import logging
 from typing import Any, Optional
 
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Depends, Header, Query
 
 from backend.schemas.em import PlantInfo, PlantKpis
-from backend.utils.db import resolve_token, run_sql_async, sql_param
+from backend.utils.db import run_sql_async, sql_param
+from shared_auth import UserIdentity, require_user
 from backend.utils.em_config import (
     FLOOR_TBL,
     INSP_TYPES_SQL,
@@ -202,11 +203,10 @@ async def _count_floors(token: str, plant_id: str) -> int:
 
 @router.get("/plants", response_model=list[PlantInfo])
 async def list_plants(
+    user: UserIdentity = Depends(require_user),
     days: int = Query(default=30, ge=7, le=730),
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
 
     plant_ids = await _fetch_active_plant_ids(token)
     if not plant_ids:
