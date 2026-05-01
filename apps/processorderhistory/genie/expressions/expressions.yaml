@@ -1,0 +1,176 @@
+# Named SQL expressions (trusted metrics) for the Process Order History Genie Space.
+#
+# These are reusable computed measures Genie can reference by name.
+# Each expression is valid SQL that can be used in a SELECT or HAVING clause
+# against the tables in this space.
+#
+# Source tables use short aliases as they would appear in a JOIN query.
+# Full table prefix: connected_plant_prod.csm_process_order_history.<name>
+#                    connected_plant_prod.csm_equipment_history.<name>
+
+expressions:
+
+  # ---------------------------------------------------------------------------
+  # Schedule Adherence
+  # ---------------------------------------------------------------------------
+
+  - name: schedule_adherence_rate
+    display_name: Schedule Adherence Rate (%)
+    description: >
+      Percentage of completed process orders that finished on or before their
+      planned completion date. Source: metric_schedule_adherence (completed orders only).
+    unit: "%"
+    direction: higher_is_better
+    target: "> 95%"
+    sql: |
+      ROUND(
+        100.0 * SUM(CASE WHEN IS_ON_TIME = TRUE THEN 1 ELSE 0 END)
+        / NULLIF(COUNT(*), 0),
+        1
+      )
+    source_table: metric_schedule_adherence
+    notes: Do not use AVG(IS_ON_TIME) — use explicit SUM/COUNT for correct denominator
+
+  - name: in_full_rate
+    display_name: In Full Rate (%)
+    description: >
+      Percentage of completed orders that delivered at least 95% of planned quantity.
+    unit: "%"
+    direction: higher_is_better
+    sql: |
+      ROUND(
+        100.0 * SUM(CASE WHEN IS_IN_FULL = TRUE THEN 1 ELSE 0 END)
+        / NULLIF(COUNT(*), 0),
+        1
+      )
+    source_table: metric_schedule_adherence
+
+  - name: otif_rate
+    display_name: OTIF Rate (%)
+    description: >
+      Percentage of completed orders that were both On Time and In Full.
+    unit: "%"
+    direction: higher_is_better
+    target: "> 90%"
+    sql: |
+      ROUND(
+        100.0 * SUM(CASE WHEN IS_OTIF = TRUE THEN 1 ELSE 0 END)
+        / NULLIF(COUNT(*), 0),
+        1
+      )
+    source_table: metric_schedule_adherence
+
+  - name: avg_delay_days
+    display_name: Average Delay (days, late orders only)
+    description: >
+      Average delay in days for orders that finished late. Excludes early or on-time orders.
+      Positive = late.
+    unit: days
+    direction: lower_is_better
+    sql: |
+      ROUND(AVG(CASE WHEN DELAY_DAYS > 0 THEN DELAY_DAYS END), 1)
+    source_table: metric_schedule_adherence
+
+  - name: qty_fill_pct
+    display_name: Quantity Fill Rate (%)
+    description: >
+      Actual confirmed quantity as a percentage of planned quantity per order.
+      100% = exactly on plan. < 95% = short fill.
+    unit: "%"
+    direction: higher_is_better
+    sql: |
+      ROUND(100.0 * CONFIRMED_QTY / NULLIF(PLANNED_QTY, 0), 1)
+    source_table: metric_schedule_adherence
+
+  # ---------------------------------------------------------------------------
+  # OEE
+  # ---------------------------------------------------------------------------
+
+  - name: weighted_oee_pct
+    display_name: Weighted OEE (%)
+    description: >
+      OEE weighted by scheduled minutes. Use this when aggregating across lines
+      or time periods. Never use plain AVG(OEE_PCT).
+    unit: "%"
+    direction: higher_is_better
+    target: "> 85%"
+    sql: |
+      ROUND(
+        SUM(OEE_PCT * SCHEDULED_MINUTES) / NULLIF(SUM(SCHEDULED_MINUTES), 0),
+        1
+      )
+    source_table: metric_oee_daily
+    notes: >
+      World-class OEE in food manufacturing is ~85%.
+      Exclude rows where SCHEDULED_MINUTES = 0 (days with no planned production).
+
+  - name: downtime_rate_pct
+    display_name: Downtime Rate (%)
+    description: Percentage of scheduled time lost to unplanned downtime.
+    unit: "%"
+    direction: lower_is_better
+    sql: |
+      ROUND(
+        100.0 * SUM(DOWNTIME_MINUTES) / NULLIF(SUM(SCHEDULED_MINUTES), 0),
+        1
+      )
+    source_table: metric_oee_daily
+
+  # ---------------------------------------------------------------------------
+  # Yield
+  # ---------------------------------------------------------------------------
+
+  - name: production_yield_pct
+    display_name: Production Yield (%)
+    description: >
+      Actual goods receipt quantity (movement type 101) as a percentage of the
+      planned order quantity. Computed from vw_gold_adp_movement joined to
+      vw_gold_process_order.
+    unit: "%"
+    direction: higher_is_better
+    target: "> 98%"
+    sql: |
+      ROUND(
+        100.0 * SUM(CASE WHEN adp.MOVEMENT_TYPE = 101 THEN adp.QUANTITY ELSE 0 END)
+        / NULLIF(MAX(po.QUANTITY), 0),
+        1
+      )
+    source_tables: [vw_gold_adp_movement AS adp, vw_gold_process_order AS po]
+    notes: Join on PROCESS_ORDER_ID. Exclude UOM IN ('EA','G') for volume analysis.
+
+  # ---------------------------------------------------------------------------
+  # Equipment
+  # ---------------------------------------------------------------------------
+
+  - name: instrument_count_by_type
+    display_name: Instrument Count by Derived Type
+    description: >
+      Count of instruments grouped by derived EQUIPMENT_TYPE (mapped from EQUIPMENT_SUB_TYPE).
+      Use as a sub-expression in a GROUP BY query on vw_gold_instrument.
+    sql: |
+      CASE
+        WHEN EQUIPMENT_SUB_TYPE IN ('Fixed', 'Mobile', 'Mobile-FixBin', 'ZIBC')
+          THEN 'Vessel'
+        WHEN EQUIPMENT_SUB_TYPE IN ('Connected Scale', 'Manual Scale')
+          THEN 'Scale'
+        WHEN EQUIPMENT_SUB_TYPE IN ('Bucket', 'Buckets', 'CCP Screen', 'Other', 'Pump')
+          THEN 'Auxiliary Equipment'
+        ELSE 'Uncategorised'
+      END AS equipment_type,
+      COUNT(*) AS instrument_count
+    source_table: vw_gold_instrument
+    notes: EQUIPMENT_TYPE column does not exist in this view — use this CASE expression
+
+  # ---------------------------------------------------------------------------
+  # Pour Analytics
+  # ---------------------------------------------------------------------------
+
+  - name: total_pour_volume
+    display_name: Total Pour Volume
+    description: >
+      Total quantity of component materials poured (issued) into process orders.
+      Uses movement type 261. Excludes reversals (262) and non-volume UOMs.
+    sql: |
+      SUM(CASE WHEN MOVEMENT_TYPE = 261 THEN QUANTITY ELSE 0 END)
+    source_table: vw_gold_adp_movement
+    notes: Always add WHERE UOM NOT IN ('EA', 'G') to scope to volume quantities

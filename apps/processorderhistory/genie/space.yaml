@@ -1,0 +1,28 @@
+# Genie Space configuration for Process Order History
+#
+# space_id is resolved from the GENIE_SPACE_ID environment variable at deploy time.
+# This file documents the space per target and is consumed by scripts/sync_genie_instructions.py.
+#
+# To find your space ID: open the Genie Space in Databricks and copy the UUID from the URL.
+
+targets:
+  uat:
+    space_id: "${GENIE_SPACE_ID}"       # set in databricks.yml target uat
+    display_name: "Process Order History (UAT)"
+
+  prod:
+    space_id: "${GENIE_SPACE_ID}"       # set in databricks.yml target prod
+    display_name: "Process Order History"
+
+# Tables added to this space (must match Unity Catalog paths in the workspace):
+tables:
+  # csm_process_order_history schema
+  - connected_plant_prod.csm_process_order_history.vw_gold_process_order
+  - connected_plant_prod.csm_process_order_history.vw_gold_adp_movement
+  - connected_plant_prod.csm_process_order_history.vw_gold_material
+  - connected_plant_prod.csm_process_order_history.vw_gold_confirmation
+  - connected_plant_prod.csm_process_order_history.metric_schedule_adherence
+  - connected_plant_prod.csm_process_order_history.metric_oee_daily
+  # csm_equipment_history schema
+  - connected_plant_prod.csm_equipment_history.vw_gold_instrument
+  - connected_plant_prod.csm_equipment_history.vw_gold_equipment_history

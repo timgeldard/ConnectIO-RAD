@@ -1,0 +1,146 @@
+# Approved join paths for the Process Order History Genie Space.
+# Genie should use ONLY these joins — no other table combinations are sanctioned.
+#
+# catalog prefix: connected_plant_prod  (uat: connected_plant_uat)
+# schemas: csm_process_order_history, csm_equipment_history
+
+joins:
+
+  # ---------------------------------------------------------------------------
+  # Process order → material (for MATERIAL_NAME)
+  # ---------------------------------------------------------------------------
+  - name: process_order_to_material
+    left_table: vw_gold_process_order
+    right_table: vw_gold_material
+    join_type: LEFT JOIN
+    on:
+      - "vw_gold_material.MATERIAL_ID = vw_gold_process_order.MATERIAL_ID"
+    required_filters:
+      - "vw_gold_material.LANGUAGE_ID = 'E'"
+    cardinality: many-to-one
+    purpose: Resolve material name for process orders
+
+  # ---------------------------------------------------------------------------
+  # ADP movement → process order (for order context on pours)
+  # ---------------------------------------------------------------------------
+  - name: movement_to_process_order
+    left_table: vw_gold_adp_movement
+    right_table: vw_gold_process_order
+    join_type: LEFT JOIN
+    on:
+      - "vw_gold_process_order.PROCESS_ORDER_ID = vw_gold_adp_movement.PROCESS_ORDER_ID"
+    cardinality: many-to-one
+    purpose: Attach order details (status, line, planned qty) to pour/movement rows
+
+  # ---------------------------------------------------------------------------
+  # ADP movement → material (for material name on pours)
+  # ---------------------------------------------------------------------------
+  - name: movement_to_material
+    left_table: vw_gold_adp_movement
+    right_table: vw_gold_material
+    join_type: LEFT JOIN
+    on:
+      - "vw_gold_material.MATERIAL_ID = vw_gold_adp_movement.MATERIAL_ID"
+    required_filters:
+      - "vw_gold_material.LANGUAGE_ID = 'E'"
+    cardinality: many-to-one
+    purpose: Resolve material name for pour/movement rows
+
+  # ---------------------------------------------------------------------------
+  # Schedule adherence → material (for reporting by material name)
+  # ---------------------------------------------------------------------------
+  - name: adherence_to_material
+    left_table: metric_schedule_adherence
+    right_table: vw_gold_material
+    join_type: LEFT JOIN
+    on:
+      - "vw_gold_material.MATERIAL_ID = metric_schedule_adherence.MATERIAL_ID"
+    required_filters:
+      - "vw_gold_material.LANGUAGE_ID = 'E'"
+    cardinality: many-to-one
+    purpose: Resolve material name for schedule adherence reports
+
+  # ---------------------------------------------------------------------------
+  # Schedule adherence → process order (for timestamps not on adherence view)
+  # ---------------------------------------------------------------------------
+  - name: adherence_to_process_order
+    left_table: metric_schedule_adherence
+    right_table: vw_gold_process_order
+    join_type: INNER JOIN
+    on:
+      - "vw_gold_process_order.PROCESS_ORDER_ID = metric_schedule_adherence.ORDER_ID"
+    cardinality: one-to-one
+    purpose: Enrich adherence rows with full order timestamps
+
+  # ---------------------------------------------------------------------------
+  # Confirmation → process order
+  # ---------------------------------------------------------------------------
+  - name: confirmation_to_process_order
+    left_table: vw_gold_confirmation
+    right_table: vw_gold_process_order
+    join_type: LEFT JOIN
+    on:
+      - "vw_gold_process_order.PROCESS_ORDER_ID = vw_gold_confirmation.PROCESS_ORDER_ID"
+    cardinality: many-to-one
+    purpose: Attach order context to individual confirmation events
+
+  # ---------------------------------------------------------------------------
+  # Equipment history → instrument master (for type/name lookup)
+  # ---------------------------------------------------------------------------
+  - name: equipment_history_to_instrument
+    left_table: vw_gold_equipment_history
+    right_table: vw_gold_instrument
+    join_type: LEFT JOIN
+    on:
+      - "vw_gold_instrument.INSTRUMENT_ID = vw_gold_equipment_history.INSTRUMENT_ID"
+    cardinality: many-to-one
+    purpose: Attach instrument name and sub-type to history events
+
+  # ---------------------------------------------------------------------------
+  # Equipment history → process order (for material context on vessel events)
+  # ---------------------------------------------------------------------------
+  - name: equipment_history_to_process_order
+    left_table: vw_gold_equipment_history
+    right_table: vw_gold_process_order
+    join_type: LEFT JOIN
+    on:
+      - "vw_gold_process_order.PROCESS_ORDER_ID = vw_gold_equipment_history.PROCESS_ORDER_ID"
+    cardinality: many-to-one
+    purpose: Attach order and material context to vessel state events
+    notes: PROCESS_ORDER_ID is NULL on equipment events not linked to an order — LEFT JOIN mandatory
+
+  # ---------------------------------------------------------------------------
+  # Equipment history → material (for which material was run in a vessel)
+  # ---------------------------------------------------------------------------
+  - name: equipment_history_to_material
+    left_table: vw_gold_equipment_history
+    right_table: vw_gold_material
+    join_type: LEFT JOIN
+    on:
+      - "vw_gold_material.MATERIAL_ID = vw_gold_equipment_history.MATERIAL_ID"
+    required_filters:
+      - "vw_gold_material.LANGUAGE_ID = 'E'"
+    cardinality: many-to-one
+    purpose: Resolve material name for vessel history events
+
+# ---------------------------------------------------------------------------
+# Forbidden joins — Genie must not generate these
+# ---------------------------------------------------------------------------
+forbidden_joins:
+
+  - name: movement_to_instrument_direct
+    tables: [vw_gold_adp_movement, vw_gold_instrument]
+    reason: No direct key relationship — join via vw_gold_process_order or vw_gold_equipment_history
+
+  - name: oee_to_process_order_direct
+    tables: [metric_oee_daily, vw_gold_process_order]
+    reason: >
+      OEE is at line-day grain; process orders are at order grain.
+      Multiple orders run on the same line on the same day — no clean FK.
+      Correlate via PLANT_ID + PRODUCTION_LINE + date overlap only.
+
+  - name: adherence_to_movement_direct
+    tables: [metric_schedule_adherence, vw_gold_adp_movement]
+    reason: >
+      Different grains. If needed, aggregate movements by ORDER_ID first
+      then join metric_schedule_adherence on ORDER_ID.
