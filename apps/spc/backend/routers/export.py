@@ -31,7 +31,7 @@ from backend.dal.spc_charts_dal import (
     fetch_count_chart_data,
     fetch_p_chart_data,
 )
-from backend.routers.spc_common import handle_sql_error
+from shared_db.utils import handle_sql_error
 from backend.schemas.spc_schemas import _validate_date
 
 router = APIRouter()

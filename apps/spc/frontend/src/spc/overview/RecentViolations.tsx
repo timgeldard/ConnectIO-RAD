@@ -1,5 +1,5 @@
 import { useI18n } from '@connectio/shared-frontend-i18n'
-import { Icon } from '../../components/ui/Icon'
+import { Icon } from '@connectio/shared-ui'
 import { useSPCDispatch } from '../SPCContext'
 import type { RecentViolationItem } from '../types'
 

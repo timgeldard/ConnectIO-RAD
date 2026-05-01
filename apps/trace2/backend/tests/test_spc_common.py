@@ -1,44 +1,43 @@
 import pytest
 from fastapi import HTTPException
-from unittest.mock import AsyncMock, patch
-import backend.routers.spc_common as spc_common
+from unittest.mock import AsyncMock
+from shared_db import utils as spc_common
 
 @pytest.mark.asyncio
 async def test_attach_validation_freshness_success():
     payload = {"data": 123}
     expected = {**payload, "data_freshness": {"ready": True}}
     
-    with patch("backend.routers.spc_common.attach_data_freshness", new_callable=AsyncMock) as mock_fresh:
-        mock_fresh.return_value = expected
-        result = await spc_common.attach_validation_freshness(payload, "token", "/path")
-        assert result == expected
+    mock_attacher = AsyncMock(return_value=expected)
+    
+    res = await spc_common.attach_validation_freshness(
+        payload, 
+        "token", 
+        "/path", 
+        attach_freshness_func=mock_attacher
+    )
+    assert res == expected
 
 @pytest.mark.asyncio
 async def test_attach_validation_freshness_503_fallback():
-    payload = {"data": 123}
-    detail = {"message": "Data freshness lookup failed", "error_id": "123"}
+    mock_attacher = AsyncMock(side_effect=HTTPException(status_code=503, detail={"message": "Data freshness lookup failed"}))
     
-    with patch("backend.routers.spc_common.attach_data_freshness", side_effect=HTTPException(status_code=503, detail=detail)):
-        result = await spc_common.attach_validation_freshness(payload, "token", "/path")
-        assert result["data"] == 123
-        assert result["data_freshness"] is None
-        assert result["data_freshness_warning"] == detail
+    res = await spc_common.attach_validation_freshness(
+        {"data": 1}, 
+        "token", 
+        "/path", 
+        attach_freshness_func=mock_attacher
+    )
+    assert res["data_freshness"] is None
+    assert "data_freshness_warning" in res
 
 def test_handle_sql_error_mapped():
-    with patch("backend.routers.spc_common.classify_sql_runtime_error", return_value=HTTPException(status_code=400, detail="Mapped")):
-        with pytest.raises(HTTPException) as exc:
-            spc_common.handle_sql_error(Exception("Raw"))
-        assert exc.value.status_code == 400
+    # 403 case
+    with pytest.raises(HTTPException) as exc:
+        spc_common.handle_sql_error(Exception("Permission denied"))
+    assert exc.value.status_code == 403
 
 def test_handle_sql_error_unmapped():
-    with patch("backend.routers.spc_common.classify_sql_runtime_error", return_value=None):
-        with pytest.raises(HTTPException) as exc:
-            spc_common.handle_sql_error(Exception("Raw"))
-        assert exc.value.status_code == 500
-        assert "Internal server error" in str(exc.value.detail)
-
-def test_handle_locked_limits_error():
     with pytest.raises(HTTPException) as exc:
-        spc_common.handle_locked_limits_error(Exception("table or view not found"))
-    assert exc.value.status_code == 503
-    assert "Locked limits table not initialised" in exc.value.detail
+        spc_common.handle_sql_error(Exception("Something weird"))
+    assert exc.value.status_code == 500

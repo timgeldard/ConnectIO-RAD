@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from './SPCContext'
-import { Icon } from '../components/ui/Icon'
+import { Icon } from '@connectio/shared-ui'
 import FieldHelp from './components/FieldHelp'
 import { useValidateMaterial } from './hooks/useMaterials'
 import { usePlants } from './hooks/usePlants'

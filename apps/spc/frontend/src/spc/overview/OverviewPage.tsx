@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Icon } from '../../components/ui/Icon'
+import { Icon } from '@connectio/shared-ui'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from '../SPCContext'
 import { useSPCFlow } from '../hooks/useSPCFlow'
 import { useSPCScorecard } from '../hooks/useSPCScorecard'

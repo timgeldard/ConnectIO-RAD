@@ -17,7 +17,7 @@ from backend.dal.spc_charts_dal import (
     fetch_spec_drift_summary,
     save_locked_limits,
 )
-from backend.routers.spc_common import handle_locked_limits_error, handle_sql_error
+from shared_db.utils import handle_locked_limits_error, handle_sql_error
 from backend.schemas.spc_schemas import (
     ChartDataRequest,
     ControlLimitsRequest,

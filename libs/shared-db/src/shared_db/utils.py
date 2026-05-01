@@ -1,22 +1,29 @@
 import logging
 import uuid
+from typing import Optional, Callable, Awaitable
 
-import numpy as np
 from fastapi import HTTPException
-
-from backend.utils.db import attach_data_freshness, classify_sql_runtime_error
+from shared_db.errors import classify_sql_runtime_error
 
 logger = logging.getLogger(__name__)
 
+# Type for a function that attaches freshness to a payload
+FreshnessAttacher = Callable[[dict, str, str, list[str]], Awaitable[dict]]
 
-async def attach_validation_freshness(payload: dict, token: str, request_path: str) -> dict:
+
+async def attach_validation_freshness(
+    payload: dict,
+    token: str,
+    request_path: str,
+    attach_freshness_func: FreshnessAttacher
+) -> dict:
     """Best-effort freshness for material validation."""
     try:
-        return await attach_data_freshness(
+        return await attach_freshness_func(
             payload,
             token,
+            request_path,
             ["gold_batch_quality_result_v", "gold_material"],
-            request_path=request_path,
         )
     except HTTPException as exc:
         detail = exc.detail if isinstance(exc.detail, dict) else {}
@@ -34,14 +41,15 @@ async def attach_payload_freshness(
     token: str,
     request_path: str,
     source_views: list[str],
+    attach_freshness_func: FreshnessAttacher
 ) -> dict:
     """Attach freshness metadata for a generic response payload."""
     try:
-        return await attach_data_freshness(
+        return await attach_freshness_func(
             payload,
             token,
+            request_path,
             source_views,
-            request_path=request_path,
         )
     except HTTPException as exc:
         detail = exc.detail if isinstance(exc.detail, dict) else {}
@@ -61,7 +69,7 @@ def handle_sql_error(exc: Exception) -> None:
         raise mapped_error
 
     error_id = str(uuid.uuid4())
-    logger.exception("spc.sql_error error_id=%s", error_id, exc_info=exc)
+    logger.exception("sql_error error_id=%s", error_id, exc_info=exc)
     raise HTTPException(
         status_code=500,
         detail=f"Internal server error; reference id: {error_id}",
@@ -75,7 +83,8 @@ def handle_analysis_error(exc: Exception) -> None:
     ValueError  → 422 with the exception message passed through to the client.
     Anything else falls through to handle_sql_error for standard SQL / 500 handling.
     """
-    if isinstance(exc, np.linalg.LinAlgError):
+    # Check for LinAlgError without requiring a direct numpy dependency at the shared layer
+    if "LinAlgError" in type(exc).__name__:
         raise HTTPException(
             status_code=422,
             detail=(

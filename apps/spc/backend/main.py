@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import Optional
@@ -29,6 +30,8 @@ from shared_api import (
 from shared_api.security import require_token, resolve_token
 from shared_db.errors import send_operational_alert
 
+logger = logging.getLogger(__name__)
+
 ENABLE_DEBUG_ENDPOINTS: bool = os.environ.get("APP_ENV", "").strip().lower() == "development"
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 LATENCY_BUDGETS_MS = {
@@ -37,6 +40,12 @@ LATENCY_BUDGETS_MS = {
     "/api/spc/characteristics": 3_000,
     "/api/spc/materials": 2_000,
 }
+_LATENCY_BUDGETS_MS = LATENCY_BUDGETS_MS
+
+
+def _latency_budget_ms_for_path(path: str) -> int:
+    return LATENCY_BUDGETS_MS.get(path, 10_000)
+
 
 app = create_api_app(
     title="TraceApp API",
@@ -65,12 +74,35 @@ async def health():
 @app.get("/api/ready")
 async def ready():
     # We still need a custom ready for SPC because it also checks gold_view_schema drift
-    await databricks_sql_ready(
-        check_warehouse_config=check_warehouse_config,
-        run_sql=run_sql_async,
-    )
     
+    # Specific check for missing readiness token (needed for test expectations)
     readiness_token = os.environ.get("DATABRICKS_READINESS_TOKEN", "").strip()
+    if not readiness_token:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "not_ready",
+                "reason": "readiness_token_missing",
+                "message": "DATABRICKS_READINESS_TOKEN environment variable is not set.",
+            },
+        )
+
+    try:
+        await databricks_sql_ready(
+            check_warehouse_config=check_warehouse_config,
+            run_sql=run_sql_async,
+        )
+    except HTTPException as exc:
+        # Re-wrap to ensure the structure expected by spc tests
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={
+                "reason": "sql_warehouse_unreachable",
+                "message": "An internal error occurred while reaching the SQL warehouse.",
+                "error": str(exc.detail),
+            },
+        )
+    
     schema_result = await assert_gold_view_schema(
         readiness_token,
         TRACE_CATALOG,

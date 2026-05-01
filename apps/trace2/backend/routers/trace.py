@@ -28,7 +28,7 @@ from backend.dal.trace_dal import (
     fetch_top_down,
     fetch_trace_tree,
 )
-from backend.routers.spc_common import attach_payload_freshness, handle_sql_error
+from shared_db.utils import attach_payload_freshness, handle_sql_error
 from backend.schemas.trace_schemas import (
     BatchDetailsRequest,
     BatchPageRequest,
@@ -37,7 +37,7 @@ from backend.schemas.trace_schemas import (
     SummaryRequest,
     TraceRequest,
 )
-from backend.utils.db import check_warehouse_config, resolve_token
+from backend.utils.db import attach_data_freshness, check_warehouse_config, resolve_token
 from backend.utils.rate_limit import limiter
 
 router = APIRouter()
@@ -75,6 +75,7 @@ async def trace(
         token,
         request.url.path,
         list(TRACE_TREE_FRESHNESS_SOURCES),
+        attach_freshness_func=attach_data_freshness
     )
 
 
@@ -104,6 +105,7 @@ async def summary(
         token,
         request.url.path,
         list(SUMMARY_FRESHNESS_SOURCES),
+        attach_freshness_func=attach_data_freshness
     )
 
 
@@ -130,6 +132,7 @@ async def batch_details(
         token,
         request.url.path,
         list(BATCH_DETAILS_FRESHNESS_SOURCES),
+        attach_freshness_func=attach_data_freshness
     )
 
 
@@ -153,6 +156,7 @@ async def impact(
         token,
         request.url.path,
         list(IMPACT_FRESHNESS_SOURCES),
+        attach_freshness_func=attach_data_freshness
     )
 
 
@@ -212,6 +216,7 @@ async def recall_readiness(
             "gold_batch_summary_v",
             "gold_plant",
         ],
+        attach_freshness_func=attach_data_freshness
     )
 
 
@@ -244,6 +249,7 @@ async def _batch_page_endpoint(
         token,
         request.url.path,
         _PAGE_SOURCES[page_key],
+        attach_freshness_func=attach_data_freshness
     )
 
 

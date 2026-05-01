@@ -25,6 +25,9 @@ const ICON_PATHS: Record<string, string> = {
   'layers':          'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
   'git-branch':      'M6 3v12M18 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM15 6a9 9 0 0 0-9 9',
   'message-square':  'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
+  'package':         'M16.5 9.4L7.5 4.21M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16zM3.27 6.96L12 12.01l8.73-5.05M12 22.08V12',
+  'cpu':             'M4 4h16v16H4V4zM9 9h6v6H9V9zM9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3',
+  'factory':         'M2 20V8l6 4V8l6 4V8l6 4v8H2zM6 14v2M10 14v2M14 14v2M18 14v2',
   'sparkles':        'M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3zM19 14l.8 2.4L22 17l-2.2.6L19 20l-.8-2.4L16 17l2.2-.6L19 14zM5 16l.5 1.5L7 18l-1.5.5L5 20l-.5-1.5L3 18l1.5-.5L5 16z',
   'download':        'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',
   'upload':          'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12',
@@ -59,10 +62,18 @@ const ICON_PATHS: Record<string, string> = {
   'play':            'M5 3l14 9-14 9V3z',
   'flask':           'M9 3h6v6l5 10a2 2 0 0 1-2 3H6a2 2 0 0 1-2-3l5-10V3zM9 9h6',
   'route':           'M6 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM9 16l6-8',
+  'printer':         'M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z',
+  'history':         'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l4 2',
+  'archive':         'M21 8V21H3V8M1 3H23V8H1V3ZM10 12H14',
+  'alert-circle':    'M12 8v4M12 16h.01M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z',
+  'search-alt':      'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35',
+
 }
 
+export type IconName = keyof typeof ICON_PATHS
+
 interface IconProps {
-  name: string
+  name: IconName
   size?: number
   strokeWidth?: number
   style?: CSSProperties
@@ -90,5 +101,3 @@ export function Icon({ name, size = 16, strokeWidth = 1.75, style, className }: 
     </svg>
   )
 }
-
-export type IconName = keyof typeof ICON_PATHS

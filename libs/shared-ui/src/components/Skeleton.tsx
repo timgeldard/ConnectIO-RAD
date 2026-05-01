@@ -1,3 +1,5 @@
+import type React from 'react'
+
 interface SkeletonProps {
   className?: string
   style?: React.CSSProperties
@@ -8,8 +10,6 @@ const shimmer: React.CSSProperties = {
   borderRadius: 4,
   display: 'block',
 }
-
-import type React from 'react'
 
 export function Skeleton({ className, style }: SkeletonProps) {
   return <div className={className} style={{ ...shimmer, width: '100%', height: '2.5rem', ...style }} aria-hidden="true" />

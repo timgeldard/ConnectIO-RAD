@@ -11,7 +11,7 @@ from backend.dal.spc_analysis_dal import (
     fetch_scorecard,
     save_msa_session,
 )
-from backend.routers.spc_common import handle_analysis_error, handle_sql_error
+from shared_db.utils import handle_analysis_error, handle_sql_error
 from backend.schemas.spc_schemas import (
     CalculateMSARequest,
     CompareScorecardsRequest,

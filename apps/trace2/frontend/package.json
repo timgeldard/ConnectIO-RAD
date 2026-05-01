@@ -14,7 +14,8 @@
   "dependencies": {
     "@connectio/shared-frontend-api": "file:../../../libs/shared-frontend-api",
     "@connectio/shared-frontend-i18n": "file:../../../libs/shared-frontend-i18n",
-    "@types/cytoscape": "^3.21.9",
+    "@connectio/shared-ui": "file:../../../libs/shared-ui",
+    "@tanstack/react-query": "^5.99.0",
     "cytoscape": "^3.33.2",
     "cytoscape-cose-bilkent": "^4.1.0",
     "maplibre-gl": "^4.7.1",

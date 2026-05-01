@@ -1,5 +1,13 @@
-export { Card, CardHeader, CardContent, CardTitle } from './Card'
-export { StatusBadge } from './StatusBadge'
-export { MetadataLabel } from './MetadataLabel'
-export { Tooltip } from './Tooltip'
-export { Skeleton } from './Skeleton'
+export {
+  Card,
+  CardHeader,
+  CardContent,
+  CardTitle,
+  StatusBadge,
+  MetadataLabel,
+  Tooltip,
+  Skeleton,
+  Icon,
+  Sparkline,
+  KPI
+} from '@connectio/shared-ui'

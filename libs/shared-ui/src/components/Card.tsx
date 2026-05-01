@@ -25,29 +25,31 @@ export function Card({ className, variant = 'default', children, style, ...props
   )
 }
 
-export function CardHeader({ className, children }: { className?: string; children: ReactNode }) {
+export function CardHeader({ className, children, style, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={className}
       style={{
         padding: '1.25rem 1.5rem',
         borderBottom: '1px solid var(--line-1)',
+        ...style,
       }}
+      {...props}
     >
       {children}
     </div>
   )
 }
 
-export function CardContent({ className, children }: { className?: string; children: ReactNode }) {
+export function CardContent({ className, children, style, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={className} style={{ padding: '1.5rem' }}>
+    <div className={className} style={{ padding: '1.5rem', ...style }} {...props}>
       {children}
     </div>
   )
 }
 
-export function CardTitle({ className, children }: { className?: string; children: ReactNode }) {
+export function CardTitle({ className, children, style, ...props }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
       className={className}
@@ -57,7 +59,9 @@ export function CardTitle({ className, children }: { className?: string; childre
         fontSize: '1.25rem',
         fontWeight: 600,
         letterSpacing: '-0.01em',
+        ...style,
       }}
+      {...props}
     >
       {children}
     </h3>

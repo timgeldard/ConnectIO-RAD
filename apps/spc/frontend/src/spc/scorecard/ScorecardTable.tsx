@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
-import { Icon } from '../../components/ui/Icon'
+import { Icon } from '@connectio/shared-ui'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from '../SPCContext'
 import { useExport } from '../hooks/useExport'
 import type { ScorecardRow } from '../types'

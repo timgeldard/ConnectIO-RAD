@@ -8,7 +8,7 @@ interface SparklineMiniProps {
   height?: number
 }
 
-export default function SparklineMini({
+export function SparklineMini({
   values = [],
   width = 88,
   height = 32,

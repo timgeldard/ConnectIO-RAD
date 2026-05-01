@@ -1,6 +1,5 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react'
-import { I, TopBar, fmt } from '../ui'
+import { TopBar, Icon, KPI, Button } from '@connectio/shared-ui'
 import { useT } from '../i18n/context'
 import {
   fetchEquipmentInsights,
@@ -21,7 +20,9 @@ const IW = CW - CL - CR, IH = CH - CT - CB
 type Range = '24h' | '30d'
 interface TooltipData { x: number; y: number; label: string; value: string }
 
-function fmtDay(ms: number) { return fmt.shortDate(ms) }
+function fmtDay(ms: number) {
+  return new Date(ms).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+}
 function fmtHour(ms: number) {
   const d = new Date(ms)
   return d.getHours().toString().padStart(2, '0') + ':00'
@@ -62,7 +63,7 @@ function ActivityTrendChart({
 
   const peakBar = barData.length ? Math.max(...barData.map(d => d.active_instruments)) : 0
   const peakLine = hourly24h.length ? Math.max(...hourly24h.map(d => d.active_instruments)) : 0
-  const metaLabel = isHourly ? `peak ${peakLine} active / hr` : `peak ${peakBar} active / day`
+  const metaLabel = isHourly ? `peak ${peakLine} active / hr` : peakBar > 0 ? `peak ${peakBar} active / day` : null
 
   const TW = 88, TH = 28
   const ttx = tooltip ? Math.max(CL + TW / 2, Math.min(CW - CR - TW / 2, tooltip.x)) : 0
@@ -70,47 +71,51 @@ function ActivityTrendChart({
   const maxV = isHourly ? maxLineV : maxBarV
 
   return (
-    <div className="pour-trend-card">
-      <div className="ptc-head">
-        <span className="ptc-title">
-          {I.cpu} Active instruments · {isHourly ? 'last 24 hours' : 'last 30 days'}
+    <div className="pour-trend-card" style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, padding: 16 }}>
+      <div className="ptc-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="cpu" size={14} /> Active instruments · {isHourly ? 'last 24 hours' : 'last 30 days'}
         </span>
-        {metaLabel && <span className="ptc-meta mono">{metaLabel}</span>}
-        <div className="chart-range-toggle">
-          {(['24h', '30d'] as Range[]).map(r => (
-            <button key={r} className={range === r ? 'active' : ''} onClick={() => { setRange(r); setTooltip(null) }}>
-              {r}
-            </button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {metaLabel && <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)' }}>{metaLabel}</span>}
+          <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 4, padding: 2 }}>
+            {(['24h', '30d'] as Range[]).map(r => (
+              <button 
+                key={r} 
+                className={`btn btn-xs ${range === r ? 'btn-primary' : 'btn-ghost'}`} 
+                style={{ height: 20, fontSize: 9, padding: '0 8px' }}
+                onClick={() => { setRange(r); setTooltip(null) }}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       <svg className="pour-chart" viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none"
-        onMouseLeave={() => setTooltip(null)}>
+        onMouseLeave={() => setTooltip(null)} style={{ overflow: 'visible' }}>
 
         {[0, 0.5, 1].map((p, gi) => {
           const y = CT + IH - p * IH
           return (
             <g key={gi}>
-              <line x1={CL} y1={y} x2={CW - CR} y2={y} stroke="var(--stone-200)" strokeDasharray="2 3" />
-              <text x={CL - 4} y={y + 3} textAnchor="end" className="pour-axis-lbl">{Math.round(maxV * p)}</text>
+              <line x1={CL} y1={y} x2={CW - CR} y2={y} stroke="var(--line-1)" strokeDasharray="2 3" />
+              <text x={CL - 4} y={y + 3} textAnchor="end" fontSize={9} fill="var(--text-3)">{Math.round(maxV * p)}</text>
             </g>
           )
         })}
 
         {isHourly && hourly24h.length > 0 && (
           <>
-            <path d={areaPath} fill="var(--valentia-slate)" opacity="0.12" />
-            <path d={linePath} fill="none" stroke="var(--valentia-slate)" strokeWidth="2" />
+            <path d={areaPath} fill="var(--brand)" opacity="0.08" />
+            <path d={linePath} fill="none" stroke="var(--brand)" strokeWidth="2" />
             {hourly24h.map((d, i) => (
-              <circle key={i} cx={lineX(i)} cy={lineY(d.active_instruments)} r="2.2" fill="var(--valentia-slate)" />
+              <circle key={i} cx={lineX(i)} cy={lineY(d.active_instruments)} r="2.2" fill="var(--brand)" />
             ))}
-            <text x={CL} y={CH - 4} className="pour-axis-lbl">{fmtHour(hourly24h[0].hour)}</text>
-            <text x={CL + IW / 2} y={CH - 4} textAnchor="middle" className="pour-axis-lbl">
-              {fmtHour(hourly24h[Math.floor(hourly24h.length / 2)].hour)}
-            </text>
-            <text x={CW - CR} y={CH - 4} textAnchor="end" className="pour-axis-lbl">now</text>
-            <rect x={CL} y={CT} width={IW} height={IH} fill="transparent"
+            <text x={CL} y={CH} fontSize={9} fill="var(--text-3)">{fmtHour(hourly24h[0].hour)}</text>
+            <text x={CW - CR} y={CH} textAnchor="end" fontSize={9} fill="var(--text-3)">now</text>
+            <rect x={CL} y={CT} width={IW} height={IH} fill="transparent" style={{ cursor: 'crosshair' }}
               onMouseMove={e => {
                 const svg = e.currentTarget.ownerSVGElement; if (!svg) return
                 const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
@@ -131,16 +136,13 @@ function ActivityTrendChart({
               const h = Math.max((d.active_instruments / maxBarV) * IH, 0)
               return (
                 <rect key={i} x={bx} y={CT + IH - h} width={barW} height={h}
-                  fill={i === barData.length - 1 ? 'var(--valentia-slate)' : '#1F6E4A'}
-                  opacity={i === barData.length - 1 ? 1 : 0.78} rx="1" />
+                  fill={i === barData.length - 1 ? 'var(--brand)' : 'var(--status-ok)'}
+                  opacity={i === barData.length - 1 ? 1 : 0.6} rx="1" />
               )
             })}
-            <text x={CL} y={CH - 4} className="pour-axis-lbl">{fmtDay(barData[0].date)}</text>
-            <text x={CL + IW / 2} y={CH - 4} textAnchor="middle" className="pour-axis-lbl">
-              {fmtDay(barData[Math.floor(barData.length / 2)].date)}
-            </text>
-            <text x={CW - CR} y={CH - 4} textAnchor="end" className="pour-axis-lbl">today</text>
-            <rect x={CL} y={CT} width={IW} height={IH} fill="transparent"
+            <text x={CL} y={CH} fontSize={9} fill="var(--text-3)">{fmtDay(barData[0].date)}</text>
+            <text x={CW - CR} y={CH} textAnchor="end" fontSize={9} fill="var(--text-3)">today</text>
+            <rect x={CL} y={CT} width={IW} height={IH} fill="transparent" style={{ cursor: 'crosshair' }}
               onMouseMove={e => {
                 const svg = e.currentTarget.ownerSVGElement; if (!svg) return
                 const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
@@ -157,9 +159,9 @@ function ActivityTrendChart({
 
         {tooltip && (
           <g style={{ pointerEvents: 'none' }}>
-            <rect x={ttx - TW / 2} y={tty - TH} width={TW} height={TH} rx={3} fill="var(--ink-900)" opacity={0.88} />
-            <text x={ttx} y={tty - TH + 10} textAnchor="middle" className="pour-axis-lbl" fill="var(--stone-50)">{tooltip.label}</text>
-            <text x={ttx} y={tty - 5} textAnchor="middle" className="pour-axis-lbl" fill="white" fontWeight="600">{tooltip.value}</text>
+            <rect x={ttx - TW / 2} y={tty - TH} width={TW} height={TH} rx={3} fill="var(--text-1)" />
+            <text x={ttx} y={tty - TH + 11} textAnchor="middle" fontSize={8} fill="var(--surface-0)" opacity={0.7}>{tooltip.label}</text>
+            <text x={ttx} y={tty - TH + 23} textAnchor="middle" fontSize={11} fontWeight="600" fill="var(--surface-0)">{tooltip.value}</text>
           </g>
         )}
       </svg>
@@ -179,10 +181,10 @@ const STATE_LABELS: Record<string, string> = {
 }
 
 const STATE_COLORS: Record<string, string> = {
-  in_use:    'var(--green-600, #16a34a)',
-  dirty:     'var(--amber-600, #d97706)',
-  available: 'var(--blue-500, #3b82f6)',
-  unknown:   'var(--ink-300, #9ca3af)',
+  in_use:    'var(--status-ok)',
+  dirty:     'var(--status-warn)',
+  available: 'var(--brand)',
+  unknown:   'var(--line-1)',
 }
 
 /** Instrument readiness distribution bar chart. */
@@ -190,36 +192,44 @@ function StateDistribution({ rows }: { rows: InstrumentStateEntry[] }) {
   const max = Math.max(1, ...rows.map(r => r.count))
   const total = rows.reduce((a, r) => a + r.count, 0)
   return (
-    <div className="pour-analytics">
-      <div className="pa-head">
-        <div className="pa-title">
-          {I.flag}
-          <span>Instrument readiness</span>
-          <span className="pa-meta">{total.toLocaleString()} instruments with recent history</span>
-        </div>
+    <div style={{ marginTop: 48 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+        <Icon name="flag" size={18} />
+        <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Instrument readiness</h2>
+        <span style={{ fontSize: 13, color: 'var(--text-3)' }}>{total.toLocaleString()} instruments with recent history</span>
       </div>
-      <div className="pa-bars">
-        <div className="pa-bars-head">
-          <div>State</div>
-          <div className="right">Count</div>
-          <div></div>
-          <div className="right">Share</div>
-        </div>
-        {rows.filter(r => r.count > 0).map(row => (
-          <div key={row.state} className="pa-row">
-            <div className="pa-row-name">
-              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: STATE_COLORS[row.state], marginRight: 6, flexShrink: 0 }} />
-              <span>{STATE_LABELS[row.state] ?? row.state}</span>
-            </div>
-            <div className="pa-row-count mono">{row.count.toLocaleString()}</div>
-            <div className="pa-row-bar">
-              <div className="pa-row-fill" style={{ width: `${(row.count / max) * 100}%`, background: STATE_COLORS[row.state] }} />
-            </div>
-            <div className="pa-row-vs mono neut">{row.pct}%</div>
-          </div>
-        ))}
+      <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead style={{ background: 'var(--surface-sunken)', borderBottom: '1px solid var(--line-1)' }}>
+            <tr>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>State</th>
+              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Count</th>
+              <th style={{ padding: '12px 16px', width: 240 }}></th>
+              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.filter(r => r.count > 0).map(row => (
+              <tr key={row.state} style={{ borderBottom: '1px solid var(--line-1)' }}>
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: STATE_COLORS[row.state] || 'var(--line-1)' }} />
+                    <span style={{ fontWeight: 600 }}>{STATE_LABELS[row.state] ?? row.state}</span>
+                  </div>
+                </td>
+                <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.count.toLocaleString()}</td>
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ height: 6, background: 'var(--surface-sunken)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(row.count / max) * 100}%`, background: STATE_COLORS[row.state] || 'var(--line-1)' }} />
+                  </div>
+                </td>
+                <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{row.pct}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         {rows.every(r => r.count === 0) && (
-          <div className="pa-empty">No recent instrument state data available.</div>
+          <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)' }}>No recent instrument state data available.</div>
         )}
       </div>
     </div>
@@ -234,69 +244,62 @@ function StateDistribution({ rows }: { rows: InstrumentStateEntry[] }) {
 function TypeDistribution({ rows, total }: { rows: EquipmentTypeEntry[]; total: number }) {
   const max = Math.max(1, ...rows.map(r => r.count))
   return (
-    <div className="pour-analytics">
-      <div className="pa-head">
-        <div className="pa-title">
-          {I.cpu}
-          <span>Instrument type distribution</span>
-          <span className="pa-meta">{total.toLocaleString()} instruments</span>
-        </div>
+    <div style={{ marginTop: 48 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+        <Icon name="cpu" size={18} />
+        <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Instrument type distribution</h2>
+        <span style={{ fontSize: 13, color: 'var(--text-3)' }}>{total.toLocaleString()} instruments</span>
       </div>
-      <div className="pa-bars">
-        <div className="pa-bars-head">
-          <div>Equipment type</div>
-          <div className="right">Count</div>
-          <div></div>
-          <div className="right">Share</div>
-        </div>
-        {rows.map((row, i) => (
-          <div key={row.equipment_type} className="pa-row">
-            <div className="pa-row-name">
-              <span className="pa-row-rank mono">#{i + 1}</span>
-              <span>{row.equipment_type}</span>
-            </div>
-            <div className="pa-row-count mono">{row.count.toLocaleString()}</div>
-            <div className="pa-row-bar">
-              <div className="pa-row-fill" style={{ width: `${(row.count / max) * 100}%` }} />
-            </div>
-            <div className="pa-row-vs mono neut">{row.pct}%</div>
-          </div>
-        ))}
-        {rows.length === 0 && <div className="pa-empty">No instrument data available.</div>}
+      <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead style={{ background: 'var(--surface-sunken)', borderBottom: '1px solid var(--line-1)' }}>
+            <tr>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Equipment type</th>
+              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Count</th>
+              <th style={{ padding: '12px 16px', width: 240 }}></th>
+              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={row.equipment_type} style={{ borderBottom: '1px solid var(--line-1)' }}>
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>#{i + 1}</span>
+                    <span style={{ fontWeight: 600 }}>{row.equipment_type}</span>
+                  </div>
+                </td>
+                <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.count.toLocaleString()}</td>
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ height: 6, background: 'var(--surface-sunken)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(row.count / max) * 100}%`, background: 'var(--brand)' }} />
+                  </div>
+                </td>
+                <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{row.pct}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {rows.length === 0 && <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)' }}>No instrument data available.</div>}
       </div>
     </div>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Scale verification placeholder
-// TODO: Replace with real data once a Unity Catalogue consumption view exists
-//       for connected_plant_prod.tulip.scale_verification_results.
-//       The table cannot be queried directly — UC permissions will crash the app.
-//       Steps to enable:
-//         1. Create a UC consumption view, e.g.:
-//            connected_plant_prod.csm_equipment_history.vw_scale_verification
-//         2. Add the view to entities.yaml (change tier from RESTRICTED to APPROVED)
-//         3. Add instrument_tbl('vw_scale_verification') query to equipment_insights_dal.py
-//         4. Remove this placeholder and render the real data.
-// ---------------------------------------------------------------------------
-
 function ScaleVerificationPlaceholder() {
   return (
-    <div className="pour-analytics">
-      <div className="pa-head">
-        <div className="pa-title">
-          {I.flask}
-          <span>Scale verification</span>
-          <span className="pa-meta" style={{ color: 'var(--amber, #92400e)', background: 'var(--amber-faint, #fef3c7)', borderRadius: 4, padding: '1px 6px', fontWeight: 600 }}>
-            Pending data access
-          </span>
+    <div style={{ marginTop: 48, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, padding: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Icon name="beaker" size={18} />
+          <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Scale verification</h2>
         </div>
+        <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 4, background: 'var(--status-warn-surface)', color: 'var(--status-warn)', textTransform: 'uppercase' }}>Pending data access</span>
       </div>
-      <div style={{ padding: '20px 16px', display: 'flex', gap: 10, alignItems: 'flex-start', color: 'var(--ink-400)' }}>
-        <span style={{ flexShrink: 0, marginTop: 1 }}>{I.warning}</span>
-        <div style={{ fontSize: 13, lineHeight: 1.55 }}>
-          <div style={{ fontWeight: 600, color: 'var(--ink-700)', marginBottom: 3 }}>Scale calibration data unavailable</div>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', color: 'var(--text-3)' }}>
+        <Icon name="alert-triangle" size={18} style={{ color: 'var(--status-warn)' }} />
+        <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+          <div style={{ fontWeight: 700, color: 'var(--text-1)', marginBottom: 4 }}>Scale calibration data unavailable</div>
           Scale verification results from Tulip require a Unity Catalogue consumption view
           before they can be queried. Once created, this card will show pass/fail status
           and verification history per scale.
@@ -328,94 +331,93 @@ export function EquipmentInsightsPage() {
     return () => { cancelled = true }
   }, [plantId])
 
-  const uncategorised = data?.type_distribution.find(r => r.equipment_type === 'Uncategorised')
   const inUse = data?.state_distribution.find(r => r.state === 'in_use')
   const available = data?.state_distribution.find(r => r.state === 'available')
 
-  return (
-    <>
-      <TopBar trail={[t.sectionInsights || 'Insights', t.navEquipmentInsights || 'Equipment insights']} />
+  if (loading) {
+    return (
+      <div className="app-shell-full">
+        <TopBar breadcrumbs={[{ label: t.operations }, { label: 'Insights' }, { label: 'Equipment insights' }]} />
+        <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)' }}>Loading equipment data…</div>
+      </div>
+    )
+  }
 
-      <div className="page-head">
-        <div>
-          <div className="page-eyebrow">{I.cpu}<span>{t.sectionInsights || 'Insights'}</span></div>
-          <h1 className="page-title">Equipment insights</h1>
-          <p className="page-sub">
-            Instrument estate, live readiness state, and activity trends.
-            Scale verification data is excluded pending Unity Catalogue access.
-          </p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--ink-500)' }}>
-            {I.factory}
+  if (error || !data) {
+    return (
+      <div className="app-shell-full">
+        <TopBar breadcrumbs={[{ label: t.operations }, { label: 'Insights' }, { label: 'Equipment insights' }]} />
+        <div style={{ padding: 48, textAlign: 'center', color: 'var(--status-risk)' }}>{error || 'No data available.'}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="app-shell-full">
+      <TopBar breadcrumbs={[{ label: t.operations }, { label: 'Insights' }, { label: 'Equipment insights' }]} />
+
+      <div className="page-head" style={{ padding: '24px 32px', background: 'var(--surface-0)', borderBottom: '1px solid var(--line-1)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Icon name="cpu" size={14} />
+              <span>Insights</span>
+            </div>
+            <h1 style={{ fontSize: 28, fontWeight: 700, margin: '0 0 4px', color: 'var(--text-1)' }}>Equipment insights</h1>
+            <p style={{ fontSize: 13, color: 'var(--text-3)' }}>
+              Instrument estate, live readiness state, and activity trends.
+              Scale verification data is excluded pending Unity Catalogue access.
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface-sunken)', padding: '6px 12px', borderRadius: 6, border: '1px solid var(--line-1)' }}>
+            <Icon name="factory" size={14} style={{ color: 'var(--text-3)' }} />
             <input
-              style={{ fontSize: 13, padding: '4px 8px', borderRadius: 4, border: '1px solid var(--stone-300)', width: 110 }}
+              style={{ fontSize: 13, border: 'none', background: 'transparent', fontWeight: 600, color: 'var(--text-1)', width: 100 }}
               placeholder="All plants"
               value={plantId}
               onChange={e => setPlantId(e.target.value)}
             />
-          </label>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginTop: 32 }}>
+          <KPI label="Total instruments" value={data.total_instrument_count.toLocaleString()} icon="cpu" />
+          <KPI label="Equipment types" value={data.type_distribution.filter(r => r.equipment_type !== 'Uncategorised').length} icon="layers" />
+          <KPI 
+            label="In use" 
+            value={inUse?.count || 0} 
+            unit={`${inUse?.pct || 0}%`} 
+            icon="flag" 
+            tone={inUse?.count ? 'ok' : 'neutral'} 
+          />
+          <KPI 
+            label="Available" 
+            value={available?.count || 0} 
+            unit={`${available?.pct || 0}%`} 
+            icon="check" 
+            tone="ok" 
+          />
+          <KPI 
+            label="Uncategorised" 
+            value={data.type_distribution.find(r => r.equipment_type === 'Uncategorised')?.count || 0} 
+            icon="alert-triangle" 
+            tone="neutral" 
+          />
         </div>
       </div>
 
-      {loading && (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-400)' }}>
-          Loading equipment data…
-        </div>
-      )}
+      <div style={{ padding: '32px 32px 48px' }}>
+        <ActivityTrendChart
+          daily30d={data.activity_daily30d}
+          hourly24h={data.activity_hourly24h}
+        />
 
-      {!loading && error && (
-        <div className="page-error">Failed to load equipment insights: {error}</div>
-      )}
+        <StateDistribution rows={data.state_distribution} />
 
-      {!loading && !error && data && (
-        <div className="pa-page-body">
-          <div className="pour-grid">
-            <div className="pour-kpi tone-actual">
-              <div className="pk-l">{I.cpu}<span>Total instruments</span></div>
-              <div className="pk-v mono">{data.total_instrument_count.toLocaleString()}</div>
-              <div className="pk-sub">in instrument master</div>
-            </div>
-            <div className="pour-kpi tone-planned">
-              <div className="pk-l">{I.layers}<span>Equipment types</span></div>
-              <div className="pk-v mono">{data.type_distribution.filter(r => r.equipment_type !== 'Uncategorised').length}</div>
-              <div className="pk-sub">distinct categories</div>
-            </div>
-            {inUse && inUse.count > 0 && (
-              <div className="pour-kpi tone-actual">
-                <div className="pk-l">{I.flag}<span>In use</span></div>
-                <div className="pk-v mono">{inUse.count.toLocaleString()}</div>
-                <div className="pk-sub">{inUse.pct}% of instruments with recent history</div>
-              </div>
-            )}
-            {available && available.count > 0 && (
-              <div className="pour-kpi tone-target">
-                <div className="pk-l">{I.check}<span>Available</span></div>
-                <div className="pk-v mono">{available.count.toLocaleString()}</div>
-                <div className="pk-sub">{available.pct}% clean / ready</div>
-              </div>
-            )}
-            {uncategorised && (
-              <div className="pour-kpi tone-target">
-                <div className="pk-l">{I.warning}<span>Uncategorised</span></div>
-                <div className="pk-v mono">{uncategorised.count.toLocaleString()}</div>
-                <div className="pk-sub">type not yet in gold view</div>
-              </div>
-            )}
-          </div>
+        <TypeDistribution rows={data.type_distribution} total={data.total_instrument_count} />
 
-          <ActivityTrendChart
-            daily30d={data.activity_daily30d}
-            hourly24h={data.activity_hourly24h}
-          />
-
-          <StateDistribution rows={data.state_distribution} />
-
-          <TypeDistribution rows={data.type_distribution} total={data.total_instrument_count} />
-
-          <ScaleVerificationPlaceholder />
-        </div>
-      )}
-    </>
+        <ScaleVerificationPlaceholder />
+      </div>
+    </div>
   )
 }

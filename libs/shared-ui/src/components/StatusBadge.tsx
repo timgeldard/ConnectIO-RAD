@@ -1,15 +1,15 @@
 import { Icon } from './Icon'
 
-type Status = 'healthy' | 'warning' | 'critical'
+export type BadgeStatus = 'healthy' | 'warning' | 'critical'
 
-const STATUS_CONFIG: Record<Status, { chipClass: string; iconName: string }> = {
+const STATUS_CONFIG: Record<BadgeStatus, { chipClass: string; iconName: string }> = {
   healthy:  { chipClass: 'chip chip-ok',   iconName: 'check-circle' },
   warning:  { chipClass: 'chip chip-warn', iconName: 'alert-triangle' },
   critical: { chipClass: 'chip chip-risk', iconName: 'x-circle' },
 }
 
 interface StatusBadgeProps {
-  status: Status
+  status: BadgeStatus
   label: string
   className?: string
 }

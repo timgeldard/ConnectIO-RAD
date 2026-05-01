@@ -1,8 +1,8 @@
 import pytest
 from fastapi import HTTPException
 import numpy as np
-from backend.routers.spc_common import handle_sql_error, handle_analysis_error, handle_locked_limits_error, attach_payload_freshness
-from unittest.mock import patch
+from shared_db.utils import handle_sql_error, handle_analysis_error, handle_locked_limits_error, attach_payload_freshness
+from unittest.mock import AsyncMock
 
 def test_handle_sql_error():
     with pytest.raises(HTTPException) as exc:
@@ -30,8 +30,18 @@ def test_handle_locked_limits_error():
     assert exc.value.status_code == 503
     assert "not initialised" in exc.value.detail
 
+@pytest.mark.asyncio
 async def test_attach_payload_freshness_error_handling():
-    with patch("backend.routers.spc_common.attach_data_freshness", side_effect=HTTPException(status_code=503, detail={"message": "Data freshness lookup failed"})):
-        res = await attach_payload_freshness({"data": 1}, "token", "/path", ["view"])
-        assert res["data_freshness"] is None
-        assert res["data_freshness_warning"]["message"] == "Data freshness lookup failed"
+    # Mock attacher that fails with 503
+    mock_attacher = AsyncMock(side_effect=HTTPException(status_code=503, detail={"message": "Data freshness lookup failed"}))
+    
+    res = await attach_payload_freshness(
+        payload={"data": 1},
+        token="token",
+        request_path="/path",
+        source_views=["view"],
+        attach_freshness_func=mock_attacher
+    )
+    
+    assert res["data_freshness"] is None
+    assert res["data_freshness_warning"]["message"] == "Data freshness lookup failed"

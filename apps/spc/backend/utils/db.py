@@ -46,6 +46,7 @@ from shared_db.runtime import (
     sql_cache_key as _shared_sql_cache_key,
     statement_prefix as _shared_statement_prefix,
 )
+from shared_trace import schema
 
 try:
     from databricks import sql as databricks_sql
@@ -56,11 +57,11 @@ logger = logging.getLogger(__name__)
 _VIEW_NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
 
 _SQL_CACHE_ROW_LIMIT = 1000
-_QUERY_AUDIT_TABLE_NAME = "spc_query_audit"
+_QUERY_AUDIT_TABLE_NAME = schema.SPC_QUERY_AUDIT
 
 _METADATA_CACHE_PATTERNS = (
-    "information_schema.tables", "spc_characteristic_dim_mv",
-    "spc_attribute_quality_metrics", "gold_material", "gold_plant",
+    "information_schema.tables", schema.SPC_CHARACTERISTIC_DIM_MV,
+    "spc_attribute_quality_metrics", schema.GOLD_MATERIAL, schema.GOLD_PLANT,
 )
 _SCORECARD_CACHE_PATTERNS = ("spc_quality_metrics",)
 

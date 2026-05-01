@@ -1,30 +1,32 @@
 from __future__ import annotations
 
+from shared_trace import schema
+
 TRACE_TREE_FRESHNESS_SOURCES = (
-    "gold_batch_lineage",
-    "gold_material",
-    "gold_plant",
-    "gold_batch_quality_summary_v",
-    "gold_batch_stock_v",
+    schema.GOLD_BATCH_LINEAGE,
+    schema.GOLD_MATERIAL,
+    schema.GOLD_PLANT,
+    schema.GOLD_BATCH_QUALITY_SUMMARY_V,
+    schema.GOLD_BATCH_STOCK_V,
 )
 
 SUMMARY_FRESHNESS_SOURCES = (
-    "gold_batch_stock_v",
-    "gold_batch_mass_balance_v",
+    schema.GOLD_BATCH_STOCK_V,
+    schema.GOLD_BATCH_MASS_BALANCE_V,
 )
 
 BATCH_DETAILS_FRESHNESS_SOURCES = (
-    "gold_batch_stock_v",
-    "gold_batch_mass_balance_v",
-    "gold_batch_quality_result_v",
-    "gold_batch_quality_lot_v",
-    "gold_batch_delivery_v",
-    "gold_batch_lineage",
+    schema.GOLD_BATCH_STOCK_V,
+    schema.GOLD_BATCH_MASS_BALANCE_V,
+    schema.GOLD_BATCH_QUALITY_RESULT_V,
+    schema.GOLD_BATCH_QUALITY_LOT_V,
+    schema.GOLD_BATCH_DELIVERY_V,
+    schema.GOLD_BATCH_LINEAGE,
 )
 
 IMPACT_FRESHNESS_SOURCES = (
-    "gold_batch_delivery_v",
-    "gold_batch_lineage",
+    schema.GOLD_BATCH_DELIVERY_V,
+    schema.GOLD_BATCH_LINEAGE,
 )
 
 CORE_TRACE_FRESHNESS_SOURCES = {
@@ -36,53 +38,53 @@ CORE_TRACE_FRESHNESS_SOURCES = {
 
 TRACE2_PAGE_FRESHNESS_SOURCES = {
     "coa": (
-        "gold_batch_coa_results_v",
-        "gold_batch_summary_v",
-        "gold_batch_mass_balance_v",
-        "gold_batch_stock_v",
-        "gold_plant",
+        schema.GOLD_BATCH_COA_RESULTS_V,
+        schema.GOLD_BATCH_SUMMARY_V,
+        schema.GOLD_BATCH_MASS_BALANCE_V,
+        schema.GOLD_BATCH_STOCK_V,
+        schema.GOLD_PLANT,
     ),
     "mass_balance": (
-        "gold_batch_mass_balance_v",
-        "gold_batch_summary_v",
-        "gold_batch_stock_v",
-        "gold_batch_delivery_v",
-        "gold_batch_lineage",
-        "gold_plant",
+        schema.GOLD_BATCH_MASS_BALANCE_V,
+        schema.GOLD_BATCH_SUMMARY_V,
+        schema.GOLD_BATCH_STOCK_V,
+        schema.GOLD_BATCH_DELIVERY_V,
+        schema.GOLD_BATCH_LINEAGE,
+        schema.GOLD_PLANT,
     ),
     "quality": (
-        "gold_batch_quality_lot_v",
-        "gold_batch_quality_result_v",
-        "gold_batch_quality_summary_v",
-        "gold_batch_summary_v",
+        schema.GOLD_BATCH_QUALITY_LOT_V,
+        schema.GOLD_BATCH_QUALITY_RESULT_V,
+        schema.GOLD_BATCH_QUALITY_SUMMARY_V,
+        schema.GOLD_BATCH_SUMMARY_V,
     ),
     "production_history": (
-        "gold_batch_production_history_v",
-        "gold_batch_summary_v",
+        schema.GOLD_BATCH_PRODUCTION_HISTORY_V,
+        schema.GOLD_BATCH_SUMMARY_V,
     ),
     "batch_compare": (
-        "gold_batch_production_history_v",
-        "gold_batch_quality_summary_v",
-        "gold_batch_summary_v",
+        schema.GOLD_BATCH_PRODUCTION_HISTORY_V,
+        schema.GOLD_BATCH_QUALITY_SUMMARY_V,
+        schema.GOLD_BATCH_SUMMARY_V,
     ),
     "bottom_up": (
-        "gold_batch_lineage",
-        "gold_material",
-        "gold_plant",
-        "gold_supplier",
-        "gold_batch_summary_v",
+        schema.GOLD_BATCH_LINEAGE,
+        schema.GOLD_MATERIAL,
+        schema.GOLD_PLANT,
+        schema.GOLD_SUPPLIER,
+        schema.GOLD_BATCH_SUMMARY_V,
     ),
     "top_down": (
-        "gold_batch_lineage",
-        "gold_material",
-        "gold_plant",
-        "gold_batch_delivery_v",
-        "gold_batch_summary_v",
+        schema.GOLD_BATCH_LINEAGE,
+        schema.GOLD_MATERIAL,
+        schema.GOLD_PLANT,
+        schema.GOLD_BATCH_DELIVERY_V,
+        schema.GOLD_BATCH_SUMMARY_V,
     ),
     "supplier_risk": (
-        "gold_batch_lineage",
-        "gold_supplier",
-        "gold_material",
-        "gold_batch_summary_v",
+        schema.GOLD_BATCH_LINEAGE,
+        schema.GOLD_SUPPLIER,
+        schema.GOLD_MATERIAL,
+        schema.GOLD_BATCH_SUMMARY_V,
     ),
 }

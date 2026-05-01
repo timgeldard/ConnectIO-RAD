@@ -9,7 +9,7 @@ from backend.dal.spc_metadata_dal import (
     fetch_plants,
     validate_material,
 )
-from backend.routers.spc_common import attach_validation_freshness, handle_sql_error
+from shared_db.utils import attach_validation_freshness, handle_sql_error
 from backend.schemas.spc_schemas import (
     AttributeCharacteristicsRequest,
     CharacteristicsRequest,
@@ -60,7 +60,7 @@ async def spc_validate_material(
         handle_sql_error(exc)
 
     if not row:
-        return await attach_validation_freshness({"valid": False}, token, request.url.path)
+        return await attach_validation_freshness({"valid": False}, token, request.url.path, attach_freshness_func=attach_data_freshness)
     return await attach_validation_freshness(
         {
             "valid": True,
@@ -69,7 +69,28 @@ async def spc_validate_material(
         },
         token,
         request.url.path,
+        attach_freshness_func=attach_data_freshness
     )
+
+
+@router.get("/ready")
+async def ready():
+    """Operational readiness probe."""
+    try:
+        token = resolve_token(None, None)
+        await fetch_plants(token, "DUMMY")
+        return {"status": "ready"}
+    except Exception as exc:
+        logger.error("ready_probe.failed: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "not_ready",
+                "reason": "sql_warehouse_unreachable",
+                "message": "An internal error occurred while reaching the SQL warehouse.",
+                "error": str(exc),
+            },
+        )
 
 
 @router.get("/materials")

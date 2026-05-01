@@ -1,15 +1,21 @@
-import React, { useCallback } from 'react';
-import { I18nProvider, LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n';
+import React, { useCallback, useMemo } from 'react';
+import { LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n';
+import {
+  AppShell as SharedAppShell,
+  Sidebar,
+  TopBar,
+  Icon,
+  type NavGroup,
+  type Breadcrumb
+} from '@connectio/shared-ui';
 import { useEM } from '~/context/EMContext';
 import { usePlants } from '~/api/client';
 import PersonaSwitcher, { PERSONAS } from '~/components/ui/PersonaSwitcher';
-import { IconSettings } from '~/components/ui/Icons';
 import GlobalView from '~/views/GlobalView';
 import SiteView from '~/views/SiteView';
 import FloorView from '~/views/FloorView';
 import CoordinateMapper from '~/components/admin/CoordinateMapper';
 import type { ViewState } from '~/types';
-import resources from '../../i18n/resources.json';
 
 function AppShellContent() {
   const { t } = useI18n();
@@ -38,73 +44,110 @@ function AppShellContent() {
   const navToFloor = useCallback((plantId: string, floorId: string) => setView({ level: 'floor', plantId, floorId }), [setView]);
 
   // Breadcrumbs
-  const crumbs: React.ReactNode[] = [];
-  if (view.level !== 'global') {
-    crumbs.push(
-      <button key="all" className="btn btn-ghost btn-sm"
-        style={{ color: 'rgba(255,255,255,0.75)', borderColor: 'transparent', padding: '2px 6px' }}
-        onClick={navToGlobal}>{t('envmon.nav.allPlants')}</button>,
-      <span key="s1" className="sep">/</span>,
-    );
-  }
-  if ((view.level === 'floor' || view.level === 'site') && currentPlant) {
-    crumbs.push(
-      <button key="site" className="btn btn-ghost btn-sm"
-        style={{ color: 'rgba(255,255,255,0.75)', borderColor: 'transparent', padding: '2px 6px' }}
-        onClick={() => navToSite(currentPlant.plant_id)}>
-        {currentPlant.plant_code} {currentPlant.plant_name}
-      </button>,
-    );
-  }
-  if (view.level === 'floor' && view.floorId) {
-    crumbs.push(
-      <span key="s2" className="sep">/</span>,
-      <span key="floor" className="cur">{view.floorId}</span>,
-    );
-  }
-  if (view.level === 'admin') {
-    crumbs.push(<span key="admin" className="cur">{t('envmon.nav.adminMapper')}</span>);
-  }
+  const breadcrumbs: Breadcrumb[] = useMemo(() => {
+    const crumbs: Breadcrumb[] = [];
+    if (view.level === 'global') {
+      crumbs.push({ label: t('envmon.nav.portfolio'), icon: 'home' });
+    } else {
+      crumbs.push({ label: t('envmon.nav.allPlants'), icon: 'home', onClick: navToGlobal });
+    }
+
+    if ((view.level === 'floor' || view.level === 'site') && currentPlant) {
+      crumbs.push({
+        label: `${currentPlant.plant_code} ${currentPlant.plant_name}`,
+        onClick: () => navToSite(currentPlant.plant_id)
+      });
+    }
+
+    if (view.level === 'floor' && view.floorId) {
+      crumbs.push({ label: view.floorId });
+    }
+
+    if (view.level === 'admin') {
+      crumbs.push({ label: t('envmon.nav.adminMapper'), icon: 'settings' });
+    }
+
+    return crumbs;
+  }, [view, currentPlant, t, navToGlobal, navToSite]);
+
+  const navGroups: NavGroup[] = useMemo(() => [
+    {
+      label: t('envmon.nav.portfolio'),
+      items: [
+        { id: 'global', label: t('envmon.nav.allPlants'), icon: 'grid' }
+      ]
+    },
+    {
+      label: currentPlant ? `${currentPlant.plant_code} Sites` : 'Sites',
+      items: plants.slice(0, 8).map(p => ({
+        id: `site-${p.plant_id}`,
+        label: p.plant_name,
+        icon: 'factory' as const
+      }))
+    }
+  ], [t, currentPlant, plants]);
 
   return (
-    <div className="app">
-      {/* Topbar */}
-      <header className="topbar">
-        <span className="product">
-          EnvMon
-          <span className="tag">{t('envmon.product.tag')}</span>
-        </span>
-        <span className="divider" />
-        <nav className="crumbs">
-          {crumbs.length > 0 ? crumbs : <span className="cur">{t('envmon.nav.portfolio')}</span>}
-        </nav>
-        <div className="right">
-          <LanguageSelector compact />
-          {isReadOnly && (
-            <span className="readonly-banner" style={{ fontSize: 11, padding: '3px 10px', borderRadius: 4 }}>
-              {t('envmon.readonly')}
-            </span>
-          )}
-          {isAdmin && (
-            <button
-              className={`btn btn-sm${adminMode ? ' btn-primary' : ' btn-ghost'}`}
-              style={{ borderColor: adminMode ? undefined : 'rgba(255,255,255,0.3)', color: adminMode ? undefined : 'white' }}
-              onClick={() => {
-                const next = !adminMode;
-                setAdminMode(next);
-                setView({ level: next ? 'admin' : 'global', plantId: view.plantId, floorId: view.floorId });
-              }}
-            >
-              <IconSettings size={13} />
-              {adminMode ? t('envmon.action.exitAdmin') : t('envmon.action.admin')}
-            </button>
-          )}
-          <PersonaSwitcher personaId={personaId} onChange={handlePersonaChange} />
-        </div>
-      </header>
-
-      {/* Main content area */}
-      <main className="main">
+    <SharedAppShell
+      sidebar={
+        <Sidebar
+          appTag="Quality"
+          brandName="Kerry"
+          groups={navGroups}
+          activeId={view.level === 'global' ? 'global' : `site-${view.plantId}`}
+          onNavigate={(id) => {
+            if (id === 'global') navToGlobal();
+            else if (id.startsWith('site-')) navToSite(id.replace('site-', ''));
+          }}
+          footer={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 999,
+                background: 'var(--sage)', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 700, fontSize: 11, flexShrink: 0,
+              }}>EM</div>
+              <div style={{ fontSize: 11.5, lineHeight: 1.3, minWidth: 0, flex: 1 }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  EnvMon {personaId}
+                </div>
+              </div>
+            </div>
+          }
+        />
+      }
+      topbar={
+        <TopBar
+          breadcrumbs={breadcrumbs}
+          actions={
+            <>
+              <LanguageSelector compact />
+              {isReadOnly && (
+                <span className="readonly-banner" style={{ fontSize: 11, padding: '3px 10px', borderRadius: 4, background: 'var(--surface-sunken)', color: 'var(--text-3)' }}>
+                  {t('envmon.readonly')}
+                </span>
+              )}
+              {isAdmin && (
+                <button
+                  className={`btn btn-sm${adminMode ? ' btn-primary' : ' btn-ghost'}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  onClick={() => {
+                    const next = !adminMode;
+                    setAdminMode(next);
+                    setView({ level: next ? 'admin' : 'global', plantId: view.plantId, floorId: view.floorId });
+                  }}
+                >
+                  <Icon name="settings" size={13} />
+                  {adminMode ? t('envmon.action.exitAdmin') : t('envmon.action.admin')}
+                </button>
+              )}
+              <PersonaSwitcher personaId={personaId} onChange={handlePersonaChange} />
+            </>
+          }
+        />
+      }
+    >
+      <div style={{ height: '100%' }}>
         {adminMode || view.level === 'admin' ? (
           <CoordinateMapper />
         ) : view.level === 'floor' && view.plantId && view.floorId ? (
@@ -127,8 +170,8 @@ function AppShellContent() {
             onOpenPlant={navToSite}
           />
         )}
-      </main>
-    </div>
+      </div>
+    </SharedAppShell>
   );
 }
 

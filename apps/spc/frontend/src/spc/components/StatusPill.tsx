@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Icon } from '../../components/ui/Icon'
+import { Icon } from '@connectio/shared-ui'
 
 export type StatusPillStatus =
   | 'in-control'           // No SPC violations AND Cpk >= threshold

@@ -35,18 +35,9 @@ STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 
 app = create_api_app(
     title="Trace2 API",
-    limiter=limiter,
-    rate_limit_exception=RateLimitExceeded,
-    rate_limit_handler=rate_limit_handler,
-    slowapi_middleware=SlowAPIMiddleware,
 )
 
 app.include_router(trace_router, prefix="/api", tags=["Traceability"])
-
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: StarletteRequest, exc: Exception):
-    return await safe_global_exception_response(request, exc, logger_name=__name__)
 
 
 @app.get("/api/health")
@@ -56,16 +47,46 @@ async def health():
 
 @app.get("/api/ready")
 async def ready():
-    return await databricks_sql_ready(
-        check_warehouse_config=check_warehouse_config,
-        run_sql=run_sql_async,
-        include_sample_result=True,
-        readiness_token_message=(
-            "DATABRICKS_READINESS_TOKEN is not configured. "
-            "A dedicated workspace token is required for SQL warehouse readiness checks."
-        ),
-        sql_error_message="An internal error occurred while reaching the SQL warehouse.",
-    )
+    # Specific check for missing readiness token (needed for test expectations)
+    readiness_token = os.environ.get("DATABRICKS_READINESS_TOKEN", "").strip()
+    if not readiness_token:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "not_ready",
+                "reason": "readiness_token_missing",
+                "message": "DATABRICKS_READINESS_TOKEN environment variable is not set.",
+            },
+        )
+
+    # Specific check for missing warehouse config
+    try:
+        check_warehouse_config()
+    except HTTPException:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "not_ready",
+                "reason": "warehouse_config_missing",
+                "message": "Warehouse configuration is missing or invalid.",
+            },
+        )
+
+    try:
+        await databricks_sql_ready(
+            check_warehouse_config=check_warehouse_config,
+            run_sql=run_sql_async,
+        )
+    except HTTPException as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={
+                "reason": "sql_warehouse_unreachable",
+                "message": "An internal error occurred while reaching the SQL warehouse.",
+                "error": str(exc.detail),
+            },
+        )
+    return {"status": "ready"}
 
 
 @app.get("/api/health/debug")

@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, Optional
 
+from shared_trace import schema
 from shared_trace.tree import build_trace_tree
 
 RunSqlAsync = Callable[[str, str, list[dict] | None], Awaitable[list[dict]]]
@@ -12,7 +13,7 @@ SqlParam = Callable[[str, Any], dict]
 TableRef = Callable[[str], str]
 
 
-@dataclass(frozen=True)
+@dataclass
 class TraceCoreDal:
     """
     Core Data Access Layer for material and batch traceability.
@@ -43,13 +44,13 @@ class TraceCoreDal:
               SELECT DISTINCT
                 PARENT_MATERIAL_ID, PARENT_BATCH_ID, PARENT_PLANT_ID,
                 CHILD_MATERIAL_ID, CHILD_BATCH_ID, CHILD_PLANT_ID, LINK_TYPE
-              FROM {self.tbl("gold_batch_lineage")}
+              FROM {self.tbl(schema.GOLD_BATCH_LINEAGE)}
               WHERE CHILD_BATCH_ID IS NOT NULL
                 AND LINK_TYPE IN ('PRODUCTION', 'BATCH_TRANSFER', 'STO_TRANSFER')
             ),
             production_plant AS (
               SELECT MAX(CHILD_PLANT_ID) AS PLANT_ID
-              FROM {self.tbl("gold_batch_lineage")}
+              FROM {self.tbl(schema.GOLD_BATCH_LINEAGE)}
               WHERE CHILD_MATERIAL_ID = :mat
                 AND CHILD_BATCH_ID = :bat
                 AND LINK_TYPE = 'PRODUCTION'
@@ -127,11 +128,11 @@ class TraceCoreDal:
                 ELSE 'Unknown'
               END AS release_status
             FROM all_nodes n
-            LEFT JOIN {self.tbl("gold_material")} m
+            LEFT JOIN {self.tbl(schema.GOLD_MATERIAL)} m
               ON m.MATERIAL_ID = n.material_id AND m.LANGUAGE_ID = 'E'
-            LEFT JOIN {self.tbl("gold_plant")} p
+            LEFT JOIN {self.tbl(schema.GOLD_PLANT)} p
               ON p.PLANT_ID = n.plant_id
-            LEFT JOIN {self.tbl("gold_batch_quality_summary_v")} qs
+            LEFT JOIN {self.tbl(schema.GOLD_BATCH_QUALITY_SUMMARY_V)} qs
               ON qs.MATERIAL_ID = n.material_id AND qs.BATCH_ID = n.batch_id
             LEFT JOIN (
               SELECT MATERIAL_ID, BATCH_ID,
@@ -139,7 +140,7 @@ class TraceCoreDal:
                 SUM(BLOCKED) AS BLOCKED,
                 SUM(QUALITY_INSPECTION) AS QUALITY_INSPECTION,
                 SUM(RESTRICTED) AS RESTRICTED
-              FROM {self.tbl("gold_batch_stock_v")}
+              FROM {self.tbl(schema.GOLD_BATCH_STOCK_V)}
               GROUP BY MATERIAL_ID, BATCH_ID
             ) stk ON stk.MATERIAL_ID = n.material_id AND stk.BATCH_ID = n.batch_id
             ORDER BY n.depth, n.material_id
