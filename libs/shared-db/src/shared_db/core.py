@@ -95,7 +95,7 @@ def resolve_token(
 def sql_param(name: str, value: Optional[object]) -> dict:
     """Build a typed named parameter dict for the Databricks SQL Statement API.
 
-    Type is inferred from the Python type: bool→BOOLEAN, int→LONG, float→DOUBLE,
+    Type is inferred from the Python type: bool→BOOLEAN, int→INT, float→DOUBLE,
     everything else→STRING. The API always expects ``value`` as a string.
     """
     if value is None:
@@ -103,7 +103,7 @@ def sql_param(name: str, value: Optional[object]) -> dict:
     if isinstance(value, bool):
         db_type = "BOOLEAN"
     elif isinstance(value, int):
-        db_type = "LONG"
+        db_type = "INT"
     elif isinstance(value, float):
         db_type = "DOUBLE"
     else:
