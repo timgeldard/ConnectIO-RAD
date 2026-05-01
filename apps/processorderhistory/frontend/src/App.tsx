@@ -11,6 +11,7 @@ import { YieldAnalyticsPage } from './pages/YieldAnalytics'
 import { QualityAnalyticsPage } from './pages/QualityAnalytics'
 import { VesselPlanningAnalyticsPage } from './pages/VesselPlanningAnalytics'
 import { EquipmentInsightsPage } from './pages/EquipmentInsights'
+import { EquipmentInsights2Page } from './pages/EquipmentInsights2'
 import { fetchCurrentUser, type CurrentUser } from './api/me'
 import { ORDERS } from './data/mock'
 import { GenieDrawer } from './genie/GenieDrawer'
@@ -26,6 +27,7 @@ type View =
   | { name: 'quality' }
   | { name: 'vessel-planning' }
   | { name: 'equipment-insights' }
+  | { name: 'equipment-insights-2' }
 
 const HOUR = 3600 * 1000
 
@@ -48,6 +50,7 @@ function AppContent() {
     view.name === 'quality' ? 'quality' :
     view.name === 'vessel-planning' ? 'vessel-planning' :
     view.name === 'equipment-insights' ? 'equipment-insights' :
+    view.name === 'equipment-insights-2' ? 'equipment-insights-2' :
     'orders'
 
   const onNavigate = (key: string) => {
@@ -59,6 +62,7 @@ function AppContent() {
     else if (key === 'quality') setView({ name: 'quality' })
     else if (key === 'vessel-planning') setView({ name: 'vessel-planning' })
     else if (key === 'equipment-insights') setView({ name: 'equipment-insights' })
+    else if (key === 'equipment-insights-2') setView({ name: 'equipment-insights-2' })
     window.scrollTo(0, 0)
   }
 
@@ -79,6 +83,7 @@ function AppContent() {
         { id: 'yield',    label: t.navYield,    icon: 'trending-up' },
         { id: 'quality',  label: t.navQuality, icon: 'shield' },
         { id: 'equipment-insights', label: t.navEquipmentInsights, icon: 'beaker' },
+        { id: 'equipment-insights-2', label: t.navEquipmentInsights2, icon: 'activity' },
       ]
     }
   ], [t])
@@ -140,6 +145,7 @@ function AppContent() {
     <AppShell
       sidebar={
         <Sidebar
+          brandLogo={<img src="/kerry-logo-slate.png" alt="Kerry" style={{ height: 22, width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />}
           appTag="Operations"
           groups={navGroups}
           activeId={activeId}
@@ -147,15 +153,15 @@ function AppContent() {
           footer={
             <>
               <div style={{
-                width: 28, height: 28, borderRadius: 999,
-                background: 'var(--sage)', color: '#fff',
+                width: 28, height: 28, borderRadius: 'var(--r-pill)',
+                background: 'var(--sage)', color: 'var(--fg-on-brand)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 700, fontSize: 11, flexShrink: 0,
+                fontWeight: 'var(--fw-bold)', fontSize: 11, flexShrink: 0,
               }}>
                 {currentUser?.initials ?? '—'}
               </div>
               <div style={{ fontSize: 11.5, lineHeight: 1.3, minWidth: 0, flex: 1 }}>
-                <div style={{ fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.9)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {currentUser?.name ?? '…'}
                 </div>
               </div>
@@ -195,6 +201,7 @@ function AppContent() {
         {view.name === 'quality' && <QualityAnalyticsPage />}
         {view.name === 'vessel-planning' && <VesselPlanningAnalyticsPage />}
         {view.name === 'equipment-insights' && <EquipmentInsightsPage />}
+        {view.name === 'equipment-insights-2' && <EquipmentInsights2Page />}
       </main>
       <GenieDrawer
         open={genieOpen}
