@@ -17,7 +17,6 @@ _DOWNTIME_PAYLOAD = {
 
 @pytest.fixture
 def mock_downtime(monkeypatch):
-    monkeypatch.setattr(downtime_router, "resolve_token", lambda *_: "token")
     monkeypatch.setattr(downtime_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=_DOWNTIME_PAYLOAD)
     monkeypatch.setattr(downtime_router, "fetch_downtime_analytics", mock)

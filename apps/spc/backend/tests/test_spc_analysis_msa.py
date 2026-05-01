@@ -7,16 +7,21 @@ client = TestClient(app)
 
 
 def test_msa_calculate_requires_token():
-    response = client.post(
-        "/api/spc/msa/calculate",
-        json={
-            "measurement_data": [[[10, 10], [20, 20]], [[10, 10], [20, 20]]],
-            "tolerance": 20,
-            "method": "average_range",
-        },
-    )
-
-    assert response.status_code == 401
+    from shared_auth import require_proxy_user
+    app.dependency_overrides.pop(require_proxy_user, None)
+    try:
+        response = client.post(
+            "/api/spc/msa/calculate",
+            json={
+                "measurement_data": [[[10, 10], [20, 20]], [[10, 10], [20, 20]]],
+                "tolerance": 20,
+                "method": "average_range",
+            },
+        )
+        assert response.status_code == 401
+    finally:
+        from shared_auth import UserIdentity
+        app.dependency_overrides[require_proxy_user] = lambda: UserIdentity(user_id="test-user", raw_token="fake-token")
 
 
 def test_msa_calculate_returns_grr_payload():

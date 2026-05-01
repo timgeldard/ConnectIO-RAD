@@ -10,7 +10,6 @@ client = TestClient(app)
 def mock_meta_dal(monkeypatch):
     monkeypatch.setattr(meta_router, "fetch_materials", AsyncMock(return_value=[]))
     monkeypatch.setattr(meta_router, "fetch_characteristics", AsyncMock(return_value=([], [])))
-    monkeypatch.setattr(meta_router, "resolve_token", lambda *args: "token")
     monkeypatch.setattr(meta_router, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(meta_router, "attach_data_freshness", AsyncMock(side_effect=lambda data, *args, **kwargs: data))
     return {}

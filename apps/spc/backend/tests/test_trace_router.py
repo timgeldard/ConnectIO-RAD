@@ -13,7 +13,6 @@ def mock_trace_dal(monkeypatch):
     monkeypatch.setattr(trace_router, "fetch_summary", AsyncMock(return_value=None))
     monkeypatch.setattr(trace_router, "fetch_batch_details", AsyncMock(return_value={}))
     monkeypatch.setattr(trace_router, "fetch_impact", AsyncMock(return_value={}))
-    monkeypatch.setattr(trace_router, "resolve_token", lambda *args: "token")
     monkeypatch.setattr(trace_router, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(trace_router, "attach_payload_freshness", AsyncMock(side_effect=lambda data, *args, **kwargs: data))
     return {}

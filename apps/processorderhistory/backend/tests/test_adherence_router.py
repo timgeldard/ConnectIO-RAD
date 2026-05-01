@@ -17,7 +17,6 @@ _ADHERENCE_PAYLOAD = {
 
 @pytest.fixture
 def mock_adherence(monkeypatch):
-    monkeypatch.setattr(adherence_router, "resolve_token", lambda *_: "token")
     monkeypatch.setattr(adherence_router, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(adherence_router, "validate_timezone", lambda tz: tz or "UTC")
     mock = AsyncMock(return_value=_ADHERENCE_PAYLOAD)

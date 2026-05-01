@@ -1,11 +1,12 @@
 """Equipment insights router — POST /api/equipment-insights/summary."""
 from typing import Optional
 
-from fastapi import APIRouter, Header
+from shared_auth import UserIdentity, require_proxy_user
+from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
 from backend.dal.equipment_insights_dal import fetch_equipment_insights
-from backend.db import check_warehouse_config, resolve_token, validate_timezone
+from backend.db import check_warehouse_config, validate_timezone
 
 router = APIRouter()
 
@@ -18,10 +19,8 @@ class EquipmentInsightsRequest(BaseModel):
 
 
 @router.post("/equipment-insights/summary")
-async def get_equipment_insights(
-    body: EquipmentInsightsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+async def get_equipment_insights(body: EquipmentInsightsRequest,
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     """Return equipment master distribution and live activity from vw_gold_instrument and vw_gold_equipment_history.
 
@@ -36,7 +35,7 @@ async def get_equipment_insights(
     ``timezone`` is an IANA timezone name used for day/hour bucket alignment; invalid
     values are silently coerced to UTC.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     tz = validate_timezone(body.timezone)
     return await fetch_equipment_insights(token, plant_id=body.plant_id, timezone=tz)

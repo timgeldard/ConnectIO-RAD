@@ -1,9 +1,10 @@
 """User identity endpoint — GET /api/me."""
 from typing import Optional
 
-from fastapi import APIRouter, Header
+from shared_auth import UserIdentity, require_proxy_user
+from fastapi import Depends, APIRouter, Header
 
-from backend.db import check_warehouse_config, resolve_token, run_sql_async
+from backend.db import check_warehouse_config, run_sql_async
 
 router = APIRouter()
 
@@ -19,11 +20,10 @@ def _name_from_email(email: str) -> tuple[str, str]:
 
 @router.get("/me")
 async def get_me(
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     """Return the name and initials of the authenticated user via current_user()."""
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     rows = await run_sql_async(token, "SELECT current_user() AS email", endpoint_hint="poh.me")
     email = str(rows[0]["email"]) if rows else ""

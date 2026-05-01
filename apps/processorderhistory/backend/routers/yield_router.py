@@ -1,42 +1,44 @@
-"""Yield analytics router — POST /api/yield/analytics."""
-from typing import Optional
-
-from fastapi import APIRouter, Header
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Header, Request
 
 from backend.dal.yield_analytics_dal import fetch_yield_analytics
-from backend.db import check_warehouse_config, resolve_token, validate_timezone
+from backend.db import check_warehouse_config
+from backend.schemas.order_schemas import AnalyticsRequest
+from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
 
 
-class YieldAnalyticsRequest(BaseModel):
-    """Request body for the yield analytics endpoint."""
-
-    plant_id: Optional[str] = None
-    date_from: Optional[str] = None
-    date_to: Optional[str] = None
-    timezone: Optional[str] = None
-
-
-@router.post("/yield/analytics")
-async def get_yield_analytics(
-    body: YieldAnalyticsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+@router.post("/yield")
+async def fetch_yield(
+    request: Request,
+    body: AnalyticsRequest,
+    user: UserIdentity = Depends(require_proxy_user),
 ):
-    """Return yield analytics: per-order yield, 30-day daily series, 24h hourly series.
-
-    Yield = (MT-101 received kg / MT-261 issued kg) × 100.
-    ``date_from`` / ``date_to`` are ISO date strings (YYYY-MM-DD); omitting both
-    returns the last-24h rolling window.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    Return yield analytics: per-order yield, 30-day daily series, 24h hourly series.
+
+    Yield is defined as the Right-First-Time ratio of production output.
+    Formula: Yield = (MT-101 received kg / MT-261 issued kg) * 100.
+
+    Args:
+        request: The incoming FastAPI request object.
+        body: Analytic parameters including date range (ISO YYYY-MM-DD) and plant.
+        user: Authenticated user identity from the shared auth dependency.
+
+    Returns:
+        A dictionary containing per-order yield metrics, a 30-day daily trend series,
+        and a 24-hour hourly trend series.
+
+    Raises:
+        HTTPException: 401 if unauthorized, 503 if the SQL warehouse is unreachable, 
+                       or 500 for internal server errors.
+    """
+    token = user.raw_token
     check_warehouse_config()
     return await fetch_yield_analytics(
         token,
         plant_id=body.plant_id,
         date_from=body.date_from,
         date_to=body.date_to,
-        timezone=validate_timezone(body.timezone),
+        request_path=request.url.path,
     )

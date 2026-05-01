@@ -21,7 +21,6 @@ def mock_charts_dal(monkeypatch):
     for name, m in mocks.items():
         monkeypatch.setattr(charts_router, name, m)
     
-    monkeypatch.setattr(charts_router, "resolve_token", lambda *args: "token")
     monkeypatch.setattr(charts_router, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(charts_router, "attach_data_freshness", AsyncMock(side_effect=lambda data, *args, **kwargs: data))
     return type("Mocks", (), mocks)
@@ -102,7 +101,7 @@ def test_locked_limits_endpoints(mock_charts_dal):
         "material_id": "MAT1", "mic_id": "MIC1", "chart_type": "imr",
         "cl": 10, "ucl": 12, "lcl": 8
     }
-    response = client.post("/api/spc/locked-limits", json=payload)
+    response = client.post("/api/spc/lock-limits", json=payload)
     assert response.status_code == 200
     mock_charts_dal.save_locked_limits.assert_called_once()
     assert response.json()["id"] == "LOCKED-1" or "id" in response.json()

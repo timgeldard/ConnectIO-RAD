@@ -14,7 +14,6 @@ def mock_spc_dal(monkeypatch):
     monkeypatch.setattr(spc_router, "fetch_correlation", AsyncMock(return_value=mock_payload))
     monkeypatch.setattr(spc_router, "fetch_correlation_scatter", AsyncMock(return_value=[]))
     monkeypatch.setattr(spc_router, "fetch_multivariate", AsyncMock(return_value=mock_payload))
-    monkeypatch.setattr(spc_router, "resolve_token", lambda *args: "token")
     monkeypatch.setattr(spc_router, "check_warehouse_config", lambda: None)
     # Mock attach_data_freshness to just return the data
     monkeypatch.setattr(spc_router, "attach_data_freshness", AsyncMock(side_effect=lambda data, *args, **kwargs: data))

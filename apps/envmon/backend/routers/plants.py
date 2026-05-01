@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, Header, Query
 
 from backend.schemas.em import PlantInfo, PlantKpis
 from backend.utils.db import run_sql_async, sql_param
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from backend.utils.em_config import (
     FLOOR_TBL,
     INSP_TYPES_SQL,
@@ -203,7 +203,7 @@ async def _count_floors(token: str, plant_id: str) -> int:
 
 @router.get("/plants", response_model=list[PlantInfo])
 async def list_plants(
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
     days: int = Query(default=30, ge=7, le=730),
 ):
     token = user.raw_token

@@ -8,11 +8,12 @@ GET  /api/em/locations/{id}/summary — location detail with MICs + recent lots
 
 from typing import Optional
 
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Depends, Header, Query
 from pydantic import BaseModel
 
 from backend.schemas.em import FloorInfo, LocationMeta
-from backend.utils.db import resolve_token, run_sql_async, sql_param
+from backend.utils.db import run_sql_async, sql_param
+from shared_auth import UserIdentity, require_proxy_user
 from backend.utils.em_config import (
     COORD_TBL,
     FLOOR_TBL,
@@ -37,10 +38,9 @@ class FloorCreateRequest(BaseModel):
 @router.get("/floors", response_model=list[FloorInfo])
 async def list_floors(
     plant_id: str = Query(..., description="SAP plant code"),
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     params = [sql_param("plant_id", plant_id)]
 
     # Floor definitions from em_plant_floor
@@ -85,10 +85,9 @@ async def _run_both(token, sql1, sql2, params):
 @router.post("/floors", response_model=FloorInfo, status_code=201)
 async def add_floor(
     body: FloorCreateRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     params = [
         sql_param("plant_id",   body.plant_id),
         sql_param("floor_id",   body.floor_id),
@@ -135,10 +134,9 @@ async def add_floor(
 async def delete_floor(
     floor_id: str,
     plant_id: str = Query(...),
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     params = [sql_param("plant_id", plant_id), sql_param("floor_id", floor_id)]
     sql = f"DELETE FROM {FLOOR_TBL} WHERE plant_id = :plant_id AND floor_id = :floor_id"
     await run_sql_async(token, sql, params)
@@ -149,10 +147,9 @@ async def list_locations(
     plant_id: str = Query(..., description="SAP plant code"),
     floor_id: Optional[str] = Query(default=None),
     mapped_only: bool = Query(default=False),
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     params = [sql_param("plant_id", plant_id)]
 
     floor_filter = ""

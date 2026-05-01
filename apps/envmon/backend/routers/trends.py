@@ -6,10 +6,11 @@ GET /api/em/trends — MIC time-series for a specific functional location
 from datetime import date, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Depends, Header, Query
+from shared_auth import UserIdentity, require_proxy_user
 
 from backend.schemas.em import TrendPoint, TrendResponse
-from backend.utils.db import resolve_token, run_sql_async, sql_param
+from backend.utils.db import run_sql_async, sql_param
 from backend.utils.em_config import (
     INSP_TYPES_SQL,
     LOT_TBL,
@@ -24,10 +25,9 @@ router = APIRouter()
 async def list_mics(
     plant_id: str = Query(..., description="SAP plant code"),
     func_loc_id: Optional[str] = Query(None),
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     params = [sql_param("plant_id", plant_id)]
 
     if func_loc_id:
@@ -63,10 +63,9 @@ async def get_trends(
     func_loc_id: str = Query(...),
     mic_name: str = Query(...),
     window_days: int = Query(90, ge=1, le=365),
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     date_from = (date.today() - timedelta(days=window_days)).isoformat()
     params = [
         sql_param("plant_id",    plant_id),

@@ -20,7 +20,6 @@ _QUALITY_PAYLOAD = {
 
 @pytest.fixture
 def mock_quality(monkeypatch):
-    monkeypatch.setattr(quality_router, "resolve_token", lambda *_: "token")
     monkeypatch.setattr(quality_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=_QUALITY_PAYLOAD)
     monkeypatch.setattr(quality_router, "fetch_quality_analytics", mock)

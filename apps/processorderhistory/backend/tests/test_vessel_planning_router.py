@@ -28,7 +28,6 @@ _ANALYTICS_PAYLOAD = {
 
 @pytest.fixture
 def mock_analytics(monkeypatch):
-    monkeypatch.setattr(vessel_planning_router, "resolve_token", lambda *_: "token")
     monkeypatch.setattr(vessel_planning_router, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(vessel_planning_router, "validate_timezone", lambda tz: tz or "UTC")
     mock = AsyncMock(return_value=_ANALYTICS_PAYLOAD)

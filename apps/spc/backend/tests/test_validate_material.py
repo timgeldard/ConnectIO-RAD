@@ -10,13 +10,12 @@ client = TestClient(main_module.app)
 
 
 def test_validate_material_returns_valid_when_freshness_temporarily_unavailable(monkeypatch):
-    monkeypatch.setattr(spc_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(spc_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
 
     async def fake_validate_material(_token, _material_id):
         return {"material_id": "MAT-1", "material_name": "Material 1"}
 
-    async def failing_attach_freshness(_payload, _token, _path, _views, **_kwargs):
+    async def failing_attach_freshness(_payload, _token, _views, *, request_path=None, **_kwargs):
         raise HTTPException(
             status_code=503,
             detail={"message": "Data freshness lookup failed", "error_id": "fresh-123"},

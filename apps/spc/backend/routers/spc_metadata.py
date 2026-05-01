@@ -17,7 +17,7 @@ from backend.schemas.spc_schemas import (
 )
 from backend.utils.db import attach_data_freshness, check_warehouse_config
 from backend.utils.rate_limit import limiter
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
 
@@ -27,7 +27,7 @@ router = APIRouter()
 async def spc_plants(
     request: Request,
     material_id: str,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     check_warehouse_config()
@@ -49,7 +49,7 @@ async def spc_plants(
 async def spc_validate_material(
     request: Request,
     body: ValidateMaterialRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     check_warehouse_config()
@@ -76,7 +76,7 @@ async def spc_validate_material(
 @limiter.limit("120/minute")
 async def spc_materials(
     request: Request,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     check_warehouse_config()
@@ -98,7 +98,7 @@ async def spc_materials(
 async def spc_characteristics(
     request: Request,
     body: CharacteristicsRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     check_warehouse_config()
@@ -120,7 +120,7 @@ async def spc_characteristics(
 async def spc_attribute_characteristics(
     request: Request,
     body: AttributeCharacteristicsRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     check_warehouse_config()

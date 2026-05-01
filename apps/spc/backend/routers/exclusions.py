@@ -23,7 +23,7 @@ from backend.utils.db import (
     tbl,
 )
 from backend.utils.rate_limit import limiter
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -153,7 +153,7 @@ class GetExclusionsQuery(BaseModel):
 async def save_exclusions(
     request: Request,
     body: SaveExclusionsRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     """Persist an immutable exclusions snapshot for the active SPC chart scope."""
     token = user.raw_token
@@ -209,7 +209,7 @@ async def save_exclusions(
 async def fetch_exclusions(
     request: Request,
     query: Annotated[GetExclusionsQuery, Depends()],
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     """Return the latest exclusions snapshot for the active SPC chart scope."""
     token = user.raw_token

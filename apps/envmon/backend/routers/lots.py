@@ -6,10 +6,11 @@ GET /api/em/lots/{lot_id} — MIC results for a specific lot
 from datetime import date, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Depends, Header, Query
+from shared_auth import UserIdentity, require_proxy_user
 
 from backend.schemas.em import InspectionLot, LotDetailResponse, MicResult
-from backend.utils.db import resolve_token, run_sql_async, sql_param
+from backend.utils.db import run_sql_async, sql_param
 from backend.utils.em_config import (
     INSP_TYPES_SQL,
     LOT_TBL,
@@ -36,10 +37,9 @@ async def list_lots(
     plant_id: str = Query(..., description="SAP plant code"),
     func_loc_id: str = Query(...),
     time_window_days: int = Query(90, ge=1, le=365),
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     date_from = (date.today() - timedelta(days=time_window_days)).isoformat()
     params = [
         sql_param("plant_id",    plant_id),
@@ -86,10 +86,9 @@ async def list_lots(
 async def get_lot_detail(
     lot_id: str,
     plant_id: str = Query(..., description="SAP plant code"),
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     params = [sql_param("lot_id", lot_id), sql_param("plant_id", plant_id)]
     sql = f"""
         SELECT

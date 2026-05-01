@@ -17,7 +17,6 @@ _OEE_PAYLOAD = {
 
 @pytest.fixture
 def mock_oee(monkeypatch):
-    monkeypatch.setattr(oee_router, "resolve_token", lambda *_: "token")
     monkeypatch.setattr(oee_router, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(oee_router, "validate_timezone", lambda tz: tz or "UTC")
     mock = AsyncMock(return_value=_OEE_PAYLOAD)

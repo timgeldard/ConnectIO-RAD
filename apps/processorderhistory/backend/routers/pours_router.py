@@ -1,11 +1,12 @@
 """Pours analytics router — POST /api/pours/analytics."""
 from typing import Optional
 
-from fastapi import APIRouter, Header
+from shared_auth import UserIdentity, require_proxy_user
+from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
 from backend.dal.pours_analytics_dal import fetch_pours_analytics
-from backend.db import check_warehouse_config, resolve_token, validate_timezone
+from backend.db import check_warehouse_config, validate_timezone
 
 router = APIRouter()
 
@@ -20,10 +21,8 @@ class PoursAnalyticsRequest(BaseModel):
 
 
 @router.post("/pours/analytics")
-async def get_pours_analytics(
-    body: PoursAnalyticsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+async def get_pours_analytics(body: PoursAnalyticsRequest,
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     """Return pour analytics: 30-day daily series, 24h hourly series, events for the requested range.
 
@@ -34,7 +33,7 @@ async def get_pours_analytics(
     ``date_from`` / ``date_to`` are ISO date strings (YYYY-MM-DD); omitting both
     returns the last-24h rolling window.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     return await fetch_pours_analytics(
         token,

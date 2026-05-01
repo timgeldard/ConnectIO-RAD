@@ -14,16 +14,20 @@ client = TestClient(app)
 
 
 def test_chart_data_returns_401_when_token_missing():
-    response = client.post(
-        "/api/spc/chart-data",
-        json={"material_id": "MAT-1", "mic_id": "MIC-1"},
-    )
-
-    assert response.status_code == 401
+    from shared_auth import require_proxy_user
+    app.dependency_overrides.pop(require_proxy_user, None)
+    try:
+        response = client.post(
+            "/api/spc/chart-data",
+            json={"material_id": "MAT-1", "mic_id": "MIC-1"},
+        )
+        assert response.status_code == 401
+    finally:
+        from shared_auth import UserIdentity
+        app.dependency_overrides[require_proxy_user] = lambda: UserIdentity(user_id="test-user", raw_token="fake-token")
 
 
 def test_chart_data_rejects_invalid_cursor(monkeypatch):
-    monkeypatch.setattr(spc_charts, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(spc_charts, "check_warehouse_config", lambda: None)
 
     response = client.post(
@@ -57,7 +61,6 @@ def test_chart_data_response_shape(monkeypatch):
     async def fake_attach_data_freshness(payload, *_args, **_kwargs):
         return payload
 
-    monkeypatch.setattr(spc_charts, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(spc_charts, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(spc_charts, "fetch_chart_data_page", fake_fetch_chart_data_page)
     monkeypatch.setattr(spc_charts, "attach_data_freshness", fake_attach_data_freshness)
@@ -89,7 +92,6 @@ def test_control_limits_response_shape(monkeypatch):
     async def fake_attach_data_freshness(payload, *_args, **_kwargs):
         return payload
 
-    monkeypatch.setattr(spc_charts, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(spc_charts, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(spc_charts, "fetch_control_limits", fake_fetch_control_limits)
     monkeypatch.setattr(spc_charts, "attach_data_freshness", fake_attach_data_freshness)
@@ -115,7 +117,6 @@ def test_p_chart_data_uses_attribute_subgroup_freshness(monkeypatch):
         captured["sources"] = sources
         return payload
 
-    monkeypatch.setattr(spc_charts, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(spc_charts, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(spc_charts, "fetch_p_chart_data", fake_fetch_p_chart_data)
     monkeypatch.setattr(spc_charts, "attach_data_freshness", fake_attach_data_freshness)
@@ -141,7 +142,6 @@ def test_count_chart_data_uses_attribute_subgroup_freshness(monkeypatch):
         captured["sources"] = sources
         return payload
 
-    monkeypatch.setattr(spc_charts, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(spc_charts, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(spc_charts, "fetch_count_chart_data", fake_fetch_count_chart_data)
     monkeypatch.setattr(spc_charts, "attach_data_freshness", fake_attach_data_freshness)
@@ -173,7 +173,6 @@ def test_trace_summary_survives_freshness_failure(monkeypatch):
     async def fake_attach_payload_freshness(payload, *_args, **_kwargs):
         return {**payload, "data_freshness": None, "data_freshness_warning": {"message": "Data freshness lookup failed"}}
 
-    monkeypatch.setattr(trace, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(trace, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(trace, "fetch_summary", fake_fetch_summary)
     monkeypatch.setattr(trace, "attach_payload_freshness", fake_attach_payload_freshness)

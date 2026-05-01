@@ -222,6 +222,7 @@ _sql_runtime_config = SqlRuntimeConfig(
     audit_in_background=True,
 )
 _sql_runtime = _sql_runtime_config.build()
+_SQL_SEMAPHORE = asyncio.Semaphore(int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4")))
 
 _metadata_cache = _sql_runtime._tier_caches["metadata"]
 _metadata_cache_lock = _sql_runtime.cache_lock
@@ -249,14 +250,15 @@ async def run_sql_async(
     audit: bool = True,
 ) -> list[dict]:
     is_query_audit_statement = _is_query_audit_statement(statement)
-    return await _sql_runtime.run_sql_async(
-        token,
-        statement,
-        params,
-        endpoint_hint=endpoint_hint,
-        audit=audit and not is_query_audit_statement,
-        invalidate_cache=not is_query_audit_statement,
-    )
+    async with _SQL_SEMAPHORE:
+        return await _sql_runtime.run_sql_async(
+            token,
+            statement,
+            params,
+            endpoint_hint=endpoint_hint,
+            audit=audit and not is_query_audit_statement,
+            invalidate_cache=not is_query_audit_statement,
+        )
 
 
 # ---------------------------------------------------------------------------

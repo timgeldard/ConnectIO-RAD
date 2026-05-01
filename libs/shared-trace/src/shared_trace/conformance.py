@@ -27,7 +27,6 @@ def install_core_trace_route_stubs(
         )
         return payload
 
-    monkeypatch.setattr(trace_router_module, "resolve_token", lambda *_args, **_kwargs: "token")
     monkeypatch.setattr(trace_router_module, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(trace_router_module, "attach_payload_freshness", attach_payload)
     monkeypatch.setattr(

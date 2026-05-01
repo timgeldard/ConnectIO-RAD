@@ -1,14 +1,43 @@
 import logging
 import uuid
-from typing import Optional, Callable, Awaitable
+from typing import Optional, Awaitable, Protocol
 
 from fastapi import HTTPException
 from shared_db.errors import classify_sql_runtime_error
 
 logger = logging.getLogger(__name__)
 
-# Type for a function that attaches freshness to a payload
-FreshnessAttacher = Callable[[dict, str, str, list[str]], Awaitable[dict]]
+
+class FreshnessAttacher(Protocol):
+    """
+    Protocol for a function that attaches freshness metadata to a payload.
+    
+    Matches the backend signature of attach_data_freshness.
+    """
+    async def __call__(
+        self,
+        payload: dict,
+        token: str,
+        source_views: list[str],
+        *,
+        request_path: Optional[str] = None
+    ) -> dict:
+        """
+        Attach freshness metadata to a payload.
+
+        Args:
+            payload: Response payload to enrich.
+            token: Access token used for freshness lookup.
+            source_views: Backing views used to compute freshness metadata.
+            request_path: Optional request path for contextual logging/handling.
+
+        Returns:
+            The payload enriched with freshness metadata.
+
+        Raises:
+            HTTPException: If freshness lookup fails in a non-recoverable way.
+        """
+        ...
 
 
 async def attach_validation_freshness(
@@ -22,8 +51,8 @@ async def attach_validation_freshness(
         return await attach_freshness_func(
             payload,
             token,
-            request_path,
             ["gold_batch_quality_result_v", "gold_material"],
+            request_path=request_path,
         )
     except HTTPException as exc:
         detail = exc.detail if isinstance(exc.detail, dict) else {}
@@ -48,8 +77,8 @@ async def attach_payload_freshness(
         return await attach_freshness_func(
             payload,
             token,
-            request_path,
             source_views,
+            request_path=request_path,
         )
     except HTTPException as exc:
         detail = exc.detail if isinstance(exc.detail, dict) else {}

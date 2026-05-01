@@ -21,7 +21,6 @@ _YIELD_PAYLOAD = {
 
 @pytest.fixture
 def mock_yield(monkeypatch):
-    monkeypatch.setattr(yield_router, "resolve_token", lambda *_: "token")
     monkeypatch.setattr(yield_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=_YIELD_PAYLOAD)
     monkeypatch.setattr(yield_router, "fetch_yield_analytics", mock)

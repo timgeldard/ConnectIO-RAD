@@ -1,41 +1,45 @@
-"""Schedule Adherence analytics router — POST /api/adherence/analytics."""
-from typing import Optional
-
-from fastapi import APIRouter, Header
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Header, Request
 
 from backend.dal.adherence_analytics_dal import fetch_adherence_analytics
-from backend.db import check_warehouse_config, resolve_token, validate_timezone
+from backend.db import check_warehouse_config
+from backend.schemas.order_schemas import AnalyticsRequest
+from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
 
 
-class AdherenceAnalyticsRequest(BaseModel):
-    """Request body for the schedule adherence analytics endpoint."""
-
-    plant_id: Optional[str] = None
-    date_from: Optional[str] = None
-    date_to: Optional[str] = None
-    timezone: Optional[str] = None
-
-
-@router.post("/adherence/analytics")
-async def get_adherence_analytics(
-    body: AdherenceAnalyticsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+@router.post("/adherence")
+async def fetch_adherence(
+    request: Request,
+    body: AnalyticsRequest,
+    user: UserIdentity = Depends(require_proxy_user),
 ):
-    """Return schedule adherence analytics: OTIF rate trend and order-level variance.
-
-    ``date_from`` / ``date_to`` are ISO date strings (YYYY-MM-DD); omitting both
-    returns the last 7 days for the order-level list.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    Return schedule adherence analytics: OTIF rate trend and order-level variance.
+
+    Calculates On-Time In-Full (OTIF) performance by comparing actual 101 receipt
+    timestamps against the original scheduled start/end windows from the
+    production plan.
+
+    Args:
+        request: The incoming FastAPI request object.
+        body: Analytic parameters including date range (ISO YYYY-MM-DD) and plant.
+        user: Authenticated user identity from the shared auth dependency.
+
+    Returns:
+        A dictionary containing the OTIF trend series and a list of order-level 
+        variance records with planned vs actual timings.
+
+    Raises:
+        HTTPException: 401 if unauthorized, 503 if the SQL warehouse is unreachable, 
+                       or 500 for internal server errors.
+    """
+    token = user.raw_token
     check_warehouse_config()
     return await fetch_adherence_analytics(
         token,
         plant_id=body.plant_id,
         date_from=body.date_from,
         date_to=body.date_to,
-        timezone=validate_timezone(body.timezone),
+        request_path=request.url.path,
     )
