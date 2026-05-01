@@ -18,10 +18,11 @@ import time
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
-from backend.utils.db import hostname, resolve_token
+from backend.utils.db import hostname
+from shared_auth import UserIdentity, require_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -106,11 +107,10 @@ def _extract_text(msg: dict) -> str:
     return msg.get("error") or "No response received from Genie."
 
 
-@router.post("/genie/message", response_model=GenieResponse)
+@router.post("/genie")
 async def genie_message(
     req: GenieRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     if not _GENIE_SPACE_ID:
         raise HTTPException(
@@ -118,7 +118,8 @@ async def genie_message(
             detail="GENIE_SPACE_ID is not configured on this deployment.",
         )
 
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
+
     space_id = _GENIE_SPACE_ID
     deadline = time.monotonic() + _MAX_TOTAL_WAIT_S
 

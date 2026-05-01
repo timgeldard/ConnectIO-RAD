@@ -171,7 +171,7 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
       <div className="page-head" style={{ padding: '24px 32px', background: 'var(--surface-0)' }}>
         <div>
           <div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="hexagon" size={14} />
+            <Icon name="layers" size={14} />
             <span>{t.pageEyebrow}</span>
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 700, margin: '8px 0 4px', color: 'var(--text-1)' }}>{t.pageTitle}</h1>

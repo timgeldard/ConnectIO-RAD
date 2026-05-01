@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, CSSProperties } from 'react'
 
 export interface Column<T> {
   header: ReactNode
@@ -20,7 +20,7 @@ interface DataTableProps<T> {
   rowKey?: (row: T, i: number) => string | number
   onRowClick?: (row: T, i: number) => void
   className?: string
-  style?: React.CSSProperties
+  style?: CSSProperties
 }
 
 export function DataTable<T>({
@@ -49,14 +49,14 @@ export function DataTable<T>({
               <th key={i} style={{
                 textAlign: c.align || 'left',
                 padding: rowPad,
-                color: 'var(--ink-3)',
+                color: 'var(--text-3)',
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 500,
                 fontSize: 9.5,
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
                 borderBottom: '1px solid var(--line-2)',
-                background: 'var(--panel)',
+                background: 'var(--surface-0)',
                 whiteSpace: 'nowrap',
                 width: c.width,
               }}>{c.header}</th>
@@ -77,7 +77,7 @@ export function DataTable<T>({
                   transition: 'background 120ms ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--slate-surface)'
+                  e.currentTarget.style.background = 'var(--surface-sunken)'
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = baseBg

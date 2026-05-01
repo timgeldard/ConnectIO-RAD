@@ -26,5 +26,5 @@
 ## Lower priority
 
 - [ ] **`app.yaml` files** — Review before pushing to a public remote.
-- [ ] **shared-auth** — `libs/shared-auth` is a stub. Wire up real JWT/token logic.
+- [x] **shared-auth** — Robust JWT extraction and UserIdentity model implemented.
 - [ ] **Full SPC suite pass** — Full suite run via current repo-standard command path.

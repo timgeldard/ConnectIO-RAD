@@ -82,11 +82,15 @@ export function VesselPlanningAnalyticsPage() {
     let cancelled = false
     setLoading(true)
     setError(null)
-    fetchVesselPlanningAnalytics({ plantId: filters.plantId === 'ALL' ? undefined : filters.plantId })
+    fetchVesselPlanningAnalytics({
+      plantId: filters.plantId === 'ALL' ? undefined : filters.plantId,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo
+    })
       .then(d => { if (!cancelled) { setData(d); setLoading(false) } })
       .catch(e => { if (!cancelled) { setError(String(e)); setLoading(false) } })
     return () => { cancelled = true }
-  }, [filters.plantId])
+  }, [filters.plantId, filters.dateFrom, filters.dateTo])
 
   const feasibleCount = useMemo(() => 
     data?.released_orders.filter(o => !o.constraint_type).length ?? 0,

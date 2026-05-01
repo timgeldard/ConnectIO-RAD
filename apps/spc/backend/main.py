@@ -27,7 +27,7 @@ from shared_api import (
     register_spa_routes,
     databricks_sql_ready,
 )
-from shared_api.security import require_token, resolve_token
+from shared_auth import UserIdentity, require_user
 from shared_db.errors import send_operational_alert
 
 logger = logging.getLogger(__name__)
@@ -135,13 +135,10 @@ async def ready():
 
 @app.get("/api/health/debug")
 async def health_debug(
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     if not ENABLE_DEBUG_ENDPOINTS:
         raise HTTPException(status_code=404, detail="Not found")
-    
-    resolve_token(x_forwarded_access_token, authorization)
     
     return {
         "status": "ok",
@@ -156,13 +153,12 @@ async def health_debug(
 
 @app.get("/api/test-query")
 async def test_query(
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     if not ENABLE_DEBUG_ENDPOINTS:
         raise HTTPException(status_code=404, detail="Not found")
     
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     
     info: dict = {"token_present": True, "token_length": len(token)}
     try:

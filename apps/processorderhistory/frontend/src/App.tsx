@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState, useMemo } from 'react'
 import { LangProvider } from './i18n/context'
 import { useT } from './i18n/context'
@@ -69,17 +68,17 @@ function AppContent() {
       items: [
         { id: 'planning', label: t.navPlanning, icon: 'layers' },
         { id: 'orders',   label: t.navOrders,   icon: 'history' },
-        { id: 'vessel-planning', label: t.navVesselPlanning || 'Vessel planning', icon: 'cpu' },
+        { id: 'vessel-planning', label: t.navVesselPlanning, icon: 'cpu' },
       ]
     },
     {
       label: t.sectionInsights,
       items: [
-        { id: 'day-view', label: t.navDayView || 'Day view', icon: 'clock' },
-        { id: 'pours',    label: t.navPours || 'Pour analytics', icon: 'package' },
+        { id: 'day-view', label: t.navDayView, icon: 'clock' },
+        { id: 'pours',    label: t.navPours, icon: 'package' },
         { id: 'yield',    label: t.navYield,    icon: 'trending-up' },
-        { id: 'quality',  label: t.navQuality || 'Quality analytics', icon: 'shield' },
-        { id: 'equipment-insights', label: t.navEquipmentInsights || 'Equipment insights', icon: 'beaker' },
+        { id: 'quality',  label: t.navQuality, icon: 'shield' },
+        { id: 'equipment-insights', label: t.navEquipmentInsights, icon: 'beaker' },
       ]
     }
   ], [t])

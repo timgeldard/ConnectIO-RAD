@@ -100,15 +100,10 @@ function AppShellContent() {
             else if (id.startsWith('site-')) navToSite(id.replace('site-', ''));
           }}
           footer={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: 999,
-                background: 'var(--sage)', color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 700, fontSize: 11, flexShrink: 0,
-              }}>EM</div>
-              <div style={{ fontSize: 11.5, lineHeight: 1.3, minWidth: 0, flex: 1 }}>
-                <div style={{ fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div className="app-sidebar-footer">
+              <div className="asf-avatar">EM</div>
+              <div className="asf-text">
+                <div className="asf-name">
                   EnvMon {personaId}
                 </div>
               </div>

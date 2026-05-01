@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, CSSProperties } from 'react'
 
 interface AppShellProps {
   sidebar?: ReactNode
@@ -6,7 +6,7 @@ interface AppShellProps {
   filterBar?: ReactNode
   children: ReactNode
   className?: string
-  style?: React.CSSProperties
+  style?: CSSProperties
 }
 
 export function AppShell({

@@ -18,12 +18,12 @@ from backend.utils.db import (
     check_warehouse_config,
     classify_sql_runtime_error,
     insert_spc_exclusion_snapshot,
-    resolve_token,
     run_sql_async,
     sql_param,
     tbl,
 )
 from backend.utils.rate_limit import limiter
+from shared_auth import UserIdentity, require_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -153,11 +153,10 @@ class GetExclusionsQuery(BaseModel):
 async def save_exclusions(
     request: Request,
     body: SaveExclusionsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     """Persist an immutable exclusions snapshot for the active SPC chart scope."""
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
 
     payload = {
@@ -206,16 +205,16 @@ async def save_exclusions(
 
 
 @router.get("/exclusions")
-@limiter.limit("120/minute")
-async def get_exclusions(
+@limiter.limit("60/minute")
+async def fetch_exclusions(
     request: Request,
     query: Annotated[GetExclusionsQuery, Depends()],
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     """Return the latest exclusions snapshot for the active SPC chart scope."""
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
+
 
     params = [
         sql_param("material_id", query.material_id),

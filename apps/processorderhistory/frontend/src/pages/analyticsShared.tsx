@@ -273,7 +273,7 @@ export function DeltaPill({ current, prior, invert = false, suffix = '' }: { cur
   return (
     <span className={`delta-pill ${tone}`} style={{ 
       display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700,
-      background: `var(--status-${tone === 'pos' ? 'ok' : 'risk'}-surface)`,
+      background: `var(--status-${tone === 'pos' ? 'ok' : 'risk'}-bg)`,
       color: `var(--status-${tone === 'pos' ? 'ok' : 'risk'})`
     }}>
       <Icon name={isPos ? 'trending-up' : 'trending-down'} size={10} />

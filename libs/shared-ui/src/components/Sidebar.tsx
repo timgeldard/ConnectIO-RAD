@@ -1,4 +1,4 @@
-import { cloneElement, type ReactElement, type ReactNode, useState } from 'react'
+import { cloneElement, type ReactElement, type ReactNode, useState, type CSSProperties } from 'react'
 import { Icon, type IconName } from './Icon'
 
 export interface NavItem {
@@ -24,7 +24,7 @@ export interface SidebarProps {
   footer?: ReactNode
   roleIndicator?: ReactNode
   className?: string
-  style?: React.CSSProperties
+  style?: CSSProperties
 }
 
 export function Sidebar({

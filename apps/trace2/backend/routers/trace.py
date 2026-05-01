@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from shared_trace.freshness_sources import (
     BATCH_DETAILS_FRESHNESS_SOURCES,
@@ -37,8 +37,9 @@ from backend.schemas.trace_schemas import (
     SummaryRequest,
     TraceRequest,
 )
-from backend.utils.db import attach_data_freshness, check_warehouse_config, resolve_token
+from backend.utils.db import attach_data_freshness, check_warehouse_config
 from backend.utils.rate_limit import limiter
+from shared_auth import UserIdentity, require_user
 
 router = APIRouter()
 
@@ -48,8 +49,7 @@ router = APIRouter()
 async def trace(
     request: Request,
     body: TraceRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     """
     Generate a full material lineage tree (Upstream + Downstream).
@@ -57,7 +57,7 @@ async def trace(
     Traverses the supply chain using recursive CTEs to identify all 
     relationships for the suspect material/batch.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         rows = await fetch_trace_tree(token, body.material_id, body.batch_id, MAX_TRACE_LEVELS)
@@ -84,13 +84,12 @@ async def trace(
 async def summary(
     request: Request,
     body: SummaryRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     """
     Get a high-level inventory and mass-balance summary for a batch.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         payload = await fetch_summary(token, body.batch_id)
@@ -114,10 +113,9 @@ async def summary(
 async def batch_details(
     request: Request,
     body: BatchDetailsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         payload = await fetch_batch_details(token, body.material_id, body.batch_id)
@@ -141,10 +139,9 @@ async def batch_details(
 async def impact(
     request: Request,
     body: ImpactRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         payload = await fetch_impact(token, body.batch_id)
@@ -165,10 +162,9 @@ async def impact(
 async def batch_header(
     request: Request,
     body: BatchPageRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         row = await fetch_batch_header(token, body.material_id, body.batch_id)
@@ -188,10 +184,9 @@ async def batch_header(
 async def recall_readiness(
     request: Request,
     body: RecallReadinessRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         payload = await fetch_recall_readiness(token, body.material_id, body.batch_id)
@@ -228,10 +223,9 @@ async def _batch_page_endpoint(
     body: BatchPageRequest,
     fetcher,
     page_key: str,
-    x_forwarded_access_token: Optional[str],
-    authorization: Optional[str],
+    user: UserIdentity,
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         payload = await fetcher(token, body.material_id, body.batch_id)
@@ -258,11 +252,10 @@ async def _batch_page_endpoint(
 async def coa(
     request: Request,
     body: BatchPageRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     return await _batch_page_endpoint(
-        request, body, fetch_coa, "coa", x_forwarded_access_token, authorization
+        request, body, fetch_coa, "coa", user
     )
 
 
@@ -271,11 +264,10 @@ async def coa(
 async def mass_balance(
     request: Request,
     body: BatchPageRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     return await _batch_page_endpoint(
-        request, body, fetch_mass_balance, "mass_balance", x_forwarded_access_token, authorization
+        request, body, fetch_mass_balance, "mass_balance", user
     )
 
 
@@ -284,11 +276,10 @@ async def mass_balance(
 async def quality(
     request: Request,
     body: BatchPageRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     return await _batch_page_endpoint(
-        request, body, fetch_quality, "quality", x_forwarded_access_token, authorization
+        request, body, fetch_quality, "quality", user
     )
 
 
@@ -297,11 +288,10 @@ async def quality(
 async def production_history(
     request: Request,
     body: BatchPageRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     return await _batch_page_endpoint(
-        request, body, fetch_production_history, "production_history", x_forwarded_access_token, authorization
+        request, body, fetch_production_history, "production_history", user
     )
 
 
@@ -310,11 +300,10 @@ async def production_history(
 async def batch_compare(
     request: Request,
     body: BatchPageRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     return await _batch_page_endpoint(
-        request, body, fetch_batch_compare, "batch_compare", x_forwarded_access_token, authorization
+        request, body, fetch_batch_compare, "batch_compare", user
     )
 
 
@@ -323,11 +312,10 @@ async def batch_compare(
 async def bottom_up(
     request: Request,
     body: BatchPageRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     return await _batch_page_endpoint(
-        request, body, fetch_bottom_up, "bottom_up", x_forwarded_access_token, authorization
+        request, body, fetch_bottom_up, "bottom_up", user
     )
 
 
@@ -336,11 +324,10 @@ async def bottom_up(
 async def top_down(
     request: Request,
     body: BatchPageRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     return await _batch_page_endpoint(
-        request, body, fetch_top_down, "top_down", x_forwarded_access_token, authorization
+        request, body, fetch_top_down, "top_down", user
     )
 
 
@@ -349,9 +336,8 @@ async def top_down(
 async def supplier_risk(
     request: Request,
     body: BatchPageRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     return await _batch_page_endpoint(
-        request, body, fetch_supplier_risk, "supplier_risk", x_forwarded_access_token, authorization
+        request, body, fetch_supplier_risk, "supplier_risk", user
     )

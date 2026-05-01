@@ -494,6 +494,11 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
 // YieldAnalyticsPage — full page export
 // ---------------------------------------------------------------------------
 
+/**
+ * Full-page yield analytics view.
+ * Fetches yield data on mount and when date range changes.
+ * Displays KPI cards, 30-day and 24-hour trend charts, and a breakdown table.
+ */
 export function YieldAnalyticsPage() {
   const { t } = useT()
   const { filters, setFilters } = useAnalyticsFilters()

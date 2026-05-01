@@ -47,6 +47,17 @@ async def health():
 
 @app.get("/api/ready")
 async def ready():
+    """
+    Operational readiness probe for the Trace2 API.
+    
+    Checks that the DATABRICKS_READINESS_TOKEN and warehouse configuration
+    are present. It then delegates to `databricks_sql_ready` to perform
+    a lightweight warehouse check.
+    
+    Raises:
+        HTTPException: 503 if the token is missing, warehouse config is invalid,
+                       or the SQL warehouse cannot be reached.
+    """
     # Specific check for missing readiness token (needed for test expectations)
     readiness_token = os.environ.get("DATABRICKS_READINESS_TOKEN", "").strip()
     if not readiness_token:

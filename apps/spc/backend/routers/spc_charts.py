@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import ValidationError
 
 from backend.dal.spc_charts_dal import (
@@ -28,8 +28,9 @@ from backend.schemas.spc_schemas import (
     LockLimitsRequest,
     PChartDataRequest,
 )
-from backend.utils.db import attach_data_freshness, check_warehouse_config, resolve_token
+from backend.utils.db import attach_data_freshness, check_warehouse_config
 from backend.utils.rate_limit import limiter
+from shared_auth import UserIdentity, require_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -40,11 +41,10 @@ logger = logging.getLogger(__name__)
 async def spc_chart_data(
     request: Request,
     body: ChartDataRequest,
+    user: UserIdentity = Depends(require_user),
     cursor: Optional[str] = Query(default=None),
     limit: int = Query(default=1000, ge=1, le=5000),
     include_summary: bool = Query(default=False),
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
 ):
     """
     Retrieve a paginated set of observation points for SPC charting.
@@ -59,7 +59,7 @@ async def spc_chart_data(
         limit: Maximum number of points to return in this page.
         include_summary: If true, calculates normality and spec drift (first page only).
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     if cursor is not None:
         try:
@@ -156,8 +156,7 @@ async def spc_chart_data(
 async def spc_data_quality(
     request: Request,
     body: DataQualityRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     """
     Evaluate the quality and consistency of observation data.
@@ -165,7 +164,7 @@ async def spc_data_quality(
     Checks for missing results, illegal values, and date-range gaps for 
     the selected material/MIC combination.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         summary = await fetch_data_quality_summary(
@@ -193,8 +192,7 @@ async def spc_data_quality(
 async def spc_control_limits(
     request: Request,
     body: ControlLimitsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     """
     Retrieve calculated control limits for a specific cohort.
@@ -202,7 +200,7 @@ async def spc_control_limits(
     Includes grand mean, UCL, LCL, and sigma estimates based on the 
     requested stratification and statistical method.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         limits = await fetch_control_limits(
@@ -230,13 +228,12 @@ async def spc_control_limits(
 async def spc_p_chart_data(
     request: Request,
     body: PChartDataRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     """
     Retrieve data specifically aggregated for P-Charts (Proportion Defective).
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         rows = await fetch_p_chart_data(
@@ -296,16 +293,16 @@ async def spc_count_chart_data(
     )
 
 
-@router.post("/locked-limits")
+@router.post("/lock-limits")
 @limiter.limit("30/minute")
 async def lock_limits(
     request: Request,
     body: LockLimitsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
+
     try:
         return await save_locked_limits(
             token,
@@ -337,14 +334,13 @@ async def get_locked_limits(
     request: Request,
     material_id: str,
     mic_id: str,
+    user: UserIdentity = Depends(require_user),
     unified_mic_key: Optional[str] = None,
     plant_id: Optional[str] = None,
     operation_id: Optional[str] = None,
     chart_type: str = "imr",
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         GetLockedLimitsRequest(
@@ -379,10 +375,9 @@ async def get_locked_limits(
 async def delete_locked_limits_route(
     request: Request,
     body: DeleteLockedLimitsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         return await delete_locked_limits(

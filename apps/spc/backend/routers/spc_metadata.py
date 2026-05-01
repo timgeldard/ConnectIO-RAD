@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Header, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from backend.dal.spc_metadata_dal import (
     fetch_attribute_characteristics,
@@ -15,8 +15,9 @@ from backend.schemas.spc_schemas import (
     CharacteristicsRequest,
     ValidateMaterialRequest,
 )
-from backend.utils.db import attach_data_freshness, check_warehouse_config, resolve_token
+from backend.utils.db import attach_data_freshness, check_warehouse_config
 from backend.utils.rate_limit import limiter
+from shared_auth import UserIdentity, require_user
 
 router = APIRouter()
 
@@ -26,10 +27,9 @@ router = APIRouter()
 async def spc_plants(
     request: Request,
     material_id: str,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         rows = await fetch_plants(token, material_id)
@@ -49,10 +49,9 @@ async def spc_plants(
 async def spc_validate_material(
     request: Request,
     body: ValidateMaterialRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         row = await validate_material(token, body.material_id)
@@ -73,34 +72,13 @@ async def spc_validate_material(
     )
 
 
-@router.get("/ready")
-async def ready():
-    """Operational readiness probe."""
-    try:
-        token = resolve_token(None, None)
-        await fetch_plants(token, "DUMMY")
-        return {"status": "ready"}
-    except Exception as exc:
-        logger.error("ready_probe.failed: %s", exc)
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "not_ready",
-                "reason": "sql_warehouse_unreachable",
-                "message": "An internal error occurred while reaching the SQL warehouse.",
-                "error": str(exc),
-            },
-        )
-
-
 @router.get("/materials")
 @limiter.limit("120/minute")
 async def spc_materials(
     request: Request,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         rows = await fetch_materials(token)
@@ -120,10 +98,9 @@ async def spc_materials(
 async def spc_characteristics(
     request: Request,
     body: CharacteristicsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         characteristics, attr_characteristics = await fetch_characteristics(token, body.material_id, body.plant_id)
@@ -143,10 +120,9 @@ async def spc_characteristics(
 async def spc_attribute_characteristics(
     request: Request,
     body: AttributeCharacteristicsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         rows = await fetch_attribute_characteristics(token, body.material_id, body.plant_id)

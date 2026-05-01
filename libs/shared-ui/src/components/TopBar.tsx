@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import type { ReactNode, CSSProperties } from 'react'
 import { Icon } from './Icon'
 
 export interface Breadcrumb {
@@ -17,7 +17,7 @@ export interface TopBarProps {
   }
   actions?: ReactNode
   className?: string
-  style?: React.CSSProperties
+  style?: CSSProperties
 }
 
 export function TopBar({

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Header, Request
+from fastapi import APIRouter, Depends, Header, Request
 
 from backend.dal.spc_analysis_dal import (
     fetch_compare_scorecard,
@@ -22,9 +22,10 @@ from backend.schemas.spc_schemas import (
     SaveMSARequest,
     ScorecardRequest,
 )
-from backend.utils.db import attach_data_freshness, check_warehouse_config, resolve_token
+from backend.utils.db import attach_data_freshness, check_warehouse_config
 from backend.utils.msa import compute_grr, compute_grr_anova
 from backend.utils.rate_limit import limiter
+from shared_auth import UserIdentity, require_user
 
 router = APIRouter()
 
@@ -34,8 +35,7 @@ router = APIRouter()
 async def spc_process_flow(
     request: Request,
     body: ProcessFlowRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     """
     Retrieve material lineage and process flow data for a specific material.
@@ -43,7 +43,7 @@ async def spc_process_flow(
     Returns a graph-compatible structure of upstream inputs and downstream 
     outputs, including process health indicators at each node.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         payload = await fetch_process_flow(
@@ -70,8 +70,7 @@ async def spc_process_flow(
 async def spc_scorecard(
     request: Request,
     body: ScorecardRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     """
     Generate a quality scorecard summary for all MICs of a material.
@@ -79,7 +78,7 @@ async def spc_scorecard(
     Aggregates Cp/Cpk, Pp/Ppk, and violation counts for each characteristic
     within the requested cohort.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         rows = await fetch_scorecard(token, body.material_id, body.plant_id, body.date_from, body.date_to)
@@ -99,13 +98,12 @@ async def spc_scorecard(
 async def compare_scorecard(
     request: Request,
     body: CompareScorecardsRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
     """
     Compare quality performance across multiple materials.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         return await fetch_compare_scorecard(token, body.material_ids, body.plant_id, body.date_from, body.date_to)
@@ -118,10 +116,9 @@ async def compare_scorecard(
 async def msa_save(
     request: Request,
     body: SaveMSARequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         return await save_msa_session(
@@ -145,10 +142,8 @@ async def msa_save(
 @limiter.limit("20/minute")
 async def msa_calculate(
     body: CalculateMSARequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    resolve_token(x_forwarded_access_token, authorization)
     try:
         if body.method == "anova":
             return compute_grr_anova(body.measurement_data, body.tolerance)
@@ -162,10 +157,9 @@ async def msa_calculate(
 async def spc_correlation(
     request: Request,
     body: CorrelationRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         payload = await fetch_correlation(
@@ -192,10 +186,9 @@ async def spc_correlation(
 async def spc_correlation_scatter(
     request: Request,
     body: CorrelationScatterRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         return await fetch_correlation_scatter(
@@ -216,10 +209,9 @@ async def spc_correlation_scatter(
 async def spc_multivariate(
     request: Request,
     body: MultivariateRequest,
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
+    user: UserIdentity = Depends(require_user),
 ):
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = user.raw_token
     check_warehouse_config()
     try:
         payload = await fetch_multivariate(

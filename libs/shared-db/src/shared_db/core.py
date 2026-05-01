@@ -76,27 +76,20 @@ def check_warehouse_config() -> str:
     return WAREHOUSE_HTTP_PATH
 
 
+from shared_auth import resolve_token as auth_resolve_token
+
+...
+
 def resolve_token(
     x_forwarded_access_token: Optional[str],
     authorization: Optional[str],
 ) -> str:
     """
-    Resolve the access token from request headers (priority order):
-      1. x-forwarded-access-token  — injected by the Databricks Apps proxy
-      2. Authorization: Bearer     — for local development / direct API calls
+    Resolve the access token from request headers (priority order).
+    
+    Delegates to shared_auth.resolve_token.
     """
-    token = x_forwarded_access_token
-    if token is None and authorization and authorization.startswith("Bearer "):
-        token = authorization[len("Bearer "):]
-    if not token:
-        raise HTTPException(
-            status_code=401,
-            detail=(
-                "No access token present. Expected x-forwarded-access-token "
-                "header (set by Databricks Apps proxy) or Authorization: Bearer."
-            ),
-        )
-    return token
+    return auth_resolve_token(x_forwarded_access_token, authorization)
 
 
 def sql_param(name: str, value: Optional[object]) -> dict:
