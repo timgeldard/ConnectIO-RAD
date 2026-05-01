@@ -6,7 +6,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Header
 from pydantic import BaseModel
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 
 from backend.utils.db import run_sql_async, sql_param
 from backend.utils.em_config import PLANT_GEO_TBL
@@ -29,7 +29,7 @@ class PlantGeoEntry(BaseModel):
 
 @router.get("/plant-geo", response_model=list[PlantGeoEntry])
 async def list_plant_geo(
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     rows = await run_sql_async(
@@ -52,7 +52,7 @@ async def list_plant_geo(
 async def upsert_plant_geo(
     plant_id: str,
     body: PlantGeoUpsert,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     params = [

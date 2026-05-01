@@ -1,7 +1,7 @@
 """Equipment insights router — POST /api/equipment-insights/summary."""
 from typing import Optional
 
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
@@ -20,7 +20,7 @@ class EquipmentInsightsRequest(BaseModel):
 
 @router.post("/equipment-insights/summary")
 async def get_equipment_insights(body: EquipmentInsightsRequest,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     """Return equipment master distribution and live activity from vw_gold_instrument and vw_gold_equipment_history.
 

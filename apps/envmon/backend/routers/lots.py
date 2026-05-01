@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, Query
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 
 from backend.schemas.em import InspectionLot, LotDetailResponse, MicResult
 from backend.utils.db import run_sql_async, sql_param
@@ -37,7 +37,7 @@ async def list_lots(
     plant_id: str = Query(..., description="SAP plant code"),
     func_loc_id: str = Query(...),
     time_window_days: int = Query(90, ge=1, le=365),
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     date_from = (date.today() - timedelta(days=time_window_days)).isoformat()
@@ -86,7 +86,7 @@ async def list_lots(
 async def get_lot_detail(
     lot_id: str,
     plant_id: str = Query(..., description="SAP plant code"),
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     params = [sql_param("lot_id", lot_id), sql_param("plant_id", plant_id)]

@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, AsyncMock
 from backend.main import app
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 
 client = TestClient(app)
 
@@ -10,13 +10,14 @@ client = TestClient(app)
 def mock_auth():
     async def mock_user():
         return UserIdentity(user_id="test", raw_token="fake-token")
-    app.dependency_overrides[require_user] = mock_user
+    app.dependency_overrides[require_proxy_user] = mock_user
     yield
-    app.dependency_overrides.clear()
+    app.dependency_overrides.pop(require_proxy_user, None)
 
 @pytest.mark.asyncio
 async def test_list_plants():
     async def mock_sql_fn(token, sql, params=None, **kwargs):
+        assert token == "fake-token"
         s = sql.strip().upper()
         if "SELECT DISTINCT PLANT_ID" in s:
             return [{"PLANT_ID": "P225"}]
@@ -46,6 +47,7 @@ async def test_list_plants():
 @pytest.mark.asyncio
 async def test_list_plants_keeps_geo_when_gold_plant_query_fails():
     async def mock_sql_fn(token, sql, params=None, **kwargs):
+        assert token == "fake-token"
         s = sql.strip().upper()
         if "SELECT DISTINCT" in s and "PLANT_ID" in s:
             return [{"PLANT_ID": "P225"}]
@@ -73,6 +75,7 @@ async def test_list_plants_keeps_geo_when_gold_plant_query_fails():
 @pytest.mark.asyncio
 async def test_list_plants_accepts_lowercase_plant_id_rows():
     async def mock_sql_fn(token, sql, params=None, **kwargs):
+        assert token == "fake-token"
         s = sql.strip().upper()
         if "SELECT DISTINCT" in s and "PLANT_ID" in s:
             return [{"plant_id": "P225"}]
@@ -99,6 +102,7 @@ async def test_list_plants_accepts_lowercase_plant_id_rows():
 @pytest.mark.asyncio
 async def test_list_floors():
     async def mock_sql_fn(token, sql, params=None, **kwargs):
+        assert token == "fake-token"
         s = sql.strip().upper()
         if "FLOOR_ID, FLOOR_NAME, SVG_URL" in s:
             return [{"floor_id": "F1", "floor_name": "Floor 1", "svg_url": "img1.svg", "svg_width": 100, "svg_height": 100}]
@@ -118,6 +122,7 @@ async def test_list_floors():
 @pytest.mark.asyncio
 async def test_get_heatmap():
     async def mock_sql_fn(token, sql, params=None, **kwargs):
+        assert token == "fake-token"
         s = sql.strip().upper()
         if "SELECT" in s and "LOT.INSPECTION_LOT_ID" in s:
             # Main heatmap query

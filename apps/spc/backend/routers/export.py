@@ -24,7 +24,7 @@ from backend.utils.db import (
     check_warehouse_config,
 )
 from backend.utils.rate_limit import limiter
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from backend.dal.spc_analysis_dal import fetch_scorecard
 from backend.dal.spc_charts_dal import (
     fetch_chart_data,
@@ -411,7 +411,7 @@ def _rows_to_csv(headers: list[str], rows: list[list]) -> str:
 async def spc_export(
     request: Request,
     body: ExportRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     """Generate an Excel or CSV download for SPC data."""
     token = user.raw_token

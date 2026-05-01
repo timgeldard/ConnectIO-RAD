@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, Header, Query
 
 from backend.schemas.em import HeatmapResponse, MarkerData
 from backend.utils.db import run_sql_async, sql_param
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from backend.utils.em_config import (
     COORD_TBL,
     INSP_TYPES_SQL,
@@ -101,7 +101,7 @@ def _detect_early_warning(rows: list[dict]) -> bool:
 async def get_heatmap(
     plant_id: str = Query(...),
     floor_id: str = Query(...),
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
     mics: Optional[list[str]] = Query(None),
     time_window_days: int = Query(30, ge=7, le=365),
     decay_lambda: Optional[float] = Query(None, ge=0.0, le=1.0),
@@ -153,9 +153,13 @@ async def get_heatmap(
             r.quantitative_result,
             TO_DATE(lot.CREATED_DATE) AS lot_date
         FROM {COORD_TBL} c
-        JOIN {POINT_TBL} p ON c.func_loc_id = p.func_loc_id
-        LEFT JOIN {RESULT_TBL} r ON p.func_loc_id = r.func_loc_id
-        LEFT JOIN {LOT_TBL} lot ON r.inspection_lot_id = lot.INSPECTION_LOT_ID
+        JOIN {POINT_TBL} p ON c.func_loc_id = p.FUNCTIONAL_LOCATION
+        LEFT JOIN {LOT_TBL} lot ON p.INSPECTION_LOT_ID = lot.INSPECTION_LOT_ID
+            AND lot.PLANT_ID = :plant_id
+            AND lot.INSPECTION_TYPE IN {INSP_TYPES_SQL}
+        LEFT JOIN {RESULT_TBL} r ON p.INSPECTION_LOT_ID = r.INSPECTION_LOT_ID
+            AND p.OPERATION_ID = r.OPERATION_ID
+            AND p.SAMPLE_ID = r.SAMPLE_ID
         WHERE c.plant_id = :plant_id
           AND c.floor_id = :floor_id
           AND (lot.CREATED_DATE IS NULL OR (lot.CREATED_DATE >= :date_from AND lot.CREATED_DATE <= :date_to))
@@ -190,12 +194,18 @@ async def get_heatmap(
         fails = sum(1 for r in loc_rows if (r.get("valuation") or "").upper() in ("R", "REJ", "REJECT"))
         passes = sum(1 for r in loc_rows if (r.get("valuation") or "").upper() in ("A", "ACC", "ACCEPT"))
         
-        status = "PASS"
-        if risk > 1.0: status = "WARNING"
-        if risk > 5.0: status = "FAIL"
-        if l_val in ("R", "REJ", "REJECT"): status = "FAIL"
+        # Status logic
+        if decay_lambda is None:
+            # Deterministic mode: only latest result + early warning
+            status = "FAIL" if l_val in ("R", "REJ", "REJECT") else "PASS"
+        else:
+            # Continuous mode: risk score thresholds + latest override
+            status = "PASS"
+            if risk > 1.0: status = "WARNING"
+            if risk > 5.0: status = "FAIL"
+            if l_val in ("R", "REJ", "REJECT"): status = "FAIL"
         
-        # Early warning check
+        # Early warning check applies to all modes
         warning = _detect_early_warning(loc_rows)
         if warning and status == "PASS":
             status = "WARNING"

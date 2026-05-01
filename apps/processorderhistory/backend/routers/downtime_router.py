@@ -1,34 +1,38 @@
-"""Downtime analytics router — POST /api/downtime/analytics."""
-from typing import Optional
-
-from shared_auth import UserIdentity, require_user
-from fastapi import Depends, APIRouter, Header
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Header, Request
 
 from backend.dal.downtime_analytics_dal import fetch_downtime_analytics
-from backend.db import check_warehouse_config, validate_timezone
+from backend.db import check_warehouse_config
+from backend.schemas.order_schemas import AnalyticsRequest
+from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
 
 
-class DowntimeAnalyticsRequest(BaseModel):
-    """Request body for the downtime analytics endpoint."""
-
-    plant_id: Optional[str] = None
-    date_from: Optional[str] = None
-    date_to: Optional[str] = None
-    timezone: Optional[str] = None
-
-
-@router.post("/downtime/analytics")
-async def get_downtime_analytics(body: DowntimeAnalyticsRequest,
-    user: UserIdentity = Depends(require_user)
+@router.post("/downtime")
+async def fetch_downtime(
+    request: Request,
+    body: AnalyticsRequest,
+    user: UserIdentity = Depends(require_proxy_user),
 ):
-    """Return downtime analytics: pareto by reason over the requested date range,
-    and a 30-day daily series.
+    """
+    Return downtime analytics: pareto by reason and daily trend series.
 
-    ``date_from`` / ``date_to`` are ISO date strings (YYYY-MM-DD); omitting both
-    returns the last-24h rolling window.
+    Aggregates unplanned downtime events by reason category and code, 
+    providing both a cumulative pareto distribution and a 30-day time series
+    for trend analysis.
+
+    Args:
+        request: The incoming FastAPI request object.
+        body: Analytic parameters including date range (ISO YYYY-MM-DD) and plant.
+        user: Authenticated user identity from the shared auth dependency.
+
+    Returns:
+        A dictionary containing the reason pareto data, total downtime minutes, 
+        and the daily trend series.
+
+    Raises:
+        HTTPException: 401 if unauthorized, 503 if the SQL warehouse is unreachable, 
+                       or 500 for internal server errors.
     """
     token = user.raw_token
     check_warehouse_config()
@@ -37,5 +41,5 @@ async def get_downtime_analytics(body: DowntimeAnalyticsRequest,
         plant_id=body.plant_id,
         date_from=body.date_from,
         date_to=body.date_to,
-        timezone=validate_timezone(body.timezone),
+        request_path=request.url.path,
     )

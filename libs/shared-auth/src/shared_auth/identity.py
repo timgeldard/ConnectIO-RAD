@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -26,21 +27,27 @@ class UserIdentity:
 def resolve_token(
     x_forwarded_access_token: Optional[str],
     authorization: Optional[str],
+    strict: bool = False,
 ) -> str:
     """
     Resolve the access token from request headers (priority order).
+    
+    Args:
+        x_forwarded_access_token: Token from Databricks Apps proxy.
+        authorization: Standard Bearer token header.
+        strict: If True, only x-forwarded-access-token is accepted.
     """
     token = x_forwarded_access_token
-    if token is None and authorization and authorization.startswith("Bearer "):
+    
+    if not strict and token is None and authorization and authorization.startswith("Bearer "):
         token = authorization[len("Bearer "):]
+        
     if not token:
-        raise HTTPException(
-            status_code=401,
-            detail=(
-                "No access token present. Expected x-forwarded-access-token "
-                "header (set by Databricks Apps proxy) or Authorization: Bearer."
-            ),
-        )
+        msg = "No access token present. Expected x-forwarded-access-token header."
+        if not strict:
+            msg += " Fallback to Authorization: Bearer is also supported."
+        raise HTTPException(status_code=401, detail=msg)
+        
     return token
 
 
@@ -52,33 +59,48 @@ async def require_user(
     """
     FastAPI dependency to require a valid user identity.
     
-    This performs token resolution and (optionally) JWT validation.
+    Supports both proxy headers and local Bearer tokens.
     """
-    token = resolve_token(x_forwarded_access_token, authorization)
+    token = resolve_token(x_forwarded_access_token, authorization, strict=False)
+    return _extract_identity(token)
+
+
+async def require_proxy_user(
+    request: Request,
+    x_forwarded_access_token: Optional[str] = Header(default=None),
+) -> UserIdentity:
+    """
+    FastAPI dependency to require a valid user identity via Databricks Proxy only.
+    
+    Strictly enforces x-forwarded-access-token and rejects Authorization headers.
+    """
+    token = resolve_token(x_forwarded_access_token, None, strict=True)
+    return _extract_identity(token)
+
+
+def _extract_identity(token: str) -> UserIdentity:
+    """
+    Internal helper to extract identity from a (potentially unverified) token.
+    """
+    is_dev = os.environ.get("APP_ENV", "").lower() in ("development", "local", "test")
     
     try:
-        # For now, we do unverified decoding to extract identity info.
-        # Real validation will be added once JWKS endpoints are configured.
+        # Real validation logic will go here once JWKS is integrated.
+        # For now we do best-effort extraction.
         payload = jwt.decode(token, options={"verify_signature": False})
         
-        # Databricks / standard OIDC claims
-        user_id = payload.get("sub") or payload.get("email") or "unknown"
-        email = payload.get("email")
-        display_name = payload.get("name") or payload.get("preferred_username")
-        groups = payload.get("groups") or []
-        if isinstance(groups, str):
-            groups = [groups]
-
         return UserIdentity(
-            user_id=user_id,
-            email=email,
-            display_name=display_name,
-            groups=groups,
+            user_id=payload.get("sub") or payload.get("email") or "unknown",
+            email=payload.get("email"),
+            display_name=payload.get("name") or payload.get("preferred_username"),
+            groups=payload.get("groups") or [],
             raw_token=token
         )
     except Exception:
-        # Fallback for non-JWT tokens (e.g. personal access tokens used in dev)
-        # We treat the token as the user_id if it's not a JWT.
+        # Strict mode: if it's not a JWT, it's invalid unless in dev
+        if not is_dev:
+            raise HTTPException(status_code=401, detail="Invalid token format.")
+            
         return UserIdentity(
             user_id="dev-user",
             raw_token=token

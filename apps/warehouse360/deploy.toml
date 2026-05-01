@@ -27,5 +27,5 @@ TRACE_SCHEMA = "wh360"
 [targets.prod.env]
 DATABRICKS_WAREHOUSE_ID = ""
 DATABRICKS_WAREHOUSE_HTTP_PATH = ""
-TRACE_CATALOG = ""
+TRACE_CATALOG = "connected_plant_prod"
 TRACE_SCHEMA = "wh360"

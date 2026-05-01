@@ -2,6 +2,7 @@
 name = "spc"
 bundle_name = "spc"
 default_profile = "uat"
+default_target = "uat"
 template = "app.template.yaml"
 config_output = "app.yaml"
 
@@ -17,29 +18,120 @@ enabled = true
 source_target = "profile"
 repair_sql_scope = true
 
-[commands]
-# `requires_tool = "make"` lets Windows local deploys skip these idempotent
-# SQL setup hooks cleanly. Linux/CI runners with `make` installed still execute
-# them, and any genuine failure there continues to abort the deploy.
-after_bundle = [
-  { command = "make setup-locked-limits PROFILE={profile}", requires_tool = "make" },
-  { command = "make setup-exclusions PROFILE={profile}", requires_tool = "make" },
-  { command = "make setup-query-audit PROFILE={profile}", requires_tool = "make" },
-  { command = "make setup-operation-id-locked-limits PROFILE={profile}", requires_tool = "make" },
-  { command = "make setup-operation-id-exclusions PROFILE={profile}", requires_tool = "make" },
-  { command = "make setup-locked-limits-unified-key PROFILE={profile}", requires_tool = "make" },
-  { command = "make setup-metric-views PROFILE={profile}", requires_tool = "make" },
-  { command = "make setup-unified-mic-views PROFILE={profile}", requires_tool = "make" },
-  { command = "make setup-mic-chart-config PROFILE={profile}", requires_tool = "make" },
-]
+[[migrations]]
+name = "spc_locked_limits"
+file = "scripts/migrations/000_setup_locked_limits.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
 
-[profiles.uat.env]
+[[migrations]]
+name = "spc_exclusions"
+file = "scripts/migrations/001_create_spc_exclusions.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_query_audit"
+file = "scripts/migrations/002_create_query_audit.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_locked_limits_operation_id"
+file = "scripts/migrations/003_add_operation_id_to_locked_limits.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_exclusions_operation_id"
+file = "scripts/migrations/004_add_operation_id_to_spc_exclusions.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_quality_metric_subgroup"
+file = "scripts/migrations/005_create_spc_quality_metric_subgroup_v.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_quality_metrics"
+file = "scripts/migrations/006_create_spc_quality_metrics_mv.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_attribute_metric_source"
+file = "scripts/migrations/007_create_spc_attribute_metric_source_v.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_attribute_quality_metrics"
+file = "scripts/migrations/008_create_spc_attribute_quality_metrics_mv.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_process_flow_source"
+file = "scripts/migrations/009_create_spc_process_flow_source_v.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_process_flow_metrics"
+file = "scripts/migrations/010_create_spc_process_flow_metrics_mv.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_correlation_source"
+file = "scripts/migrations/011_create_spc_correlation_source_v.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_normal_cdf_udf"
+file = "scripts/migrations/012_create_spc_normal_cdf_udf.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_unified_mic_views"
+file = "scripts/migrations/013_create_spc_unified_mic_views.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_locked_limits_unified_key"
+file = "scripts/migrations/014_add_unified_mic_key_to_locked_limits.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_process_flow_source_mv"
+file = "scripts/migrations/015_create_spc_process_flow_source_mv.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_correlation_source_mv"
+file = "scripts/migrations/016_create_spc_correlation_source_mv.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_material_dim_mv"
+file = "scripts/migrations/017_create_spc_material_dim_mv.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_plant_material_dim_mv"
+file = "scripts/migrations/018_create_spc_plant_material_dim_mv.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_mic_chart_config"
+file = "scripts/migrations/019_create_spc_mic_chart_config.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "spc_query_audit_v2"
+file = "scripts/migrations/020_recreate_spc_query_audit.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[targets.uat.env]
+DATABRICKS_WAREHOUSE_ID = "e76480b94bea6ed5"
 DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/e76480b94bea6ed5"
 TRACE_CATALOG = "connected_plant_uat"
 TRACE_SCHEMA = "gold"
 GENIE_SPACE_ID = "01f134d334681d2398e1205b9b2739c4"
 
-[profiles.prod.env]
+[targets.prod.env]
+DATABRICKS_WAREHOUSE_ID = ""
 DATABRICKS_WAREHOUSE_HTTP_PATH = ""
 TRACE_CATALOG = ""
 TRACE_SCHEMA = "gold"

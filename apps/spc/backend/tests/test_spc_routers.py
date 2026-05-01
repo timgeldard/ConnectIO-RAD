@@ -14,8 +14,8 @@ client = TestClient(app)
 
 
 def test_chart_data_returns_401_when_token_missing():
-    from shared_auth import require_user
-    app.dependency_overrides.pop(require_user, None)
+    from shared_auth import require_proxy_user
+    app.dependency_overrides.pop(require_proxy_user, None)
     try:
         response = client.post(
             "/api/spc/chart-data",
@@ -24,7 +24,7 @@ def test_chart_data_returns_401_when_token_missing():
         assert response.status_code == 401
     finally:
         from shared_auth import UserIdentity
-        app.dependency_overrides[require_user] = lambda: UserIdentity(user_id="test-user", raw_token="fake-token")
+        app.dependency_overrides[require_proxy_user] = lambda: UserIdentity(user_id="test-user", raw_token="fake-token")
 
 
 def test_chart_data_rejects_invalid_cursor(monkeypatch):

@@ -1,7 +1,7 @@
 """Planning board router — POST /api/planning/schedule."""
 from typing import Optional
 
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
@@ -19,7 +19,7 @@ class PlanningScheduleRequest(BaseModel):
 
 @router.post("/planning/schedule")
 async def get_planning_schedule(body: PlanningScheduleRequest,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     """Return production planning schedule: Gantt blocks, backlog, and KPIs.
 

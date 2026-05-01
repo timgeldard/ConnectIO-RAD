@@ -16,6 +16,7 @@ dates.  All three accept a ``tz`` argument that **must** come from
 fragment, which is safe because zoneinfo restricts IANA names to letters,
 digits, underscores, hyphens, and forward slashes (no SQL metacharacters).
 """
+import asyncio
 import os
 from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -23,12 +24,17 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from shared_db.core import (  # noqa: F401 — re-exported for dal imports
     check_warehouse_config,
     resolve_token,
-    run_sql_async as _shared_run_sql_async,
+    run_sql as _shared_run_sql,
     sql_param,
 )
+from shared_db.runtime import SqlRuntime
 
 POH_CATALOG: str = os.environ.get("POH_CATALOG", "connected_plant_uat")
 POH_SCHEMA: str = os.environ.get("POH_SCHEMA", "csm_process_order_history")
+
+# Standardized SQL Runtime with 300s cache and concurrency control
+_sql_runtime = SqlRuntime(run_sql=lambda token, statement, params=None: _shared_run_sql(token, statement, params))
+_SQL_SEMAPHORE = asyncio.Semaphore(int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4")))
 
 
 def tbl(name: str) -> str:
@@ -54,7 +60,8 @@ async def run_sql_async(
     endpoint_hint: str = "unknown",
 ) -> list[dict]:
     """Execute a SQL statement using the shared 300-second TTL-cached async executor."""
-    return await _shared_run_sql_async(token, statement, params)
+    async with _SQL_SEMAPHORE:
+        return await _sql_runtime.run_sql_async(token, statement, params, endpoint_hint=endpoint_hint)
 
 
 def validate_timezone(tz: Optional[str]) -> str:
@@ -101,10 +108,10 @@ def tz_date(col: str, tz: str) -> str:
 
 
 ORDER_STATUS_EXPR = """
-    CASE po.STATUS
-        WHEN 'IN PROGRESS'            THEN 'running'
-        WHEN 'Tulip Load In Progress' THEN 'running'
-        WHEN 'COMPLETED'              THEN 'completed'
+    CASE
+        WHEN 'RELEASED'                THEN 'released'
+        WHEN 'PARTIALLY CONFIRMED'     THEN 'running'
+        WHEN 'CONFIRMED'               THEN 'completed'
         WHEN 'CLOSED'                 THEN 'completed'
         WHEN 'ON HOLD'                THEN 'onhold'
         WHEN 'CANCELLED'              THEN 'cancelled'

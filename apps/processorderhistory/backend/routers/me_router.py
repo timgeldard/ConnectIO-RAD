@@ -1,7 +1,7 @@
 """User identity endpoint — GET /api/me."""
 from typing import Optional
 
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 
 from backend.db import check_warehouse_config, run_sql_async
@@ -20,7 +20,7 @@ def _name_from_email(email: str) -> tuple[str, str]:
 
 @router.get("/me")
 async def get_me(
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     """Return the name and initials of the authenticated user via current_user()."""
     token = user.raw_token

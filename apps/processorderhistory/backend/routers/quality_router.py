@@ -1,7 +1,7 @@
 """Quality analytics router — POST /api/quality/analytics."""
 from typing import Optional
 
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
@@ -22,7 +22,7 @@ class QualityAnalyticsRequest(BaseModel):
 
 @router.post("/quality/analytics")
 async def get_quality_analytics(body: QualityAnalyticsRequest,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     """Return quality analytics: 30-day daily series, 24h hourly series, and inspection
     result rows for the requested date range.

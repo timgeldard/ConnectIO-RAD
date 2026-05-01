@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from backend.schemas.em import FloorInfo, LocationMeta
 from backend.utils.db import run_sql_async, sql_param
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from backend.utils.em_config import (
     COORD_TBL,
     FLOOR_TBL,
@@ -38,7 +38,7 @@ class FloorCreateRequest(BaseModel):
 @router.get("/floors", response_model=list[FloorInfo])
 async def list_floors(
     plant_id: str = Query(..., description="SAP plant code"),
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     params = [sql_param("plant_id", plant_id)]
@@ -85,7 +85,7 @@ async def _run_both(token, sql1, sql2, params):
 @router.post("/floors", response_model=FloorInfo, status_code=201)
 async def add_floor(
     body: FloorCreateRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     params = [
@@ -134,7 +134,7 @@ async def add_floor(
 async def delete_floor(
     floor_id: str,
     plant_id: str = Query(...),
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     params = [sql_param("plant_id", plant_id), sql_param("floor_id", floor_id)]
@@ -147,7 +147,7 @@ async def list_locations(
     plant_id: str = Query(..., description="SAP plant code"),
     floor_id: Optional[str] = Query(default=None),
     mapped_only: bool = Query(default=False),
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     params = [sql_param("plant_id", plant_id)]

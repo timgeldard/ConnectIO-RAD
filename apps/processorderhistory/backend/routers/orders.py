@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Header
 from backend.dal.orders_dal import fetch_orders_list
 from backend.db import check_warehouse_config
 from backend.schemas.order_schemas import OrderListRequest
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
 
@@ -14,7 +14,7 @@ router = APIRouter()
 @router.post("/orders")
 async def list_orders(
     body: OrderListRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     """Return process order summaries for the list view.
 

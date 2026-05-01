@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header, HTTPException, Request
 
 from backend.dal.inbound import fetch_inbound, fetch_receipt_detail
@@ -19,7 +19,7 @@ _DETAIL_FRESHNESS_SOURCES = [
 @router.get("/inbound")
 async def list_inbound(request: Request,
     plant_id: Optional[str] = None,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     token = user.raw_token
     check_warehouse_config()
@@ -35,7 +35,7 @@ async def list_inbound(request: Request,
 @router.get("/inbound/{po_id}")
 async def get_receipt(po_id: str,
     request: Request,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     token = user.raw_token
     check_warehouse_config()

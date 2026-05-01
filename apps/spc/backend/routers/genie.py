@@ -22,7 +22,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
 from backend.utils.db import hostname
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ def _extract_text(msg: dict) -> str:
 @router.post("/genie/message")
 async def genie_message(
     req: GenieRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     if not _GENIE_SPACE_ID:
         raise HTTPException(

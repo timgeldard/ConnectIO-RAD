@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 from backend.main import app
 import backend.routers.exclusions as exclusions
-from shared_auth import require_user
+from shared_auth import require_proxy_user
 
 
 client = TestClient(app)
@@ -11,7 +11,7 @@ client = TestClient(app)
 
 def test_save_exclusions_no_token():
     # Remove the global mock from conftest to test real auth behavior
-    app.dependency_overrides.pop(require_user, None)
+    app.dependency_overrides.pop(require_proxy_user, None)
     try:
         response = client.post(
             "/api/spc/exclusions",
@@ -26,7 +26,7 @@ def test_save_exclusions_no_token():
         assert response.status_code == 401
     finally:
         # Restore mock for other tests (though conftest fixture teardown will clear it anyway)
-        from shared_auth import require_user as req
+        from shared_auth import require_proxy_user as req
         from shared_auth import UserIdentity
         app.dependency_overrides[req] = lambda: UserIdentity(user_id="test-user", raw_token="fake-token")
 

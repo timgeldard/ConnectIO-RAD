@@ -10,7 +10,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, Query
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 
 from backend.schemas.em import CoordinateUpsertRequest, CoordinateUpsertResponse, LocationMeta, LocationSummary
 from backend.utils.db import run_sql_async, sql_param
@@ -28,7 +28,7 @@ router = APIRouter()
 @router.get("/coordinates/unmapped", response_model=list[LocationMeta])
 async def list_unmapped(
     plant_id: str = Query(..., description="SAP plant code"),
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     params = [sql_param("plant_id", plant_id)]
@@ -60,7 +60,7 @@ async def list_unmapped(
 @router.get("/coordinates/mapped", response_model=list[LocationMeta])
 async def list_mapped(
     plant_id: str = Query(..., description="SAP plant code"),
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     params = [sql_param("plant_id", plant_id)]
@@ -83,7 +83,7 @@ async def list_mapped(
 async def get_location_summary(
     func_loc_id: str,
     plant_id: str = Query(..., description="SAP plant code"),
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
 
@@ -167,7 +167,7 @@ async def get_location_summary(
 async def delete_coordinate(
     func_loc_id: str,
     plant_id: str = Query(..., description="SAP plant code"),
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     params = [sql_param("func_loc_id", func_loc_id), sql_param("plant_id", plant_id)]
@@ -178,7 +178,7 @@ async def delete_coordinate(
 @router.post("/coordinates", response_model=CoordinateUpsertResponse)
 async def upsert_coordinate(
     body: CoordinateUpsertRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     params = [

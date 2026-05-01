@@ -1,7 +1,7 @@
 """OEE analytics router — POST /api/oee/analytics."""
 from typing import Optional
 
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
@@ -22,7 +22,7 @@ class OEEAnalyticsRequest(BaseModel):
 
 @router.post("/oee/analytics")
 async def get_oee_analytics(body: OEEAnalyticsRequest,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     """Return OEE analytics: 30-day weighted trend and per-line performance.
 

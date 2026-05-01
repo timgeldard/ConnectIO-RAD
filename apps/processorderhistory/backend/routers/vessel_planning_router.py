@@ -1,7 +1,7 @@
 """Vessel planning analytics router — POST /api/vessel-planning/analytics."""
 from typing import Optional
 
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
@@ -22,7 +22,7 @@ class VesselPlanningRequest(BaseModel):
 
 @router.post("/vessel-planning/analytics")
 async def get_vessel_planning_analytics(body: VesselPlanningRequest,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     """Return vessel planning analytics: live vessel states, priority queue, and activity trend.
 

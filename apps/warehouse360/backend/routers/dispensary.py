@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header, Request
 
 from backend.dal.dispensary import fetch_dispensary_tasks
@@ -16,7 +16,7 @@ _FRESHNESS_SOURCES = ["wh360_dispensary_tasks_v"]
 @router.get("/dispensary")
 async def list_dispensary_tasks(request: Request,
     plant_id: Optional[str] = None,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     token = user.raw_token
     check_warehouse_config()

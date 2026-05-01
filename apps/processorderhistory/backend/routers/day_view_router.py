@@ -1,7 +1,7 @@
 """Day View router — POST /api/dayview."""
 from typing import Optional
 
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
@@ -20,7 +20,7 @@ class DayViewRequest(BaseModel):
 
 @router.post("/dayview")
 async def get_day_view(body: DayViewRequest,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     """Return Day View data: Gantt blocks and downtime for a single production day.
 

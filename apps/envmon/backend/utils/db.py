@@ -66,6 +66,7 @@ def run_sql(
 
 
 _sql_runtime = SqlRuntime(run_sql=lambda token, statement, params=None: run_sql(token, statement, params))
+_SQL_SEMAPHORE = asyncio.Semaphore(int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4")))
 _sql_cache = _sql_runtime.cache
 _sql_cache_lock = _sql_runtime.cache_lock
 _SQL_CACHE_ROW_LIMIT = _sql_runtime.cache_row_limit
@@ -88,7 +89,8 @@ async def run_sql_async(
     endpoint_hint: str = "unknown",
 ) -> list[dict]:
     """Non-blocking SQL execution with write-invalidating cache and inline error mapping."""
-    return await _sql_runtime.run_sql_async(token, statement, params, endpoint_hint=endpoint_hint)
+    async with _SQL_SEMAPHORE:
+        return await _sql_runtime.run_sql_async(token, statement, params, endpoint_hint=endpoint_hint)
 
 
 def get_data_freshness(token: str, source_views: list[str]) -> dict:

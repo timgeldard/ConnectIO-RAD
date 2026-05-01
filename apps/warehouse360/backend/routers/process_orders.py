@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header, HTTPException, Request
 
 from backend.dal.process_orders import fetch_order_detail, fetch_process_orders
@@ -22,7 +22,7 @@ _DETAIL_FRESHNESS_SOURCES = [
 @router.get("/process-orders")
 async def list_process_orders(request: Request,
     plant_id: Optional[str] = None,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     token = user.raw_token
     check_warehouse_config()
@@ -38,7 +38,7 @@ async def list_process_orders(request: Request,
 @router.get("/process-orders/{order_id}")
 async def get_process_order(order_id: str,
     request: Request,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     token = user.raw_token
     check_warehouse_config()

@@ -21,7 +21,23 @@ class FreshnessAttacher(Protocol):
         source_views: list[str],
         *,
         request_path: Optional[str] = None
-    ) -> dict: ...
+    ) -> dict:
+        """
+        Attach freshness metadata to a payload.
+
+        Args:
+            payload: Response payload to enrich.
+            token: Access token used for freshness lookup.
+            source_views: Backing views used to compute freshness metadata.
+            request_path: Optional request path for contextual logging/handling.
+
+        Returns:
+            The payload enriched with freshness metadata.
+
+        Raises:
+            HTTPException: If freshness lookup fails in a non-recoverable way.
+        """
+        ...
 
 
 async def attach_validation_freshness(

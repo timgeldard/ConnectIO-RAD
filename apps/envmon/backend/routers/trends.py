@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, Query
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 
 from backend.schemas.em import TrendPoint, TrendResponse
 from backend.utils.db import run_sql_async, sql_param
@@ -25,7 +25,7 @@ router = APIRouter()
 async def list_mics(
     plant_id: str = Query(..., description="SAP plant code"),
     func_loc_id: Optional[str] = Query(None),
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     params = [sql_param("plant_id", plant_id)]
@@ -63,7 +63,7 @@ async def get_trends(
     func_loc_id: str = Query(...),
     mic_name: str = Query(...),
     window_days: int = Query(90, ge=1, le=365),
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     date_from = (date.today() - timedelta(days=window_days)).isoformat()

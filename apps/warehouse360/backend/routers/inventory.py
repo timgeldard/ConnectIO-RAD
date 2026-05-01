@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header, Request
 
 from backend.dal.inventory import fetch_bin_stock, fetch_lineside
@@ -17,7 +17,7 @@ _LINESIDE_FRESHNESS_SOURCES = ["wh360_lineside_stock_v"]
 @router.get("/inventory/bins")
 async def list_bins(request: Request,
     plant_id: Optional[str] = None,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     token = user.raw_token
     check_warehouse_config()
@@ -33,7 +33,7 @@ async def list_bins(request: Request,
 @router.get("/inventory/lineside")
 async def list_lineside(request: Request,
     plant_id: Optional[str] = None,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     token = user.raw_token
     check_warehouse_config()

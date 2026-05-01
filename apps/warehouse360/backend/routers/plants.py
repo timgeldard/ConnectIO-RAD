@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Header, Request
 
 from backend.dal.plants import fetch_plants
 from backend.utils.db import attach_data_freshness, check_warehouse_config
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
 
@@ -22,7 +22,7 @@ _FRESHNESS_SOURCES = [
 @router.get("/plants")
 async def list_plants(
     request: Request,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     check_warehouse_config()

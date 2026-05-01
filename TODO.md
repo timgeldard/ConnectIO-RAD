@@ -10,8 +10,8 @@
 
 ## Consolidation next slice
 
-- [ ] **Data contract / SQL reference catalog** — promote the generated scanner output into maintained source-of-truth docs or manifests.
-- [ ] **Migration manifest standardization** — make app migrations first-class and consistent.
+- [x] **Data contract / SQL reference catalog** — promote the generated scanner output into maintained source-of-truth docs or manifests.
+- [x] **Migration manifest standardization** — all apps use `deploy.toml` for first-class schema management.
 - [x] **SPC shared `SqlRuntime` migration** — move SPC from tests-only coverage to actual shared runtime adoption.
 - [x] **Deploy wrapper contract tests** — broaden coverage now that `scripts/deploy_app.py` is becoming shared infrastructure.
 - [x] **Frontend build/dependency normalization** — continue reducing drift across the consolidated apps.
@@ -21,7 +21,7 @@
 ## Engineering Mandates
 
 - [x] **100% i18n Translation Coverage** — 13 standard languages enforced via `scripts/validate_i18n.py` and pre-commit hook.
-- [ ] **Maintain Documentation Freshness** — Regularly audit `docs/` and `apps/*/docs/` to remove completed plans and stale quality reviews.
+- [x] **Maintain Documentation Freshness** — Regularly audit `docs/` and `apps/*/docs/` to remove completed plans and stale quality reviews.
 
 ## Lower priority
 

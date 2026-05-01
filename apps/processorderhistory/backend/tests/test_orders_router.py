@@ -24,14 +24,14 @@ _ORDER_ROW = {
 }
 
 
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 
 @pytest.fixture
 def mock_orders(monkeypatch):
     async def mock_user():
         return UserIdentity(user_id="test", raw_token="token")
     
-    app.dependency_overrides[require_user] = mock_user
+    app.dependency_overrides[require_proxy_user] = mock_user
     monkeypatch.setattr(orders_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=[_ORDER_ROW])
     monkeypatch.setattr(orders_router, "fetch_orders_list", mock)

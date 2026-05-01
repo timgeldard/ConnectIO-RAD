@@ -30,7 +30,7 @@ from backend.schemas.spc_schemas import (
 )
 from backend.utils.db import attach_data_freshness, check_warehouse_config
 from backend.utils.rate_limit import limiter
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 async def spc_chart_data(
     request: Request,
     body: ChartDataRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
     cursor: Optional[str] = Query(default=None),
     limit: int = Query(default=1000, ge=1, le=5000),
     include_summary: bool = Query(default=False),
@@ -156,7 +156,7 @@ async def spc_chart_data(
 async def spc_data_quality(
     request: Request,
     body: DataQualityRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     """
     Evaluate the quality and consistency of observation data.
@@ -192,7 +192,7 @@ async def spc_data_quality(
 async def spc_control_limits(
     request: Request,
     body: ControlLimitsRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     """
     Retrieve calculated control limits for a specific cohort.
@@ -228,7 +228,7 @@ async def spc_control_limits(
 async def spc_p_chart_data(
     request: Request,
     body: PChartDataRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     """
     Retrieve data specifically aggregated for P-Charts (Proportion Defective).
@@ -262,7 +262,7 @@ async def spc_p_chart_data(
 async def spc_count_chart_data(
     request: Request,
     body: CountChartDataRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     """
     Retrieve data specifically aggregated for C-Charts or U-Charts (Count of Defects).
@@ -297,7 +297,7 @@ async def spc_count_chart_data(
 async def lock_limits(
     request: Request,
     body: LockLimitsRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     check_warehouse_config()
@@ -333,7 +333,7 @@ async def get_locked_limits(
     request: Request,
     material_id: str,
     mic_id: str,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
     unified_mic_key: Optional[str] = None,
     plant_id: Optional[str] = None,
     operation_id: Optional[str] = None,
@@ -374,7 +374,7 @@ async def get_locked_limits(
 async def delete_locked_limits_route(
     request: Request,
     body: DeleteLockedLimitsRequest,
-    user: UserIdentity = Depends(require_user),
+    user: UserIdentity = Depends(require_proxy_user),
 ):
     token = user.raw_token
     check_warehouse_config()

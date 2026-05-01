@@ -1,7 +1,7 @@
 """Pours analytics router — POST /api/pours/analytics."""
 from typing import Optional
 
-from shared_auth import UserIdentity, require_user
+from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
@@ -22,7 +22,7 @@ class PoursAnalyticsRequest(BaseModel):
 
 @router.post("/pours/analytics")
 async def get_pours_analytics(body: PoursAnalyticsRequest,
-    user: UserIdentity = Depends(require_user)
+    user: UserIdentity = Depends(require_proxy_user)
 ):
     """Return pour analytics: 30-day daily series, 24h hourly series, events for the requested range.
 
