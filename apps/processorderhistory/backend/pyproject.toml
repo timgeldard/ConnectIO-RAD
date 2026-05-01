@@ -10,6 +10,7 @@ dependencies = [
   "databricks-sdk>=0.25",
   "databricks-sql-connector>=3.3",
   "shared-api",
+  "shared-auth",
   "shared-db",
 ]
 

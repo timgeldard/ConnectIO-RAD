@@ -8,6 +8,7 @@ sync:
     - frontend/dist/**
     - shared_db/**
     - shared_api/**
+    - shared_auth/**
 
 variables:
   app_name:

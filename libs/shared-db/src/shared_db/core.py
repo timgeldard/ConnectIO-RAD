@@ -93,8 +93,22 @@ def resolve_token(
 
 
 def sql_param(name: str, value: Optional[object]) -> dict:
-    """Build a named STRING parameter dict for the Databricks SQL Statement API."""
-    return {"name": name, "value": str(value) if value is not None else None, "type": "STRING"}
+    """Build a typed named parameter dict for the Databricks SQL Statement API.
+
+    Type is inferred from the Python type: bool→BOOLEAN, int→LONG, float→DOUBLE,
+    everything else→STRING. The API always expects ``value`` as a string.
+    """
+    if value is None:
+        return {"name": name, "value": None, "type": "STRING"}
+    if isinstance(value, bool):
+        db_type = "BOOLEAN"
+    elif isinstance(value, int):
+        db_type = "LONG"
+    elif isinstance(value, float):
+        db_type = "DOUBLE"
+    else:
+        db_type = "STRING"
+    return {"name": name, "value": str(value), "type": db_type}
 
 
 # ---------------------------------------------------------------------------

@@ -61,7 +61,13 @@ def resolve_token(profile: str) -> str:
             ["databricks", "auth", "token", "--profile", profile],
             capture_output=True, text=True, check=True,
         )
-        return result.stdout.strip()
+        raw = result.stdout.strip()
+        # CLI may return a JSON envelope: {"access_token": "...", ...}
+        try:
+            parsed = json.loads(raw)
+            return parsed.get("access_token") or parsed.get("token") or raw
+        except json.JSONDecodeError:
+            return raw
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:
         sys.exit(f"[sync_genie] Could not resolve Databricks token: {exc}")
 
