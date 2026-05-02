@@ -1,4 +1,4 @@
-"""ConnectIO Platform — unified FastAPI entry point.
+﻿"""ConnectIO Platform — unified FastAPI entry point.
 
 Serves both ConnectedQuality (at /cq) and ProcessOrderHistory (at /poh)
 from a single Databricks App process.
@@ -14,12 +14,13 @@ from starlette.staticfiles import StaticFiles
 
 from shared_api import create_api_app, health_payload, databricks_sql_ready
 
-# CQ API routers — pure stubs, no DB calls, no internal backend.* imports
+# CQ API routers (build.py rewrites backend.* imports to cq_backend.*)
 from cq_backend.routers.alarms import router as cq_alarms_router
 from cq_backend.routers.envmon import router as cq_envmon_router
 from cq_backend.routers.lab import router as cq_lab_router
 from cq_backend.routers.spc import router as cq_spc_router
 from cq_backend.routers.trace import router as cq_trace_router
+from cq_backend.routers.me_router import router as cq_me_router
 
 # POH API routers — imports rewritten from backend.* to poh_backend.* by build.py
 from poh_backend.db import check_warehouse_config, run_sql_async
@@ -50,6 +51,7 @@ app.include_router(cq_trace_router, prefix="/api/cq", tags=["CQ-Trace"])
 app.include_router(cq_envmon_router, prefix="/api/cq", tags=["CQ-EnvMon"])
 app.include_router(cq_spc_router, prefix="/api/cq", tags=["CQ-SPC"])
 app.include_router(cq_lab_router, prefix="/api/cq", tags=["CQ-Lab"])
+app.include_router(cq_me_router, prefix="/api/cq", tags=["CQ-Me"])
 app.include_router(cq_alarms_router, prefix="/api/cq", tags=["CQ-Alarms"])
 
 # --- POH API (/api/...) ---

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Platform build script.
 
 Steps:
@@ -61,11 +61,10 @@ def copy_and_rename_poh_backend() -> None:
 
 
 def copy_cq_backend() -> None:
-    """Copy CQ backend routers as cq_backend.
+    """Copy CQ backend as cq_backend, rewriting internal import references.
 
-    CQ's top-level backend/ has no __init__.py (namespace package) and only
-    routers/ subdirectory is needed. The platform main.py provides its own
-    entry point so main.py is excluded.
+    CQ routers import from backend.prefs_store; these must be rewritten to
+    cq_backend.prefs_store so the package resolves correctly in the platform.
     """
     src = CQ_DIR / "backend"
     dst = APP_DIR / "cq_backend"
@@ -76,8 +75,15 @@ def copy_cq_backend() -> None:
         ignore=shutil.ignore_patterns("tests", "__pycache__", "*.pyc", "main.py"),
     )
     # Add __init__.py so cq_backend is a proper package
-    (dst / "__init__.py").write_text('"""CQ backend — build artifact. Do not edit.\n"""\n')
-    print("-> copied cq_backend")
+    (dst / "__init__.py").write_text('"""CQ backend - build artifact. Do not edit.\n"""\n', encoding="utf-8")
+    # Rewrite: `from backend.` -> `from cq_backend.`  and  `import backend.` -> `import cq_backend.`
+    for py_file in dst.rglob("*.py"):
+        text = py_file.read_text(encoding="utf-8")
+        new_text = text.replace("from backend.", "from cq_backend.")
+        new_text = new_text.replace("import backend.", "import cq_backend.")
+        if new_text != text:
+            py_file.write_text(new_text, encoding="utf-8")
+    print("-> copied and renamed cq_backend")
 
 
 def build_frontend(app_frontend_dir: Path, base_path: str) -> None:
