@@ -1,3 +1,4 @@
+export * from './shell'
 export * from './components/Icon'
 export * from './components/Sparkline'
 export * from './components/SparklineMini'

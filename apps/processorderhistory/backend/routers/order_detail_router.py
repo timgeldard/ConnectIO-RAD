@@ -42,7 +42,7 @@ async def get_order_detail(
     """
     token = user.raw_token
     check_warehouse_config()
-    detail = await fetch_order_detail(token, order_id)
+    detail = await fetch_order_detail(token, order_id=order_id)
     if not detail:
         raise HTTPException(
             status_code=404, detail=f"Process order '{order_id}' not found."

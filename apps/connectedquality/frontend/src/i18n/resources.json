@@ -1,0 +1,72 @@
+{
+  "en": {
+    "app.title": "ConnectedQuality",
+    "app.tagline": "A Kerry Platform",
+    "app.env": "UAT",
+
+    "nav.home": "Home",
+    "nav.trace": "Trace",
+    "nav.envmon": "EnvMon",
+    "nav.spc": "SPC",
+    "nav.lab": "Lab Board",
+    "nav.alarms": "Alarms",
+    "nav.settings": "Settings",
+
+    "ctx.activeContext": "Active context",
+    "ctx.plant": "Plant",
+    "ctx.material": "Material",
+    "ctx.batch": "Batch",
+    "ctx.status": "Status",
+    "ctx.mfg": "Mfg",
+    "ctx.exp": "Exp",
+    "ctx.window": "Window",
+    "ctx.synced": "Synced",
+    "ctx.refresh": "Refresh",
+    "ctx.openInWorkbench": "Open in workbench",
+
+    "home.greeting": "Good afternoon",
+    "home.tagline": "Three quality systems. One operating picture. Lead with impact.",
+    "home.console": "Operating console",
+    "home.inbox": "Cross-module inbox",
+    "home.plantHealth": "Plant health",
+    "home.pinnedViews": "Pinned views",
+
+    "trace.module": "Trace",
+    "trace.overview": "Overview",
+    "trace.recall": "Recall Readiness",
+    "trace.lineage": "Lineage",
+    "trace.massBalance": "Mass Balance",
+    "trace.quality": "Quality",
+    "trace.coa": "CoA",
+
+    "envmon.module": "EnvMon",
+    "envmon.globalMap": "Global Map",
+    "envmon.site": "Site",
+    "envmon.floorPlan": "Floor Plan",
+    "envmon.history": "Time-Lapse",
+
+    "spc.module": "SPC",
+    "spc.overview": "Overview",
+    "spc.flow": "Process Flow",
+    "spc.charts": "Control Charts",
+    "spc.scorecard": "Scorecard",
+    "spc.advanced": "Multivariate",
+
+    "lab.title": "Lab Board",
+    "lab.liveFrom": "Live from SAP QM",
+
+    "alarms.title": "Alarms",
+    "alarms.open": "Open",
+    "alarms.acknowledged": "Acknowledged",
+    "alarms.closed": "Closed",
+
+    "common.export": "Export",
+    "common.refresh": "Refresh",
+    "common.search": "Search",
+    "common.filter": "Filter",
+    "common.all": "All",
+    "common.openAll": "Open all",
+    "common.markAllRead": "Mark all read",
+    "common.exportCsv": "Export CSV"
+  }
+}

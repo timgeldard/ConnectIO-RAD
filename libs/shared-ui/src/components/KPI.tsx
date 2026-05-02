@@ -63,15 +63,15 @@ export function KPI({
         {unit && <div style={{ fontSize: 13, color: 'var(--text-3)', fontWeight: 500 }}>{unit}</div>}
       </div>
 
-      {(delta || sparkline) && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 10 }}>
-          {delta ? (
-            <div style={{ fontSize: 11.5, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              {trend && <Icon name={trend === 'up' ? 'trending-up' : 'trending-down'} size={12} style={{ color }} />}
-              <span>{delta}</span>
-            </div>
-          ) : <div />}
-          {sparkline && <Sparkline values={sparkline} color={color} width={90} height={22} />}
+      {delta && (
+        <div style={{ fontSize: 11.5, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 10 }}>
+          {trend && <Icon name={trend === 'up' ? 'trending-up' : 'trending-down'} size={12} style={{ color }} />}
+          <span>{delta}</span>
+        </div>
+      )}
+      {sparkline && (
+        <div style={{ marginTop: delta ? 6 : 10 }}>
+          <Sparkline values={sparkline} color={color} width={90} height={22} />
         </div>
       )}
 

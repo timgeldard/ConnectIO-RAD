@@ -50,7 +50,7 @@ export async function fetchYieldAnalytics(params?: {
   date_from?: string
   date_to?: string
 }): Promise<YieldData> {
-  const res = await fetch('/api/yield/analytics', {
+  const res = await fetch('/api/yield', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',

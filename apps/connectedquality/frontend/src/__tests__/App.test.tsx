@@ -1,0 +1,128 @@
+﻿import { render, screen, fireEvent, within } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { App } from '~/App'
+
+// Silence SVG/canvas unsupported errors in jsdom
+Object.defineProperty(window, 'ResizeObserver', {
+  value: vi.fn().mockImplementation(() => ({
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
+  })),
+})
+
+describe('App shell', () => {
+  it('renders without crashing', () => {
+    render(<App />)
+    expect(document.querySelector('.cq-shell')).toBeInTheDocument()
+  })
+
+  it('shows the left rail with all module buttons', () => {
+    render(<App />)
+    expect(screen.getByTitle('Home')).toBeInTheDocument()
+    expect(screen.getByTitle('Trace')).toBeInTheDocument()
+    expect(screen.getByTitle('EnvMon')).toBeInTheDocument()
+    expect(screen.getByTitle('SPC')).toBeInTheDocument()
+    expect(screen.getByTitle('Lab Board')).toBeInTheDocument()
+    expect(screen.getAllByTitle('Alarms')[0]).toBeInTheDocument()
+    expect(screen.getAllByTitle('Settings')[0]).toBeInTheDocument()
+  })
+
+  it('shows the Home page by default', () => {
+    render(<App />)
+    expect(document.querySelector('.cq-launcher')).toBeInTheDocument()
+  })
+
+  it('switches to Trace module when rail button clicked', () => {
+    render(<App />)
+    fireEvent.click(screen.getByTitle('Trace'))
+    // Scope to SubNav — 'Overview' also appears in breadcrumb
+    const traceSubnav = document.querySelector('.cq-subnav') as HTMLElement
+    expect(within(traceSubnav).getByText('Overview')).toBeInTheDocument()
+    expect(within(traceSubnav).getByText('Recall Readiness')).toBeInTheDocument()
+  })
+
+  it('switches to EnvMon module and shows env tabs', () => {
+    render(<App />)
+    fireEvent.click(screen.getByTitle('EnvMon'))
+    // Scope to SubNav — 'Global Map' also appears in breadcrumb
+    const envSubnav = document.querySelector('.cq-subnav') as HTMLElement
+    expect(within(envSubnav).getByText('Global Map')).toBeInTheDocument()
+    expect(within(envSubnav).getByText('Floor Plan')).toBeInTheDocument()
+  })
+
+  it('switches to SPC module and shows spc tabs', () => {
+    render(<App />)
+    fireEvent.click(screen.getByTitle('SPC'))
+    expect(screen.getByText('Control Charts')).toBeInTheDocument()
+    expect(screen.getByText('Process Flow')).toBeInTheDocument()
+  })
+
+  it('switches to Alarms when bell icon in top bar clicked', () => {
+    render(<App />)
+    // Both rail and topbar have title="Alarms" — click the first (rail) to navigate
+    const alarmsBtns = screen.getAllByTitle('Alarms')
+    fireEvent.click(alarmsBtns[0])
+    expect(screen.getByText('ALARMS')).toBeInTheDocument()
+  })
+
+  it('shows LabBoard without SubNav and applies is-lab class', () => {
+    render(<App />)
+    fireEvent.click(screen.getByTitle('Lab Board'))
+    expect(document.querySelector('.cq-shell.is-lab')).toBeInTheDocument()
+    // SubNav should not appear for lab module
+    expect(document.querySelector('.cq-subnav')).not.toBeInTheDocument()
+  })
+
+  it('shows Admin page when Settings clicked', () => {
+    render(<App />)
+    // LeftRail and TopBar both have title="Settings"; use first (LeftRail)
+    fireEvent.click(screen.getAllByTitle('Settings')[0])
+    expect(screen.getByText('SETTINGS')).toBeInTheDocument()
+  })
+
+  it('has no SubNav on Home, Alarms, or Admin', () => {
+    render(<App />)
+    // Default: home — no subnav
+    expect(document.querySelector('.cq-subnav')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByTitle('Alarms')[0])
+    expect(document.querySelector('.cq-subnav')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByTitle('Settings')[0])
+    expect(document.querySelector('.cq-subnav')).not.toBeInTheDocument()
+  })
+
+  it('navigates trace tabs independently', () => {
+    render(<App />)
+    fireEvent.click(screen.getByTitle('Trace'))
+    // Before clicking, 'Recall Readiness' is unique in SubNav; after clicking it's in SubNav + breadcrumb
+    const recallTab = screen.getByText('Recall Readiness')
+    fireEvent.click(recallTab)
+    const navAfter = document.querySelector('.cq-subnav') as HTMLElement
+    expect(within(navAfter).getByText('Recall Readiness')).toBeInTheDocument()
+  })
+
+  it('shows breadcrumb in top bar', () => {
+    render(<App />)
+    // TopBar renders CONNECTEDQUALITY product name
+    expect(screen.getByText('CONNECTED')).toBeInTheDocument()
+    // Home breadcrumb is rendered — scope to .cq-bc to avoid LeftRail's "Home" label
+    const bc = document.querySelector('.cq-bc') as HTMLElement
+    expect(within(bc).getByText('Home')).toBeInTheDocument()
+  })
+
+  it('shows context bar with plant/material/batch', () => {
+    render(<App />)
+    expect(screen.getByText('Charleville · IE')).toBeInTheDocument()
+  })
+
+  it('Home module cards navigate to sub-modules on click', () => {
+    render(<App />)
+    // Click the mod card by CSS selector — "TRACE" text also appears in inbox rows
+    const traceCard = document.querySelector('.cq-mod-card.mod-trace') as HTMLElement
+    fireEvent.click(traceCard)
+    // Should switch to trace module showing tabs
+    expect(screen.getByText('Recall Readiness')).toBeInTheDocument()
+  })
+})

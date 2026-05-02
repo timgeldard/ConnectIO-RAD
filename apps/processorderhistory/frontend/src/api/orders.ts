@@ -318,12 +318,12 @@ function mapUsageDecision(raw: Record<string, unknown>): UsageDecision {
 /**
  * Fetch full details for a specific process order by its ID.
  *
- * @param orderId The process order number (e.g., "1001234").
+ * @param processOrderId The process order number (e.g., "1001234").
  * @returns A promise resolving to the OrderDetailData payload.
  * @throws Error if the API request fails or the order is not found.
  */
-export async function fetchOrderDetail(orderId: string): Promise<OrderDetailData> {
-  const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}`, { credentials: 'include' })
+export async function fetchOrderDetail(processOrderId: string): Promise<OrderDetailData> {
+  const res = await fetch(`/api/orders/${encodeURIComponent(processOrderId)}`, { credentials: 'include' })
   if (!res.ok) {
     const text = await res.text().catch(() => '')
     throw new Error(`Order detail fetch failed (${res.status}): ${text}`)

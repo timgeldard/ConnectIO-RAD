@@ -1,10 +1,12 @@
-"""User identity endpoint — GET /api/me."""
+"""User identity and preferences endpoints — GET /api/me, GET/POST /api/me/preferences."""
 from typing import Optional
 
 from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
+from pydantic import BaseModel
 
 from backend.db import check_warehouse_config, run_sql_async
+from backend.prefs_store import get_pinned, set_pinned
 
 router = APIRouter()
 
@@ -29,3 +31,34 @@ async def get_me(
     email = str(rows[0]["email"]) if rows else ""
     name, initials = _name_from_email(email)
     return {"name": name, "initials": initials, "email": email}
+
+
+class PreferencesPayload(BaseModel):
+    """Request body for POST /api/me/preferences."""
+
+    app_id: str
+    pinned_modules: list[str]
+
+
+@router.get("/me/preferences")
+async def get_preferences(
+    app_id: str,
+    user: UserIdentity = Depends(require_proxy_user),
+):
+    """Return the user's pinned module list for the given app.
+
+    ``pinned_modules`` is null when the user has no saved record,
+    signalling the shell to display all modules (factory-default view).
+    """
+    pinned = get_pinned(user.user_id, app_id)
+    return {"pinned_modules": pinned}
+
+
+@router.post("/me/preferences")
+async def save_preferences(
+    payload: PreferencesPayload,
+    user: UserIdentity = Depends(require_proxy_user),
+):
+    """Persist the user's pinned module list for the given app."""
+    set_pinned(user.user_id, payload.app_id, payload.pinned_modules)
+    return {"ok": True}

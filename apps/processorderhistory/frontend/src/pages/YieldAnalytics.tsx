@@ -125,12 +125,12 @@ function YieldTrendChart({
   const tty = tooltip ? (tooltip.y < padT + TH + 8 ? tooltip.y + TH + 10 : tooltip.y - 6) : 0
 
   return (
-    <div className="pour-trend-card" style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, padding: 16 }}>
+    <div className="pour-trend-card" style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', padding: 16 }}>
       <div className="ptc-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-1)' }}>
+        <span style={{ fontWeight: 'var(--fw-bold)', fontSize: 13, color: 'var(--text-1)' }}>
           Yield % · {isHourly ? 'last 24 hours' : range === '7d' ? 'last 7 days' : 'last 30 days'}
         </span>
-        <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 4, padding: 2 }}>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 'var(--r-sm)', padding: 2 }}>
           {['24h', '7d', '30d'].map(r => (
             <button 
               key={r} 
@@ -347,13 +347,13 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
             <Icon name="trending-up" size={18} />
-            <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Breakdown</h2>
+            <h2 style={{ fontSize: 'var(--fs-20)', fontWeight: 'var(--fw-bold)', margin: 0 }}>Breakdown</h2>
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-3)' }}>
             {groups.length} groups · {periodLabel(dateFrom, dateTo)} · grouped by {dimLabel.toLowerCase()}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 6, padding: 4 }}>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 'var(--r-sm)', padding: 4 }}>
           <button className={`btn btn-sm ${activeTab === 'analysis' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('analysis')}>Analysis</button>
           <button className={`btn btn-sm ${activeTab === 'download' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('download')}>
             <Icon name="download" size={14} style={{ marginRight: 6 }} />
@@ -365,7 +365,7 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
       {activeTab === 'analysis' && (
         <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>Group by</span>
+            <span style={{ fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', color: 'var(--text-3)' }}>Group by</span>
             <div style={{ display: 'flex', gap: 4 }}>
               <button className={`btn btn-xs ${groupBy === 'material' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setGroupBy('material')}>Material</button>
               <button className={`btn btn-xs ${groupBy === 'process_order' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setGroupBy('process_order')}>Process Order</button>
@@ -373,7 +373,7 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
           </div>
           <div style={{ flex: 1 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>View</span>
+            <span style={{ fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', color: 'var(--text-3)' }}>View</span>
             <div style={{ display: 'flex', gap: 4 }}>
               <button className={`btn btn-xs ${!cardView ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setCardView(false)}>Table</button>
               <button className={`btn btn-xs ${cardView ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setCardView(true)}>Cards</button>
@@ -383,17 +383,17 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
       )}
 
       {activeTab === 'analysis' && !cardView && (
-        <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ background: 'var(--surface-sunken)', borderBottom: '1px solid var(--line-1)' }}>
               <tr>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{dimLabel}</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Yield %</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>{dimLabel}</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Yield %</th>
                 <th style={{ padding: '12px 16px', width: 160 }}></th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Issued (kg)</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Received (kg)</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Loss (kg)</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>vs avg</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Issued (kg)</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Received (kg)</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Loss (kg)</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>vs avg</th>
               </tr>
             </thead>
             <tbody>
@@ -414,10 +414,10 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
                           <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-3)' }}>{g.materialName}</span>
                         </span>
                       ) : (
-                        <span style={{ fontWeight: 600 }}>{g.key}</span>
+                        <span style={{ fontWeight: 'var(--fw-semibold)' }}>{g.key}</span>
                       )}
                     </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color }}>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 'var(--fw-semibold)', color }}>
                       {g.yieldPct != null ? g.yieldPct.toFixed(1) + '%' : '—'}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
@@ -428,7 +428,7 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
                     <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{g.qtyIssued.toFixed(1)}</td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{g.qtyReceived.toFixed(1)}</td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{g.lossKg != null ? g.lossKg.toFixed(1) : '—'}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: vsAvg != null && vsAvg >= 0 ? 'var(--status-ok)' : 'var(--status-risk)' }}>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 'var(--fw-semibold)', color: vsAvg != null && vsAvg >= 0 ? 'var(--status-ok)' : 'var(--status-risk)' }}>
                       {vsAvg == null ? '—' : (vsAvg >= 0 ? '+' : '') + vsAvg.toFixed(1) + '%'}
                     </td>
                   </tr>
@@ -445,7 +445,7 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
             const dayAvg = prior7dAvg.get(g.key) ?? null
             const color = getYieldColor(g.yieldPct, targetYield)
             return (
-              <div key={g.key} style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
+              <div key={g.key} style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
                 {isPoOrder ? (
                   <div style={{ marginBottom: 8 }}>
                     <button
@@ -456,16 +456,16 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
                     <div style={{ fontSize: 11, color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={g.materialName}>{g.materialName}</div>
                   </div>
                 ) : (
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={g.key}>{g.key}</div>
+                  <div style={{ fontSize: 13, fontWeight: 'var(--fw-bold)', marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={g.key}>{g.key}</div>
                 )}
-                <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-mono)', color }}>
+                <div style={{ fontSize: 'var(--fs-24)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)', color }}>
                   {g.yieldPct != null ? g.yieldPct.toFixed(1) + '%' : '—'}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 12 }}>
                   {g.orderCount} orders · {g.qtyReceived.toFixed(1)} kg rec.
                 </div>
                 {!isPoOrder && dayAvg != null && (
-                  <div style={{ fontSize: 11, padding: '4px 8px', background: 'var(--surface-sunken)', borderRadius: 4 }}>
+                  <div style={{ fontSize: 11, padding: '4px 8px', background: 'var(--surface-sunken)', borderRadius: 'var(--r-sm)' }}>
                     <strong>{dayAvg.toFixed(1)}%</strong> yield avg · prior 7d
                   </div>
                 )}
@@ -476,9 +476,9 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
       )}
 
       {activeTab === 'download' && (
-        <div style={{ padding: 48, textAlign: 'center', background: 'var(--surface-sunken)', borderRadius: 8 }}>
+        <div style={{ padding: 48, textAlign: 'center', background: 'var(--surface-sunken)', borderRadius: 'var(--r-md)' }}>
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{orders.length.toLocaleString()} rows</div>
+            <div style={{ fontSize: 'var(--fs-18)', fontWeight: 'var(--fw-bold)', marginBottom: 4 }}>{orders.length.toLocaleString()} rows</div>
             <div style={{ color: 'var(--text-3)' }}>yield orders · {periodLabel(dateFrom, dateTo)}</div>
           </div>
           <Button variant="primary" onClick={handleDownload} icon={<Icon name="download" />}>
@@ -573,7 +573,7 @@ export function YieldAnalyticsPage() {
             <Icon name="trending-up" size={14} />
             <span>Insights</span>
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, margin: '8px 0 4px', color: 'var(--text-1)' }}>Yield analytics</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 'var(--fw-bold)', margin: '8px 0 4px', color: 'var(--text-1)' }}>Yield analytics</h1>
           <p style={{ fontSize: 13, color: 'var(--text-3)' }}>
             Track process order yield against the quality threshold across the plant.
             Drill in by material or order to identify where losses are occurring.
@@ -596,37 +596,37 @@ export function YieldAnalyticsPage() {
       {!loading && (
         <div style={{ padding: '0 32px 48px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
+            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
                 <Icon name="alert-triangle" size={14} />
                 <span>Target yield</span>
               </div>
-              <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{targetYield.toFixed(0)}%</div>
+              <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{targetYield.toFixed(0)}%</div>
               <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>yield · quality threshold</div>
             </div>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
+            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
                 <Icon name="beaker" size={14} />
                 <span>Average yield</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{avgYield != null ? avgYield.toFixed(1) + '%' : '—'}</div>
+                <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{avgYield != null ? avgYield.toFixed(1) + '%' : '—'}</div>
                 {filters.compare === 'prior7d' && <DeltaPill current={avgYield} prior={priorAvgYield} />}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>{validOrders.length} orders · selected period</div>
             </div>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, borderLeft: `4px solid ${yieldTone === 'good' ? 'var(--status-ok)' : yieldTone === 'ok' ? 'var(--status-warn)' : 'var(--status-risk)'}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
+            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', borderLeft: `4px solid ${yieldTone === 'good' ? 'var(--status-ok)' : yieldTone === 'ok' ? 'var(--status-warn)' : 'var(--status-risk)'}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
                 <Icon name="trending-up" size={14} />
                 <span>Total loss</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{totalLossKg.toFixed(1)} kg</div>
+                <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{totalLossKg.toFixed(1)} kg</div>
                 {filters.compare === 'prior7d' && <DeltaPill current={totalLossKg} prior={priorLossKg} invert suffix="%" />}
               </div>
               {avgYield != null && (
                 <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
-                  <span style={{ color: avgYield >= targetYield ? 'var(--status-ok)' : 'var(--status-warn)', fontWeight: 700 }}>{avgYield.toFixed(1)}%</span> avg yield
+                  <span style={{ color: avgYield >= targetYield ? 'var(--status-ok)' : 'var(--status-warn)', fontWeight: 'var(--fw-bold)' }}>{avgYield.toFixed(1)}%</span> avg yield
                 </div>
               )}
             </div>
@@ -653,7 +653,7 @@ export function YieldAnalyticsPage() {
                   onClick={() => (window as any).__navigateToOrder?.(o.process_order_id, { label: o.material_name, materialId: o.material_id, _from: 'yield' })}
                 >{o.process_order_id}</button>
                 <span style={{ flex: 1 }}>{o.material_name}</span>
-                <span style={{ fontFamily: 'var(--font-mono)', width: 80, textAlign: 'right', fontWeight: 600, color: getYieldColor(o.yield_pct, targetYield) }}>{o.yield_pct != null ? o.yield_pct.toFixed(1) + '%' : '—'}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', width: 80, textAlign: 'right', fontWeight: 'var(--fw-semibold)', color: getYieldColor(o.yield_pct, targetYield) }}>{o.yield_pct != null ? o.yield_pct.toFixed(1) + '%' : '—'}</span>
                 <span style={{ fontFamily: 'var(--font-mono)', width: 80, textAlign: 'right', color: 'var(--text-3)' }}>{o.loss_kg != null ? o.loss_kg.toFixed(1) + ' kg' : '—'}</span>
               </div>
             ))}

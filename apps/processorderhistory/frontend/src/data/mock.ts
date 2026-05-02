@@ -39,14 +39,12 @@ const PLANTS = [
 
 const OPERATORS = ['M. Brennan', 'A. Yusuf', 'C. Whitaker', 'L. Park', 'R. Costa', 'I. Petrov', 'F. Mendez', 'K. Okafor', 'D. Vance', 'H. Nakamura'];
 
-// Real Databricks status values
+// Real Databricks status values (SAP: IN PROGRESS / COMPLETED / CLOSED / NOT STARTED)
 const STATUSES_LIST = [
-  { key: 'running',    label: 'REL',   labelLong: 'Released',  count: 47 },
-  { key: 'completed',  label: 'TECO',  labelLong: 'Completed', count: 1284 },
-  { key: 'released',   label: 'CRTD',  labelLong: 'Created',   count: 19 },
-  { key: 'onhold',     label: 'PCNF',  labelLong: 'On hold',   count: 6 },
-  { key: 'failed',     label: 'CNF',   labelLong: 'Failed',    count: 3 },
-  { key: 'cancelled',  label: 'DLT',   labelLong: 'Cancelled', count: 11 },
+  { key: 'running',    label: 'In Progress', labelLong: 'In Progress', count: 47 },
+  { key: 'completed',  label: 'Completed',   labelLong: 'Completed',   count: 1284 },
+  { key: 'closed',     label: 'Closed',      labelLong: 'Closed',      count: 312 },
+  { key: 'released',   label: 'Not Started', labelLong: 'Not Started', count: 19 },
 ];
 
 // Allergens used by some materials (ALLERGENS field is comma-separated CONCAT_WS in the SQL)
@@ -84,15 +82,13 @@ function generateOrders(count = 48) {
     const plant = PLANTS[Math.floor(r() * PLANTS.length)];
     const operator = OPERATORS[Math.floor(r() * OPERATORS.length)];
 
-    // Status weighted: many completed, some running, few else
+    // Status weighted to match real SAP distribution
     const sRoll = r();
     let status;
     if (i < 4) status = 'running';
-    else if (sRoll < 0.78) status = 'completed';
-    else if (sRoll < 0.85) status = 'released';
-    else if (sRoll < 0.92) status = 'onhold';
-    else if (sRoll < 0.97) status = 'cancelled';
-    else status = 'failed';
+    else if (sRoll < 0.72) status = 'completed';
+    else if (sRoll < 0.92) status = 'closed';
+    else status = 'released';
 
     // Start time
     const ageHours = i < 4 ? r() * 8 : 6 + r() * 24 * 60;
@@ -103,12 +99,10 @@ function generateOrders(count = 48) {
     const targetQty = [500, 1000, 1500, 2000, 2500, 3000, 5000][Math.floor(r() * 7)];
     let actualQty;
     if (status === 'running') actualQty = Math.round(targetQty * (0.2 + r() * 0.5));
-    else if (status === 'cancelled') actualQty = 0;
-    else if (status === 'failed') actualQty = Math.round(targetQty * (0.3 + r() * 0.4));
     else actualQty = Math.round(targetQty * (0.92 + r() * 0.08));
 
     let yieldPct;
-    if (status === 'running' || status === 'cancelled') yieldPct = null;
+    if (status === 'running') yieldPct = null;
     else yieldPct = Math.round((actualQty / targetQty) * 1000) / 10;
 
     // 10-digit numeric PO ID, realistic Kerry-style range starting 70069...
@@ -162,7 +156,7 @@ function generateOrders(count = 48) {
 const ORDERS_LIST = generateOrders(48);
 
 // ----- Detail data -----
-// Builds all sub-datasets for the Order Detail screen, modeled on:
+// Builds all sub-datasets for the Process Order Detail screen, modeled on:
 //  vw_gold_process_order_phase, vw_gold_confirmation, vw_gold_adp_movement,
 //  vw_gold_inspection_result, vw_gold_inspection_usage_decision,
 //  vw_gold_downtime_and_issues, vw_gold_equipment_history,

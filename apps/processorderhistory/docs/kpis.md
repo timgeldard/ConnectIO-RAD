@@ -30,7 +30,7 @@ Source files:
 | POs completed today | Count | Number of filtered completed orders whose `end` timestamp falls on the user's current local date | `vw_gold_confirmation.MAX(END_TIMESTAMP)` and mapped status | Requires UI status `completed`. |
 | Pours today | Count | Number of pour events returned for today's date | `/api/pours/analytics`, movement types `261` and `262` | Counts event rows for today; reversals are still rows in the event list, while trend counts net reversals. |
 
-## Order Detail KPIs And Summary Metrics
+## Process Order Detail KPIs And Summary Metrics
 
 Source files:
 - `frontend/src/pages/OrderDetail.tsx`

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+*.egg
+
+# Shared lib copies (written by scripts/build.py at deploy time)
+shared_db/
+shared_api/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+
+# Databricks Apps rendered config
+app.yaml
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db

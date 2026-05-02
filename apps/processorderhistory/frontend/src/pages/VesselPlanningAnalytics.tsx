@@ -44,7 +44,7 @@ function VesselStateBadge({ state, reason }: { state: VesselState; reason?: stri
   }
   return (
     <span style={{ 
-      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700,
+      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 'var(--fw-bold)',
       background: 'var(--surface-sunken)', borderLeft: `4px solid ${colorMap[state]}`, color: 'var(--text-1)'
     }} title={reason ?? undefined}>
       {STATE_LABELS[state]}
@@ -55,14 +55,14 @@ function VesselStateBadge({ state, reason }: { state: VesselState; reason?: stri
 function ConstraintBadge({ type }: { type: string | null }) {
   if (!type) return (
     <span style={{ 
-      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700,
-      background: 'var(--status-ok-surface)', color: 'var(--status-ok)', textTransform: 'uppercase'
+      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 'var(--fw-bold)',
+      background: 'var(--status-ok-bg)', color: 'var(--status-ok)', textTransform: 'uppercase'
     }}>Feasible</span>
   )
   return (
     <span style={{ 
-      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700,
-      background: 'var(--status-risk-surface)', color: 'var(--status-risk)', textTransform: 'uppercase'
+      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 'var(--fw-bold)',
+      background: 'var(--status-risk-bg)', color: 'var(--status-risk)', textTransform: 'uppercase'
     }}>{CONSTRAINT_LABELS[type] ?? type}</span>
   )
 }
@@ -128,7 +128,7 @@ export function VesselPlanningAnalyticsPage() {
             <Icon name="target" size={14} />
             <span>Insights</span>
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, margin: '0 0 4px', color: 'var(--text-1)' }}>Vessel planning</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 'var(--fw-bold)', margin: '0 0 4px', color: 'var(--text-1)' }}>Vessel planning</h1>
           <p style={{ fontSize: 13, color: 'var(--text-3)' }}>
             Match released process orders to available vessels. Identify cleaning constraints
             and affinity gaps before they hit the floor.
@@ -150,17 +150,17 @@ export function VesselPlanningAnalyticsPage() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
             <Icon name="package" size={18} />
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Released orders</h2>
+            <h2 style={{ fontSize: 'var(--fs-18)', fontWeight: 'var(--fw-bold)', margin: 0 }}>Released orders</h2>
             <span style={{ fontSize: 13, color: 'var(--text-3)' }}>Awaiting vessel assignment</span>
           </div>
-          <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, overflow: 'hidden' }}>
+          <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ background: 'var(--surface-sunken)', borderBottom: '1px solid var(--line-1)' }}>
                 <tr>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Process Order</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Material</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Constraint</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Planned Start</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Process Order</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Material</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Constraint</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Planned Start</th>
                 </tr>
               </thead>
               <tbody>
@@ -169,12 +169,12 @@ export function VesselPlanningAnalyticsPage() {
                     <td style={{ padding: '12px 16px' }}>
                       <button 
                         className="btn btn-link" 
-                        style={{ padding: 0, height: 'auto', fontFamily: 'var(--font-mono)', fontWeight: 600 }}
+                        style={{ padding: 0, height: 'auto', fontFamily: 'var(--font-mono)', fontWeight: 'var(--fw-semibold)' }}
                         onClick={() => (window as any).__navigateToOrder?.(o.po_id, { label: o.material_name, _from: 'vessel-planning' })}
                       >{o.po_id}</button>
                     </td>
                     <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontSize: 13, fontWeight: 500 }}>{o.material_name}</div>
+                      <div style={{ fontSize: 13, fontWeight: 'var(--fw-medium)' }}>{o.material_name}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{o.material_id}</div>
                     </td>
                     <td style={{ padding: '12px 16px' }}>
@@ -199,23 +199,23 @@ export function VesselPlanningAnalyticsPage() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
             <Icon name="database" size={18} />
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Vessel status</h2>
+            <h2 style={{ fontSize: 'var(--fs-18)', fontWeight: 'var(--fw-bold)', margin: 0 }}>Vessel status</h2>
             <span style={{ fontSize: 13, color: 'var(--text-3)' }}>Real-time inventory</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {data.vessels.map(v => (
-              <div key={v.instrument_id} style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, padding: 16 }}>
+              <div key={v.instrument_id} style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', padding: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-1)' }}>{v.instrument_id}</div>
+                    <div style={{ fontWeight: 'var(--fw-bold)', fontSize: 15, color: 'var(--text-1)' }}>{v.instrument_id}</div>
                     <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)' }}>{v.equipment_type || '—'}</div>
                   </div>
                   <VesselStateBadge state={v.state as VesselState} reason={v.state_reason} />
                 </div>
                 {v.current_material_name && (
-                  <div style={{ fontSize: 12, color: 'var(--text-2)', padding: '8px 12px', background: 'var(--surface-sunken)', borderRadius: 6 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 4 }}>Contains / Last Material</div>
-                    <div style={{ fontWeight: 600 }}>{v.current_material_name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-2)', padding: '8px 12px', background: 'var(--surface-sunken)', borderRadius: 'var(--r-sm)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 4 }}>Contains / Last Material</div>
+                    <div style={{ fontWeight: 'var(--fw-semibold)' }}>{v.current_material_name}</div>
                     <div style={{ fontFamily: 'var(--font-mono)', opacity: 0.7 }}>{v.current_material_id}</div>
                   </div>
                 )}

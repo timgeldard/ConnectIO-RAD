@@ -109,12 +109,10 @@ def tz_date(col: str, tz: str) -> str:
 
 ORDER_STATUS_EXPR = """
     CASE po.STATUS
-        WHEN 'RELEASED'            THEN 'released'
-        WHEN 'PARTIALLY CONFIRMED' THEN 'running'
-        WHEN 'CONFIRMED'           THEN 'completed'
-        WHEN 'CLOSED'              THEN 'completed'
-        WHEN 'ON HOLD'             THEN 'onhold'
-        WHEN 'CANCELLED'           THEN 'cancelled'
+        WHEN 'IN PROGRESS'  THEN 'running'
+        WHEN 'COMPLETED'    THEN 'completed'
+        WHEN 'CLOSED'       THEN 'closed'
+        WHEN 'NOT STARTED'  THEN 'released'
         ELSE 'released'
     END
 """.strip()

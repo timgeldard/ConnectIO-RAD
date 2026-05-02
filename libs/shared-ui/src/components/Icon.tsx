@@ -68,6 +68,17 @@ const ICON_PATHS: Record<string, string> = {
   'alert-circle':    'M12 8v4M12 16h.01M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z',
   'search-alt':      'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35',
 
+  'shield':          'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+
+  // Domain icons for ConnectIO modules — bespoke manufacturing intelligence icons
+  'trace':           'M3 12h4l3-9 4 18 3-9h4',
+  'env':             'M12 2a7 7 0 0 1 7 7c0 4-3 7-7 10-4-3-7-6-7-10a7 7 0 0 1 7-7zM12 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4z',
+  'spc':             'M3 18l4-8 4 4 4-10 4 6M3 22h18',
+  'flow':            'M5 12h14M15 8l4 4-4 4M5 8v8',
+  'expand':          'M3 8V3h5M21 8V3h-5M3 16v5h5M21 16v5h-5',
+  'pin':             'M12 2l3 7h5l-4 5 2 8-6-4-6 4 2-8-4-5h5z',
+  'dl':              'M12 2v14M5 9l7 7 7-7M3 21h18',
+
 }
 
 export type IconName = keyof typeof ICON_PATHS

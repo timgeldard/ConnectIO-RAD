@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { LangProvider } from './i18n/context'
-import { useT } from './i18n/context'
-import { AppShell, Sidebar, type NavGroup } from '@connectio/shared-ui'
+import { PlatformShell, parseCrossAppContext } from '@connectio/shared-ui'
+import { POH_MODULES, POH_COMPOSITION } from './manifest'
 import { OrderList } from './pages/OrderList'
 import { OrderDetail } from './pages/OrderDetail'
 import { PlanningBoard } from './pages/PlanningBoard'
@@ -13,6 +13,7 @@ import { VesselPlanningAnalyticsPage } from './pages/VesselPlanningAnalytics'
 import { EquipmentInsightsPage } from './pages/EquipmentInsights'
 import { EquipmentInsights2Page } from './pages/EquipmentInsights2'
 import { fetchCurrentUser, type CurrentUser } from './api/me'
+import { fetchPreferences, savePreferences } from './api/preferences'
 import { ORDERS } from './data/mock'
 import { GenieDrawer } from './genie/GenieDrawer'
 import { buildGeniePageContext } from './genie/pageContext'
@@ -31,64 +32,68 @@ type View =
 
 const HOUR = 3600 * 1000
 
+function viewToModule(view: View): string {
+  switch (view.name) {
+    case 'list':
+    case 'detail':            return 'order-list'
+    case 'planning':          return 'planning-board'
+    case 'quality':           return 'quality-analytics'
+    default:                  return view.name
+  }
+}
+
+function moduleToView(moduleId: string): View {
+  switch (moduleId) {
+    case 'home':
+    case 'order-list':           return { name: 'list' }
+    case 'planning-board':       return { name: 'planning' }
+    case 'quality-analytics':    return { name: 'quality' }
+    case 'pours':                return { name: 'pours' }
+    case 'day-view':             return { name: 'day-view' }
+    case 'yield':                return { name: 'yield' }
+    case 'vessel-planning':      return { name: 'vessel-planning' }
+    case 'equipment-insights':   return { name: 'equipment-insights' }
+    case 'equipment-insights-2': return { name: 'equipment-insights-2' }
+    default:                     return { name: 'list' }
+  }
+}
+
 function AppContent() {
-  const { t } = useT()
   const [view, setView] = useState<View>({ name: 'list' })
   const [lineFilter, setLineFilter] = useState('ALL')
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [genieOpen, setGenieOpen] = useState(false)
+  const [pinnedModules, setPinnedModules] = useState<string[] | null>(null)
 
   useEffect(() => {
     fetchCurrentUser().then(u => setCurrentUser(u)).catch(() => {})
   }, [])
 
-  const activeId =
-    view.name === 'planning' ? 'planning' :
-    view.name === 'pours' ? 'pours' :
-    view.name === 'day-view' ? 'day-view' :
-    view.name === 'yield' ? 'yield' :
-    view.name === 'quality' ? 'quality' :
-    view.name === 'vessel-planning' ? 'vessel-planning' :
-    view.name === 'equipment-insights' ? 'equipment-insights' :
-    view.name === 'equipment-insights-2' ? 'equipment-insights-2' :
-    'orders'
+  useEffect(() => {
+    fetchPreferences(POH_COMPOSITION.appId)
+      .then(prefs => setPinnedModules(prefs.pinnedModules))
+      .catch(() => {})
+  }, [])
 
-  const onNavigate = (key: string) => {
-    if (key === 'planning') setView({ name: 'planning' })
-    else if (key === 'orders') setView({ name: 'list' })
-    else if (key === 'pours') setView({ name: 'pours' })
-    else if (key === 'day-view') setView({ name: 'day-view' })
-    else if (key === 'yield') setView({ name: 'yield' })
-    else if (key === 'quality') setView({ name: 'quality' })
-    else if (key === 'vessel-planning') setView({ name: 'vessel-planning' })
-    else if (key === 'equipment-insights') setView({ name: 'equipment-insights' })
-    else if (key === 'equipment-insights-2') setView({ name: 'equipment-insights-2' })
+  const handleModulePinToggle = useCallback((moduleId: string, pin: boolean) => {
+    const allSelectable = POH_MODULES
+      .filter(m => m.isUserSelectable && POH_COMPOSITION.enabledModules.includes(m.moduleId))
+      .map(m => m.moduleId)
+    setPinnedModules(prev => {
+      const base = prev ?? allSelectable
+      const next = pin
+        ? [...new Set([...base, moduleId])]
+        : base.filter(id => id !== moduleId)
+      savePreferences(POH_COMPOSITION.appId, next).catch(() => {})
+      return next
+    })
+  }, [])
+
+  const handleModuleChange = (moduleId: string) => {
+    setView(moduleToView(moduleId))
     window.scrollTo(0, 0)
   }
 
-  const navGroups: NavGroup[] = useMemo(() => [
-    {
-      label: t.sectionOperate,
-      items: [
-        { id: 'planning', label: t.navPlanning, icon: 'layers' },
-        { id: 'orders',   label: t.navOrders,   icon: 'history' },
-        { id: 'vessel-planning', label: t.navVesselPlanning, icon: 'cpu' },
-      ]
-    },
-    {
-      label: t.sectionInsights,
-      items: [
-        { id: 'day-view', label: t.navDayView, icon: 'clock' },
-        { id: 'pours',    label: t.navPours, icon: 'package' },
-        { id: 'yield',    label: t.navYield,    icon: 'trending-up' },
-        { id: 'quality',  label: t.navQuality, icon: 'shield' },
-        { id: 'equipment-insights', label: t.navEquipmentInsights, icon: 'beaker' },
-        { id: 'equipment-insights-2', label: t.navEquipmentInsights2, icon: 'activity' },
-      ]
-    }
-  ], [t])
-
-  // Cross-view jump used by KPI strip and planning-board drill-throughs.
   useEffect(() => {
     ;(window as any).__navigateToPourAnalytics = () => {
       setView({ name: 'pours' })
@@ -131,7 +136,13 @@ function AppContent() {
           __planningShortageETA: c.shortageETA || null,
         }
       }
-      const fromView = c._from === 'planning' ? 'planning' : c._from === 'day-view' ? 'day-view' : c._from === 'pours' ? 'pours' : c._from === 'yield' ? 'yield' : c._from === 'quality' ? 'quality' : c._from === 'vessel-planning' ? 'vessel-planning' : 'list'
+      const fromView =
+        c._from === 'planning' ? 'planning' :
+        c._from === 'day-view' ? 'day-view' :
+        c._from === 'pours' ? 'pours' :
+        c._from === 'yield' ? 'yield' :
+        c._from === 'quality' ? 'quality' :
+        c._from === 'vessel-planning' ? 'vessel-planning' : 'list'
       setView({ name: 'detail', order, from: fromView })
       window.scrollTo(0, 0)
     }
@@ -141,75 +152,70 @@ function AppContent() {
     }
   }, [])
 
+  // Handle cross-app navigation context from platform deployment URL params.
+  // e.g. /poh?entity=processOrder&processOrderId=1001234&from=cq.trace
+  useEffect(() => {
+    const ctx = parseCrossAppContext()
+    if (!ctx) return
+    if (ctx.entity === 'processOrder' && ctx.processOrderId) {
+      const from = ctx.from?.includes('planning') ? 'planning' : 'list'
+      ;(window as any).__navigateToOrder?.(ctx.processOrderId, { _from: from })
+    } else if (ctx.entity === 'pourAnalytics') {
+      ;(window as any).__navigateToPourAnalytics?.()
+    }
+  }, [])
+
   return (
-    <AppShell
-      sidebar={
-        <Sidebar
-          brandLogo={<img src="/kerry-logo-slate.png" alt="Kerry" style={{ height: 22, width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />}
-          appTag="Operations"
-          groups={navGroups}
-          activeId={activeId}
-          onNavigate={onNavigate}
-          footer={
-            <>
-              <div style={{
-                width: 28, height: 28, borderRadius: 'var(--r-pill)',
-                background: 'var(--sage)', color: 'var(--fg-on-brand)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 'var(--fw-bold)', fontSize: 11, flexShrink: 0,
-              }}>
-                {currentUser?.initials ?? '—'}
-              </div>
-              <div style={{ fontSize: 11.5, lineHeight: 1.3, minWidth: 0, flex: 1 }}>
-                <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.9)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {currentUser?.name ?? '…'}
-                </div>
-              </div>
-            </>
-          }
-        />
-      }
+    <PlatformShell
+      composition={POH_COMPOSITION}
+      modules={POH_MODULES}
+      activeModule={viewToModule(view)}
+      tabState={{}}
+      onModuleChange={handleModuleChange}
+      onTabChange={() => {}}
+      userInitials={currentUser?.initials ?? '—'}
+      userName={currentUser?.name ?? ''}
+      pinnedModules={pinnedModules}
+      onModulePinToggle={handleModulePinToggle}
     >
-      <main className="main">
-        {view.name === 'list' && (
-          <OrderList
-            onOpen={(order) => { setView({ name: 'detail', order, from: 'list' }); window.scrollTo(0, 0) }}
-            lineFilter={lineFilter}
-            setLineFilter={setLineFilter}
-          />
-        )}
-        {view.name === 'detail' && (
-          <OrderDetail
-            order={view.order}
-            from={view.from}
-            onBack={() => {
-              if (view.from === 'planning') setView({ name: 'planning' })
-              else if (view.from === 'day-view') setView({ name: 'day-view' })
-              else if (view.from === 'pours') setView({ name: 'pours' })
-              else if (view.from === 'yield') setView({ name: 'yield' })
-              else if (view.from === 'quality') setView({ name: 'quality' })
-              else if (view.from === 'vessel-planning') setView({ name: 'vessel-planning' })
-              else setView({ name: 'list' })
-              window.scrollTo(0, 0)
-            }}
-          />
-        )}
-        {view.name === 'planning' && <PlanningBoard />}
-        {view.name === 'pours' && <PourAnalyticsPage />}
-        {view.name === 'day-view' && <DayView />}
-        {view.name === 'yield' && <YieldAnalyticsPage />}
-        {view.name === 'quality' && <QualityAnalyticsPage />}
-        {view.name === 'vessel-planning' && <VesselPlanningAnalyticsPage />}
-        {view.name === 'equipment-insights' && <EquipmentInsightsPage />}
-        {view.name === 'equipment-insights-2' && <EquipmentInsights2Page />}
-      </main>
+      {view.name === 'list' && (
+        <OrderList
+          onOpen={(order) => { setView({ name: 'detail', order, from: 'list' }); window.scrollTo(0, 0) }}
+          lineFilter={lineFilter}
+          setLineFilter={setLineFilter}
+        />
+      )}
+      {view.name === 'detail' && (
+        <OrderDetail
+          order={view.order}
+          from={view.from}
+          onBack={() => {
+            if (view.from === 'planning') setView({ name: 'planning' })
+            else if (view.from === 'day-view') setView({ name: 'day-view' })
+            else if (view.from === 'pours') setView({ name: 'pours' })
+            else if (view.from === 'yield') setView({ name: 'yield' })
+            else if (view.from === 'quality') setView({ name: 'quality' })
+            else if (view.from === 'vessel-planning') setView({ name: 'vessel-planning' })
+            else setView({ name: 'list' })
+            window.scrollTo(0, 0)
+          }}
+        />
+      )}
+      {view.name === 'planning' && <PlanningBoard />}
+      {view.name === 'pours' && <PourAnalyticsPage />}
+      {view.name === 'day-view' && <DayView />}
+      {view.name === 'yield' && <YieldAnalyticsPage />}
+      {view.name === 'quality' && <QualityAnalyticsPage />}
+      {view.name === 'vessel-planning' && <VesselPlanningAnalyticsPage />}
+      {view.name === 'equipment-insights' && <EquipmentInsightsPage />}
+      {view.name === 'equipment-insights-2' && <EquipmentInsights2Page />}
       <GenieDrawer
         open={genieOpen}
         onOpen={() => setGenieOpen(true)}
         onClose={() => setGenieOpen(false)}
         pageContext={buildGeniePageContext(view, lineFilter)}
       />
-    </AppShell>
+    </PlatformShell>
   )
 }
 

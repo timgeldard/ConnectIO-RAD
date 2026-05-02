@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./styles/*": "./src/styles/*"
+    "./styles/*": "./src/styles/*",
+    "./shell/*": "./src/shell/*"
   },
   "peerDependencies": {
     "react": "^18.3.1"

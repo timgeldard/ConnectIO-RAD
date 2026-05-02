@@ -75,16 +75,16 @@ function OrderDetail({ order, onBack, from = 'list' }: OrderDetailProps) {
     return () => window.removeEventListener('message', onMsg)
   }, [])
 
-  const orderId = order.id
+  const processOrderId = order.id
 
   const breadcrumbs = useMemo(() => {
     const base = [{ label: t.operations }]
-    if (from === 'planning') return [...base, { label: t.crumbManufacturing || 'Manufacturing' }, { label: t.navPlanning, onClick: onBack }, { label: orderId }]
-    if (from === 'pours') return [...base, { label: t.sectionInsights || 'Insights' }, { label: t.navPours || 'Pour analytics', onClick: onBack }, { label: orderId }]
-    if (from === 'yield') return [...base, { label: t.sectionInsights || 'Insights' }, { label: t.navYield || 'Yield analytics', onClick: onBack }, { label: orderId }]
-    if (from === 'quality') return [...base, { label: t.sectionInsights || 'Insights' }, { label: t.navQuality || 'Quality analytics', onClick: onBack }, { label: orderId }]
-    return [...base, { label: t.crumbManufacturing }, { label: t.crumbOrders, onClick: onBack }, { label: orderId }]
-  }, [from, t, orderId, onBack])
+    if (from === 'planning') return [...base, { label: t.crumbManufacturing || 'Manufacturing' }, { label: t.navPlanning, onClick: onBack }, { label: processOrderId }]
+    if (from === 'pours') return [...base, { label: t.sectionInsights || 'Insights' }, { label: t.navPours || 'Pour analytics', onClick: onBack }, { label: processOrderId }]
+    if (from === 'yield') return [...base, { label: t.sectionInsights || 'Insights' }, { label: t.navYield || 'Yield analytics', onClick: onBack }, { label: processOrderId }]
+    if (from === 'quality') return [...base, { label: t.sectionInsights || 'Insights' }, { label: t.navQuality || 'Quality analytics', onClick: onBack }, { label: processOrderId }]
+    return [...base, { label: t.crumbManufacturing }, { label: t.crumbOrders, onClick: onBack }, { label: processOrderId }]
+  }, [from, t, processOrderId, onBack])
 
   return (
     <div className="app-shell-full">
@@ -102,7 +102,7 @@ function OrderDetail({ order, onBack, from = 'list' }: OrderDetailProps) {
               <span>{t.detailEyebrow}</span>
             </div>
             <h1 className="detail-title" style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '8px 0 4px' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 500, color: 'var(--text-1)', letterSpacing: '.01em' }}>{orderId}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 'var(--fw-medium)', color: 'var(--text-1)', letterSpacing: '.01em' }}>{processOrderId}</span>
               <StatusBadge status={loading ? 'released' : (detail?.order?.status ?? order.status)} interactive={false} />
             </h1>
             <div className="detail-product" style={{ fontSize: 13, color: 'var(--text-2)' }}>
@@ -143,10 +143,10 @@ function OrderDetail({ order, onBack, from = 'list' }: OrderDetailProps) {
       {detail && (
         <div style={{ padding: '0 32px 48px' }}>
           <div className="section-anchors" style={{ display: 'flex', gap: 24, padding: '16px 0', borderBottom: '1px solid var(--line-1)', marginBottom: 32 }}>
-            <a href="#sec-activity" className="anchor" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--text-2)', textDecoration: 'none' }}><Icon name="message-square" /><span>{t.secActivity || 'Activity'}</span><span className="pill" style={{ background: 'var(--line-1)', padding: '1px 6px', borderRadius: 9, fontSize: 11 }}>{detail.comments.length}</span></a>
-            <a href="#sec-phases" className="anchor" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--text-2)', textDecoration: 'none' }}><Icon name="layers" /><span>{t.secPhases || 'Phases & timing'}</span><span className="pill" style={{ background: 'var(--line-1)', padding: '1px 6px', borderRadius: 9, fontSize: 11 }}>{detail.phases.length}</span></a>
-            <a href="#sec-materials" className="anchor" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--text-2)', textDecoration: 'none' }}><Icon name="package" /><span>{t.tabMaterials}</span><span className="pill" style={{ background: 'var(--line-1)', padding: '1px 6px', borderRadius: 9, fontSize: 11 }}>{detail.materials.length}</span></a>
-            <a href="#sec-qa" className="anchor" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--text-2)', textDecoration: 'none' }}><Icon name="beaker" /><span>{t.secInspections || 'Inspections'}</span><span className="pill" style={{ background: 'var(--line-1)', padding: '1px 6px', borderRadius: 9, fontSize: 11 }}>{detail.inspections.length}</span></a>
+            <a href="#sec-activity" className="anchor" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 'var(--fw-semibold)', color: 'var(--text-2)', textDecoration: 'none' }}><Icon name="message-square" /><span>{t.secActivity || 'Activity'}</span><span className="pill" style={{ background: 'var(--line-1)', padding: '1px 6px', borderRadius: 'var(--r-pill)', fontSize: 11 }}>{detail.comments.length}</span></a>
+            <a href="#sec-phases" className="anchor" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 'var(--fw-semibold)', color: 'var(--text-2)', textDecoration: 'none' }}><Icon name="layers" /><span>{t.secPhases || 'Phases & timing'}</span><span className="pill" style={{ background: 'var(--line-1)', padding: '1px 6px', borderRadius: 'var(--r-pill)', fontSize: 11 }}>{detail.phases.length}</span></a>
+            <a href="#sec-materials" className="anchor" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 'var(--fw-semibold)', color: 'var(--text-2)', textDecoration: 'none' }}><Icon name="package" /><span>{t.tabMaterials}</span><span className="pill" style={{ background: 'var(--line-1)', padding: '1px 6px', borderRadius: 'var(--r-pill)', fontSize: 11 }}>{detail.materials.length}</span></a>
+            <a href="#sec-qa" className="anchor" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 'var(--fw-semibold)', color: 'var(--text-2)', textDecoration: 'none' }}><Icon name="beaker" /><span>{t.secInspections || 'Inspections'}</span><span className="pill" style={{ background: 'var(--line-1)', padding: '1px 6px', borderRadius: 'var(--r-pill)', fontSize: 11 }}>{detail.inspections.length}</span></a>
           </div>
 
           <div className="all-sections">
@@ -218,26 +218,26 @@ function SummaryGrid({ detail, t }: { detail: any, t: any }) {
 function SubMetaStrip({ detail, t }: { detail: any, t: any }) {
   const o = detail.order
   return (
-    <div className="submeta-strip" style={{ display: 'flex', gap: 32, padding: '12px 16px', background: 'var(--surface-sunken)', borderRadius: 8, marginTop: 12 }}>
+    <div className="submeta-strip" style={{ display: 'flex', gap: 32, padding: '12px 16px', background: 'var(--surface-sunken)', borderRadius: 'var(--r-md)', marginTop: 12 }}>
       <div className="sm-pill" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <Icon name="calendar" size={14} style={{ color: 'var(--text-3)' }} />
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}>{t.sumDOM || 'Date of manufacture'}</div>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>{fmtDate(o.manufactureDateMs)}</div>
+          <div style={{ fontSize: 10, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase' }}>{t.sumDOM || 'Date of manufacture'}</div>
+          <div style={{ fontSize: 13, fontWeight: 'var(--fw-semibold)' }}>{fmtDate(o.manufactureDateMs)}</div>
         </div>
       </div>
       <div className="sm-pill" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <Icon name="calendar" size={14} style={{ color: 'var(--text-3)' }} />
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}>{t.sumExpiry || 'Shelf life expiry'}</div>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>{fmtDate(o.expiryDateMs)}</div>
+          <div style={{ fontSize: 10, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase' }}>{t.sumExpiry || 'Shelf life expiry'}</div>
+          <div style={{ fontSize: 13, fontWeight: 'var(--fw-semibold)' }}>{fmtDate(o.expiryDateMs)}</div>
         </div>
       </div>
       <div className="sm-pill" style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 'auto' }}>
         <Icon name="shield" size={14} style={{ color: 'var(--text-3)' }} />
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}>Inspection lot</div>
-          <div style={{ fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{o.inspectionLotId || '—'}</div>
+          <div style={{ fontSize: 10, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase' }}>Inspection lot</div>
+          <div style={{ fontSize: 13, fontWeight: 'var(--fw-semibold)', fontFamily: 'var(--font-mono)' }}>{o.inspectionLotId || '—'}</div>
         </div>
       </div>
     </div>
@@ -248,7 +248,7 @@ function SectionHeader({ icon, label }: { icon: string, label: string }) {
   return (
     <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
       <Icon name={icon as any} size={18} style={{ color: 'var(--valentia-slate)' }} />
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-1)' }}>{label}</h2>
+      <h2 style={{ fontSize: 'var(--fs-18)', fontWeight: 'var(--fw-bold)', color: 'var(--text-1)' }}>{label}</h2>
       <div style={{ flex: 1, height: 1, background: 'var(--line-1)' }} />
     </div>
   )
@@ -264,7 +264,7 @@ function ActivitySection({ detail, t }: { detail: any, t: any }) {
             <Icon name="message-square" size={16} />
             <CardTitle>{t.cardComments || 'Operator notes'}</CardTitle>
           </div>
-          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'var(--line-1)' }}>{detail.comments.length}</span>
+          <span style={{ fontSize: 11, fontWeight: 'var(--fw-bold)', padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'var(--line-1)' }}>{detail.comments.length}</span>
         </CardHeader>
         <CardContent>
           <div className="comments-list">
@@ -273,7 +273,7 @@ function ActivitySection({ detail, t }: { detail: any, t: any }) {
             ) : detail.comments.map((c: any, i: number) => (
               <div key={i} style={{ padding: '12px 0', borderBottom: i < detail.comments.length - 1 ? '1px solid var(--line-1)' : 'none' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontWeight: 700, fontSize: 13 }}>{c.sender || '—'}</span>
+                  <span style={{ fontWeight: 'var(--fw-bold)', fontSize: 13 }}>{c.sender || '—'}</span>
                   <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
                     {fmtDateTime(c.createdMs)}
                     {c.phaseId ? ' · phase ' + c.phaseId : ''}
@@ -312,8 +312,8 @@ function DowntimeCard({ detail, t }: { detail: any, t: any }) {
             {detail.downtime.map((d: any, i: number) => (
               <li key={i} style={{ padding: '12px 0', borderBottom: i < detail.downtime.length - 1 ? '1px solid var(--line-1)' : 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', padding: '1px 6px', borderRadius: 4, background: 'var(--status-risk-surface)', color: 'var(--status-risk)' }}>{d.issueType}</span>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>{d.issueTitle}</div>
+                  <span style={{ fontSize: 10, fontWeight: 'var(--fw-extrabold)', textTransform: 'uppercase', padding: '1px 6px', borderRadius: 'var(--r-sm)', background: 'var(--status-risk-bg)', color: 'var(--status-risk)' }}>{d.issueType}</span>
+                  <div style={{ fontWeight: 'var(--fw-semibold)', fontSize: 13 }}>{d.issueTitle}</div>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-3)', display: 'flex', gap: 8 }}>
                   <span style={{ fontFamily: 'var(--font-mono)' }}>{Math.round(d.durationS / 60)}m</span>
@@ -337,7 +337,7 @@ function EquipmentCard({ detail, t }: { detail: any, t: any }) {
           <Icon name="cpu" size={16} />
           <CardTitle>{t.cardEquipment || 'Equipment activity'}</CardTitle>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'var(--line-1)' }}>{detail.equipment.length}</span>
+        <span style={{ fontSize: 11, fontWeight: 'var(--fw-bold)', padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'var(--line-1)' }}>{detail.equipment.length}</span>
       </CardHeader>
       <CardContent>
         {detail.equipment.length === 0 ? (
@@ -347,13 +347,13 @@ function EquipmentCard({ detail, t }: { detail: any, t: any }) {
             {detail.equipment.map((e: any, i: number) => (
               <li key={i} style={{ padding: '12px 0', borderBottom: i < detail.equipment.length - 1 ? '1px solid var(--line-1)' : 'none' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>{e.equipmentType}</span>
+                  <span style={{ fontSize: 12, fontWeight: 'var(--fw-semibold)' }}>{e.equipmentType}</span>
                   <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)' }}>{fmtDateTime(e.changeAtMs)}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
                   <span style={{ color: 'var(--text-3)' }}>{e.statusFrom}</span>
                   <Icon name="arrow-right" size={12} style={{ opacity: 0.5 }} />
-                  <span style={{ fontWeight: 600 }}>{e.statusTo}</span>
+                  <span style={{ fontWeight: 'var(--fw-semibold)' }}>{e.statusTo}</span>
                 </div>
               </li>
             ))}
@@ -387,10 +387,10 @@ function PhasesSection({ detail, t }: { detail: any, t: any }) {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--line-1)' }}>
-              <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>{t.phaseColId}</th>
-              <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>{t.phaseColDesc}</th>
-              <th style={{ padding: '12px 8px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>{t.phaseColQty}</th>
-              <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>Timing</th>
+              <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', color: 'var(--text-3)' }}>{t.phaseColId}</th>
+              <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', color: 'var(--text-3)' }}>{t.phaseColDesc}</th>
+              <th style={{ padding: '12px 8px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', color: 'var(--text-3)' }}>{t.phaseColQty}</th>
+              <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', color: 'var(--text-3)' }}>Timing</th>
             </tr>
           </thead>
           <tbody>
@@ -405,7 +405,7 @@ function PhasesSection({ detail, t }: { detail: any, t: any }) {
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{p.phaseId}</span>
                   </td>
                   <td style={{ padding: '12px 8px' }}>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{p.phaseDescription}</div>
+                    <div style={{ fontWeight: 'var(--fw-semibold)', fontSize: 13 }}>{p.phaseDescription}</div>
                   </td>
                   <td style={{ padding: '12px 8px', textAlign: 'right' }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{p.operationQuantity.toLocaleString()}</span>
@@ -437,7 +437,7 @@ function MaterialsSection({ detail, t }: { detail: any, t: any }) {
       header: t.matMaterial,
       render: (m) => (
         <div style={{ paddingLeft: 4 }}>
-          <div style={{ fontWeight: 600, fontSize: 13 }}>{m.materialName || m.materialId}</div>
+          <div style={{ fontWeight: 'var(--fw-semibold)', fontSize: 13 }}>{m.materialName || m.materialId}</div>
           <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>{m.materialId}</div>
         </div>
       )
@@ -465,7 +465,7 @@ function MaterialsSection({ detail, t }: { detail: any, t: any }) {
 
       <DataTable columns={materialColumns} rows={detail.materials} dense />
 
-      <div style={{ padding: '8px 18px', background: 'var(--surface-sunken)', display: 'flex', justifyContent: 'space-between', fontWeight: 600, fontSize: 13 }}>
+      <div style={{ padding: '8px 18px', background: 'var(--surface-sunken)', display: 'flex', justifyContent: 'space-between', fontWeight: 'var(--fw-semibold)', fontSize: 13 }}>
         <span>{t.matTotal}</span>
         <span style={{ fontFamily: 'var(--font-mono)' }}>{totalQty.toFixed(3)} <span style={{ fontWeight: 400, color: 'var(--text-3)', fontSize: 11.5 }}>kg</span></span>
       </div>
@@ -484,7 +484,7 @@ function InspectionsSection({ detail, t, view, setView }: { detail: any, t: any,
     },
     {
       header: t.insColChar,
-      render: (ins) => <div style={{ fontSize: 13, fontWeight: 600 }}>{ins.characteristicDescription}</div>
+      render: (ins) => <div style={{ fontSize: 13, fontWeight: 'var(--fw-semibold)' }}>{ins.characteristicDescription}</div>
     },
     {
       header: t.insColSpec,
@@ -493,7 +493,7 @@ function InspectionsSection({ detail, t, view, setView }: { detail: any, t: any,
     {
       header: t.insColResult,
       render: (ins) => (
-        <span style={{ fontWeight: 700, color: ins.judgement === 'A' ? 'var(--status-ok)' : 'var(--status-risk)' }}>
+        <span style={{ fontWeight: 'var(--fw-bold)', color: ins.judgement === 'A' ? 'var(--status-ok)' : 'var(--status-risk)' }}>
           {ins.qualitativeResult || ins.quantitativeResult || '—'}
           <span style={{ marginLeft: 4, fontWeight: 400, fontSize: 11 }}>{ins.uom}</span>
         </span>
@@ -504,9 +504,9 @@ function InspectionsSection({ detail, t, view, setView }: { detail: any, t: any,
       align: 'right',
       render: (ins) => (
         <span style={{ 
-          background: ins.judgement === 'A' ? 'var(--status-ok-surface)' : 'var(--status-risk-surface)', 
+          background: ins.judgement === 'A' ? 'var(--status-ok-bg)' : 'var(--status-risk-bg)', 
           color: ins.judgement === 'A' ? 'var(--status-ok)' : 'var(--status-risk)',
-          padding: '2px 8px', borderRadius: 4, fontWeight: 800, fontSize: 11
+          padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 'var(--fw-extrabold)', fontSize: 11
         }}>
           {ins.judgement}
         </span>
@@ -523,7 +523,7 @@ function InspectionsSection({ detail, t, view, setView }: { detail: any, t: any,
               <Icon name="beaker" size={16} />
               <CardTitle>{t.cardInspectionResults || 'Inspection results'}</CardTitle>
             </div>
-            <div style={{ display: 'flex', background: 'var(--surface-sunken)', borderRadius: 4, padding: 2 }}>
+            <div style={{ display: 'flex', background: 'var(--surface-sunken)', borderRadius: 'var(--r-sm)', padding: 2 }}>
               <button className={`btn btn-xs ${view === 'table' ? 'btn-primary' : 'btn-ghost'}`} style={{ height: 24, fontSize: 10 }} onClick={() => setView('table')}>Table</button>
               <button className={`btn btn-xs ${view === 'tiles' ? 'btn-primary' : 'btn-ghost'}`} style={{ height: 24, fontSize: 10 }} onClick={() => setView('tiles')}>Tiles</button>
             </div>
@@ -539,9 +539,9 @@ function InspectionsSection({ detail, t, view, setView }: { detail: any, t: any,
           <CardContent>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
               {detail.inspections.map((ins: any, i: number) => (
-                <div key={i} style={{ padding: 12, border: '1px solid var(--line-1)', borderRadius: 8 }}>
+                <div key={i} style={{ padding: 12, border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
                   <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 4 }}>{ins.characteristicDescription}</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: ins.judgement === 'A' ? 'var(--status-ok)' : 'var(--status-risk)' }}>
+                  <div style={{ fontSize: 'var(--fs-16)', fontWeight: 'var(--fw-bold)', color: ins.judgement === 'A' ? 'var(--status-ok)' : 'var(--status-risk)' }}>
                     {ins.qualitativeResult || ins.quantitativeResult || '—'}
                   </div>
                   <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', marginTop: 4 }}>Spec: {ins.specification}</div>
@@ -570,8 +570,8 @@ function UsageDecisionCard({ ud, t }: { ud: any, t: any }) {
           </div>
         </CardHeader>
         <CardContent>
-          <div style={{ padding: 16, textAlign: 'center', background: 'var(--surface-sunken)', borderRadius: 8 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-2)' }}>{t.udPending || 'Pending decision'}</div>
+          <div style={{ padding: 16, textAlign: 'center', background: 'var(--surface-sunken)', borderRadius: 'var(--r-md)' }}>
+            <div style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--fs-14)', color: 'var(--text-2)' }}>{t.udPending || 'Pending decision'}</div>
             <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 4 }}>Awaiting QA review · no decision recorded yet.</div>
           </div>
         </CardContent>
@@ -586,18 +586,18 @@ function UsageDecisionCard({ ud, t }: { ud: any, t: any }) {
           <Icon name="flag" size={16} style={{ color: accepted ? 'var(--status-ok)' : 'var(--status-risk)' }} />
           <CardTitle>{t.cardUsageDecision || 'Usage decision'}</CardTitle>
         </div>
-        <span style={{ background: accepted ? 'var(--status-ok)' : 'var(--status-risk)', color: '#fff', padding: '2px 8px', borderRadius: 4, fontWeight: 800, fontSize: 12 }}>{accepted ? 'A' : 'R'}</span>
+        <span style={{ background: accepted ? 'var(--status-ok)' : 'var(--status-risk)', color: 'var(--fg-on-brand)', padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 'var(--fw-extrabold)', fontSize: 'var(--fs-12)' }}>{accepted ? 'A' : 'R'}</span>
       </CardHeader>
       <CardContent>
-        <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 16 }}>{ud.usageDecisionCode || '—'}</div>
+        <div style={{ fontSize: 'var(--fs-24)', fontWeight: 'var(--fw-extrabold)', marginBottom: 16 }}>{ud.usageDecisionCode || '—'}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 12 }}>
           <div>
-            <div style={{ color: 'var(--text-3)', textTransform: 'uppercase', fontSize: 10, fontWeight: 700 }}>Code</div>
-            <div style={{ fontWeight: 600 }}>{ud.usageDecisionCode}</div>
+            <div style={{ color: 'var(--text-3)', textTransform: 'uppercase', fontSize: 10, fontWeight: 'var(--fw-bold)' }}>Code</div>
+            <div style={{ fontWeight: 'var(--fw-semibold)' }}>{ud.usageDecisionCode}</div>
           </div>
           <div>
-            <div style={{ color: 'var(--text-3)', textTransform: 'uppercase', fontSize: 10, fontWeight: 700 }}>Score</div>
-            <div style={{ fontWeight: 600, fontSize: 16, color: accepted ? 'var(--status-ok)' : 'var(--status-risk)' }}>{ud.qualityScore}</div>
+            <div style={{ color: 'var(--text-3)', textTransform: 'uppercase', fontSize: 10, fontWeight: 'var(--fw-bold)' }}>Score</div>
+            <div style={{ fontWeight: 'var(--fw-semibold)', fontSize: 'var(--fs-16)', color: accepted ? 'var(--status-ok)' : 'var(--status-risk)' }}>{ud.qualityScore}</div>
           </div>
         </div>
       </CardContent>

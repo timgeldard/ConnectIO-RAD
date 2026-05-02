@@ -151,7 +151,7 @@ export function Sidebar({ active = 'orders', onNavigate = () => {}, user }: Side
       <div className="sidebar-brand">
         <img src="/kerry-k-icon.png" alt="Kerry" />
         <div>
-          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 18, color: '#fff', letterSpacing: '-.005em', lineHeight: 1 }}>
+          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 'var(--fw-extrabold)', fontSize: 'var(--fs-18)', color: 'var(--fg-on-brand)', letterSpacing: '-.005em', lineHeight: 1 }}>
             {t.operations.toUpperCase()}
           </div>
           <div className="product">{t.productName}</div>
@@ -271,8 +271,9 @@ export function StatusBadge({ status, onClick, interactive = true }: StatusBadge
   const map: Record<string, string> = {
     running:   t.statusRunning,
     completed: t.statusCompleted,
-    onhold:    t.statusOnhold,
+    closed:    t.statusClosed,
     released:  t.statusReleased,
+    onhold:    t.statusOnhold,
     cancelled: t.statusCancelled,
     failed:    t.statusFailed,
   }

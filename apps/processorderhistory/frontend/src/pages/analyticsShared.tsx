@@ -91,7 +91,7 @@ export function AnalyticsFilterBar({
     <div className="analytics-filter-bar" style={{ display: 'flex', gap: 16, padding: '12px 32px', background: 'var(--surface-sunken)', borderBottom: '1px solid var(--line-1)', alignItems: 'center', flexWrap: 'wrap' }}>
       <label className="afb-field" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}><Icon name="factory" size={14} /> Plant</span>
-        <select value={filters.plantId} onChange={e => onChange({ plantId: e.target.value })} style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}>
+        <select value={filters.plantId} onChange={e => onChange({ plantId: e.target.value })} style={{ padding: '4px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}>
           <option value="ALL">All plants</option>
           <option value="PL01">PL01 — Valentia</option>
         </select>
@@ -99,7 +99,7 @@ export function AnalyticsFilterBar({
 
       <label className="afb-field disabled" style={{ display: 'flex', flexDirection: 'column', gap: 4, opacity: 0.5 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}><Icon name="layers" size={14} /> Line</span>
-        <select value={filters.lineId} onChange={e => onChange({ lineId: e.target.value })} disabled style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}>
+        <select value={filters.lineId} onChange={e => onChange({ lineId: e.target.value })} disabled style={{ padding: '4px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}>
           <option value="ALL">All lines</option>
         </select>
       </label>
@@ -107,7 +107,7 @@ export function AnalyticsFilterBar({
       {showMaterial && (
         <label className="afb-field" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}><Icon name="package" size={14} /> Material</span>
-          <select value={filters.material} onChange={e => onChange({ material: e.target.value })} style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}>
+          <select value={filters.material} onChange={e => onChange({ material: e.target.value })} style={{ padding: '4px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}>
             <option value="ALL">All materials{materials.length ? ` · ${materials.length}` : ''}</option>
             {materials.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
@@ -117,7 +117,7 @@ export function AnalyticsFilterBar({
       {showSourceType && (
         <label className="afb-field" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}><Icon name="archive" size={14} /> Source</span>
-          <select value={sourceType ?? 'ALL'} onChange={e => onSourceTypeChange?.(e.target.value)} style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}>
+          <select value={sourceType ?? 'ALL'} onChange={e => onSourceTypeChange?.(e.target.value)} style={{ padding: '4px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}>
             <option value="ALL">All source types{sourceTypes.length ? ` · ${sourceTypes.length}` : ''}</option>
             {sourceTypes.map(st => <option key={st} value={st}>{st}</option>)}
           </select>
@@ -132,7 +132,7 @@ export function AnalyticsFilterBar({
             value={filters.dateFrom}
             max={filters.dateTo || today}
             onChange={e => onChange({ dateFrom: e.target.value })}
-            style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}
+            style={{ padding: '4px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}
           />
           <span className="sep" style={{ opacity: 0.5 }}>→</span>
           <input
@@ -141,7 +141,7 @@ export function AnalyticsFilterBar({
             min={filters.dateFrom}
             max={today}
             onChange={e => onChange({ dateTo: e.target.value })}
-            style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}
+            style={{ padding: '4px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}
           />
         </div>
       </label>
@@ -150,7 +150,7 @@ export function AnalyticsFilterBar({
 
       <label className="afb-field compare" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}><Icon name="trending-up" size={14} /> Compare</span>
-        <select value={filters.compare} onChange={e => onChange({ compare: e.target.value as any })} style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}>
+        <select value={filters.compare} onChange={e => onChange({ compare: e.target.value as any })} style={{ padding: '4px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}>
           <option value="none">No comparison</option>
           <option value="prior7d">vs prior 7 days</option>
         </select>
@@ -196,11 +196,11 @@ export function AnalyticsCorrelationPanel({ filters }: { filters: AnalyticsFilte
   }, [filters])
 
   return (
-    <div className="correlation-panel" style={{ marginTop: 48, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, padding: 24 }}>
+    <div className="correlation-panel" style={{ marginTop: 48, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', padding: 24 }}>
       <div className="corr-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24 }}>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 4 }}>Cross-metric correlation</div>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 20, fontWeight: 700, margin: 0 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--fs-20)', fontWeight: 'var(--fw-bold)', margin: 0 }}>
             <Icon name="trending-up" size={18} />
             <span>Operational signals</span>
           </h2>
@@ -212,9 +212,9 @@ export function AnalyticsCorrelationPanel({ filters }: { filters: AnalyticsFilte
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
         {state.signals.map((signal, i) => (
-          <div key={i} style={{ padding: 16, background: 'var(--surface-sunken)', borderRadius: 8, borderLeft: `4px solid var(--status-${signal.tone === 'risk' ? 'risk' : signal.tone === 'warn' ? 'warn' : 'ok'})` }}>
+          <div key={i} style={{ padding: 16, background: 'var(--surface-sunken)', borderRadius: 'var(--r-md)', borderLeft: `4px solid var(--status-${signal.tone === 'risk' ? 'risk' : signal.tone === 'warn' ? 'warn' : 'ok'})` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)' }}>{signal.title}</div>
+              <div style={{ fontSize: 'var(--fs-12)', fontWeight: 'var(--fw-bold)', color: 'var(--text-2)' }}>{signal.title}</div>
               <div style={{ fontSize: 11, fontWeight: 800, color: `var(--status-${signal.tone === 'risk' ? 'risk' : 'neutral'})` }}>{signal.value}</div>
             </div>
             <div style={{ fontSize: 13, color: 'var(--text-3)', lineHeight: 1.4 }}>{signal.body}</div>
@@ -244,14 +244,14 @@ export function ContributorsPanel({
   if (!selection) return null
 
   return (
-    <div className="analytics-bucket-overlay" style={{ marginTop: 32, padding: 24, background: 'var(--surface-0)', border: '1px solid var(--brand)', borderRadius: 8, boxShadow: '0 8px 30px rgba(0,0,0,0.1)' }}>
+    <div className="analytics-bucket-overlay" style={{ marginTop: 32, padding: 24, background: 'var(--surface-0)', border: '1px solid var(--brand)', borderRadius: 'var(--r-md)', boxShadow: 'var(--shadow-md)' }}>
       <div className="bucket-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
           <div className="bucket-eyebrow" style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand)', textTransform: 'uppercase' }}>Selection details</div>
-          <div className="bucket-title" style={{ fontSize: 20, fontWeight: 700 }}>{title} · {selection.label}</div>
+          <div className="bucket-title" style={{ fontSize: 'var(--fs-20)', fontWeight: 'var(--fw-bold)' }}>{title} · {selection.label}</div>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)' }}>{count.toLocaleString()} rows</span>
+          <span style={{ fontSize: 'var(--fs-12)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-3)' }}>{count.toLocaleString()} rows</span>
           <button className="btn btn-ghost btn-xs" onClick={onClear}><Icon name="x" size={14} /></button>
         </div>
       </div>
@@ -272,7 +272,7 @@ export function DeltaPill({ current, prior, invert = false, suffix = '' }: { cur
 
   return (
     <span className={`delta-pill ${tone}`} style={{ 
-      display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700,
+      display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 'var(--r-pill)', fontSize: 11, fontWeight: 'var(--fw-bold)',
       background: `var(--status-${tone === 'pos' ? 'ok' : 'risk'}-bg)`,
       color: `var(--status-${tone === 'pos' ? 'ok' : 'risk'})`
     }}>

@@ -165,7 +165,7 @@ function PlanningBoard() {
               <Icon name="layers" size={14} />
               <span>{t.planningTitle}</span>
             </div>
-            <h1 style={{ fontSize: 28, fontWeight: 700, margin: '8px 0 4px', color: 'var(--text-1)' }}>
+            <h1 style={{ fontSize: 28, fontWeight: 'var(--fw-bold)', margin: '8px 0 4px', color: 'var(--text-1)' }}>
               {t.planningTitle}
             </h1>
             <div style={{ fontSize: 13, color: 'var(--text-3)' }}>
@@ -184,23 +184,23 @@ function PlanningBoard() {
 
       <div className="planning-toolbar" style={{ padding: '12px 32px', borderBottom: '1px solid var(--line-1)', background: 'var(--surface-sunken)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div className="planning-tools-l" style={{ display: 'flex', gap: 12 }}>
-          <div className="chip" style={{ background: 'var(--surface-0)', border: '1px solid var(--line-1)', borderRadius: 4, padding: '4px 10px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div className="chip" style={{ background: 'var(--surface-0)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-sm)', padding: '4px 10px', fontSize: 'var(--fs-12)', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="calendar" size={13} />
             <span>{fmtDate(windowStart)} – {fmtDate(windowEnd - 1)}</span>
           </div>
-          <div className="chip" style={{ background: 'var(--surface-0)', border: '1px solid var(--line-1)', borderRadius: 4, padding: '4px 10px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div className="chip" style={{ background: 'var(--surface-0)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-sm)', padding: '4px 10px', fontSize: 'var(--fs-12)', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="factory" size={13} />
             <span>All plants · {data.lines.length} lines</span>
           </div>
-          <div className="chip" style={{ background: 'var(--surface-0)', border: '1px solid var(--line-1)', borderRadius: 4, padding: '4px 10px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div className="chip" style={{ background: 'var(--surface-0)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-sm)', padding: '4px 10px', fontSize: 'var(--fs-12)', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="filter" size={13} />
             <span>All categories</span>
           </div>
         </div>
         <div className="planning-tools-r" style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
           <Legend t={t} showWm={showWm} setShowWm={setShowWm} />
-          <div className="zoom-toggle" style={{ display: 'flex', alignItems: 'center', background: 'var(--surface-0)', border: '1px solid var(--line-1)', borderRadius: 4, padding: 2 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, padding: '0 8px', color: 'var(--text-3)', textTransform: 'uppercase' }}>{t.zoomLabel}</span>
+          <div className="zoom-toggle" style={{ display: 'flex', alignItems: 'center', background: 'var(--surface-0)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-sm)', padding: 2 }}>
+            <span style={{ fontSize: 11, fontWeight: 'var(--fw-semibold)', padding: '0 8px', color: 'var(--text-3)', textTransform: 'uppercase' }}>{t.zoomLabel}</span>
             <button 
               className={`btn btn-sm ${zoom === 'day' ? 'btn-primary' : 'btn-ghost'}`} 
               style={{ height: 24, padding: '0 12px', fontSize: 11 }}
@@ -375,14 +375,16 @@ function Gantt({ data, dayCols, windowStart, totalMs, pxPerHour, totalWidth, zoo
   return (
     <div className="gantt" style={{ flex: 1, display: 'flex', background: 'var(--surface-sunken)', overflow: 'hidden' }}>
       <div className="gantt-line-col" style={{ width: 180, flexShrink: 0, borderRight: '1px solid var(--line-1)', background: 'var(--surface-0)', zIndex: 10 }}>
-        <div className="lane-head" style={{ height: 56, borderBottom: '1px solid var(--line-1)', padding: '0 16px', display: 'flex', alignItems: 'center', fontWeight: 600, fontSize: 12, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div className="lane-head" style={{ height: 56, borderBottom: '1px solid var(--line-1)', padding: '0 16px', display: 'flex', alignItems: 'center', fontWeight: 'var(--fw-semibold)', fontSize: 'var(--fs-12)', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {t.headerLine}
         </div>
         {data.lines.map((line: any) => (
           <div className="lane-head-row" key={line.id} style={{ height: 80, borderBottom: '1px solid var(--line-1)', padding: '12px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <div className="lane-name" style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)' }}>{line.id}</span>
               <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-1)' }}>{line.name}</span>
+              {line.name !== line.id && (
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)' }}>{line.id}</span>
+              )}
             </div>
             <div className="lane-meta" style={{ marginTop: 4, display: 'flex', gap: 8, fontSize: 11, color: 'var(--text-3)' }}>
               <span>{line.cap}</span>
@@ -402,9 +404,9 @@ function Gantt({ data, dayCols, windowStart, totalMs, pxPerHour, totalWidth, zoo
               const left = ((c.start - windowStart) / HOUR) * pxPerHour;
               return (
                 <div className={`day-col-head ${c.isToday ? 'today' : ''} ${c.isPast ? 'past' : ''}`} key={i} style={{ width: w, left, position: 'absolute', top: 0, height: '100%', borderRight: '1px solid var(--line-1)', padding: '8px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}>{fmtDay(c.start)}</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)' }}>{fmtDate(c.start)}</div>
-                  {c.isToday && <span className="today-pill" style={{ position: 'absolute', right: 8, top: 8, background: 'var(--status-ok)', color: '#fff', fontSize: 9, padding: '2px 6px', borderRadius: 99, fontWeight: 700 }}>{t.todayLabel}</span>}
+                  <div style={{ fontSize: 10, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase' }}>{fmtDay(c.start)}</div>
+                  <div style={{ fontSize: 'var(--fs-14)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)' }}>{fmtDate(c.start)}</div>
+                  {c.isToday && <span className="today-pill" style={{ position: 'absolute', right: 8, top: 8, background: 'var(--status-ok)', color: 'var(--fg-on-brand)', fontSize: 9, padding: '2px 6px', borderRadius: 'var(--r-pill)', fontWeight: 'var(--fw-bold)' }}>{t.todayLabel}</span>}
                 </div>
               );
             })}
@@ -450,7 +452,7 @@ function Gantt({ data, dayCols, windowStart, totalMs, pxPerHour, totalWidth, zoo
 
           {/* NOW line */}
           <div className="now-line" style={{ position: 'absolute', top: 56, bottom: 0, left: nowX, width: 2, background: 'var(--status-risk)', zIndex: 8 }}>
-            <span style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', background: 'var(--status-risk)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
+            <span style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', background: 'var(--status-risk)', color: 'var(--fg-on-brand)', fontSize: 10, fontWeight: 'var(--fw-bold)', padding: '2px 6px', borderRadius: 'var(--r-sm)', whiteSpace: 'nowrap' }}>
               {t.nowLabel}
             </span>
           </div>
@@ -481,7 +483,7 @@ function Block({ block, x, w, isSelected, onClick, pxPerHour }: any) {
         bottom: isOp ? 8 : 24, 
         left: x, 
         width: Math.max(4, w), 
-        borderRadius: 4, 
+        borderRadius: 'var(--r-sm)',
         cursor: 'pointer',
         zIndex: isSelected ? 20 : 1,
         transition: 'all 0.1s ease',
@@ -493,7 +495,7 @@ function Block({ block, x, w, isSelected, onClick, pxPerHour }: any) {
     >
       {showLabel && (
         <div style={{ padding: '6px 10px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 'var(--fw-bold)', fontSize: 'var(--fs-12)', whiteSpace: 'nowrap' }}>
             {block.kind === 'running' && !adt && <span style={{ width: 6, height: 6, borderRadius: 99, background: 'currentColor', animation: 'pulse 2s infinite' }} />}
             <span>{block.label}</span>
           </div>
@@ -515,9 +517,9 @@ function BacklogPreview({ block, pxPerHour, laneStart, now }: any) {
   const x = ((start - laneStart) / HOUR) * pxPerHour;
   const w = block.durationH * pxPerHour;
   return (
-    <div style={{ position: 'absolute', top: 8, bottom: 8, left: x, width: w, background: 'var(--surface-sunken)', border: '2px dashed var(--line-2)', borderRadius: 4, opacity: 0.6, pointerEvents: 'none' }}>
+    <div style={{ position: 'absolute', top: 8, bottom: 8, left: x, width: w, background: 'var(--surface-sunken)', border: '2px dashed var(--line-2)', borderRadius: 'var(--r-sm)', opacity: 0.6, pointerEvents: 'none' }}>
       <div style={{ padding: '6px 10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 12, color: 'var(--text-3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 'var(--fw-bold)', fontSize: 'var(--fs-12)', color: 'var(--text-3)' }}>
           <Icon name="plus" size={12} />
           <span>{block.product}</span>
         </div>
@@ -559,23 +561,23 @@ function BlockDetailDrawer({ block, onClose, t }: any) {
   };
   const isShort = block.kind === 'material-short';
   return (
-    <div className="block-drawer" style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 360, background: 'var(--surface-0)', borderLeft: '1px solid var(--line-1)', zIndex: 100, boxShadow: '-10px 0 30px rgba(0,0,0,0.1)', padding: 24, display: 'flex', flexDirection: 'column', gap: 24, overflowY: 'auto' }}>
+    <div className="block-drawer" style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 360, background: 'var(--surface-0)', borderLeft: '1px solid var(--line-1)', zIndex: 100, boxShadow: 'var(--shadow-md)', padding: 24, display: 'flex', flexDirection: 'column', gap: 24, overflowY: 'auto' }}>
       <div className="bd-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 8 }}>
-          <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 4, background: 'var(--surface-sunken)', color: 'var(--text-2)' }}>{block.kind.replace('-',' ')}</span>
-          <span style={{ fontSize: 10, fontWeight: 800, fontFamily: 'var(--font-mono)', padding: '2px 8px', borderRadius: 4, background: 'var(--line-1)', color: 'var(--text-1)' }}>{block.lineId}</span>
+          <span style={{ fontSize: 10, fontWeight: 'var(--fw-extrabold)', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 'var(--r-sm)', background: 'var(--surface-sunken)', color: 'var(--text-2)' }}>{block.kind.replace('-',' ')}</span>
+          <span style={{ fontSize: 10, fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)', padding: '2px 8px', borderRadius: 'var(--r-sm)', background: 'var(--line-1)', color: 'var(--text-1)' }}>{block.lineId}</span>
         </div>
         <button className="icon-btn" onClick={onClose}><Icon name="x" size={18} /></button>
       </div>
       
       <div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', marginBottom: 4 }}>{block.label}</div>
+        <div style={{ fontSize: 'var(--fs-20)', fontWeight: 'var(--fw-bold)', color: 'var(--text-1)', marginBottom: 4 }}>{block.label}</div>
         {block.sublabel && <div style={{ fontSize: 13, color: 'var(--text-3)' }}>{block.sublabel}</div>}
       </div>
 
       {(isDowntime || block.activeDowntime || isShort) && (
-        <div style={{ background: 'var(--status-risk-surface)', border: '1px solid var(--status-risk)', borderRadius: 6, padding: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--status-risk)', fontWeight: 700, fontSize: 13, marginBottom: 12 }}>
+        <div style={{ background: 'var(--status-risk-bg)', border: '1px solid var(--status-risk)', borderRadius: 'var(--r-sm)', padding: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--status-risk)', fontWeight: 'var(--fw-bold)', fontSize: 13, marginBottom: 12 }}>
             <Icon name="alert-triangle" size={16} />
             <span>{isDowntime ? (t.legendDowntime || 'Unplanned downtime') : isShort ? (t.legendMaterialShort || 'Material shortage') : 'Active downtime'}</span>
           </div>
@@ -599,11 +601,11 @@ function BlockDetailDrawer({ block, onClose, t }: any) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div>
           <div style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Start</div>
-          <div style={{ fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{fmtDateTime(block.start)}</div>
+          <div style={{ fontSize: 13, fontWeight: 'var(--fw-semibold)', fontFamily: 'var(--font-mono)' }}>{fmtDateTime(block.start)}</div>
         </div>
         <div>
           <div style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>End</div>
-          <div style={{ fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{fmtDateTime(block.end)}</div>
+          <div style={{ fontSize: 13, fontWeight: 'var(--fw-semibold)', fontFamily: 'var(--font-mono)' }}>{fmtDateTime(block.end)}</div>
         </div>
         <div>
           <div style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Duration</div>
@@ -617,7 +619,7 @@ function BlockDetailDrawer({ block, onClose, t }: any) {
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <div style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>PO / Material</div>
-              <div style={{ fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--valentia-slate)' }}>{block.poId} · {block.materialId}</div>
+              <div style={{ fontSize: 13, fontWeight: 'var(--fw-semibold)', fontFamily: 'var(--font-mono)', color: 'var(--valentia-slate)' }}>{block.poId} · {block.materialId}</div>
             </div>
           </>
         )}
@@ -647,11 +649,11 @@ function BacklogRail({ backlog, NOW, hovered, setHovered, t }: any) {
   return (
     <aside className="backlog-rail" style={{ width: 300, borderLeft: '1px solid var(--line-1)', background: 'var(--surface-sunken)', display: 'flex', flexDirection: 'column' }}>
       <div className="backlog-head" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--line-1)', background: 'var(--surface-0)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: 'var(--text-1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 'var(--fw-bold)', color: 'var(--text-1)' }}>
           <Icon name="history" size={14} />
           <span>{t.backlogTitle}</span>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 99, background: 'var(--line-1)', color: 'var(--text-2)' }}>{backlog.length}</span>
+        <span style={{ fontSize: 11, fontWeight: 'var(--fw-extrabold)', padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'var(--line-1)', color: 'var(--text-2)' }}>{backlog.length}</span>
       </div>
 
       <div style={{ padding: '12px 20px', background: 'var(--surface-0)', borderBottom: '1px solid var(--line-1)' }}>
@@ -659,7 +661,7 @@ function BacklogRail({ backlog, NOW, hovered, setHovered, t }: any) {
           <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }} />
           <input 
             placeholder="Filter backlog…" 
-            style={{ width: '100%', padding: '6px 12px 6px 32px', fontSize: 13, border: '1px solid var(--line-1)', borderRadius: 6, background: 'var(--surface-sunken)' }}
+            style={{ width: '100%', padding: '6px 12px 6px 32px', fontSize: 13, border: '1px solid var(--line-1)', borderRadius: 'var(--r-sm)', background: 'var(--surface-sunken)' }}
           />
         </div>
       </div>
@@ -674,10 +676,10 @@ function BacklogRail({ backlog, NOW, hovered, setHovered, t }: any) {
               style={{ 
                 background: 'var(--surface-0)', 
                 border: '1px solid var(--line-1)', 
-                borderRadius: 8, 
-                padding: 12, 
+                borderRadius: 'var(--r-md)',
+                padding: 12,
                 cursor: 'grab',
-                boxShadow: isHovered ? '0 4px 12px rgba(0,0,0,0.08)' : '0 1px 3px rgba(0,0,0,0.02)',
+                boxShadow: isHovered ? 'var(--shadow-sm)' : 'none',
                 borderLeft: `4px solid ${item.priority === 'urgent' ? 'var(--status-risk)' : item.priority === 'high' ? 'var(--status-warn)' : 'var(--line-2)'}`
               }}
               onMouseEnter={() => setHovered(item)}
@@ -689,7 +691,7 @@ function BacklogRail({ backlog, NOW, hovered, setHovered, t }: any) {
                 <span style={{ fontSize: 10, color: 'var(--text-3)' }}>{t.backlogDue} <strong>{fmtRelativeDue(item.due, NOW)}</strong></span>
               </div>
               <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', marginBottom: 2 }}>PO {item.poId}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 8 }}>{item.product}</div>
+              <div style={{ fontSize: 'var(--fs-14)', fontWeight: 'var(--fw-bold)', color: 'var(--text-1)', marginBottom: 8 }}>{item.product}</div>
               <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--text-3)', marginBottom: 12 }}>
                 <span style={{ fontFamily: 'var(--font-mono)' }}>{item.materialId}</span>
                 <span>{item.qty.toLocaleString()} {item.uom}</span>

@@ -23,7 +23,7 @@ export function Sparkline({ values, color = 'var(--valentia-slate)', width = 90,
   const [lastX, lastY] = pts[pts.length - 1]
 
   return (
-    <svg width={width} height={height} style={{ display: 'block', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }}>
       <path d={areaPath} fill={color} opacity={0.1} />
       <path d={linePath} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
       <circle cx={lastX} cy={lastY} r={2.5} fill={color} />

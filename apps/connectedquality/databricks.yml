@@ -1,0 +1,41 @@
+bundle:
+  name: connectedquality
+  databricks_cli_version: '>= 0.283.0'
+
+sync:
+  include:
+    - app.yaml
+    - frontend/dist/**
+    - shared_db/**
+    - shared_api/**
+
+variables:
+  app_name:
+    default: connectedquality
+  warehouse_http_path:
+    default: /sql/1.0/warehouses/e76480b94bea6ed5
+  trace_catalog:
+    default: connected_plant_uat
+  trace_schema:
+    default: gold
+
+targets:
+  uat:
+    default: true
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+  prod:
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+
+resources:
+  apps:
+    connectedquality:
+      name: ${var.app_name}
+      description: ConnectedQuality — integrated quality intelligence shell (Trace · EnvMon · SPC)
+      source_code_path: .
+      user_api_scopes:
+        - sql
+      # Run `make deploy` rather than `databricks bundle deploy` directly.
+      # The Makefile deploy target builds the frontend, renders app.yaml,
+      # deploys the bundle, and runs post_deploy to activate the app.

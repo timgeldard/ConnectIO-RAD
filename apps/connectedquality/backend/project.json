@@ -1,0 +1,55 @@
+{
+  "name": "connectedquality-backend",
+  "projectType": "application",
+  "tags": ["scope:connectedquality", "type:backend"],
+  "implicitDependencies": ["shared-db", "shared-api"],
+  "targets": {
+    "sync": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync --package connectedquality-backend",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "PYTHONPATH=apps/connectedquality:libs/shared-db/src:libs/shared-api/src uv run --no-sync --package connectedquality-backend uvicorn backend.main:app --reload --port 8002",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "PYTHONPATH=apps/connectedquality:libs/shared-db/src:libs/shared-api/src uv run --no-sync --package connectedquality-backend python -m pytest apps/connectedquality/backend/tests",
+        "cwd": "{workspaceRoot}"
+      },
+      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --no-sync ruff check apps/connectedquality/backend",
+        "cwd": "{workspaceRoot}"
+      },
+      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "make deploy PROFILE=prod TARGET=prod",
+        "cwd": "apps/connectedquality"
+      },
+      "configurations": {
+        "uat": {
+          "command": "make deploy PROFILE=uat TARGET=uat"
+        },
+        "prod": {
+          "command": "make deploy PROFILE=prod TARGET=prod"
+        }
+      }
+    }
+  }
+}

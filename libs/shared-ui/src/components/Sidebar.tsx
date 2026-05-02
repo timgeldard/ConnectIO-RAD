@@ -1,4 +1,4 @@
-import { cloneElement, type ReactElement, type ReactNode, useState, type CSSProperties } from 'react'
+import { type ReactNode, useState, type CSSProperties } from 'react'
 import { Icon, type IconName } from './Icon'
 
 export interface NavItem {
@@ -46,8 +46,8 @@ export function Sidebar({
       style={{
         width: 'var(--sidebar-w, 236px)',
         flexShrink: 0,
-        background: 'var(--surface-1)',
-        borderRight: '1px solid var(--line-1)',
+        background: 'var(--valentia-slate)',
+        borderRight: '1px solid rgba(0,0,0,0.18)',
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
@@ -60,7 +60,7 @@ export function Sidebar({
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        borderBottom: '1px solid var(--line-1)',
+        borderBottom: '1px solid rgba(255,255,255,0.12)',
         height: 'var(--header-h, 56px)',
         flexShrink: 0,
       }}>
@@ -69,7 +69,7 @@ export function Sidebar({
             fontFamily: 'var(--font-serif)',
             fontWeight: 700,
             fontSize: 16,
-            color: 'var(--valentia-slate)',
+            color: 'rgba(255,255,255,0.9)',
             letterSpacing: '-0.02em',
           }}>{brandName}</span>
         )}
@@ -79,7 +79,7 @@ export function Sidebar({
             fontFamily: 'var(--font-mono)',
             fontSize: 10,
             letterSpacing: '0.14em',
-            color: 'var(--text-3)',
+            color: 'rgba(255,255,255,0.5)',
             textTransform: 'uppercase',
           }}>{appTag}</span>
         )}
@@ -89,7 +89,7 @@ export function Sidebar({
       {roleIndicator && (
         <div style={{
           padding: '8px 12px',
-          borderBottom: '1px solid var(--line-1)',
+          borderBottom: '1px solid rgba(255,255,255,0.12)',
           flexShrink: 0,
         }}>
           {roleIndicator}
@@ -101,7 +101,7 @@ export function Sidebar({
         {groups.map((group, gIdx) => (
           <div key={gIdx} style={{ marginBottom: 16 }}>
             {group.label && (
-              <div className="eyebrow" style={{ padding: '4px 10px 6px' }}>{group.label}</div>
+              <div className="eyebrow" style={{ padding: '4px 10px 6px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em' }}>{group.label}</div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 4px' }}>
               {group.items.map(item => (
@@ -121,7 +121,7 @@ export function Sidebar({
       {footer && (
         <div style={{
           padding: '10px 14px',
-          borderTop: '1px solid var(--line-1)',
+          borderTop: '1px solid rgba(255,255,255,0.12)',
           display: 'flex',
           alignItems: 'center',
           gap: 10,
@@ -149,8 +149,8 @@ function NavButton({ item, active, onClick }: { item: NavItem; active: boolean; 
         alignItems: 'center',
         gap: 10,
         padding: '8px 10px',
-        background: active || hover ? 'var(--surface-2)' : 'transparent',
-        color: active ? 'var(--text-1)' : 'var(--text-2)',
+        background: active ? 'rgba(255,255,255,0.15)' : hover ? 'rgba(255,255,255,0.08)' : 'transparent',
+        color: active ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.7)',
         border: 'none',
         borderRadius: 7,
         cursor: 'pointer',
@@ -170,7 +170,7 @@ function NavButton({ item, active, onClick }: { item: NavItem; active: boolean; 
           top: 6,
           bottom: 6,
           width: 3,
-          background: 'var(--valentia-slate)',
+          background: 'rgba(255,255,255,0.8)',
           borderRadius: 2,
         }} />
       )}

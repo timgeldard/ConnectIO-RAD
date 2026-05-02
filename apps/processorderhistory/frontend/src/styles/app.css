@@ -519,8 +519,9 @@ button { font-family: inherit; }
 /* status-specific dots */
 .dot.status-running     { background: var(--sage); }
 .dot.status-completed   { background: #1F6E4A; }
+.dot.status-closed      { background: var(--valentia-slate); }
+.dot.status-released    { background: var(--ink-400); }
 .dot.status-onhold      { background: var(--sunrise); }
-.dot.status-released    { background: var(--valentia-slate); }
 .dot.status-cancelled   { background: var(--ink-400); }
 .dot.status-failed      { background: var(--sunset); }
 
@@ -771,8 +772,9 @@ button { font-family: inherit; }
 .status-badge .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .status-badge.running     { background: rgba(40,155,162,.12); color: #14606A; }
 .status-badge.completed   { background: rgba(68,207,147,.18); color: #155F3B; }
+.status-badge.closed      { background: rgba(0,87,118,.10); color: #003E54; }
+.status-badge.released    { background: var(--stone-100); color: var(--ink-500); }
 .status-badge.onhold      { background: rgba(249,194,10,.18); color: #6B3D0C; }
-.status-badge.released    { background: rgba(0,87,118,.10); color: #003E54; }
 .status-badge.cancelled   { background: var(--stone-100); color: var(--ink-500); }
 .status-badge.failed      { background: rgba(242,74,0,.12); color: #8B2900; }
 

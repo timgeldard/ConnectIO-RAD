@@ -153,12 +153,12 @@ function PourTrendChart({
   const maxV = isHourly ? maxLineV : maxBarV
 
   return (
-    <div className="pour-trend-card" style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, padding: 16 }}>
+    <div className="pour-trend-card" style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', padding: 16 }}>
       <div className="ptc-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-1)' }}>
+        <span style={{ fontWeight: 'var(--fw-bold)', fontSize: 13, color: 'var(--text-1)' }}>
           Pours · {isHourly ? 'last 24 hours' : range === '7d' ? 'last 7 days' : 'last 30 days'}
         </span>
-        <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 4, padding: 2 }}>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 'var(--r-sm)', padding: 2 }}>
           {(['24h', '7d', '30d'] as Range[]).map(r => (
             <button 
               key={r} 
@@ -278,15 +278,15 @@ interface PourLineFilterProps {
 
 export function PourLineFilter({ value, onChange, lines }: PourLineFilterProps) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface-0)', border: '1px solid var(--line-1)', borderRadius: 6, padding: '4px 12px' }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--text-3)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface-0)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-sm)', padding: '4px 12px' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 'var(--fw-semibold)', color: 'var(--text-3)' }}>
         <Icon name="factory" size={13} />
         <span>Line</span>
       </label>
       <select 
         value={value} 
         onChange={e => onChange(e.target.value)}
-        style={{ border: 'none', background: 'transparent', fontSize: 13, fontWeight: 600, color: 'var(--text-1)', cursor: 'pointer' }}
+        style={{ border: 'none', background: 'transparent', fontSize: 13, fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', cursor: 'pointer' }}
       >
         <option value="ALL">All lines · {lines.length}</option>
         {lines.map(id => (
@@ -322,7 +322,7 @@ export function PourKpiCards({ lineFilter: _lineFilter }: PourKpiCardsProps) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="package" size={16} />
-          <span style={{ fontWeight: 700, fontSize: 14 }}>Pour performance · last 24h</span>
+          <span style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--fs-14)' }}>Pour performance · last 24h</span>
           <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
             {new Date(data.now_ms).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
           </span>
@@ -336,26 +336,26 @@ export function PourKpiCards({ lineFilter: _lineFilter }: PourKpiCardsProps) {
         </button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-        <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
+        <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 8 }}>
             <Icon name="alert-triangle" size={14} />
             <span>Target / 24h</span>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{DAILY_TARGET.toLocaleString()}</div>
+          <div style={{ fontSize: 'var(--fs-24)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{DAILY_TARGET.toLocaleString()}</div>
         </div>
-        <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
+        <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 8 }}>
             <Icon name="calendar" size={14} />
             <span>Planned / 24h</span>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{planned != null ? planned.toLocaleString() : '—'}</div>
+          <div style={{ fontSize: 'var(--fs-24)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{planned != null ? planned.toLocaleString() : '—'}</div>
         </div>
-        <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, borderLeft: '4px solid var(--status-ok)' }}>
+        <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', borderLeft: '4px solid var(--status-ok)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 8 }}>
             <Icon name="trending-up" size={14} />
             <span>Actual / 24h</span>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{actual.toLocaleString()}</div>
+          <div style={{ fontSize: 'var(--fs-24)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{actual.toLocaleString()}</div>
         </div>
       </div>
     </div>
@@ -474,14 +474,14 @@ function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: Breakdown
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
             <Icon name="trending-up" size={18} />
-            <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Breakdown</h2>
+            <h2 style={{ fontSize: 'var(--fs-20)', fontWeight: 'var(--fw-bold)', margin: 0 }}>Breakdown</h2>
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-3)' }}>
             {total.toLocaleString()} pours · {periodLabel(dateFrom, dateTo)}
             {activeTab === 'analysis' && ` · grouped by ${dimLabel[groupBy].toLowerCase()}`}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 6, padding: 4 }}>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 'var(--r-sm)', padding: 4 }}>
           <button className={`btn btn-sm ${activeTab === 'analysis' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('analysis')}>Analysis</button>
           <button className={`btn btn-sm ${activeTab === 'download' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('download')}>
             <Icon name="download" size={14} style={{ marginRight: 6 }} />
@@ -493,7 +493,7 @@ function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: Breakdown
       {activeTab === 'analysis' && (
         <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>Group by</span>
+            <span style={{ fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', color: 'var(--text-3)' }}>Group by</span>
             <div style={{ display: 'flex', gap: 4 }}>
               {['operator', 'shift', 'source_type', 'source', 'process_order'].map(k => (
                 <button 
@@ -506,7 +506,7 @@ function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: Breakdown
           </div>
           <div style={{ flex: 1 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>View</span>
+            <span style={{ fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', color: 'var(--text-3)' }}>View</span>
             <div style={{ display: 'flex', gap: 4 }}>
               <button className={`btn btn-xs ${!cardView ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setCardView(false)}>Table</button>
               <button className={`btn btn-xs ${cardView ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setCardView(true)}>Cards</button>
@@ -516,15 +516,15 @@ function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: Breakdown
       )}
 
       {activeTab === 'analysis' && !cardView && (
-        <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ background: 'var(--surface-sunken)', borderBottom: '1px solid var(--line-1)' }}>
               <tr>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{dimLabel[groupBy]}</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Pours</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>{dimLabel[groupBy]}</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Pours</th>
                 <th style={{ padding: '12px 16px', width: 200 }}></th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Volume</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>vs avg</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Volume (kg)</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>vs avg</th>
               </tr>
             </thead>
             <tbody>
@@ -535,7 +535,7 @@ function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: Breakdown
                   <tr key={g.key} style={{ borderBottom: '1px solid var(--line-1)' }}>
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{ fontSize: 11, color: 'var(--text-3)', marginRight: 8, fontFamily: 'var(--font-mono)' }}>#{i + 1}</span>
-                      <span style={{ fontWeight: 600 }}>{g.key}</span>
+                      <span style={{ fontWeight: 'var(--fw-semibold)' }}>{g.key}</span>
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{g.count.toLocaleString()}</td>
                     <td style={{ padding: '12px 16px' }}>
@@ -543,8 +543,8 @@ function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: Breakdown
                         <div style={{ height: '100%', width: `${pct}%`, background: 'var(--brand)' }} />
                       </div>
                     </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{(g.kg / 1000).toFixed(1)} t</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: vsAvg >= 0 ? 'var(--status-ok)' : 'var(--status-risk)' }}>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{g.kg.toFixed(1)} kg</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 'var(--fw-semibold)', color: vsAvg >= 0 ? 'var(--status-ok)' : 'var(--status-risk)' }}>
                       {vsAvg >= 0 ? '+' : ''}{vsAvg.toFixed(0)}%
                     </td>
                   </tr>
@@ -560,12 +560,12 @@ function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: Breakdown
           {groups.map(g => {
             const dayAvg = prior7dAvg.get(g.key) ?? null
             return (
-              <div key={g.key} style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={g.key}>{g.key}</div>
-                <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{g.count.toLocaleString()}</div>
+              <div key={g.key} style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
+                <div style={{ fontSize: 13, fontWeight: 'var(--fw-bold)', marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={g.key}>{g.key}</div>
+                <div style={{ fontSize: 'var(--fs-24)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{g.count.toLocaleString()}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 12 }}>pours · {g.kg.toLocaleString()} kg</div>
                 {!isPoOrder && dayAvg != null && (
-                  <div style={{ fontSize: 11, padding: '4px 8px', background: 'var(--surface-sunken)', borderRadius: 4 }}>
+                  <div style={{ fontSize: 11, padding: '4px 8px', background: 'var(--surface-sunken)', borderRadius: 'var(--r-sm)' }}>
                     <strong>{dayAvg.toFixed(1)}</strong> / day avg · prior 7d
                   </div>
                 )}
@@ -576,9 +576,9 @@ function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: Breakdown
       )}
 
       {activeTab === 'download' && (
-        <div style={{ padding: 48, textAlign: 'center', background: 'var(--surface-sunken)', borderRadius: 8 }}>
+        <div style={{ padding: 48, textAlign: 'center', background: 'var(--surface-sunken)', borderRadius: 'var(--r-md)' }}>
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{events.length.toLocaleString()} rows</div>
+            <div style={{ fontSize: 'var(--fs-18)', fontWeight: 'var(--fw-bold)', marginBottom: 4 }}>{events.length.toLocaleString()} rows</div>
             <div style={{ color: 'var(--text-3)' }}>pour events · {periodLabel(dateFrom, dateTo)}</div>
           </div>
           <Button variant="primary" onClick={handleDownload} icon={<Icon name="download" />}>
@@ -664,7 +664,7 @@ export function PourAnalyticsPage() {
             <Icon name="trending-up" size={14} />
             <span>Insights</span>
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, margin: '8px 0 4px', color: 'var(--text-1)' }}>Pour analytics</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 'var(--fw-bold)', margin: '8px 0 4px', color: 'var(--text-1)' }}>Pour analytics</h1>
           <p style={{ fontSize: 13, color: 'var(--text-3)' }}>
             Track goods-issue pours against target across all lines. Drill in by operator, shift,
             line, source area, or process order to see who's pouring what — and where bottlenecks form.
@@ -691,36 +691,36 @@ export function PourAnalyticsPage() {
       {!loading && (
         <div style={{ padding: '0 32px 48px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
+            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
                 <Icon name="alert-triangle" size={14} />
                 <span>Target</span>
               </div>
-              <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{target.toLocaleString()}</div>
+              <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{target.toLocaleString()}</div>
               <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
                 {days === 1 ? `pours · ${DAILY_TARGET}/day` : `pours · ${DAILY_TARGET}/day × ${days} days`}
               </div>
             </div>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
+            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
                 <Icon name="calendar" size={14} />
                 <span>Planned</span>
               </div>
-              <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{planned != null ? planned.toLocaleString() : '—'}</div>
+              <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{planned != null ? planned.toLocaleString() : '—'}</div>
               <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>scheduled goods-issues</div>
             </div>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, borderLeft: `4px solid ${planVsActualPct && planVsActualPct >= 95 ? 'var(--status-ok)' : 'var(--status-warn)'}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
+            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', borderLeft: `4px solid ${planVsActualPct && planVsActualPct >= 95 ? 'var(--status-ok)' : 'var(--status-warn)'}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
                 <Icon name="trending-up" size={14} />
                 <span>Actual</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{actual.toLocaleString()}</div>
+                <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{actual.toLocaleString()}</div>
                 {filters.compare === 'prior7d' && <DeltaPill current={actual} prior={priorActual} />}
               </div>
               {planVsActualPct != null && (
                 <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
-                  <span style={{ color: planVsActualPct >= 95 ? 'var(--status-ok)' : 'var(--status-warn)', fontWeight: 700 }}>{planVsActualPct}%</span> of plan
+                  <span style={{ color: planVsActualPct >= 95 ? 'var(--status-ok)' : 'var(--status-warn)', fontWeight: 'var(--fw-bold)' }}>{planVsActualPct}%</span> of plan
                 </div>
               )}
             </div>

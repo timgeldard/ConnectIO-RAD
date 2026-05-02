@@ -71,14 +71,14 @@ function ActivityTrendChart({
   const maxV = isHourly ? maxLineV : maxBarV
 
   return (
-    <div className="pour-trend-card" style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, padding: 16 }}>
+    <div className="pour-trend-card" style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', padding: 16 }}>
       <div className="ptc-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontWeight: 'var(--fw-bold)', fontSize: 13, color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="cpu" size={14} /> Active instruments · {isHourly ? 'last 24 hours' : 'last 30 days'}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {metaLabel && <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)' }}>{metaLabel}</span>}
-          <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 4, padding: 2 }}>
+          <div style={{ display: 'flex', gap: 4, background: 'var(--surface-sunken)', borderRadius: 'var(--r-sm)', padding: 2 }}>
             {(['24h', '30d'] as Range[]).map(r => (
               <button 
                 key={r} 
@@ -195,17 +195,17 @@ function StateDistribution({ rows }: { rows: InstrumentStateEntry[] }) {
     <div style={{ marginTop: 48 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
         <Icon name="flag" size={18} />
-        <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Instrument readiness</h2>
+        <h2 style={{ fontSize: 'var(--fs-20)', fontWeight: 'var(--fw-bold)', margin: 0 }}>Instrument readiness</h2>
         <span style={{ fontSize: 13, color: 'var(--text-3)' }}>{total.toLocaleString()} instruments with recent history</span>
       </div>
-      <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ background: 'var(--surface-sunken)', borderBottom: '1px solid var(--line-1)' }}>
             <tr>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>State</th>
-              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Count</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>State</th>
+              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Count</th>
               <th style={{ padding: '12px 16px', width: 240 }}></th>
-              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Share</th>
+              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Share</th>
             </tr>
           </thead>
           <tbody>
@@ -214,7 +214,7 @@ function StateDistribution({ rows }: { rows: InstrumentStateEntry[] }) {
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: STATE_COLORS[row.state] || 'var(--line-1)' }} />
-                    <span style={{ fontWeight: 600 }}>{STATE_LABELS[row.state] ?? row.state}</span>
+                    <span style={{ fontWeight: 'var(--fw-semibold)' }}>{STATE_LABELS[row.state] ?? row.state}</span>
                   </div>
                 </td>
                 <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.count.toLocaleString()}</td>
@@ -223,7 +223,7 @@ function StateDistribution({ rows }: { rows: InstrumentStateEntry[] }) {
                     <div style={{ height: '100%', width: `${(row.count / max) * 100}%`, background: STATE_COLORS[row.state] || 'var(--line-1)' }} />
                   </div>
                 </td>
-                <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{row.pct}%</td>
+                <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 'var(--fw-semibold)' }}>{row.pct}%</td>
               </tr>
             ))}
           </tbody>
@@ -247,17 +247,17 @@ function TypeDistribution({ rows, total }: { rows: EquipmentTypeEntry[]; total: 
     <div style={{ marginTop: 48 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
         <Icon name="cpu" size={18} />
-        <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Instrument type distribution</h2>
+        <h2 style={{ fontSize: 'var(--fs-20)', fontWeight: 'var(--fw-bold)', margin: 0 }}>Instrument type distribution</h2>
         <span style={{ fontSize: 13, color: 'var(--text-3)' }}>{total.toLocaleString()} instruments</span>
       </div>
-      <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ background: 'var(--surface-sunken)', borderBottom: '1px solid var(--line-1)' }}>
             <tr>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Equipment type</th>
-              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Count</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Equipment type</th>
+              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Count</th>
               <th style={{ padding: '12px 16px', width: 240 }}></th>
-              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>Share</th>
+              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase' }}>Share</th>
             </tr>
           </thead>
           <tbody>
@@ -266,7 +266,7 @@ function TypeDistribution({ rows, total }: { rows: EquipmentTypeEntry[]; total: 
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>#{i + 1}</span>
-                    <span style={{ fontWeight: 600 }}>{row.equipment_type}</span>
+                    <span style={{ fontWeight: 'var(--fw-semibold)' }}>{row.equipment_type}</span>
                   </div>
                 </td>
                 <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.count.toLocaleString()}</td>
@@ -275,7 +275,7 @@ function TypeDistribution({ rows, total }: { rows: EquipmentTypeEntry[]; total: 
                     <div style={{ height: '100%', width: `${(row.count / max) * 100}%`, background: 'var(--brand)' }} />
                   </div>
                 </td>
-                <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{row.pct}%</td>
+                <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 'var(--fw-semibold)' }}>{row.pct}%</td>
               </tr>
             ))}
           </tbody>
@@ -288,18 +288,18 @@ function TypeDistribution({ rows, total }: { rows: EquipmentTypeEntry[]; total: 
 
 function ScaleVerificationPlaceholder() {
   return (
-    <div style={{ marginTop: 48, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 8, padding: 24 }}>
+    <div style={{ marginTop: 48, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', padding: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Icon name="beaker" size={18} />
-          <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Scale verification</h2>
+          <h2 style={{ fontSize: 'var(--fs-20)', fontWeight: 'var(--fw-bold)', margin: 0 }}>Scale verification</h2>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 4, background: 'var(--status-warn-surface)', color: 'var(--status-warn)', textTransform: 'uppercase' }}>Pending data access</span>
+        <span style={{ fontSize: 11, fontWeight: 'var(--fw-extrabold)', padding: '2px 8px', borderRadius: 'var(--r-sm)', background: 'var(--status-warn-bg)', color: 'var(--status-warn)', textTransform: 'uppercase' }}>Pending data access</span>
       </div>
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', color: 'var(--text-3)' }}>
         <Icon name="alert-triangle" size={18} style={{ color: 'var(--status-warn)' }} />
         <div style={{ fontSize: 13, lineHeight: 1.6 }}>
-          <div style={{ fontWeight: 700, color: 'var(--text-1)', marginBottom: 4 }}>Scale calibration data unavailable</div>
+          <div style={{ fontWeight: 'var(--fw-bold)', color: 'var(--text-1)', marginBottom: 4 }}>Scale calibration data unavailable</div>
           Scale verification results from Tulip require a Unity Catalogue consumption view
           before they can be queried. Once created, this card will show pass/fail status
           and verification history per scale.
@@ -363,16 +363,16 @@ export function EquipmentInsightsPage() {
               <Icon name="cpu" size={14} />
               <span>Insights</span>
             </div>
-            <h1 style={{ fontSize: 28, fontWeight: 700, margin: '0 0 4px', color: 'var(--text-1)' }}>Equipment insights</h1>
+            <h1 style={{ fontSize: 28, fontWeight: 'var(--fw-bold)', margin: '0 0 4px', color: 'var(--text-1)' }}>Equipment insights</h1>
             <p style={{ fontSize: 13, color: 'var(--text-3)' }}>
               Instrument estate, live readiness state, and activity trends.
               Scale verification data is excluded pending Unity Catalogue access.
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface-sunken)', padding: '6px 12px', borderRadius: 6, border: '1px solid var(--line-1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface-sunken)', padding: '6px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line-1)' }}>
             <Icon name="factory" size={14} style={{ color: 'var(--text-3)' }} />
             <input
-              style={{ fontSize: 13, border: 'none', background: 'transparent', fontWeight: 600, color: 'var(--text-1)', width: 100 }}
+              style={{ fontSize: 13, border: 'none', background: 'transparent', fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', width: 100 }}
               placeholder="All plants"
               value={plantId}
               onChange={e => setPlantId(e.target.value)}

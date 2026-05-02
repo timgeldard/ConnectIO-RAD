@@ -106,7 +106,7 @@ export function DayView() {
         <div className="dv-header" style={{ padding: '24px 32px', background: 'var(--surface-0)', borderBottom: '1px solid var(--line-1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
             <div>
-              <h1 style={{ fontSize: 28, fontWeight: 700, margin: '0 0 4px', color: 'var(--text-1)' }}>Day view</h1>
+              <h1 style={{ fontSize: 28, fontWeight: 'var(--fw-bold)', margin: '0 0 4px', color: 'var(--text-1)' }}>Day view</h1>
               <p style={{ fontSize: 13, color: 'var(--text-3)' }}>Actual production activity by line — SAP confirmation records</p>
             </div>
             <Legend />
@@ -184,12 +184,12 @@ function DayGantt({
   }, [lines, blocksByLine])
 
   return (
-    <div style={{ marginTop: 32, background: 'var(--surface-0)', border: '1px solid var(--line-1)', borderRadius: 8, overflow: 'hidden' }}>
+    <div style={{ marginTop: 32, background: 'var(--surface-0)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
       <div style={{ display: 'flex', borderBottom: '1px solid var(--line-1)', background: 'var(--surface-sunken)' }}>
-        <div style={{ width: 120, flexShrink: 0, borderRight: '1px solid var(--line-1)', padding: '12px 16px', fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}>Line</div>
+        <div style={{ width: 120, flexShrink: 0, borderRight: '1px solid var(--line-1)', padding: '12px 16px', fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase' }}>Line</div>
         <div style={{ flex: 1, position: 'relative', height: 40 }}>
           {TIME_TICKS.map(h => (
-            <div key={h} style={{ position: 'absolute', left: `${(h / 24) * 100}%`, transform: 'translateX(-50%)', top: 12, fontSize: 10, fontWeight: 600, color: 'var(--text-3)' }}>
+            <div key={h} style={{ position: 'absolute', left: `${(h / 24) * 100}%`, transform: 'translateX(-50%)', top: 12, fontSize: 10, fontWeight: 'var(--fw-semibold)', color: 'var(--text-3)' }}>
               {h.toString().padStart(2, '0')}:00
             </div>
           ))}
@@ -207,7 +207,7 @@ function DayGantt({
           const timelineH = LANE_PAD * 2 + numLanes * BLOCK_H + Math.max(0, numLanes - 1) * LANE_GAP
           return (
             <div key={lineId} style={{ display: 'flex', borderBottom: '1px solid var(--line-1)' }}>
-              <div style={{ width: 120, flexShrink: 0, borderRight: '1px solid var(--line-1)', padding: '16px', display: 'flex', alignItems: 'center', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{lineId}</div>
+              <div style={{ width: 120, flexShrink: 0, borderRight: '1px solid var(--line-1)', padding: '16px', display: 'flex', alignItems: 'center', fontWeight: 'var(--fw-bold)', fontFamily: 'var(--font-mono)' }}>{lineId}</div>
               <div style={{ flex: 1, position: 'relative', height: timelineH }}>
                 {TIME_TICKS.map(h => (
                   <div key={h} style={{ position: 'absolute', top: 0, bottom: 0, left: `${(h / 24) * 100}%`, width: 1, background: 'var(--line-1)', opacity: 0.5 }} />
@@ -232,14 +232,14 @@ function DayGantt({
                         top: blockTop,
                         height: BLOCK_H,
                         background: KIND_COLOR[b.kind] ?? KIND_COLOR.onhold,
-                        borderRadius: 4,
+                        borderRadius: 'var(--r-sm)',
                         cursor: 'pointer',
                         padding: '0 8px',
                         display: 'flex',
                         alignItems: 'center',
-                        color: '#fff',
+                        color: 'var(--fg-on-brand)',
                         fontSize: 11,
-                        fontWeight: 600,
+                        fontWeight: 'var(--fw-semibold)',
                         overflow: 'hidden',
                         whiteSpace: 'nowrap',
                         zIndex: 5
@@ -297,9 +297,9 @@ function DateNav({ day, onChange }: { day: string; onChange: (d: string) => void
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
       <Button variant="secondary" size="sm" onClick={() => shift(-1)} icon={<Icon name="arrow-left" />} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface-sunken)', padding: '4px 16px', borderRadius: 6, border: '1px solid var(--line-1)' }}>
-        <span style={{ fontWeight: 700, fontSize: 16 }}>{fmtDate(day)}</span>
-        {isToday && <span style={{ background: 'var(--status-ok)', color: '#fff', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 99, textTransform: 'uppercase' }}>Today</span>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface-sunken)', padding: '4px 16px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line-1)' }}>
+        <span style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--fs-16)' }}>{fmtDate(day)}</span>
+        {isToday && <span style={{ background: 'var(--status-ok)', color: 'var(--fg-on-brand)', fontSize: 10, fontWeight: 'var(--fw-extrabold)', padding: '2px 8px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }}>Today</span>}
       </div>
       <Button variant="secondary" size="sm" onClick={() => shift(1)} disabled={isToday} icon={<Icon name="arrow-right" />} />
       {!isToday && (
@@ -320,7 +320,7 @@ function Legend() {
     <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--text-2)' }}>
       {items.map(({ color, label, opacity }) => (
         <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 10, height: 10, borderRadius: 2, background: color, opacity: opacity ?? 1 }} />
+          <span style={{ width: 10, height: 10, borderRadius: 'var(--r-sm)', background: color, opacity: opacity ?? 1 }} />
           <span>{label}</span>
         </div>
       ))}
@@ -348,7 +348,7 @@ function BlockDrawer({ block, onClose }: { block: DayBlock; onClose: () => void 
         {rows.map(([k, v]) => (
           <div key={k} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line-1)', paddingBottom: 8, fontSize: 13 }}>
             <span style={{ color: 'var(--text-3)' }}>{k}</span>
-            <span style={{ fontWeight: 600 }}>{v}</span>
+            <span style={{ fontWeight: 'var(--fw-semibold)' }}>{v}</span>
           </div>
         ))}
       </div>
@@ -394,7 +394,7 @@ function DowntimeDrawer({ downtime, onClose }: { downtime: DayDowntime; onClose:
         {rows.map(([k, v]) => (
           <div key={k} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line-1)', paddingBottom: 8, fontSize: 13 }}>
             <span style={{ color: 'var(--text-3)' }}>{k}</span>
-            <span style={{ fontWeight: 600 }}>{v}</span>
+            <span style={{ fontWeight: 'var(--fw-semibold)' }}>{v}</span>
           </div>
         ))}
       </div>
@@ -406,10 +406,10 @@ function Drawer({ title, sub, onClose, children }: { title: string, sub: string,
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', justifyContent: 'flex-end' }}>
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} onClick={onClose} />
-      <div style={{ position: 'relative', width: 360, background: 'var(--surface-0)', boxShadow: '-10px 0 30px rgba(0,0,0,0.1)', padding: 24, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ position: 'relative', width: 360, background: 'var(--surface-0)', boxShadow: 'var(--shadow-md)', padding: 24, display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', marginBottom: 4 }}>{title}</div>
+            <div style={{ fontSize: 'var(--fs-20)', fontWeight: 'var(--fw-bold)', color: 'var(--text-1)', marginBottom: 4 }}>{title}</div>
             <div style={{ fontSize: 13, color: 'var(--text-3)' }}>{sub}</div>
           </div>
           <button className="btn btn-ghost btn-xs" onClick={onClose}><Icon name="x" size={20} /></button>

@@ -1,0 +1,37 @@
+bundle:
+  name: platform
+  databricks_cli_version: '>= 0.283.0'
+
+sync:
+  include:
+    - app.yaml
+    - backend/**
+    - static/**
+    - poh_backend/**
+    - cq_backend/**
+    - shared_db/**
+    - shared_api/**
+    - shared_auth/**
+
+variables:
+  app_name:
+    default: platform
+
+targets:
+  uat:
+    default: true
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+  prod:
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+
+resources:
+  apps:
+    platform:
+      name: ${var.app_name}
+      description: ConnectIO Platform — unified shell for ConnectedQuality and ProcessOrderHistory
+      source_code_path: .
+      user_api_scopes:
+        - sql
+        - dashboards.genie
