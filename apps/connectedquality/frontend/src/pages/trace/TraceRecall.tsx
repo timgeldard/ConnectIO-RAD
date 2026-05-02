@@ -1,8 +1,9 @@
-import { Card } from '~/components/Card'
+﻿import { Card } from '~/components/Card'
 import { KPI } from '~/components/KPI'
 import { Pill } from '~/components/Pill'
 import { PageHead } from '~/components/PageHead'
 import { Icon } from '~/components/Icon'
+import { pohOrderUrl } from '~/utils/crossApp'
 
 const COUNTRIES = [
   { n: 'Germany', q: 4820, p: 0.32 },
@@ -59,7 +60,12 @@ export function TraceRecall() {
         <KPI label="Unrestricted" value="12,840" unit="kg" tone="good" sub="UNRESTRICTED-100" />
         <KPI label="Blocked" value="1,440" unit="kg" tone="bad" sub="HOLD CODE 04" />
         <KPI label="QI hold" value="3,200" unit="kg" tone="warn" sub="Pending micro" />
-        <KPI label="Process order" value={<span className="mono" style={{ fontSize: 16 }}>17402114</span>} sub="Charleville · IE" />
+        <KPI label="Process order" value={(() => {
+          const url = pohOrderUrl('17402114', 'cq.trace')
+          return url
+            ? <a href={url} style={{ textDecoration: 'none', color: 'inherit' }}><span className="mono" style={{ fontSize: 16, borderBottom: '1px dashed var(--cq-fg-2)', cursor: 'pointer' }}>17402114</span></a>
+            : <span className="mono" style={{ fontSize: 16 }}>17402114</span>
+        })()} sub="Charleville · IE" />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10, marginBottom: 22 }}>
         <KPI label="Customers affected" value="11" />
