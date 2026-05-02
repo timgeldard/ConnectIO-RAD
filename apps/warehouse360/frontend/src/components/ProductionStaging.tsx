@@ -1,9 +1,10 @@
-import React from 'react';
-import { useI18n } from '@connectio/shared-frontend-i18n';
-import WM from '../data/mockData.js';
-import { useApi } from '../hooks/useApi.js';
-import { Icon, Pill, Progress, RiskDot } from './Primitives.jsx';
-import { FilterBar, Card, KPI } from './Shared.jsx';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React from 'react'
+import { useI18n } from '@connectio/shared-frontend-i18n'
+import WM from '../data/mockData'
+import { useApi } from '../hooks/useApi'
+import { Icon, Pill, Progress, RiskDot } from './Primitives'
+import { FilterBar, Card, KPI } from './Shared'
 
 /* Production Staging — primary screen.
    Tabs per staging method. Filters. Dense table. Detail drawer drill-down.
@@ -21,7 +22,7 @@ const STAGING_TABS = [
 ];
 
 const StagingMethodChip = ({ id }) => {
-  const m = WM.STAGING_METHODS.find((m) => m.id === id);
+  const m = WM.STAGING_METHODS.find((m: any) => m.id === id);
   if (!m) return null;
   return <span className="tag tag-slate">{m.label}</span>;
 };
@@ -57,15 +58,21 @@ const normalizeOrder = (o) => {
   };
 };
 
-const ProductionStaging = ({ onOpenOrder }) => {
+/** Props for the ProductionStaging page. */
+interface ProductionStagingProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onOpenOrder?: (order: any) => void
+}
+
+const ProductionStaging = ({ onOpenOrder }: ProductionStagingProps) => {
   const { t } = useI18n();
   const [tab, setTab] = React.useState('all');
   const [filters, setFilters] = React.useState({ risk: 'all', shift: 'all', line: 'all', window: 'today' });
   const [sort, setSort] = React.useState({ key: 'start', dir: 'asc' });
 
-  const { data: ordersResp, loading: ordersLoading, error: ordersError } = useApi('/api/process-orders');
-  const { data: linesideResp } = useApi('/api/inventory/lineside');
-  const { data: tasksResp } = useApi('/api/dispensary');
+  const { data: ordersResp, loading: ordersLoading, error: ordersError } = useApi<any>('/api/process-orders');
+  const { data: linesideResp } = useApi<any>('/api/inventory/lineside');
+  const { data: tasksResp } = useApi<any>('/api/dispensary');
   const allOrders = React.useMemo(() => {
     const api = ordersResp?.orders ?? [];
     return api.map(normalizeOrder);
@@ -73,31 +80,31 @@ const ProductionStaging = ({ onOpenOrder }) => {
   const liveLineOptions = React.useMemo(() => Array.from(
     new Map(
       allOrders
-        .filter((o) => o.line?.id && o.line.id !== '—')
-        .map((o) => [o.line.id, { value: o.line.id, label: o.line.name || o.line.id }])
+        .filter((o: any) => o.line?.id && o.line.id !== '—')
+        .map((o: any) => [o.line.id, { value: o.line.id, label: o.line.name || o.line.id }])
     ).values()
   ), [allOrders]);
   const liveLineside = linesideResp?.lineside ?? [];
   const liveTasks = tasksResp?.tasks ?? [];
   const avgStagingPct = allOrders.length > 0
-    ? Math.round(allOrders.reduce((sum, order) => sum + (order.stagingPct || 0), 0) / allOrders.length)
+    ? Math.round(allOrders.reduce((sum: any, order: any) => sum + (order.stagingPct || 0), 0) / allOrders.length)
     : 0;
-  const weighedTasks = liveTasks.filter((task) => task.status === 'Weighed' || task.weighed_qty > 0).length;
+  const weighedTasks = liveTasks.filter((task: any) => task.status === 'Weighed' || task.weighed_qty > 0).length;
 
   const rows = React.useMemo(() => {
     let r = allOrders;
-    if (tab !== 'all') r = r.filter((o) => o.method.id === tab);
-    if (filters.risk !== 'all') r = r.filter((o) => o.risk === filters.risk);
-    if (filters.shift !== 'all') r = r.filter((o) => o.shift.id === filters.shift);
-    if (filters.line !== 'all') r = r.filter((o) => o.line.id === filters.line);
-    if (filters.window === 'today') r = r.filter((o) => {
+    if (tab !== 'all') r = r.filter((o: any) => o.method.id === tab);
+    if (filters.risk !== 'all') r = r.filter((o: any) => o.risk === filters.risk);
+    if (filters.shift !== 'all') r = r.filter((o: any) => o.shift.id === filters.shift);
+    if (filters.line !== 'all') r = r.filter((o: any) => o.line.id === filters.line);
+    if (filters.window === 'today') r = r.filter((o: any) => {
       if (!o.start) return false;
       const today = new Date(WM.NOW); today.setHours(0, 0, 0, 0);
       const end = new Date(today); end.setDate(end.getDate() + 1);
       return o.start >= today && o.start < end;
     });
-    if (filters.window === '8h') r = r.filter((o) => o.start && WM.minutesFromNow(o.start) >= -60 && WM.minutesFromNow(o.start) <= 8 * 60);
-    r = [...r].sort((a, b) => {
+    if (filters.window === '8h') r = r.filter((o: any) => o.start && WM.minutesFromNow(o.start) >= -60 && WM.minutesFromNow(o.start) <= 8 * 60);
+    r = [...r].sort((a: any, b: any) => {
       const mul = sort.dir === 'asc' ? 1 : -1;
       if (sort.key === 'start') {
         if (!a.start && !b.start) return 0;
@@ -118,15 +125,15 @@ const ProductionStaging = ({ onOpenOrder }) => {
   const counts = React.useMemo(() => {
     const c = { all: allOrders.length };
     for (const m of WM.STAGING_METHODS) {
-      c[m.id] = allOrders.filter((o) => o.method.id === m.id).length;
+      c[m.id] = allOrders.filter((o: any) => o.method.id === m.id).length;
     }
     return c;
   }, [allOrders]);
 
   const riskCounts = React.useMemo(() => ({
-    red: allOrders.filter((o) => o.risk === 'red').length,
-    amber: allOrders.filter((o) => o.risk === 'amber').length,
-    green: allOrders.filter((o) => o.risk === 'green').length,
+    red: allOrders.filter((o: any) => o.risk === 'red').length,
+    amber: allOrders.filter((o: any) => o.risk === 'amber').length,
+    green: allOrders.filter((o: any) => o.risk === 'green').length,
   }), [allOrders]);
 
   return (
@@ -149,7 +156,7 @@ const ProductionStaging = ({ onOpenOrder }) => {
         <KPI label={t('warehouse.staging.kpi.ordersAtRisk')} value={ordersLoading ? '...' : riskCounts.red + riskCounts.amber} tone={riskCounts.red > 0 ? 'critical' : riskCounts.amber > 0 ? 'warn' : 'ok'}/>
         <KPI label={t('warehouse.staging.kpi.stagingSLA')} value={ordersLoading ? '...' : avgStagingPct} unit="%" tone={avgStagingPct < 70 ? 'critical' : avgStagingPct < 95 ? 'warn' : 'ok'} barPct={avgStagingPct} barTone={avgStagingPct < 70 ? 'red' : avgStagingPct < 95 ? 'amber' : ''} target="95%"/>
         <KPI label={t('warehouse.staging.kpi.palletsStaged')} value="—" unit="" tone="ok"/>
-        <KPI label={t('warehouse.staging.kpi.linesideBelowMin')} value={liveLineside.filter((l) => l.status === 'Below min').length} tone="warn"/>
+        <KPI label={t('warehouse.staging.kpi.linesideBelowMin')} value={liveLineside.filter((l: any) => l.status === 'Below min').length} tone="warn"/>
         <KPI label={t('warehouse.staging.kpi.bulkDropsUncleared')} value="—" tone="ok"/>
         <KPI label={t('warehouse.staging.kpi.dispensaryReady')} value={weighedTasks} unit={'/ ' + liveTasks.length} tone="ok" barPct={liveTasks.length > 0 ? weighedTasks / liveTasks.length * 100 : 0} barTone="slate"/>
       </div>
@@ -166,7 +173,7 @@ const ProductionStaging = ({ onOpenOrder }) => {
 
       {/* Method tabs */}
       <div className="tabs">
-        {STAGING_TABS.map((tabDef) => (
+        {STAGING_TABS.map((tabDef: any) => (
           <button key={tabDef.id} className={`tab ${tab === tabDef.id ? 'is-active' : ''}`} onClick={() => setTab(tabDef.id)}>
             {t(tabDef.label)}
             <span className="tab-count">{counts[tabDef.id] || 0}</span>
@@ -225,8 +232,8 @@ const ProductionStaging = ({ onOpenOrder }) => {
               </tr>
             </thead>
             <tbody>
-              {rows.slice(0, 60).map((o) => (
-                <StagingRow key={o.id} o={o} onClick={() => onOpenOrder(o)}/>
+              {rows.slice(0, 60).map((o: any) => (
+                <StagingRow key={o.id} o={o} onClick={() => onOpenOrder?.(o)}/>
               ))}
               {!ordersLoading && rows.length === 0 && (
                 <tr><td colSpan={10} className="muted small">No live production orders match this plant and filter set.</td></tr>
@@ -285,18 +292,18 @@ const StagingRow = ({ o, onClick }) => {
 };
 
 // Timeline component
-const StagingTimeline = ({ orders = [], onOpen }) => {
+const StagingTimeline = ({ orders = [] as any[], onOpen }: { orders?: any[]; onOpen?: (o: any) => void }) => {
   const hours = 24;
   const startHour = 6; // starts at 06:00 today
   const dayStart = (() => { const d = new Date(WM.NOW); d.setHours(startHour, 0, 0, 0); return d; })();
   const dayEnd = new Date(dayStart.getTime() + hours * 3600000);
 
-  const timelineOrders = orders.filter((o) => o.start && o.end && o.start < dayEnd && o.end > dayStart);
+  const timelineOrders = orders.filter((o: any) => o.start && o.end && o.start < dayEnd && o.end > dayStart);
   const lineRows = Array.from(
     new Map(
       timelineOrders
-        .filter((o) => o.line?.id && o.line.id !== '—')
-        .map((o) => [o.line.id, o.line])
+        .filter((o: any) => o.line?.id && o.line.id !== '—')
+        .map((o: any) => [o.line.id, o.line])
     ).values()
   ).slice(0, 6);
 
@@ -320,14 +327,14 @@ const StagingTimeline = ({ orders = [], onOpen }) => {
       <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}>
         <div style={{ padding: '8px 12px', background: 'var(--stone)', borderBottom: '1px solid var(--stroke-soft)', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--fg-muted)' }}>Line</div>
         <div className="timeline-hours">
-          {Array.from({ length: hours + 1 }).map((_, i) => {
+          {Array.from({ length: hours + 1 }).map((_: any, i: number) => {
             const h = (startHour + i) % 24;
             return <div key={i} className="timeline-hour" data-label={String(h).padStart(2, '0') + ':00'} style={{ left: (i / hours) * 100 + '%' }}/>;
           })}
         </div>
       </div>
-      {lineRows.map((line) => {
-        const lineOrders = timelineOrders.filter((o) => o.line.id === line.id);
+      {lineRows.map((line: any) => {
+        const lineOrders = timelineOrders.filter((o: any) => o.line.id === line.id);
         return (
           <div className="timeline-row" key={line.id}>
             <div className="timeline-row-label">
@@ -335,7 +342,7 @@ const StagingTimeline = ({ orders = [], onOpen }) => {
             </div>
             <div className="timeline-track">
               <div className="timeline-now" style={{ left: nowX + '%' }}/>
-              {lineOrders.map((o) => {
+              {lineOrders.map((o: any) => {
                 const left = Math.max(0, xFromTime(o.start));
                 const width = Math.max(2, widthFromTimes(
                   o.start < dayStart ? dayStart : o.start,
@@ -344,7 +351,7 @@ const StagingTimeline = ({ orders = [], onOpen }) => {
                 return (
                   <button key={o.id} className={`timeline-event risk-${o.risk}`}
                     style={{ left: left + '%', width: width + '%', border: 'none', textAlign: 'left', cursor: 'pointer' }}
-                    onClick={() => onOpen(o)}
+                    onClick={() => onOpen?.(o)}
                     title={`${o.id} · ${o.product}`}>
                     <div className="timeline-event-title">{o.product.split(' · ')[0]}</div>
                     <div className="timeline-event-meta">{WM.fmtTime(o.start)}–{WM.fmtTime(o.end)} · {o.stagingPct}%</div>

@@ -1,27 +1,42 @@
-import React from 'react';
-import { useI18n } from '@connectio/shared-frontend-i18n';
-import WM from '../data/mockData.js';
-import { useApi } from '../hooks/useApi.js';
-import { usePlantSelection } from '../context/PlantContext.jsx';
-import { Icon, Pill, Progress, RiskDot, Hbar } from './Primitives.jsx';
-import { KPI, Card } from './Shared.jsx';
-import { StagingTimeline, normalizeOrder } from './ProductionStaging.jsx';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React from 'react'
+import { useI18n } from '@connectio/shared-frontend-i18n'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import WM from '../data/mockData'
+import { useApi } from '../hooks/useApi';
+import { usePlantSelection } from '../context/PlantContext';
+import { Icon, Pill, Progress, RiskDot, Hbar } from './Primitives';
+import { KPI, Card } from './Shared';
+import { StagingTimeline, normalizeOrder } from './ProductionStaging';
 
 /* Control Tower — warehouse manager's landing page */
 
-const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
-  const { t } = useI18n();
-  const { selectedPlant } = usePlantSelection();
-  const { data: kpiResp } = useApi('/api/kpis');
-  const { data: ordersResp, loading: ordersLoading, error: ordersError } = useApi('/api/process-orders');
-  const { data: inboundResp, loading: inboundLoading, error: inboundError } = useApi('/api/inbound');
-  const { data: outboundResp, loading: outboundLoading, error: outboundError } = useApi('/api/deliveries');
-  const { data: binsResp } = useApi('/api/inventory/bins');
+/** Props for the ControlTower control-tower landing page. */
+interface ControlTowerProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onNav?: (route: string) => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onOpenOrder?: (order: any) => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onOpenDelivery?: (delivery: any) => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onOpenReceipt?: (receipt: any) => void
+}
+
+const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: ControlTowerProps) => {
+  const { t } = useI18n()
+  const { selectedPlant } = usePlantSelection()
+  const { data: kpiResp } = useApi<any>('/api/kpis')
+  const { data: ordersResp, loading: ordersLoading, error: ordersError } = useApi<any>('/api/process-orders')
+  const { data: inboundResp, loading: inboundLoading, error: inboundError } = useApi<any>('/api/inbound')
+  const { data: outboundResp, loading: outboundLoading, error: outboundError } = useApi<any>('/api/deliveries')
+  const { data: binsResp } = useApi<any>('/api/inventory/bins')
   const kpis = kpiResp?.kpis ?? null;
 
-  const liveOrders = React.useMemo(() => (ordersResp?.orders ?? []).map(normalizeOrder), [ordersResp]);
-  const redOrders = liveOrders.filter((o) => o.risk === 'red').slice(0, 5);
-  const amberOrders = liveOrders.filter((o) => o.risk === 'amber').slice(0, 4);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const liveOrders = React.useMemo(() => ((ordersResp?.orders ?? []) as any[]).map(normalizeOrder), [ordersResp])
+  const redOrders = liveOrders.filter((o: any) => o.risk === 'red').slice(0, 5);
+  const amberOrders = liveOrders.filter((o: any) => o.risk === 'amber').slice(0, 4);
   const inboundToday = (inboundResp?.receipts ?? []).slice(0, 6);
   const outboundToday = (outboundResp?.deliveries ?? []).slice(0, 6);
   const bins = binsResp?.bins ?? [];
@@ -29,14 +44,15 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
     { label: t('warehouse.ct.kpi.ordersAtRisk'), value: kpis?.orders_red ?? 0, tone: 'red', nav: 'staging' },
     { label: t('warehouse.ct.kpi.deliveriesAtRisk'), value: kpis?.deliveries_at_risk ?? 0, tone: 'amber', nav: 'outbound' },
     { label: t('warehouse.inventory.kpi.blockedQA'), value: kpis?.bins_blocked ?? 0, tone: 'slate', nav: 'inventory' },
-  ].filter((signal) => signal.value > 0);
+  ].filter((signal: any) => signal.value > 0);
   const workload = [
     { area: 'Production orders', open: kpis?.orders_total ?? 0, exceptions: (kpis?.orders_red ?? 0) + (kpis?.orders_amber ?? 0), nav: 'staging' },
     { area: 'Transfer orders', open: kpis?.tos_open ?? 0, exceptions: 0, nav: 'inventory' },
     { area: 'Inbound lines', open: kpis?.inbound_open ?? 0, exceptions: 0, nav: 'inbound' },
     { area: 'Deliveries', open: kpis?.deliveries_today ?? 0, exceptions: kpis?.deliveries_at_risk ?? 0, nav: 'outbound' },
   ];
-  const storageByType = Object.values(bins.reduce((acc, bin) => {
+  const storageByType = // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Object.values(bins.reduce((acc: Record<string, any>, bin: any) => {
     const key = bin.lgtyp ?? '—';
     if (!acc[key]) acc[key] = { id: key, total: 0, occupied: 0, blocked: 0 };
     acc[key].total += 1;
@@ -73,15 +89,15 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
       {/* Today's run sheet + Critical exceptions */}
       <div className="grid-asym" style={{ marginBottom: 16 }}>
         <Card title={t('warehouse.ct.card.runSheet')} subtitle="6 lines · click a bar to drill in" eyebrow="Schedule" tight
-          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('staging')}>Open staging <Icon name="arrowRight" size={12}/></button>}>
+          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav?.('staging')}>Open staging <Icon name="arrowRight" size={12}/></button>}>
           <StagingTimeline orders={liveOrders} onOpen={onOpenOrder}/>
         </Card>
 
         <Card title={t('warehouse.ct.card.criticalExceptions')} subtitle="Needs action now" eyebrow="Risk"
-          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('exceptions')}><Icon name="external" size={12}/></button>}>
+          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav?.('exceptions')}><Icon name="external" size={12}/></button>}>
           <div className="stack-8">
-            {exceptionSignals.map((e, i) => (
-              <button key={i} onClick={() => onNav(e.nav)} style={{ textAlign: 'left', padding: 10, background: 'color-mix(in srgb, var(--sunset) 6%, white)', border: '1px solid color-mix(in srgb, var(--sunset) 20%, transparent)', borderRadius: 6, width: '100%' }}>
+            {exceptionSignals.map((e: any, i: number) => (
+              <button key={i} onClick={() => onNav?.(e.nav)} style={{ textAlign: 'left', padding: 10, background: 'color-mix(in srgb, var(--sunset) 6%, white)', border: '1px solid color-mix(in srgb, var(--sunset) 20%, transparent)', borderRadius: 6, width: '100%' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                   <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--forest)' }}>{e.label}</div>
                   <span className="mono small muted">{e.value}</span>
@@ -101,10 +117,10 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
       <div className="grid-2" style={{ marginBottom: 16 }}>
         <Card title={t('warehouse.ct.card.workload')} subtitle="Open · in progress · confirmed tasks this shift" eyebrow="Warehouse tasks">
           <div className="stack-8">
-            {workload.map((w, i) => {
+            {workload.map((w: any, i: number) => {
               const total = Math.max(1, w.open + w.exceptions);
               return (
-                <button key={i} onClick={() => onNav(w.nav)} style={{ display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 0, padding: 0, cursor: 'pointer' }}>
+                <button key={i} onClick={() => onNav?.(w.nav)} style={{ display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 0, padding: 0, cursor: 'pointer' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
                     <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--forest)' }}>{w.area}</span>
                     <span className="mono small muted">{w.open} open {w.exceptions > 0 && <span className="red"> · {w.exceptions} at risk</span>}</span>
@@ -125,12 +141,12 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
         </Card>
 
         <Card title={t('warehouse.ct.card.productionAtRisk')} subtitle={`${redOrders.length} critical · ${amberOrders.length} at risk`} eyebrow="Production staging"
-          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('staging')}>All <Icon name="arrowRight" size={12}/></button>} tight>
+          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav?.('staging')}>All <Icon name="arrowRight" size={12}/></button>} tight>
           <table className="tbl">
             <thead><tr><th></th><th>{t('warehouse.common.col.order')}</th><th>{t('warehouse.common.col.line')}</th><th>{t('warehouse.common.col.start')}</th><th className="num">{t('warehouse.common.col.staging')}</th><th></th></tr></thead>
             <tbody>
-              {[...redOrders, ...amberOrders].slice(0, 8).map((o) => (
-                <tr key={o.id} className={`is-risk-${o.risk}`} onClick={() => onOpenOrder(o)}>
+              {[...redOrders, ...amberOrders].slice(0, 8).map((o: any) => (
+                <tr key={o.id} className={`is-risk-${o.risk}`} onClick={() => onOpenOrder?.(o)}>
                   <td><RiskDot risk={o.risk}/></td>
                   <td><span className="code">{o.id}</span><div className="muted" style={{ fontSize: 11 }}>{o.product.split(' · ')[0]}</div></td>
                   <td style={{ fontSize: 12 }}>{o.line.id}</td>
@@ -159,12 +175,12 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
       <div className="grid-2" style={{ marginBottom: 16 }}>
         <Card title={t('warehouse.ct.card.inboundToday')} subtitle={`${inboundToday.length} live receipts`}
           eyebrow="PO / STO"
-          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('inbound')}>All <Icon name="arrowRight" size={12}/></button>} tight>
+          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav?.('inbound')}>All <Icon name="arrowRight" size={12}/></button>} tight>
           <table className="tbl">
             <thead><tr><th>{t('warehouse.common.col.type')}</th><th>Doc</th><th>{t('warehouse.ct.col.vendorPlant')}</th><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.ct.col.eta')}</th><th>{t('warehouse.common.col.status')}</th></tr></thead>
             <tbody>
-              {inboundToday.map((r) => (
-                <tr key={`${r.po_id}-${r.po_item}`} onClick={() => onOpenReceipt(r)} className={`is-risk-${r.risk}`}>
+              {inboundToday.map((r: any) => (
+                <tr key={`${r.po_id}-${r.po_item}`} onClick={() => onOpenReceipt?.(r)} className={`is-risk-${r.risk}`}>
                   <td><Pill tone="slate" noDot>PO</Pill></td>
                   <td className="code">{r.po_id}</td>
                   <td><div style={{ fontSize: 12 }}>{r.vendor_name || '—'}</div><div className="muted" style={{ fontSize: 11 }}>{r.vendor_id || '—'}</div></td>
@@ -183,14 +199,14 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
           </table>
         </Card>
 
-        <Card title={t('warehouse.ct.card.outboundToday')} subtitle={`${outboundToday.filter((d) => d.risk === 'red').length} cut-off risk`}
+        <Card title={t('warehouse.ct.card.outboundToday')} subtitle={`${outboundToday.filter((d: any) => d.risk === 'red').length} cut-off risk`}
           eyebrow="LIKP / LIPS"
-          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('outbound')}>All <Icon name="arrowRight" size={12}/></button>} tight>
+          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav?.('outbound')}>All <Icon name="arrowRight" size={12}/></button>} tight>
           <table className="tbl">
             <thead><tr><th>{t('warehouse.common.col.delivery')}</th><th>{t('warehouse.common.col.customer')}</th><th>{t('warehouse.ct.col.cutOff')}</th><th className="num">{t('warehouse.ct.col.pick')}</th><th>{t('warehouse.common.col.status')}</th><th>{t('warehouse.ct.col.dock')}</th></tr></thead>
             <tbody>
-              {outboundToday.map((d) => (
-                <tr key={d.delivery_id} onClick={() => onOpenDelivery(d)} className={`is-risk-${d.risk}`}>
+              {outboundToday.map((d: any) => (
+                <tr key={d.delivery_id} onClick={() => onOpenDelivery?.(d)} className={`is-risk-${d.risk}`}>
                   <td className="code">{d.delivery_id}</td>
                   <td><div style={{ fontSize: 12 }}>{d.customer_name || d.customer_id || '—'}</div></td>
                   <td className="mono small">{d.planned_gi_date ?? '—'}</td>
@@ -227,13 +243,13 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }) => 
         </Card>
 
         <Card title={t('warehouse.ct.card.spaceConstraints')} subtitle="Utilisation by storage type · click to drill" eyebrow="Inventory"
-          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav('inventory')}>All <Icon name="arrowRight" size={12}/></button>}>
+          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav?.('inventory')}>All <Icon name="arrowRight" size={12}/></button>}>
           <div className="stack-8">
-            {storageByType.map((s, i) => {
+            {storageByType.map((s: any, i: number) => {
               const pct = s.total > 0 ? (s.occupied / s.total) * 100 : 0;
               const tone = pct > 92 ? 'red' : pct > 80 ? 'amber' : '';
               return (
-                <Hbar key={i} label={`${s.id} · ${s.blocked} blocked`} value={Math.round(pct) + '%'} max={100} tone={tone}/>
+                <Hbar key={i} label={`${s.id} · ${s.blocked} blocked`} value={Math.round(pct)} max={100} tone={tone}/>
               );
             })}
             {storageByType.length === 0 && <div className="muted small">No live storage utilisation data for this plant.</div>}

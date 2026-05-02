@@ -1,9 +1,9 @@
-import React from 'react';
-import { useI18n } from '@connectio/shared-frontend-i18n';
-import WM from '../data/mockData.js';
-import { useApi } from '../hooks/useApi.js';
-import { Icon, Pill, Progress } from './Primitives.jsx';
-import { Card, KPI } from './Shared.jsx';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React from 'react'
+import { useI18n } from '@connectio/shared-frontend-i18n'
+import { useApi } from '../hooks/useApi'
+import { Icon, Pill, Progress } from './Primitives'
+import { Card, KPI } from './Shared'
 
 /* Inventory & Bin Health */
 
@@ -43,8 +43,8 @@ const Inventory = () => {
   const { t } = useI18n();
   const [tab, setTab] = React.useState('overview');
 
-  const { data: binsResp, loading: binsLoading, error: binsError } = useApi('/api/inventory/bins');
-  const { data: linesideResp, loading: linesideLoading, error: linesideError } = useApi('/api/inventory/lineside');
+  const { data: binsResp, loading: binsLoading, error: binsError } = useApi<any>('/api/inventory/bins');
+  const { data: linesideResp, loading: linesideLoading, error: linesideError } = useApi<any>('/api/inventory/lineside');
 
   const allBins = React.useMemo(() => {
     const api = binsResp?.bins ?? [];
@@ -57,26 +57,26 @@ const Inventory = () => {
   }, [linesideResp]);
 
   const byType = React.useMemo(() => {
-    const typeMap = {};
+    const typeMap: Record<string, { type: any; bins: any[] }> = {};
     for (const b of allBins) {
       const key = b.storageType.id;
       if (!typeMap[key]) typeMap[key] = { type: b.storageType, bins: [] };
       typeMap[key].bins.push(b);
     }
     return Object.values(typeMap).map(({ type, bins }) => {
-      const occ = bins.filter((b) => b.status === 'Occupied').length;
-      const free = bins.filter((b) => b.status === 'Free').length;
-      const blocked = bins.filter((b) => b.status === 'Blocked').length;
+      const occ = bins.filter((b: any) => b.status === 'Occupied').length;
+      const free = bins.filter((b: any) => b.status === 'Free').length;
+      const blocked = bins.filter((b: any) => b.status === 'Blocked').length;
       return { type, bins, occ, free, blocked, pct: bins.length > 0 ? (occ / bins.length) * 100 : 0 };
-    }).sort((a, b) => a.type.id < b.type.id ? -1 : 1);
+    }).sort((a: any, b: any) => a.type.id < b.type.id ? -1 : 1);
   }, [allBins]);
 
-  const aged = allBins.filter((b) => b.ageHours > 168 && b.status === 'Occupied').slice(0, 12);
-  const expiring = allBins.filter((b) => b.batchExpiryDays < 30 && b.status === 'Occupied').slice(0, 10);
-  const blocked = allBins.filter((b) => b.status === 'Blocked').slice(0, 8);
+  const aged = allBins.filter((b: any) => b.ageHours > 168 && b.status === 'Occupied').slice(0, 12);
+  const expiring = allBins.filter((b: any) => b.batchExpiryDays < 30 && b.status === 'Occupied').slice(0, 10);
+  const blocked = allBins.filter((b: any) => b.status === 'Blocked').slice(0, 8);
 
   const binUtilPct = allBins.length > 0
-    ? Math.round(allBins.filter((b) => b.status === 'Occupied').length / allBins.length * 100)
+    ? Math.round(allBins.filter((b: any) => b.status === 'Occupied').length / allBins.length * 100)
     : 0;
 
   return (
@@ -96,10 +96,10 @@ const Inventory = () => {
       <div className="kpi-grid">
         <KPI label={t('warehouse.inventory.kpi.binUtil')} value={binsLoading ? '...' : binUtilPct} unit="%" target="80%" tone="ok" barPct={binUtilPct}/>
         <KPI label={t('warehouse.inventory.kpi.inventoryAccuracy')} value="—" unit="%" target="99.5%" tone="ok"/>
-        <KPI label={t('warehouse.inventory.kpi.blockedQA')} value={allBins.filter((b) => b.status === 'Blocked').length} tone="warn"/>
+        <KPI label={t('warehouse.inventory.kpi.blockedQA')} value={allBins.filter((b: any) => b.status === 'Blocked').length} tone="warn"/>
         <KPI label={t('warehouse.inventory.kpi.expiring')} value={expiring.length} tone="critical"/>
         <KPI label={t('warehouse.inventory.kpi.aged')} value={aged.length} tone="warn"/>
-        <KPI label={t('warehouse.inventory.kpi.linesideBelowMin')} value={allLineside.filter((l) => l.status === 'Below min').length} tone="critical"/>
+        <KPI label={t('warehouse.inventory.kpi.linesideBelowMin')} value={allLineside.filter((l: any) => l.status === 'Below min').length} tone="critical"/>
       </div>
 
       <div className="tabs">
@@ -109,7 +109,7 @@ const Inventory = () => {
           { id: 'aged',     label: t('warehouse.inventory.tab.aged') },
           { id: 'blocked',  label: t('warehouse.inventory.tab.blocked') },
           { id: 'cycle',    label: t('warehouse.inventory.tab.cycle') },
-        ].map((tabDef) => (
+        ].map((tabDef: any) => (
           <button key={tabDef.id} className={`tab ${tab === tabDef.id ? 'is-active' : ''}`} onClick={() => setTab(tabDef.id)}>{tabDef.label}</button>
         ))}
       </div>
@@ -119,7 +119,7 @@ const Inventory = () => {
           <div className="grid-2" style={{ marginBottom: 16 }}>
             <Card title={t('warehouse.inventory.card.storageUtil')} subtitle="Occupied · free · blocked bins" eyebrow="LAGP">
               <div className="stack-8">
-                {byType.map((typeRow) => (
+                {byType.map((typeRow: any) => (
                   <div key={typeRow.type.id}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--forest)' }}>{typeRow.type.id} · {typeRow.type.name}</span>
@@ -136,7 +136,7 @@ const Inventory = () => {
               </div>
             </Card>
             <Card title={t('warehouse.inventory.card.binHeatmap')} subtitle="Hover a cell for material & age" eyebrow="Bin map">
-              <BinHeatmap bins={allBins.filter((b) => b.storageType.id === '001').slice(0, 200)}/>
+              <BinHeatmap bins={allBins.filter((b: any) => b.storageType.id === '001').slice(0, 200)}/>
             </Card>
           </div>
 
@@ -145,7 +145,7 @@ const Inventory = () => {
               <table className="tbl">
                 <thead><tr><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.batch')}</th><th className="num">{t('warehouse.common.col.qty')}</th><th className="num">{t('warehouse.common.col.age')}</th><th>{t('warehouse.inventory.col.expiry')}</th><th>{t('warehouse.common.col.status')}</th></tr></thead>
                 <tbody>
-                  {allBins.filter((b) => b.material).slice(0, 20).map((b, i) => (
+                  {allBins.filter((b: any) => b.material).slice(0, 20).map((b: any, i: number) => (
                     <tr key={i}>
                       <td><div style={{ fontSize: 12 }}>{b.material.name}</div><div className="muted" style={{ fontSize: 11 }}>{b.material.id}</div></td>
                       <td className="mono small">{b.id}</td>
@@ -156,7 +156,7 @@ const Inventory = () => {
                       <td><Pill tone={b.status === 'Occupied' ? 'sage' : b.status === 'Blocked' ? 'red' : 'grey'}>{b.status}</Pill></td>
                     </tr>
                   ))}
-                  {!binsLoading && allBins.filter((b) => b.material).length === 0 && (
+                  {!binsLoading && allBins.filter((b: any) => b.material).length === 0 && (
                     <tr><td colSpan={7} className="muted small">No live quant rows available for this plant.</td></tr>
                   )}
                   {binsError && (
@@ -174,7 +174,7 @@ const Inventory = () => {
           <table className="tbl">
             <thead><tr><th>{t('warehouse.common.col.line')}</th><th>{t('warehouse.common.col.material')}</th><th className="num">{t('warehouse.inventory.col.current')}</th><th className="num">{t('warehouse.inventory.col.min')}</th><th className="num">{t('warehouse.inventory.col.max')}</th><th>{t('warehouse.inventory.col.level')}</th><th>{t('warehouse.common.col.status')}</th><th>Action</th></tr></thead>
             <tbody>
-              {allLineside.map((l, i) => {
+              {allLineside.map((l: any, i: number) => {
                 const pct = Math.min(100, (l.current / l.max) * 100);
                 const belowMin = l.current < l.min;
                 return (
@@ -207,7 +207,7 @@ const Inventory = () => {
             <table className="tbl">
               <thead><tr><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.material')}</th><th className="num">{t('warehouse.common.col.age')}</th><th className="num">{t('warehouse.common.col.qty')}</th></tr></thead>
               <tbody>
-                {aged.map((b, i) => (
+                {aged.map((b: any, i: number) => (
                   <tr key={i}><td className="mono small">{b.id}</td><td style={{ fontSize: 12 }}>{b.material?.name || '—'}</td><td className="num amber bold">{b.ageHours}h</td><td className="num">{b.qty != null ? Math.round(b.qty) : Math.round(b.fillPct * 6)}</td></tr>
                 ))}
                 {!binsLoading && aged.length === 0 && <tr><td colSpan={4} className="muted small">No aged live stock is available for this plant.</td></tr>}
@@ -218,7 +218,7 @@ const Inventory = () => {
             <table className="tbl">
               <thead><tr><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.common.col.batch')}</th><th className="num">Days</th></tr></thead>
               <tbody>
-                {expiring.map((b, i) => (
+                {expiring.map((b: any, i: number) => (
                   <tr key={i}><td className="mono small">{b.id}</td><td style={{ fontSize: 12 }}>{b.material?.name}</td><td className="mono small">B{String(400000 + i).slice(0, 7)}</td><td className="num red bold">{b.batchExpiryDays}d</td></tr>
                 ))}
                 {!binsLoading && expiring.length === 0 && <tr><td colSpan={4} className="muted small">No expiring live stock is available for this plant.</td></tr>}
@@ -233,7 +233,7 @@ const Inventory = () => {
           <table className="tbl">
             <thead><tr><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.common.col.batch')}</th><th className="num">{t('warehouse.common.col.qty')}</th><th>{t('warehouse.inventory.col.holdReason')}</th><th>{t('warehouse.inventory.col.owner')}</th></tr></thead>
             <tbody>
-              {blocked.map((b, i) => (
+              {blocked.map((b: any, i: number) => (
                 <tr key={i}>
                   <td className="mono small">{b.id}</td>
                   <td style={{ fontSize: 12 }}>{b.material?.name || '—'}</td>
@@ -254,7 +254,7 @@ const Inventory = () => {
           <table className="tbl">
             <thead><tr><th>{t('warehouse.inventory.col.prio')}</th><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.material')}</th><th className="num">{t('warehouse.inventory.col.lastCount')}</th><th className="num">{t('warehouse.inventory.col.delta')}</th><th>{t('warehouse.inventory.col.assign')}</th></tr></thead>
             <tbody>
-              {allBins.slice(0, 16).map((b, i) => (
+              {allBins.slice(0, 16).map((b: any, i: number) => (
                 <tr key={i}>
                   <td><Pill tone={i < 4 ? 'red' : i < 10 ? 'amber' : 'grey'}>{i < 4 ? 'P1' : i < 10 ? 'P2' : 'P3'}</Pill></td>
                   <td className="mono small">{b.id}</td>
@@ -276,7 +276,7 @@ const Inventory = () => {
 const BinHeatmap = ({ bins }) => {
   return (
     <div className="heatgrid" style={{ gridTemplateColumns: 'repeat(20, 1fr)' }}>
-      {bins.map((b, i) => {
+      {bins.map((b: any, i: number) => {
         let cls = 'heatcell ';
         if (b.status === 'Free') cls += 'empty';
         else if (b.status === 'Blocked') cls += 'warn';

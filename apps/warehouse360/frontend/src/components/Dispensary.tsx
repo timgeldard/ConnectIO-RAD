@@ -1,13 +1,16 @@
-import React from 'react';
-import { useI18n } from '@connectio/shared-frontend-i18n';
-import WM from '../data/mockData.js';
-import { useApi } from '../hooks/useApi.js';
-import { Icon, Pill, Progress } from './Primitives.jsx';
-import { FilterBar, Card, KPI } from './Shared.jsx';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React from 'react'
+import { useI18n } from '@connectio/shared-frontend-i18n'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import WM from '../data/mockData'
+import { useApi } from '../hooks/useApi'
+import { Icon, Pill, Progress } from './Primitives'
+import { FilterBar, Card, KPI } from './Shared'
 
 /* Dispensary Workbench */
 
-const normalizeTask = (task) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const normalizeTask = (task: any) => {
   const reqBy = task.sched_start ? new Date(task.sched_start) : null;
   return {
     _source: 'api',
@@ -26,10 +29,11 @@ const normalizeTask = (task) => {
 
 const Dispensary = () => {
   const { t } = useI18n();
-  const [tab, setTab] = React.useState('today');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_tab, _setTab] = React.useState('today')
   const [filters, setFilters] = React.useState({ status: 'all', scale: 'all' });
 
-  const { data: tasksResp, loading: tasksLoading, error: tasksError } = useApi('/api/dispensary');
+  const { data: tasksResp, loading: tasksLoading, error: tasksError } = useApi<any>('/api/dispensary')
   const allTasks = React.useMemo(() => {
     const api = tasksResp?.tasks ?? [];
     return api.map(normalizeTask);
@@ -37,8 +41,8 @@ const Dispensary = () => {
 
   const rows = React.useMemo(() => {
     let r = allTasks;
-    if (filters.status !== 'all') r = r.filter((task) => task.status === filters.status);
-    if (filters.scale !== 'all') r = r.filter((task) => task.scale === filters.scale);
+    if (filters.status !== 'all') r = r.filter((task: any) => task.status === filters.status);
+    if (filters.scale !== 'all') r = r.filter((task: any) => task.scale === filters.scale);
     return r;
   }, [allTasks, filters]);
 
@@ -58,19 +62,19 @@ const Dispensary = () => {
 
       <div className="kpi-grid">
         <KPI label={t('warehouse.dispensary.kpi.tasksToday')} value={tasksLoading ? '...' : allTasks.length} tone="ok"/>
-        <KPI label={t('warehouse.dispensary.kpi.weighed')} value={allTasks.filter((task) => task.status === 'Weighed').length} tone="ok" barPct={allTasks.length > 0 ? allTasks.filter((task) => task.status === 'Weighed').length / allTasks.length * 100 : 0}/>
-        <KPI label={t('warehouse.dispensary.kpi.inProgress')} value={allTasks.filter((task) => task.status === 'Weighing').length} tone="ok"/>
-        <KPI label={t('warehouse.dispensary.kpi.todoCritical')} value={allTasks.filter((task) => task.status === 'To Do' && task.requiredBy && WM.minutesFromNow(task.requiredBy) < 60).length} tone="critical"/>
-        <KPI label={t('warehouse.dispensary.kpi.readinessVsPlan')} value={allTasks.length > 0 ? Math.round(allTasks.filter((task) => task.status === 'Weighed').length / allTasks.length * 100) : 0} unit="%" target="95%" tone="warn" barPct={allTasks.length > 0 ? allTasks.filter((task) => task.status === 'Weighed').length / allTasks.length * 100 : 0} barTone="amber"/>
+        <KPI label={t('warehouse.dispensary.kpi.weighed')} value={allTasks.filter((task: any) => task.status === 'Weighed').length} tone="ok" barPct={allTasks.length > 0 ? allTasks.filter((task: any) => task.status === 'Weighed').length / allTasks.length * 100 : 0}/>
+        <KPI label={t('warehouse.dispensary.kpi.inProgress')} value={allTasks.filter((task: any) => task.status === 'Weighing').length} tone="ok"/>
+        <KPI label={t('warehouse.dispensary.kpi.todoCritical')} value={allTasks.filter((task: any) => task.status === 'To Do' && task.requiredBy && WM.minutesFromNow(task.requiredBy) < 60).length} tone="critical"/>
+        <KPI label={t('warehouse.dispensary.kpi.readinessVsPlan')} value={allTasks.length > 0 ? Math.round(allTasks.filter((task: any) => task.status === 'Weighed').length / allTasks.length * 100) : 0} unit="%" target="95%" tone="warn" barPct={allTasks.length > 0 ? allTasks.filter((task: any) => task.status === 'Weighed').length / allTasks.length * 100 : 0} barTone="amber"/>
         <KPI label={t('warehouse.dispensary.kpi.toleranceBreaches')} value="—" tone="ok"/>
       </div>
 
       {/* Scales grid */}
       <Card title={t('warehouse.dispensary.card.scales')} subtitle="Four certified scales · last stable reading" eyebrow="Scales" style={{ marginBottom: 16 }}>
         <div className="grid-4">
-          {['SC-01', 'SC-02', 'SC-03', 'SC-04'].map((id, i) => {
-            const scaleTask = allTasks.find((task) => task.scale === id && task.status === 'Weighing')
-              || allTasks.find((task) => task.scale === id);
+          {['SC-01', 'SC-02', 'SC-03', 'SC-04'].map((id: any) => {
+            const scaleTask = allTasks.find((task: any) => task.scale === id && task.status === 'Weighing')
+              || allTasks.find((task: any) => task.scale === id);
             const inUse = scaleTask?.status === 'Weighing';
             return (
               <div key={id} className="scale-card" style={{ borderColor: inUse ? 'var(--valentia-slate)' : 'var(--stroke-soft)' }}>
@@ -132,7 +136,7 @@ const Dispensary = () => {
               </tr>
             </thead>
             <tbody>
-              {rows.map((task) => {
+              {rows.map((task: any) => {
                 const delta = task.weighedQty > 0 ? ((task.weighedQty - task.qty) / task.qty * 100) : null;
                 const mins = task.requiredBy ? WM.minutesFromNow(task.requiredBy) : null;
                 return (

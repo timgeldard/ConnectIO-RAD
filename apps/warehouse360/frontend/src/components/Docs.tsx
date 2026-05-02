@@ -1,7 +1,8 @@
-import React from 'react';
-import { useI18n } from '@connectio/shared-frontend-i18n';
-import { Icon, RiskDot } from './Primitives.jsx';
-import { Card } from './Shared.jsx';
+// @ts-nocheck
+import React from 'react'
+import { useI18n } from '@connectio/shared-frontend-i18n'
+import { Icon, RiskDot } from './Primitives'
+import { Card } from './Shared'
 
 const tones = ['slate', 'forest', 'sage', 'sunset', 'sunrise', 'jade'];
 
@@ -321,7 +322,8 @@ const localeVariants = {
   },
 };
 
-const mergeCopy = (language) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mergeCopy = (language: any): any => {
   const base = docsCopy.en;
   const localized = docsCopy[language] ?? base;
   const variant = localeVariants[language] ?? {};
@@ -489,7 +491,7 @@ const integrations = {
 const SOURCE_LABEL = { sap: 'connected_plant_uat.sap', central: 'published_uat.central_services' };
 const SOURCE_COLOR = { sap: 'var(--valentia-slate)', central: 'var(--forest)' };
 
-const DocsTabs = ({ current, onChange }) => {
+const DocsTabs = ({ current, onChange }: { current: string; onChange: (id: string) => void }) => {
   const { t } = useI18n();
   return (
     <div className="docs-tabs">

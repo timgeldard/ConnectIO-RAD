@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { PlatformShell, ContextBar, type CtxState } from '@connectio/shared-ui'
 import { CQ_MODULES, CQ_COMPOSITION } from '~/manifest'
+import { fetchPreferences, savePreferences } from '~/api/preferences'
 
 // Pages
 import { Home } from '~/pages/Home'
@@ -25,8 +26,8 @@ import { Admin } from '~/pages/Admin'
 import { GenericOverview } from '~/components/GenericOverview'
 
 const DEFAULT_CTX: CtxState = {
-  plant: 'Charleville · IE',
-  material: '20582002 · WPC-80',
+  plant: 'Charleville ï¿½ IE',
+  material: '20582002 ï¿½ WPC-80',
   batch: '0008898869',
 }
 
@@ -83,10 +84,31 @@ function ActivePage({
   return <GenericOverview title="Coming Soon" eyebrow="" desc="" kpis={[]} panels={[]} />
 }
 
-/** Root application — drives the platform shell from the CQ manifest. */
+/** Root application â€” drives the platform shell from the CQ manifest. */
 export function App() {
   const [activeModule, setActiveModule] = useState(CQ_COMPOSITION.defaultModule)
   const [tabState, setTabState] = useState<Record<string, string>>({})
+  const [pinnedModules, setPinnedModules] = useState<string[] | null>(null)
+
+  useEffect(() => {
+    fetchPreferences(CQ_COMPOSITION.appId)
+      .then(prefs => setPinnedModules(prefs.pinnedModules))
+      .catch(() => {})
+  }, [])
+
+  const handleModulePinToggle = useCallback((moduleId: string, pin: boolean) => {
+    const allSelectable = CQ_MODULES
+      .filter(m => m.isUserSelectable && CQ_COMPOSITION.enabledModules.includes(m.moduleId))
+      .map(m => m.moduleId)
+    setPinnedModules(prev => {
+      const base = prev ?? allSelectable
+      const next = pin
+        ? [...new Set([...base, moduleId])]
+        : base.filter(id => id !== moduleId)
+      savePreferences(CQ_COMPOSITION.appId, next).catch(() => {})
+      return next
+    })
+  }, [])
 
   const handleTabChange = (moduleId: string, tabId: string) => {
     setTabState((prev) => ({ ...prev, [moduleId]: tabId }))
@@ -106,8 +128,10 @@ export function App() {
       contextBar={contextBar}
       userInitials="SK"
       userName="Sarah Keane"
-      userRole="QA · Charleville"
+      userRole="QA â€” Charleville"
       badgeMap={{ alarms: 7 }}
+      pinnedModules={pinnedModules}
+      onModulePinToggle={handleModulePinToggle}
     >
       <ActivePage mod={activeModule} tabState={tabState} onOpen={setActiveModule} />
     </PlatformShell>

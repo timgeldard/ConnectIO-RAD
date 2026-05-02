@@ -5,6 +5,7 @@ from pathlib import Path
 from backend.routers.alarms import router as alarms_router
 from backend.routers.envmon import router as envmon_router
 from backend.routers.lab import router as lab_router
+from backend.routers.me_router import router as me_router
 from backend.routers.spc import router as spc_router
 from backend.routers.trace import router as trace_router
 from shared_api import (
@@ -18,6 +19,7 @@ STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 
 app = create_api_app(title="ConnectedQuality API")
 
+app.include_router(me_router, prefix="/api/cq", tags=["Me"])
 app.include_router(trace_router, prefix="/api/cq", tags=["Trace"])
 app.include_router(envmon_router, prefix="/api/cq", tags=["EnvMon"])
 app.include_router(spc_router, prefix="/api/cq", tags=["SPC"])

@@ -1,3 +1,5 @@
+/* eslint-disable */
+// @ts-nocheck
 /* ============================================================
    Warehouse Manager 360° — Mock SAP WM data
    Kerry Naas (Savoury/Taste) site · SAP ECC / WM on Databricks

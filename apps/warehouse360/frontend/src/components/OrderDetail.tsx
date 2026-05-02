@@ -1,18 +1,24 @@
-import React from 'react';
-import WM from '../data/mockData.js';
-import { Icon, Pill, Progress } from './Primitives.jsx';
-import { Card } from './Shared.jsx';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import WM from '../data/mockData'
+import { Icon, Pill, Progress } from './Primitives'
+import { Card } from './Shared'
 
 /* Production Order staging detail — drawer contents */
 
-const OrderStagingDetail = ({ order }) => {
+/** Props for the OrderStagingDetail drawer content. */
+interface OrderStagingDetailProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  order?: any
+}
+
+const OrderStagingDetail = ({ order }: OrderStagingDetailProps) => {
   if (!order) return null;
   const isApi = !!order._source;
-  const tr = isApi ? [] : WM.TRs.filter((t) => t.po === order.id).slice(0, 10);
+  const tr = isApi ? [] : WM.TRs.filter((t: any) => t.po === order.id).slice(0, 10);
   const to = isApi ? [] : WM.TOs.slice(0, 8);
   const huIdx = order.id.length > 5 ? order.id.charCodeAt(5) % 10 : 0;
   const hu = isApi ? [] : WM.HUs.slice(huIdx, 5 + huIdx);
-  const disp = isApi ? [] : WM.DISP_TASKS.filter((d) => d.po === order.id).slice(0, 6);
+  const disp = isApi ? [] : WM.DISP_TASKS.filter((d: any) => d.po === order.id).slice(0, 6);
 
   const minsToStart = order.start ? WM.minutesFromNow(order.start) : null;
   return (
@@ -75,7 +81,7 @@ const OrderStagingDetail = ({ order }) => {
               </tr>
             </thead>
             <tbody>
-              {tr.map((t, i) => (
+              {tr.map((t: any, i: number) => (
                 <tr key={i}>
                   <td><span className="code">{t.id}</span></td>
                   <td>
@@ -101,7 +107,7 @@ const OrderStagingDetail = ({ order }) => {
           <Card title="Dispensary weighing" subtitle={`${disp.length} micro-ingredients to weigh · tolerance ± 0.5%`}
             eyebrow="Dispensary">
             <div className="stack-8">
-              {disp.map((d, i) => (
+              {disp.map((d: any, i: number) => (
                 <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 120px 80px 100px', gap: 12, alignItems: 'center', fontSize: 12 }}>
                   <div>
                     <div className="primary">{d.material.name}</div>
@@ -125,7 +131,7 @@ const OrderStagingDetail = ({ order }) => {
               <tr><th>SSCC</th><th>Material</th><th className="num">Qty</th><th>Bin</th><th>Status</th><th>Last scan</th></tr>
             </thead>
             <tbody>
-              {hu.map((h, i) => (
+              {hu.map((h: any, i: number) => (
                 <tr key={i}>
                   <td className="code">{h.sscc}</td>
                   <td><div style={{ fontSize: 12 }}>{h.material.name}</div><div className="muted" style={{ fontSize: 11 }}>{h.material.id}</div></td>
@@ -149,7 +155,7 @@ const OrderStagingDetail = ({ order }) => {
               <tr><th>TO</th><th>Type</th><th>Material</th><th className="num">Qty</th><th>Src</th><th>Dst</th><th>Operator</th><th>Status</th></tr>
             </thead>
             <tbody>
-              {to.map((t, i) => (
+              {to.map((t: any, i: number) => (
                 <tr key={i}>
                   <td className="code">{t.id}</td>
                   <td><span className="tag">{t.type}</span></td>

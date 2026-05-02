@@ -1,4 +1,3 @@
-import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { Inbound } from '../Inbound'
@@ -11,7 +10,7 @@ import { Sidebar, TopBar } from '../Shell'
 import { OrderStagingDetail } from '../OrderDetail'
 import { DocsPage } from '../Docs'
 
-vi.mock('../../hooks/useApi.js', () => ({
+vi.mock('../../hooks/useApi', () => ({
   useApi: () => ({ data: null, loading: false, error: null }),
 }))
 

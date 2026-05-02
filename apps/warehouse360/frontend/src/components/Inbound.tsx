@@ -1,29 +1,36 @@
-import React from 'react';
-import { useI18n } from '@connectio/shared-frontend-i18n';
-import WM from '../data/mockData.js';
-import { useApi } from '../hooks/useApi.js';
-import { Icon, Pill, Progress, RiskDot } from './Primitives.jsx';
-import { FilterBar, Card, KPI } from './Shared.jsx';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React from 'react'
+import { useI18n } from '@connectio/shared-frontend-i18n'
+import WM from '../data/mockData'
+import { useApi } from '../hooks/useApi'
+import { Icon, Pill, Progress } from './Primitives'
+import { FilterBar, Card, KPI } from './Shared'
 
 /* Inbound — PO + STO receipts, dock schedule, putaway backlog */
 
-const Inbound = ({ onOpen }) => {
+/** Props for the Inbound receipts page. */
+interface InboundProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onOpen?: (receipt: any) => void
+}
+
+const Inbound = ({ onOpen }: InboundProps) => {
   const { t } = useI18n();
   const [tab, setTab] = React.useState('all');
   const [filters, setFilters] = React.useState({ risk: 'all' });
-  const { data: resp, loading } = useApi('/api/inbound');
+  const { data: resp, loading } = useApi<any>('/api/inbound');
   const allReceipts = resp?.receipts ?? [];
 
   const rows = React.useMemo(() => {
     let r = allReceipts;
-    if (tab === 'qa') r = r.filter((x) => x.qa_status === 'inspection');
-    if (filters.risk !== 'all') r = r.filter((x) => x.risk === filters.risk);
+    if (tab === 'qa') r = r.filter((x: any) => x.qa_status === 'inspection');
+    if (filters.risk !== 'all') r = r.filter((x: any) => x.risk === filters.risk);
     return r;
   }, [tab, filters, allReceipts]);
 
   const counts = React.useMemo(() => ({
     all: allReceipts.length,
-    qa:  allReceipts.filter((x) => x.qa_status === 'inspection').length,
+    qa:  allReceipts.filter((x: any) => x.qa_status === 'inspection').length,
   }), [allReceipts]);
 
   const v = (n) => loading ? '...' : n;
@@ -69,7 +76,7 @@ const Inbound = ({ onOpen }) => {
         {[
           { id: 'all', label: t('warehouse.inbound.tab.all') },
           { id: 'qa',  label: t('warehouse.inbound.tab.qa') },
-        ].map((tabDef) => (
+        ].map((tabDef: any) => (
           <button key={tabDef.id} className={`tab ${tab === tabDef.id ? 'is-active' : ''}`} onClick={() => setTab(tabDef.id)}>
             {tabDef.label}<span className="tab-count">{counts[tabDef.id] ?? ''}</span>
           </button>
@@ -105,8 +112,8 @@ const Inbound = ({ onOpen }) => {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.po_id + '-' + r.po_item} onClick={() => onOpen(r)}>
+              {rows.map((r: any) => (
+                <tr key={r.po_id + '-' + r.po_item} onClick={() => onOpen?.(r)}>
                   <td>
                     <div className="code">{r.po_id}</div>
                     <div className="muted" style={{ fontSize: 11 }}>item {r.po_item}</div>
@@ -141,13 +148,13 @@ const Inbound = ({ onOpen }) => {
 };
 
 const DockSchedule = ({ type, events = [], onOpen }) => {
-  const liveEvents = events.filter((event) => event.dock_id || event.dock?.id);
-  const docks = Array.from(new Set(liveEvents.map((event) => event.dock_id ?? event.dock?.id))).map((id) => ({ id }));
+  const liveEvents = events.filter((event: any) => event.dock_id || event.dock?.id);
+  const docks = Array.from(new Set(liveEvents.map((event: any) => event.dock_id ?? event.dock?.id))).map((id: any) => ({ id }));
   const startH = 6;
   const hours = 14;
   const now = new Date();
   const dayStart = (() => { const d = new Date(now); d.setHours(startH, 0, 0, 0); return d; })();
-  const xAt = (d) => ((d - dayStart) / (hours * 3600000)) * 100;
+  const xAt = (d: Date) => ((d.getTime() - dayStart.getTime()) / (hours * 3600000)) * 100;
   const nowX = xAt(now);
   if (docks.length === 0) {
     return <div className="muted small">No live dock allocation data is available for {type.toLowerCase()} movements.</div>;
@@ -157,21 +164,21 @@ const DockSchedule = ({ type, events = [], onOpen }) => {
       <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', marginBottom: 4 }}>
         <div></div>
         <div style={{ position: 'relative', height: 18 }}>
-          {Array.from({ length: hours + 1 }).map((_, i) => (
+          {Array.from({ length: hours + 1 }).map((_: any, i: number) => (
             <div key={i} style={{ position: 'absolute', left: (i / hours * 100) + '%', transform: 'translateX(-50%)', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-muted)' }}>
               {String((startH + i) % 24).padStart(2, '0')}
             </div>
           ))}
         </div>
       </div>
-      {docks.map((dock) => {
-        const slots = liveEvents.filter((e) => (e.dock_id ?? e.dock?.id) === dock.id);
+      {docks.map((dock: any) => {
+        const slots = liveEvents.filter((e: any) => (e.dock_id ?? e.dock?.id) === dock.id);
         return (
           <div key={dock.id} style={{ display: 'grid', gridTemplateColumns: '60px 1fr', alignItems: 'center', marginBottom: 4 }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--forest)', fontWeight: 600 }}>{dock.id}</div>
             <div style={{ position: 'relative', height: 28, background: 'var(--stone)', borderRadius: 4, overflow: 'hidden' }}>
               <div style={{ position: 'absolute', left: nowX + '%', top: 0, bottom: 0, width: 2, background: 'var(--sunset)', zIndex: 2 }}/>
-              {slots.slice(0, 4).map((s) => {
+              {slots.slice(0, 4).map((s: any) => {
                 const slotTime = new Date(type === 'Inbound' ? s.delivery_date : s.planned_gi_date);
                 if (Number.isNaN(slotTime.getTime())) return null;
                 const left = Math.max(0, Math.min(100, xAt(slotTime)));
@@ -194,7 +201,13 @@ const DockSchedule = ({ type, events = [], onOpen }) => {
   );
 };
 
-const ReceiptDetail = ({ receipt }) => {
+/** Props for the ReceiptDetail drawer content. */
+interface ReceiptDetailProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  receipt?: any
+}
+
+const ReceiptDetail = ({ receipt }: ReceiptDetailProps) => {
   if (!receipt) return null;
 
   const id       = receipt.po_id       ?? receipt.id;

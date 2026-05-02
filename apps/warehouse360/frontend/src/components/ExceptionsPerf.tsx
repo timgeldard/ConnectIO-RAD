@@ -1,12 +1,23 @@
-import React from 'react';
-import { useI18n } from '@connectio/shared-frontend-i18n';
-import WM from '../data/mockData.js';
-import { Icon, Pill, RiskDot, SparkBars, Hbar } from './Primitives.jsx';
-import { FilterBar, Card, KPI } from './Shared.jsx';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React from 'react'
+import { useI18n } from '@connectio/shared-frontend-i18n'
+import WM from '../data/mockData'
+import { Icon, Pill, SparkBars, Hbar } from './Primitives'
+import { FilterBar, Card, KPI } from './Shared'
 
 /* Exceptions Command Centre + Performance Analytics */
 
-const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
+/** Props for the Exceptions command centre page. */
+interface ExceptionsProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onOpenOrder?: (order: any) => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onOpenDelivery?: (delivery: any) => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onOpenReceipt?: (receipt: any) => void
+}
+
+const Exceptions = ({ onOpenOrder, onOpenDelivery: _onOpenDelivery, onOpenReceipt: _onOpenReceipt }: ExceptionsProps) => {
   const { t } = useI18n();
   const [severity, setSeverity] = React.useState('all');
   const [domain, setDomain] = React.useState('all');
@@ -14,11 +25,11 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
 
   const rows = React.useMemo(() => {
     let r = WM.EXCEPTIONS;
-    if (severity !== 'all') r = r.filter((e) => e.type.severity === severity);
-    if (domain !== 'all') r = r.filter((e) => e.type.domain === domain);
-    if (acknowledged === 'open') r = r.filter((e) => !e.acknowledged);
-    if (acknowledged === 'ack') r = r.filter((e) => e.acknowledged);
-    return [...r].sort((a, b) => {
+    if (severity !== 'all') r = r.filter((e: any) => e.type.severity === severity);
+    if (domain !== 'all') r = r.filter((e: any) => e.type.domain === domain);
+    if (acknowledged === 'open') r = r.filter((e: any) => !e.acknowledged);
+    if (acknowledged === 'ack') r = r.filter((e: any) => e.acknowledged);
+    return [...r].sort((a: any, b: any) => {
       const sev = { critical: 0, high: 1, medium: 2 };
       if (sev[a.type.severity] !== sev[b.type.severity]) return sev[a.type.severity] - sev[b.type.severity];
       return b.ageMin - a.ageMin;
@@ -26,13 +37,13 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
   }, [severity, domain, acknowledged]);
 
   const counts = {
-    critical: WM.EXCEPTIONS.filter((e) => e.type.severity === 'critical' && !e.acknowledged).length,
-    high: WM.EXCEPTIONS.filter((e) => e.type.severity === 'high' && !e.acknowledged).length,
-    medium: WM.EXCEPTIONS.filter((e) => e.type.severity === 'medium' && !e.acknowledged).length,
+    critical: WM.EXCEPTIONS.filter((e: any) => e.type.severity === 'critical' && !e.acknowledged).length,
+    high: WM.EXCEPTIONS.filter((e: any) => e.type.severity === 'high' && !e.acknowledged).length,
+    medium: WM.EXCEPTIONS.filter((e: any) => e.type.severity === 'medium' && !e.acknowledged).length,
     total: WM.EXCEPTIONS.length,
   };
 
-  const domains = ['all', ...new Set(WM.EXCEPTIONS.map((e) => e.type.domain))];
+  const domains = ['all', ...new Set(WM.EXCEPTIONS.map((e: any) => e.type.domain))];
 
   return (
     <div className="page">
@@ -52,19 +63,19 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
         <KPI label={t('warehouse.exceptions.kpi.criticalOpen')} value={counts.critical} tone="critical"/>
         <KPI label={t('warehouse.exceptions.kpi.highOpen')} value={counts.high} tone="warn"/>
         <KPI label={t('warehouse.exceptions.kpi.mediumOpen')} value={counts.medium} tone="ok"/>
-        <KPI label={t('warehouse.exceptions.kpi.acknowledged')} value={WM.EXCEPTIONS.filter((e) => e.acknowledged).length} tone="ok"/>
+        <KPI label={t('warehouse.exceptions.kpi.acknowledged')} value={WM.EXCEPTIONS.filter((e: any) => e.acknowledged).length} tone="ok"/>
         <KPI label={t('warehouse.exceptions.kpi.mtta')} value="11" unit=" min" tone="ok" trend={-3} trendLabel="m vs yest"/>
-        <KPI label={t('warehouse.exceptions.kpi.oldestOpen')} value={Math.max(...WM.EXCEPTIONS.filter((e) => !e.acknowledged).map((e) => e.ageMin))} unit=" min" tone="warn"/>
+        <KPI label={t('warehouse.exceptions.kpi.oldestOpen')} value={Math.max(...WM.EXCEPTIONS.filter((e: any) => !e.acknowledged).map((e: any) => e.ageMin))} unit=" min" tone="warn"/>
       </div>
 
       <div className="grid-asym" style={{ marginBottom: 16 }}>
         <Card title={t('warehouse.exceptions.card.severityBreakdown')} subtitle="By domain · last 8 hours" eyebrow="Breakdown">
           <div className="stack-8">
-            {domains.filter((d) => d !== 'all').map((d) => {
-              const byDomain = WM.EXCEPTIONS.filter((e) => e.type.domain === d);
-              const c = byDomain.filter((e) => e.type.severity === 'critical').length;
-              const h = byDomain.filter((e) => e.type.severity === 'high').length;
-              const m = byDomain.filter((e) => e.type.severity === 'medium').length;
+            {domains.filter((d: any) => d !== 'all').map((d: any) => {
+              const byDomain = WM.EXCEPTIONS.filter((e: any) => e.type.domain === d);
+              const c = byDomain.filter((e: any) => e.type.severity === 'critical').length;
+              const h = byDomain.filter((e: any) => e.type.severity === 'high').length;
+              const m = byDomain.filter((e: any) => e.type.severity === 'medium').length;
               return (
                 <div key={d}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, marginBottom: 3 }}>
@@ -126,7 +137,7 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
             { value: 'high',     label: t('warehouse.exceptions.filter.high'), dot: 'amber' },
             { value: 'medium',   label: t('warehouse.exceptions.filter.medium'), dot: 'slate' },
           ] },
-          { key: 'domain', label: 'Domain', options: domains.map((d) => ({ value: d, label: d === 'all' ? t('warehouse.common.filter.allDomains') : d })) },
+          { key: 'domain', label: 'Domain', options: domains.map((d: any) => ({ value: d, label: d === 'all' ? t('warehouse.common.filter.allDomains') : d })) },
         ]}
         values={{ severity, domain }}
         onChange={(k, v) => k === 'severity' ? setSeverity(v) : setDomain(v)}
@@ -136,8 +147,8 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery, onOpenReceipt }) => {
         <table className="tbl">
           <thead><tr><th></th><th>{t('warehouse.exceptions.col.severity')}</th><th>{t('warehouse.exceptions.col.exception')}</th><th>{t('warehouse.exceptions.col.related')}</th><th>{t('warehouse.exceptions.col.detail')}</th><th className="num">{t('warehouse.common.col.age')}</th><th>{t('warehouse.exceptions.col.owner')}</th><th>{t('warehouse.exceptions.col.action')}</th></tr></thead>
           <tbody>
-            {rows.map((e) => (
-              <tr key={e.id} onClick={() => e.po && onOpenOrder(e.po)}>
+            {rows.map((e: any) => (
+              <tr key={e.id} onClick={() => e.po && onOpenOrder?.(e.po)}>
                 <td><span className={`risk-dot ${e.type.severity === 'critical' ? 'red' : e.type.severity === 'high' ? 'amber' : 'slate'}`}/></td>
                 <td><Pill tone={e.type.severity === 'critical' ? 'red' : e.type.severity === 'high' ? 'amber' : 'slate'}>{e.type.severity.toUpperCase()}</Pill></td>
                 <td><div style={{ fontSize: 12, fontWeight: 600 }}>{e.type.title}</div><div className="muted" style={{ fontSize: 11 }}>{e.type.domain}</div></td>
@@ -247,7 +258,7 @@ const Performance = () => {
 
         <Card title={t('warehouse.perf.card.workloadHeatmap')} subtitle="Task-completion density by hour" eyebrow="Rhythm">
           <div className="heatgrid" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
-            {Array.from({ length: 14 * 24 }).map((_, i) => {
+            {Array.from({ length: 14 * 24 }).map((_: any, i: number) => {
               const hour = i % 24;
               const busyness = (Math.sin((hour - 4) * 0.26) + 1) / 2;
               const noise = ((i * 13) % 11) / 20;

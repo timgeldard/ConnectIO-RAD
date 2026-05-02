@@ -1,8 +1,9 @@
-import React from 'react';
-import { I18nProvider, LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n';
-import { Icon } from './Primitives.jsx';
-import { usePlantSelection } from '../context/PlantContext.jsx';
-import resources from '../i18n/resources.json';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React from 'react'
+import { I18nProvider, LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n'
+import { Icon } from './Primitives'
+import { usePlantSelection } from '../context/PlantContext'
+import resources from '../i18n/resources.json'
 
 /* Sidebar + Top bar */
 const NAV = [
@@ -17,10 +18,19 @@ const NAV = [
   { id: 'docs', labelKey: 'warehouse.nav.docs', icon: 'flag', sectionKey: 'warehouse.section.docs' },
 ];
 
-const SidebarContent = ({ current, onNav, shift }) => {
+/** Props for SidebarContent — all optional for test compatibility. */
+interface SidebarProps {
+  current?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onNav?: (route: string) => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  shift?: { id: string; label?: string; hours?: string }
+}
+
+const SidebarContent = ({ current, onNav, shift }: SidebarProps) => {
   const { t } = useI18n();
   const { selectedPlant } = usePlantSelection();
-  let lastSection = null;
+  let lastSection: string | null = null
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -30,7 +40,7 @@ const SidebarContent = ({ current, onNav, shift }) => {
       <div className="sidebar-site">
         <div>
           <div className="sidebar-site-name nav-label">{selectedPlant.plant_name || t('warehouse.site.name')}</div>
-          <div className="sidebar-site-meta nav-label">{selectedPlant.plant_id} · WH NS01 · {shift.id}</div>
+          <div className="sidebar-site-meta nav-label">{selectedPlant.plant_id} · WH NS01 · {shift?.id}</div>
         </div>
       </div>
       <nav className="sidebar-nav">
@@ -40,7 +50,7 @@ const SidebarContent = ({ current, onNav, shift }) => {
           return (
             <React.Fragment key={n.id}>
               {showSection && <div className="nav-section-label nav-label">{t(n.sectionKey)}</div>}
-              <button className={`nav-item ${current === n.id ? 'is-active' : ''}`} onClick={() => onNav(n.id)} title={t(n.labelKey)}>
+              <button className={`nav-item ${current === n.id ? 'is-active' : ''}`} onClick={() => onNav?.(n.id)} title={t(n.labelKey)}>
                 <Icon name={n.icon} size={18}/>
                 <span className="nav-label">{t(n.labelKey)}</span>
                 {n.badge && <span className={`nav-item-badge ${n.badgeTone || ''}`}>{n.badge}</span>}
@@ -60,7 +70,15 @@ const SidebarContent = ({ current, onNav, shift }) => {
   );
 };
 
-const TopBarContent = ({ title, subtitle, onSearch, onMobileNav }) => {
+/** Props for TopBarContent — all optional for test compatibility. */
+interface TopBarProps {
+  title?: string
+  subtitle?: string
+  onSearch?: (value: string) => void
+  onMobileNav?: () => void
+}
+
+const TopBarContent = ({ title, subtitle, onSearch, onMobileNav }: TopBarProps) => {
   const { t } = useI18n();
   const { plants, selectedPlantId, setSelectedPlantId, loading } = usePlantSelection();
   return (
@@ -110,7 +128,13 @@ const TopBarContent = ({ title, subtitle, onSearch, onMobileNav }) => {
   );
 };
 
-const MobileNavContent = ({ current, onNav }) => {
+/** Props for MobileNavContent — all optional for test compatibility. */
+interface MobileNavProps {
+  current?: string
+  onNav?: (route: string) => void
+}
+
+const MobileNavContent = ({ current, onNav }: MobileNavProps) => {
   const { t } = useI18n();
   const [moreOpen, setMoreOpen] = React.useState(false);
   const primary = ['today', 'staging', 'outbound', 'exceptions'];
@@ -122,7 +146,7 @@ const MobileNavContent = ({ current, onNav }) => {
       <nav className="mobile-nav">
         {primaryItems.map((n) => (
           <button key={n.id} className={`mobile-nav-item ${current === n.id ? 'is-active' : ''}`}
-            onClick={() => { setMoreOpen(false); onNav(n.id); }}>
+            onClick={() => { setMoreOpen(false); onNav?.(n.id) }}>
             <Icon name={n.icon} size={18}/>
             <span>{t(n.labelKey).split(' ')[0]}</span>
             {n.badge && <span className={`mobile-nav-badge ${n.badgeTone || ''}`}>{n.badge}</span>}
@@ -141,7 +165,7 @@ const MobileNavContent = ({ current, onNav }) => {
             <div className="mobile-more-title">{t('warehouse.nav.navigate')}</div>
             {secondaryItems.map((n) => (
               <button key={n.id} className={`mobile-more-item ${current === n.id ? 'is-active' : ''}`}
-                onClick={() => { setMoreOpen(false); onNav(n.id); }}>
+                onClick={() => { setMoreOpen(false); onNav?.(n.id) }}>
                 <Icon name={n.icon} size={16}/>
                 <span>{t(n.labelKey)}</span>
                 {n.badge && <span className={`nav-item-badge ${n.badgeTone || ''}`} style={{ marginLeft: 'auto' }}>{n.badge}</span>}
@@ -154,15 +178,15 @@ const MobileNavContent = ({ current, onNav }) => {
   );
 };
 
-const withWarehouseI18n = (children) => (
+const withWarehouseI18n = (children: React.ReactNode) => (
   <I18nProvider appName="warehouse360" resources={resources}>
     {children}
   </I18nProvider>
 );
 
-const Sidebar = (props) => withWarehouseI18n(<SidebarContent {...props} />);
-const TopBar = (props) => withWarehouseI18n(<TopBarContent {...props} />);
-const MobileNav = (props) => withWarehouseI18n(<MobileNavContent {...props} />);
+const Sidebar = (props: SidebarProps) => withWarehouseI18n(<SidebarContent {...props} />)
+const TopBar = (props: TopBarProps) => withWarehouseI18n(<TopBarContent {...props} />)
+const MobileNav = (props: MobileNavProps) => withWarehouseI18n(<MobileNavContent {...props} />)
 
 
-export { Sidebar, TopBar, MobileNav, NAV };
+export { Sidebar, TopBar, MobileNav, NAV }

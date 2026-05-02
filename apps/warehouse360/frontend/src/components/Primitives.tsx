@@ -1,13 +1,22 @@
-import React from 'react';
+import React from 'react'
 
-/* Icons & small shared primitives (Lucide-style line icons, 24px, 1.75 stroke) */
-const Icon = ({ name, size = 18, stroke = 1.75, color = 'currentColor', style }) => {
+/** Props for the Icon component. */
+interface IconProps {
+  name: string
+  size?: number
+  stroke?: number
+  color?: string
+  style?: React.CSSProperties
+}
+
+/** SVG icon library (Lucide-style line icons, 24px grid, 1.75 stroke). */
+const Icon = ({ name, size = 18, stroke = 1.75, color = 'currentColor', style }: IconProps) => {
   const common = {
     width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
-    stroke: color, strokeWidth: stroke, strokeLinecap: 'round', strokeLinejoin: 'round',
+    stroke: color, strokeWidth: stroke, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
     style,
   };
-  const paths = {
+  const paths: Record<string, React.ReactNode> = {
     dashboard: <><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></>,
     factory: <><path d="M2 20h20"/><path d="M4 20V9l6 4V9l6 4V6h4v14"/><path d="M8 20v-4"/><path d="M12 20v-4"/><path d="M16 20v-4"/></>,
     truckIn: <><path d="M14 18V6H3v12h11z"/><path d="M14 9h5l3 3v6h-8"/><circle cx="7" cy="19" r="2"/><circle cx="17" cy="19" r="2"/></>,
@@ -49,26 +58,62 @@ const Icon = ({ name, size = 18, stroke = 1.75, color = 'currentColor', style })
     link: <><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></>,
     thermometer: <><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z"/></>,
   };
-  return <svg {...common}>{paths[name] || null}</svg>;
+  return <svg {...common}>{paths[name] ?? null}</svg>
 };
 
-const Pill = ({ tone = 'grey', children, noDot, style }) => (
+
+/** Props for the Pill component. */
+interface PillProps {
+  tone?: string
+  children?: React.ReactNode
+  noDot?: boolean
+  style?: React.CSSProperties
+}
+
+/** Status pill / badge with optional dot indicator. */
+const Pill = ({ tone = 'grey', children, noDot, style }: PillProps) => (
   <span className={`pill pill-${tone}${noDot ? ' no-dot' : ''}`} style={style}>{children}</span>
 );
 
-const Progress = ({ pct, tone, w }) => (
-  <div className="progress" style={{ width: w || '100%' }}>
+
+/** Props for the Progress bar component. */
+interface ProgressProps {
+  pct: number
+  tone?: string
+  w?: string | number
+}
+
+/** Thin horizontal progress bar. */
+const Progress = ({ pct, tone, w }: ProgressProps) => (
+  <div className="progress" style={{ width: w ?? '100%' }}>
     <div className={`progress-fill${tone ? ' is-' + tone : ''}`} style={{ width: Math.max(0, Math.min(100, pct)) + '%' }}/>
   </div>
 );
 
-const RiskDot = ({ risk }) => <span className={`risk-dot ${risk === 'green' ? '' : risk}`}/>;
 
-const riskLabel = (r) => r === 'red' ? 'Critical' : r === 'amber' ? 'At risk' : r === 'green' ? 'On track' : '—';
-const riskTone = (r) => r === 'red' ? 'red' : r === 'amber' ? 'amber' : 'green';
+/** Props for the RiskDot component. */
+interface RiskDotProps {
+  risk?: string
+}
 
-// Small donut
-const Donut = ({ pct, colour = 'var(--valentia-slate)', label, sub }) => {
+/** Coloured dot conveying risk level (red / amber / green). */
+const RiskDot = ({ risk }: RiskDotProps) => <span className={`risk-dot ${risk === 'green' ? '' : (risk ?? '')}`}/>
+
+/** Returns a human-readable risk label string. */
+const riskLabel = (r: string) => r === 'red' ? 'Critical' : r === 'amber' ? 'At risk' : r === 'green' ? 'On track' : '—';
+/** Maps a risk string to its Pill tone. */
+const riskTone = (r: string) => r === 'red' ? 'red' : r === 'amber' ? 'amber' : 'green';
+
+/** Props for the Donut chart component. */
+interface DonutProps {
+  pct: number
+  colour?: string
+  label?: string
+  sub?: string
+}
+
+/** Small circular donut chart. */
+const Donut = ({ pct, colour = 'var(--valentia-slate)', label, sub }: DonutProps) => {
   const r = 54, c = 2 * Math.PI * r;
   const off = c - (pct / 100) * c;
   return (
@@ -80,14 +125,24 @@ const Donut = ({ pct, colour = 'var(--valentia-slate)', label, sub }) => {
           transform="rotate(-90 70 70)"/>
       </svg>
       <div className="donut-center">
-        <div className="big">{label || pct + '%'}</div>
+        <div className="big">{label ?? pct + '%'}</div>
         {sub && <div className="small">{sub}</div>}
       </div>
     </div>
   );
 };
 
-const Hbar = ({ label, value, max, tone = '' }) => (
+
+/** Props for the Hbar component. */
+interface HbarProps {
+  label?: string
+  value: number
+  max: number
+  tone?: string
+}
+
+/** Horizontal bar metric row. */
+const Hbar = ({ label, value, max, tone = '' }: HbarProps) => (
   <div className="hbar">
     <div className="hbar-label">{label}</div>
     <div className="hbar-track"><div className={`hbar-fill ${tone}`} style={{ width: Math.min(100, (value / max) * 100) + '%' }}/></div>
@@ -95,7 +150,16 @@ const Hbar = ({ label, value, max, tone = '' }) => (
   </div>
 );
 
-const SparkBars = ({ data, tone = 'slate', height = 36 }) => {
+
+/** Props for the SparkBars component. */
+interface SparkBarsProps {
+  data: number[]
+  tone?: 'slate' | 'jade' | 'sunset' | 'sunrise' | 'sage' | 'forest'
+  height?: number
+}
+
+/** Mini bar sparkline for KPI trends. */
+const SparkBars = ({ data, tone = 'slate', height = 36 }: SparkBarsProps) => {
   const max = Math.max(...data);
   const toneColor = { slate: 'var(--valentia-slate)', jade: 'var(--jade)', sunset: 'var(--sunset)', sunrise: 'var(--sunrise)', sage: 'var(--sage)', forest: 'var(--forest)' }[tone];
   return (
@@ -111,4 +175,4 @@ const SparkBars = ({ data, tone = 'slate', height = 36 }) => {
 };
 
 
-export { Icon, Pill, Progress, RiskDot, riskLabel, riskTone, Donut, Hbar, SparkBars };
+export { Icon, Pill, Progress, RiskDot, riskLabel, riskTone, Donut, Hbar, SparkBars }

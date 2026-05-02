@@ -1,10 +1,11 @@
-import React from 'react';
-import { useI18n } from '@connectio/shared-frontend-i18n';
-import WM from '../data/mockData.js';
-import { useApi } from '../hooks/useApi.js';
-import { Icon, Pill, Progress, RiskDot } from './Primitives.jsx';
-import { FilterBar, Card, KPI } from './Shared.jsx';
-import { DockSchedule } from './Inbound.jsx';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React from 'react'
+import { useI18n } from '@connectio/shared-frontend-i18n'
+import WM from '../data/mockData'
+import { useApi } from '../hooks/useApi'
+import { Icon, Pill, Progress, RiskDot } from './Primitives'
+import { FilterBar, Card, KPI } from './Shared'
+import { DockSchedule } from './Inbound'
 
 /* Outbound — deliveries, picking, staging, loading, dock view */
 
@@ -15,21 +16,27 @@ const deliveryStatus = (d) => {
   return 'Open';
 };
 
-const Outbound = ({ onOpen }) => {
+/** Props for the Outbound deliveries page. */
+interface OutboundProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onOpen?: (delivery: any) => void
+}
+
+const Outbound = ({ onOpen }: OutboundProps) => {
   const { t } = useI18n();
   const [tab, setTab] = React.useState('all');
   const [filters, setFilters] = React.useState({ risk: 'all' });
-  const { data: resp, loading } = useApi('/api/deliveries');
+  const { data: resp, loading } = useApi<any>('/api/deliveries');
   const allDeliveries = resp?.deliveries ?? [];
 
   const rows = React.useMemo(() => {
     let r = allDeliveries;
     const s = deliveryStatus;
-    if (tab === 'picking') r = r.filter((d) => s(d) === 'Picking' || s(d) === 'Open');
-    if (tab === 'staged')  r = r.filter((d) => s(d) === 'Staged');
-    if (tab === 'shipped') r = r.filter((d) => s(d) === 'Shipped');
-    if (tab === 'risk')    r = r.filter((d) => d.risk === 'red');
-    if (filters.risk !== 'all') r = r.filter((d) => d.risk === filters.risk);
+    if (tab === 'picking') r = r.filter((d: any) => s(d) === 'Picking' || s(d) === 'Open');
+    if (tab === 'staged')  r = r.filter((d: any) => s(d) === 'Staged');
+    if (tab === 'shipped') r = r.filter((d: any) => s(d) === 'Shipped');
+    if (tab === 'risk')    r = r.filter((d: any) => d.risk === 'red');
+    if (filters.risk !== 'all') r = r.filter((d: any) => d.risk === filters.risk);
     return r;
   }, [tab, filters, allDeliveries]);
 
@@ -37,10 +44,10 @@ const Outbound = ({ onOpen }) => {
     const s = deliveryStatus;
     return {
       all:     allDeliveries.length,
-      picking: allDeliveries.filter((d) => s(d) === 'Picking' || s(d) === 'Open').length,
-      staged:  allDeliveries.filter((d) => s(d) === 'Staged').length,
-      shipped: allDeliveries.filter((d) => s(d) === 'Shipped').length,
-      risk:    allDeliveries.filter((d) => d.risk === 'red').length,
+      picking: allDeliveries.filter((d: any) => s(d) === 'Picking' || s(d) === 'Open').length,
+      staged:  allDeliveries.filter((d: any) => s(d) === 'Staged').length,
+      shipped: allDeliveries.filter((d: any) => s(d) === 'Shipped').length,
+      risk:    allDeliveries.filter((d: any) => d.risk === 'red').length,
     };
   }, [allDeliveries]);
 
@@ -66,7 +73,7 @@ const Outbound = ({ onOpen }) => {
         <KPI label={t('warehouse.outbound.kpi.openPicking')} value={v(counts.picking)} tone="ok"/>
         <KPI label={t('warehouse.outbound.kpi.staged')} value={v(counts.staged)} tone="ok"/>
         <KPI label={t('warehouse.outbound.kpi.shipped')} value={v(counts.shipped)} tone="ok"/>
-        <KPI label={t('warehouse.outbound.kpi.packages')} value={v(allDeliveries.reduce((a, d) => a + (d.packages || 0), 0))} unit=" pkg" tone="ok"/>
+        <KPI label={t('warehouse.outbound.kpi.packages')} value={v(allDeliveries.reduce((a: any, d: any) => a + (d.packages || 0), 0))} unit=" pkg" tone="ok"/>
       </div>
 
       <Card title={t('warehouse.outbound.card.dockSchedule')} subtitle="Cut-off times · red = missed or imminent"
@@ -81,7 +88,7 @@ const Outbound = ({ onOpen }) => {
           { id: 'staged',  label: t('warehouse.outbound.tab.staged') },
           { id: 'shipped', label: t('warehouse.outbound.tab.shipped') },
           { id: 'risk',    label: t('warehouse.outbound.tab.risk') },
-        ].map((tabDef) => (
+        ].map((tabDef: any) => (
           <button key={tabDef.id} className={`tab ${tab === tabDef.id ? 'is-active' : ''}`} onClick={() => setTab(tabDef.id)}>
             {tabDef.label}<span className="tab-count">{counts[tabDef.id]}</span>
           </button>
@@ -117,11 +124,11 @@ const Outbound = ({ onOpen }) => {
               </tr>
             </thead>
             <tbody>
-              {rows.map((d) => {
+              {rows.map((d: any) => {
                 const status = deliveryStatus(d);
                 const pick = Math.round(d.pick_pct || 0);
                 return (
-                  <tr key={d.delivery_id} onClick={() => onOpen(d)} className={`is-risk-${d.risk}`}>
+                  <tr key={d.delivery_id} onClick={() => onOpen?.(d)} className={`is-risk-${d.risk}`}>
                     <td><RiskDot risk={d.risk}/></td>
                     <td><div className="code">{d.delivery_id}</div></td>
                     <td>
@@ -156,7 +163,13 @@ const Outbound = ({ onOpen }) => {
   );
 };
 
-const DeliveryDetail = ({ delivery }) => {
+/** Props for the DeliveryDetail drawer content. */
+interface DeliveryDetailProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  delivery?: any
+}
+
+const DeliveryDetail = ({ delivery }: DeliveryDetailProps) => {
   if (!delivery) return null;
 
   const id        = delivery.delivery_id   ?? delivery.id;
@@ -240,7 +253,7 @@ const DeliveryDetail = ({ delivery }) => {
       {timelineSteps.length > 0 && (
         <Card title="Flow" eyebrow="Timeline" tight>
           <div style={{ padding: 16 }}>
-            {timelineSteps.map((s, i) => (
+            {timelineSteps.map((s: any, i: number) => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 60px', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                 <div style={{ fontSize: 12, fontWeight: 600 }}>{s.label}</div>
                 <Progress pct={s.pct} tone={s.pct < 50 && i === 0 ? 'red' : s.pct < 90 ? 'amber' : ''}/>
