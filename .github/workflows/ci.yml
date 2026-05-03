@@ -1,10 +1,10 @@
-name: CI
+﻿name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
   ci:
@@ -53,7 +53,7 @@ jobs:
 
   deploy:
     needs: ci
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -82,3 +82,4 @@ jobs:
           npx nx affected -t deploy \
             --base=${{ github.event.before }} \
             --head=${{ github.sha }}
+
