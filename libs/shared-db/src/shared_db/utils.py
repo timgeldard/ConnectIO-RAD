@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Optional, Awaitable, Protocol
+from typing import Any, Optional, Protocol
 
 from fastapi import HTTPException
 from shared_db.errors import classify_sql_runtime_error
@@ -55,7 +55,7 @@ async def attach_validation_freshness(
             request_path=request_path,
         )
     except HTTPException as exc:
-        detail = exc.detail if isinstance(exc.detail, dict) else {}
+        detail: dict[str, Any] = exc.detail if isinstance(exc.detail, dict) else {}
         if exc.status_code == 503 and detail.get("message") == "Data freshness lookup failed":
             return {
                 **payload,
@@ -81,7 +81,7 @@ async def attach_payload_freshness(
             request_path=request_path,
         )
     except HTTPException as exc:
-        detail = exc.detail if isinstance(exc.detail, dict) else {}
+        detail: dict[str, Any] = exc.detail if isinstance(exc.detail, dict) else {}
         if exc.status_code == 503 and detail.get("message") == "Data freshness lookup failed":
             return {
                 **payload,

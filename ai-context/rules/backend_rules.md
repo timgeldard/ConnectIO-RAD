@@ -110,6 +110,14 @@ All error responses MUST have the shape: `{"detail": "message"}` or
 | `TRACE_CATALOG` | Unity Catalog catalog name | `connected_plant_uat` |
 | `TRACE_SCHEMA` | Schema name | `gold` |
 | `APP_ENV` | Environment flag | `development` or `production` |
+| `AUTH_JWKS_URL` | JWKS endpoint for production JWT verification | `https://.../.well-known/jwks.json` |
+| `AUTH_JWT_AUDIENCE` | Expected JWT audience | `databricks-app` |
+| `AUTH_JWT_ISSUER` | Expected JWT issuer | `https://...` |
+| `AUTH_ALLOW_UNVERIFIED_JWT` | Non-production escape hatch for unsigned JWT decoding | `false` |
+
+Production services must configure `AUTH_JWKS_URL`; unsigned JWT decoding is
+only acceptable in local/test workflows or explicit emergency non-production
+diagnostics.
 
 ### 7.2 App Configuration
 - `app.yaml`: runtime configuration for Databricks Apps

@@ -1,20 +1,26 @@
 import pytest
 from unittest.mock import AsyncMock
-from shared_auth import require_proxy_user, UserIdentity
+from shared_auth import require_proxy_user, require_user, UserIdentity
 from backend.main import app
 
 @pytest.fixture(autouse=True)
-def mock_require_proxy_user():
-    """Mock require_proxy_user dependency for all tests."""
+def mock_auth_users():
+    """Mock auth dependencies for all tests."""
     previous = app.dependency_overrides.get(require_proxy_user)
+    previous_require_user = app.dependency_overrides.get(require_user)
     
     app.dependency_overrides[require_proxy_user] = lambda: UserIdentity(user_id="test-user", raw_token="fake-token")
+    app.dependency_overrides[require_user] = lambda: UserIdentity(user_id="test-user", raw_token="fake-token")
     yield
     
     if previous is None:
         app.dependency_overrides.pop(require_proxy_user, None)
     else:
         app.dependency_overrides[require_proxy_user] = previous
+    if previous_require_user is None:
+        app.dependency_overrides.pop(require_user, None)
+    else:
+        app.dependency_overrides[require_user] = previous_require_user
 
 @pytest.fixture
 def mock_run_sql_async(monkeypatch):

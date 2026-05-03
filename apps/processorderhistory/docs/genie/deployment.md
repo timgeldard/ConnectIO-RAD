@@ -7,9 +7,14 @@ The Process Order History app expects a Genie Space ID on the backend:
 - `GENIE_SPACE_ID`: Databricks Genie Space ID injected into the app runtime.
 - `DATABRICKS_HOST`: Databricks workspace host.
 - User authorization token from Databricks Apps proxy via `x-forwarded-access-token`.
-- Optional local development fallback: `DATABRICKS_TOKEN`.
+- `AUTH_JWKS_URL`: JWKS endpoint used by the backend to verify proxy JWT claims.
 
 Do not hardcode tokens in frontend code or app config.
+
+For local development outside Databricks Apps, run through a local proxy that
+supplies `x-forwarded-access-token`, or use `APP_ENV=local` for developer-only
+token decoding. The Genie proxy intentionally does not trust client-supplied
+`Authorization` headers or shared environment tokens.
 
 ## Databricks App Resource
 

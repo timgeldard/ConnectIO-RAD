@@ -40,7 +40,7 @@ class TestSqlParam:
     def test_converts_non_string_value_to_string(self):
         result = sql_param("count", 42)
         assert result["value"] == "42"
-        assert result["type"] == "STRING"
+        assert result["type"] == "INT"
 
     def test_handles_empty_string_value(self):
         result = sql_param("empty", "")

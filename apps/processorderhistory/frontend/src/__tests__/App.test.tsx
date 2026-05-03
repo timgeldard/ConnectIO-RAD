@@ -18,7 +18,6 @@ describe('App', () => {
   it('renders the order list view by default with the sidebar', () => {
     render(<App />)
     expect(screen.getByTestId('page-list')).toBeInTheDocument()
-    // Sidebar brand is the localized "OPERATIONS" headline; uppercased in JSX.
-    expect(screen.getByText('OPERATIONS')).toBeInTheDocument()
+    expect(screen.getByTitle('Process Orders')).toBeInTheDocument()
   })
 })

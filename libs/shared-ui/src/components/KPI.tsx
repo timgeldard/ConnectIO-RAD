@@ -1,12 +1,13 @@
 import { Sparkline } from './Sparkline'
 import { Icon } from './Icon'
 import type { IconName } from './Icon'
+import type { ReactNode } from 'react'
 
 export type KPITone = 'ok' | 'warn' | 'risk' | 'neutral'
 
 interface KPIProps {
   label: string
-  value: string | number | React.ReactNode
+  value: string | number | ReactNode
   unit?: string
   tone?: KPITone
   icon?: IconName

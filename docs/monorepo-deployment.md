@@ -42,6 +42,18 @@ Deployment requires the following secrets to be configured in GitHub Actions:
 - `DATABRICKS_HOST`: The URL of your Databricks workspace.
 - `DATABRICKS_TOKEN`: A Personal Access Token (PAT) with sufficient permissions to deploy apps.
 
+Runtime authentication also requires JWT validation to be configured for
+deployed FastAPI services:
+
+- `AUTH_JWKS_URL`: JWKS endpoint used to verify Databricks Apps access tokens.
+- `AUTH_JWT_AUDIENCE`: Expected JWT audience. Optional only when the issuer does not set audience claims.
+- `AUTH_JWT_ISSUER`: Expected JWT issuer. Optional, but recommended for production.
+- `AUTH_ALLOW_UNVERIFIED_JWT`: Emergency/local-only escape hatch for unsigned JWT decoding. Do not enable in production.
+
+Local and test runs may use `APP_ENV=local`, `APP_ENV=development`, or
+`APP_ENV=test` to allow developer tokens without JWKS. Production runtimes must
+set `AUTH_JWKS_URL`.
+
 ## 📦 Build Artifacts
 
 Frontend builds are typically output to the `dist/` directory within each application's frontend folder. The FastAPI backend is configured to serve these static files in the production environment.
