@@ -14,7 +14,7 @@ Object.defineProperty(window, 'ResizeObserver', {
 describe('App shell', () => {
   it('renders without crashing', () => {
     render(<App />)
-    expect(document.querySelector('.cq-shell')).toBeInTheDocument()
+    expect(document.querySelector('.connectio-shell')).toBeInTheDocument()
   })
 
   it('shows the left rail with all module buttons', () => {
@@ -37,7 +37,7 @@ describe('App shell', () => {
     render(<App />)
     fireEvent.click(screen.getByTitle('Trace'))
     // Scope to SubNav — 'Overview' also appears in breadcrumb
-    const traceSubnav = document.querySelector('.cq-subnav') as HTMLElement
+    const traceSubnav = document.querySelector('.connectio-subnav') as HTMLElement
     expect(within(traceSubnav).getByText('Overview')).toBeInTheDocument()
     expect(within(traceSubnav).getByText('Recall Readiness')).toBeInTheDocument()
   })
@@ -46,7 +46,7 @@ describe('App shell', () => {
     render(<App />)
     fireEvent.click(screen.getByTitle('EnvMon'))
     // Scope to SubNav — 'Global Map' also appears in breadcrumb
-    const envSubnav = document.querySelector('.cq-subnav') as HTMLElement
+    const envSubnav = document.querySelector('.connectio-subnav') as HTMLElement
     expect(within(envSubnav).getByText('Global Map')).toBeInTheDocument()
     expect(within(envSubnav).getByText('Floor Plan')).toBeInTheDocument()
   })
@@ -63,34 +63,34 @@ describe('App shell', () => {
     // Both rail and topbar have title="Alarms" — click the first (rail) to navigate
     const alarmsBtns = screen.getAllByTitle('Alarms')
     fireEvent.click(alarmsBtns[0])
-    expect(screen.getByText('ALARMS')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'ALARMS' })).toBeInTheDocument()
   })
 
   it('shows LabBoard without SubNav and applies is-lab class', () => {
     render(<App />)
     fireEvent.click(screen.getByTitle('Lab Board'))
-    expect(document.querySelector('.cq-shell.is-lab')).toBeInTheDocument()
+    expect(document.querySelector('.connectio-shell.fullscreen')).toBeInTheDocument()
     // SubNav should not appear for lab module
-    expect(document.querySelector('.cq-subnav')).not.toBeInTheDocument()
+    expect(document.querySelector('.connectio-subnav')).not.toBeInTheDocument()
   })
 
   it('shows Admin page when Settings clicked', () => {
     render(<App />)
     // LeftRail and TopBar both have title="Settings"; use first (LeftRail)
     fireEvent.click(screen.getAllByTitle('Settings')[0])
-    expect(screen.getByText('SETTINGS')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'SETTINGS' })).toBeInTheDocument()
   })
 
   it('has no SubNav on Home, Alarms, or Admin', () => {
     render(<App />)
     // Default: home — no subnav
-    expect(document.querySelector('.cq-subnav')).not.toBeInTheDocument()
+    expect(document.querySelector('.connectio-subnav')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getAllByTitle('Alarms')[0])
-    expect(document.querySelector('.cq-subnav')).not.toBeInTheDocument()
+    expect(document.querySelector('.connectio-subnav')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getAllByTitle('Settings')[0])
-    expect(document.querySelector('.cq-subnav')).not.toBeInTheDocument()
+    expect(document.querySelector('.connectio-subnav')).not.toBeInTheDocument()
   })
 
   it('navigates trace tabs independently', () => {
@@ -99,22 +99,24 @@ describe('App shell', () => {
     // Before clicking, 'Recall Readiness' is unique in SubNav; after clicking it's in SubNav + breadcrumb
     const recallTab = screen.getByText('Recall Readiness')
     fireEvent.click(recallTab)
-    const navAfter = document.querySelector('.cq-subnav') as HTMLElement
+    const navAfter = document.querySelector('.connectio-subnav') as HTMLElement
     expect(within(navAfter).getByText('Recall Readiness')).toBeInTheDocument()
   })
 
   it('shows breadcrumb in top bar', () => {
     render(<App />)
     // TopBar renders CONNECTEDQUALITY product name
-    expect(screen.getByText('CONNECTED')).toBeInTheDocument()
+    expect(screen.getByText('CONNECTEDQUALITY')).toBeInTheDocument()
     // Home breadcrumb is rendered — scope to .cq-bc to avoid LeftRail's "Home" label
-    const bc = document.querySelector('.cq-bc') as HTMLElement
+    const bc = document.querySelector('.connectio-bc') as HTMLElement
     expect(within(bc).getByText('Home')).toBeInTheDocument()
   })
 
   it('shows context bar with plant/material/batch', () => {
     render(<App />)
-    expect(screen.getByText('Charleville · IE')).toBeInTheDocument()
+    fireEvent.click(screen.getByTitle('Trace'))
+    const ctx = document.querySelector('.connectio-ctx') as HTMLElement
+    expect(within(ctx).getByText(/Charleville/)).toBeInTheDocument()
   })
 
   it('Home module cards navigate to sub-modules on click', () => {

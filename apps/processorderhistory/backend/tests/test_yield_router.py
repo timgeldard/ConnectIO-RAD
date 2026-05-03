@@ -1,4 +1,4 @@
-"""Router tests for POST /api/yield/analytics."""
+"""Router tests for POST /api/yield."""
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
@@ -28,39 +28,39 @@ def mock_yield(monkeypatch):
 
 
 def test_post_yield_analytics_returns_200(mock_yield):
-    response = client.post("/api/yield/analytics", json={})
+    response = client.post("/api/yield", json={})
     assert response.status_code == 200
     data = response.json()
     assert "now_ms" in data
     assert "orders" in data
     mock_yield.assert_called_once_with(
-        "token", plant_id=None, date_from=None, date_to=None, timezone="UTC"
+        "token", plant_id=None, date_from=None, date_to=None
     )
 
 
 def test_post_yield_analytics_passes_plant_id(mock_yield):
-    client.post("/api/yield/analytics", json={"plant_id": "P001"})
+    client.post("/api/yield", json={"plant_id": "P001"})
     mock_yield.assert_called_once_with(
-        "token", plant_id="P001", date_from=None, date_to=None, timezone="UTC"
+        "token", plant_id="P001", date_from=None, date_to=None
     )
 
 
 def test_post_yield_analytics_passes_date_range(mock_yield):
-    client.post("/api/yield/analytics", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
+    client.post("/api/yield", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
     mock_yield.assert_called_once_with(
-        "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07", timezone="UTC"
+        "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07"
     )
 
 
-def test_post_yield_analytics_passes_timezone(mock_yield):
-    client.post("/api/yield/analytics", json={"timezone": "Australia/Sydney"})
+def test_post_yield_analytics_ignores_unknown_timezone(mock_yield):
+    client.post("/api/yield", json={"timezone": "Australia/Sydney"})
     mock_yield.assert_called_once_with(
-        "token", plant_id=None, date_from=None, date_to=None, timezone="Australia/Sydney"
+        "token", plant_id=None, date_from=None, date_to=None
     )
 
 
 def test_post_yield_analytics_returns_full_shape(mock_yield):
-    response = client.post("/api/yield/analytics", json={})
+    response = client.post("/api/yield", json={})
     data = response.json()
     for key in ("now_ms", "target_yield_pct", "materials", "orders", "prior7d", "daily30d", "hourly24h"):
         assert key in data, f"Missing key: {key}"
