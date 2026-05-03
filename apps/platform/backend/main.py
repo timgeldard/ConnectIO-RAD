@@ -1,10 +1,10 @@
-﻿"""ConnectIO Platform — unified FastAPI entry point.
+"""ConnectIO Platform — unified FastAPI entry point.
 
-Serves both ConnectedQuality (at /cq) and ProcessOrderHistory (at /poh)
-from a single Databricks App process.
+Serves ConnectedQuality (at /cq), ProcessOrderHistory (at /poh), and
+Warehouse360 (at /warehouse360) from a single Databricks App process.
 
-IMPORTANT: This module cannot be run standalone. It imports from poh_backend
-and cq_backend which are build artifacts produced by scripts/build.py.
+IMPORTANT: This module cannot be run standalone. It imports from poh_backend,
+cq_backend, and w360_backend which are build artifacts produced by scripts/build.py.
 Run `python3 scripts/build.py` first, then deploy via `make deploy`.
 """
 from pathlib import Path
@@ -39,9 +39,19 @@ from poh_backend.routers.vessel_planning_router import router as poh_vessel_plan
 from poh_backend.routers.equipment_insights_router import router as poh_equipment_insights_router
 from poh_backend.routers.equipment_insights2_router import router as poh_equipment_insights2_router
 
+# W360 API routers — imports rewritten from backend.* to w360_backend.* by build.py
+from w360_backend.routers.process_orders import router as w360_process_orders_router
+from w360_backend.routers.deliveries import router as w360_deliveries_router
+from w360_backend.routers.inbound import router as w360_inbound_router
+from w360_backend.routers.inventory import router as w360_inventory_router
+from w360_backend.routers.dispensary import router as w360_dispensary_router
+from w360_backend.routers.kpis import router as w360_kpis_router
+from w360_backend.routers.plants import router as w360_plants_router
+
 _STATIC = Path(__file__).parent.parent / "static"
 CQ_STATIC = _STATIC / "cq"
 POH_STATIC = _STATIC / "poh"
+W360_STATIC = _STATIC / "warehouse360"
 HOME_STATIC = _STATIC / "home"
 ENZYMES_STATIC    = _STATIC / "enzymes"
 PI_SHEET_STATIC   = _STATIC / "pi-sheet"
@@ -77,6 +87,15 @@ app.include_router(poh_vessel_planning_router, prefix="/api")
 app.include_router(poh_equipment_insights_router, prefix="/api")
 app.include_router(poh_equipment_insights2_router, prefix="/api")
 
+# --- W360 API (/api/wh/...) ---
+app.include_router(w360_process_orders_router, prefix="/api/wh", tags=["W360-ProcessOrders"])
+app.include_router(w360_deliveries_router, prefix="/api/wh", tags=["W360-Deliveries"])
+app.include_router(w360_inbound_router, prefix="/api/wh", tags=["W360-Inbound"])
+app.include_router(w360_inventory_router, prefix="/api/wh", tags=["W360-Inventory"])
+app.include_router(w360_dispensary_router, prefix="/api/wh", tags=["W360-Dispensary"])
+app.include_router(w360_kpis_router, prefix="/api/wh", tags=["W360-KPIs"])
+app.include_router(w360_plants_router, prefix="/api/wh", tags=["W360-Plants"])
+
 
 @app.get("/api/health", include_in_schema=False)
 async def health():
@@ -103,6 +122,9 @@ if CQ_STATIC.exists():
 if POH_STATIC.exists():
     app.mount("/poh", StaticFiles(directory=str(POH_STATIC), html=True), name="poh")
 
+if W360_STATIC.exists():
+    app.mount("/warehouse360", StaticFiles(directory=str(W360_STATIC), html=True), name="warehouse360")
+
 if ENZYMES_STATIC.exists():
     app.mount("/enzymes", StaticFiles(directory=str(ENZYMES_STATIC), html=True), name="enzymes")
 
@@ -123,6 +145,3 @@ if IMWM_STATIC.exists():
 
 if HOME_STATIC.exists():
     app.mount("/", StaticFiles(directory=str(HOME_STATIC), html=True), name="home")
-
-
-

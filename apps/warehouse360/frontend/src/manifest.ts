@@ -202,7 +202,9 @@ export const W360_COMPOSITION: AppComposition = {
     logoAlt: 'Kerry',
     appTag: 'Warehouse',
   },
-  sidebarBottomItems: [],
+  sidebarBottomItems: [
+    { id: 'platform-home', icon: 'home', iconSet: 'shared-ui', tooltip: 'Platform Home', action: 'external', target: '/' },
+  ],
   landingConfig: {
     greetingPrefix: 'GOOD AFTERNOON,',
     operatingConsoleLabel: 'W360 · UAT',

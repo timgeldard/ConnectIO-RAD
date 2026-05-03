@@ -7,10 +7,13 @@ Steps:
      references to `poh_backend.` so both backends coexist in one process.
   3. Copy CQ backend as cq_backend, rewriting `backend.` imports to `cq_backend.`
      so both backends coexist in one process.
-  4. Build CQ frontend with VITE_BASE_PATH=/cq/ and copy dist to static/cq/.
-  5. Build POH frontend with VITE_BASE_PATH=/poh/ and copy dist to static/poh/.
-  6. Build Platform frontend (base=/) and copy dist to static/home/.
-  7. Copy standalone app sources from standalone/<slug>/ to static/<slug>/.
+  4. Copy W360 backend as w360_backend, rewriting `backend.` imports to `w360_backend.`
+     so all three backends coexist in one process.
+  5. Build CQ frontend with VITE_BASE_PATH=/cq/ and copy dist to static/cq/.
+  6. Build POH frontend with VITE_BASE_PATH=/poh/ and copy dist to static/poh/.
+  7. Build W360 frontend with VITE_BASE_PATH=/warehouse360/ and copy dist to static/warehouse360/.
+  8. Build Platform frontend (base=/) and copy dist to static/home/.
+  9. Copy standalone app sources from standalone/<slug>/ to static/<slug>/.
 
 Run via `make deploy` or `python3 scripts/build.py` from the app root.
 """
@@ -27,6 +30,7 @@ APP_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = APP_DIR.parents[1]
 CQ_DIR = REPO_ROOT / "apps" / "connectedquality"
 POH_DIR = REPO_ROOT / "apps" / "processorderhistory"
+W360_DIR = REPO_ROOT / "apps" / "warehouse360"
 PLATFORM_FRONTEND_DIR = APP_DIR / "frontend"
 STANDALONE_DIR = APP_DIR / "standalone"
 
@@ -92,6 +96,28 @@ def copy_cq_backend() -> None:
     print("-> copied and renamed cq_backend")
 
 
+def copy_and_rename_w360_backend() -> None:
+    """Copy W360 backend as w360_backend, rewriting internal import references."""
+    src = W360_DIR / "backend"
+    dst = APP_DIR / "w360_backend"
+    if dst.exists():
+        shutil.rmtree(dst)
+    shutil.copytree(
+        src, dst,
+        ignore=shutil.ignore_patterns("tests", "__pycache__", "*.pyc", "main.py"),
+    )
+    # Add __init__.py so w360_backend is a proper package
+    (dst / "__init__.py").write_text('"""W360 backend - build artifact. Do not edit.\n"""\n', encoding="utf-8")
+    # Rewrite: `from backend.` -> `from w360_backend.`  and  `import backend.` -> `import w360_backend.`
+    for py_file in dst.rglob("*.py"):
+        text = py_file.read_text(encoding="utf-8")
+        new_text = text.replace("from backend.", "from w360_backend.")
+        new_text = new_text.replace("import backend.", "import w360_backend.")
+        if new_text != text:
+            py_file.write_text(new_text, encoding="utf-8")
+    print("-> copied and renamed w360_backend")
+
+
 def build_frontend(app_frontend_dir: Path, base_path: str) -> None:
     env = {**os.environ, "VITE_BASE_PATH": base_path}
     subprocess.run("npm run build", cwd=app_frontend_dir, shell=True, check=True, env=env)
@@ -124,6 +150,7 @@ if __name__ == "__main__":
     copy_shared_libs()
     copy_and_rename_poh_backend()
     copy_cq_backend()
+    copy_and_rename_w360_backend()
 
     print("-> building CQ frontend (base=/cq/)")
     build_frontend(CQ_DIR / "frontend", "/cq/")
@@ -134,6 +161,11 @@ if __name__ == "__main__":
     build_frontend(POH_DIR / "frontend", "/poh/")
     copy_static(POH_DIR / "frontend" / "dist", APP_DIR / "static" / "poh")
     print("-> POH static ready")
+
+    print("-> building W360 frontend (base=/warehouse360/)")
+    build_frontend(W360_DIR / "frontend", "/warehouse360/")
+    copy_static(W360_DIR / "frontend" / "dist", APP_DIR / "static" / "warehouse360")
+    print("-> W360 static ready")
 
     print("-> building Platform frontend (base=/)")
     build_platform_frontend()

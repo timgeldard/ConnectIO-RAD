@@ -68,7 +68,10 @@ function routeToModule(route: string): string {
 
 /** Inner app — rendered inside I18nProvider and PlantProvider. */
 function WarehouseApp() {
-  const [route, setRoute] = useState('today')
+  const [route, setRoute] = useState(() => {
+    const m = new URLSearchParams(window.location.search).get('module')
+    return m ? moduleToRoute(m) : 'today'
+  })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [drawer, setDrawer] = useState<DrawerState | null>(null)
 

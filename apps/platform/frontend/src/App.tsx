@@ -222,7 +222,7 @@ const OPERATIONS_CARDS: ModuleCard[] = [
 
 const WAREHOUSE_CARDS: ModuleCard[] = [
   {
-    moduleId: 'warehouse-cockpit',
+    moduleId: 'process-orders',
     displayName: 'Warehouse Cockpit',
     tag: 'Warehouse operations · transfer requests',
     desc: 'Stock transfer planning and execution across facilities. Create transfer requests, sequence dispatch, track interim inventory states, and audit transactions.',
@@ -232,7 +232,7 @@ const WAREHOUSE_CARDS: ModuleCard[] = [
       { value: '—', label: 'In transit' },
       { value: '—', label: 'Stock accuracy' },
     ],
-    href: '/warehouse/',
+    appBase: '/warehouse360',
   },
   {
     moduleId: 'imwm',
@@ -284,13 +284,10 @@ function useNow() {
   return now
 }
 
-const TONE_COLORS = { good: '#44CF93', warn: '#F9C20A', bad: '#F24A00' } as const
-
 function StatTile({ stat }: { stat: CardStat }) {
-  const color = stat.tone ? TONE_COLORS[stat.tone] : undefined
   return (
     <div className="cp-stat">
-      <span className="cp-stat-val" style={color ? { color } : undefined}>{stat.value}</span>
+      <span className={'cp-stat-val' + (stat.tone ? ' ' + stat.tone : '')}>{stat.value}</span>
       <span className="cp-stat-label">{stat.label}</span>
     </div>
   )
@@ -301,21 +298,25 @@ function cardHref(card: ModuleCard): string {
   return `${card.appBase}/?module=${encodeURIComponent(card.moduleId)}`
 }
 
-function ModuleCardEl({ card }: { card: ModuleCard }) {
+function ModuleCardEl({ card, num }: { card: ModuleCard; num: number }) {
+  const numStr = `Module ${String(num).padStart(2, '0')}`
   return (
-    <a className="cp-card" href={cardHref(card)} style={{ '--card-accent': card.color } as React.CSSProperties}>
-      <div className="cp-card-accent" />
+    <a
+      className="cp-card"
+      href={cardHref(card)}
+      style={{ '--card-accent': card.color } as React.CSSProperties}
+    >
+      <div className="cp-card-bar" />
       <div className="cp-card-body">
-        <div className="cp-card-head">
-          <span className="cp-card-name">{card.displayName}</span>
-          <span className="cp-card-tag">{card.tag}</span>
-        </div>
+        <div className="cp-card-num">{numStr} <span style={{ float: 'right' }}>↗</span></div>
+        <div className="cp-card-name">{card.displayName}</div>
+        <div className="cp-card-tag">{card.tag}</div>
         <p className="cp-card-desc">{card.desc}</p>
         <div className="cp-card-stats">
           {card.stats.map((s, i) => <StatTile key={i} stat={s} />)}
         </div>
-        <div className="cp-card-enter">Open module <span aria-hidden>→</span></div>
       </div>
+      <div className="cp-card-enter">Open module ↗</div>
     </a>
   )
 }
@@ -328,7 +329,7 @@ function Section({ title, cards }: { title: string; cards: ModuleCard[] }) {
         <span className="cp-section-count">{cards.length} modules</span>
       </div>
       <div className="cp-grid">
-        {cards.map(c => <ModuleCardEl key={c.moduleId} card={c} />)}
+        {cards.map((c, i) => <ModuleCardEl key={c.moduleId} card={c} num={i + 1} />)}
       </div>
     </section>
   )
@@ -342,9 +343,11 @@ export function App() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header className="cp-header">
-        <div>
-          <span className="cp-logo">CONNECTIO</span>
-          <span className="cp-logo-sub">Operations Platform · Kerry Group</span>
+        <div className="cp-logo-wrap">
+          <div>
+            <span className="cp-logo">CONNECTIO</span>
+            <span className="cp-logo-sub">Operations Platform · Kerry Group</span>
+          </div>
         </div>
         <div className="cp-header-meta">
           <span className="cp-time">{time}</span>
