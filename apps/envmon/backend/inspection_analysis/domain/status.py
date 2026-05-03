@@ -1,8 +1,8 @@
 """Domain — heatmap and lot status derivation rules."""
 
-from typing import Optional
+from typing import Literal, Optional
 
-from backend.schemas.em import HeatmapStatus
+LocationStatus = Literal["PASS", "FAIL", "PENDING", "NO_DATA", "WARNING"]
 
 
 def derive_location_status(
@@ -10,7 +10,7 @@ def derive_location_status(
     risk: float,
     continuous_mode: bool,
     early_warning: bool,
-) -> HeatmapStatus:
+) -> LocationStatus:
     """Derive a marker status from result rows, risk score, mode, and SPC flag.
 
     Deterministic mode: latest valuation only. Continuous mode: risk score thresholds
@@ -20,7 +20,7 @@ def derive_location_status(
     l_val = (latest.get("valuation") or "").upper()
 
     if not continuous_mode:
-        status: HeatmapStatus = "FAIL" if l_val in ("R", "REJ", "REJECT") else "PASS"
+        status: LocationStatus = "FAIL" if l_val in ("R", "REJ", "REJECT") else "PASS"
     else:
         status = "PASS"
         if risk > 1.0:

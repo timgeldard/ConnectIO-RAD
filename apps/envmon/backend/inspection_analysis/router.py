@@ -12,22 +12,13 @@ Endpoints:
     GET /api/em/lots/{lot_id}                — MIC results for a specific lot
 """
 
-import asyncio
-import logging
 import os
-from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from backend.inspection_analysis.dal import heatmap as heatmap_dal
-from backend.inspection_analysis.dal import lots as lots_dal
-from backend.inspection_analysis.dal import plants as plants_dal
-from backend.inspection_analysis.dal import trends as trends_dal
-from backend.inspection_analysis.domain.risk import calculate_risk_score
-from backend.inspection_analysis.domain.spc import detect_early_warning
-from backend.inspection_analysis.domain.status import derive_location_status, lot_status
+from backend.inspection_analysis.application import queries as inspection_queries
 from backend.schemas.em import (
     FloorInfo,
     HeatmapResponse,
@@ -35,102 +26,18 @@ from backend.schemas.em import (
     LocationMeta,
     LocationSummary,
     LotDetailResponse,
-    MarkerData,
-    MicResult,
     PlantInfo,
-    PlantKpis,
-    TrendPoint,
     TrendResponse,
 )
-from backend.spatial_config.dal import coordinates as coordinates_dal
-from backend.spatial_config.dal import floors as floors_dal
+from backend.spatial_config.application import queries as spatial_queries
 from backend.utils.em_config import MIC_DECAY_RATES
 from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
 _DEFAULT_LAMBDA: float = min(
     max(float(os.environ.get("EM_DEFAULT_DECAY_LAMBDA", "0.1").strip()), 0.0), 1.0
 )
-
-
-# ---------------------------------------------------------------------------
-# Plants
-# ---------------------------------------------------------------------------
-
-def _build_plant_metadata(
-    plant_ids: list[str],
-    geo_rows: list[dict],
-    meta_rows: list[dict],
-) -> dict[str, dict]:
-    """Merge geo and name/country rows into a keyed metadata dict with safe defaults."""
-    metadata: dict[str, dict] = {
-        pid: {"plant_name": pid, "country": "", "region": "EMEA", "city": "", "lat": 0.0, "lon": 0.0}
-        for pid in plant_ids
-    }
-    for r in geo_rows:
-        pid = r.get("plant_id") or r.get("PLANT_ID")
-        if pid and pid in metadata:
-            metadata[pid]["lat"] = float(r.get("lat") or r.get("LAT") or 0.0)
-            metadata[pid]["lon"] = float(r.get("lon") or r.get("LON") or 0.0)
-    for r in meta_rows:
-        pid = r.get("PLANT_ID") or r.get("plant_id")
-        if pid and pid in metadata:
-            metadata[pid].update({
-                "plant_name": r.get("PLANT_NAME") or r.get("plant_name") or pid,
-                "country": r.get("COUNTRY_ID") or r.get("country_id") or "",
-                "city": r.get("CITY") or r.get("city") or "",
-            })
-    return metadata
-
-
-async def _safe_fetch_geo(token: str, plant_ids: list[str]) -> list[dict]:
-    try:
-        return await plants_dal.fetch_plant_geo(token, plant_ids)
-    except Exception as exc:
-        logger.warning("Plant geo query failed: %s", exc)
-        return []
-
-
-async def _safe_fetch_meta(token: str, plant_ids: list[str]) -> list[dict]:
-    try:
-        return await plants_dal.fetch_plant_metadata(token, plant_ids)
-    except Exception as exc:
-        logger.warning("Plant metadata query failed: %s", exc)
-        return []
-
-
-async def _safe_fetch_kpis(token: str, plant_id: str, days: int) -> PlantKpis:
-    try:
-        rows = await plants_dal.fetch_plant_kpis(token, plant_id, days)
-    except Exception as exc:
-        logger.warning("KPI query failed for plant %s: %s", plant_id, exc)
-        return PlantKpis()
-    if not rows:
-        return PlantKpis()
-    r = rows[0]
-    total = int(r.get("total_locs") or 0)
-    pass_locs = int(r.get("pass_locs") or 0)
-    return PlantKpis(
-        total_locs=total,
-        active_fails=int(r.get("active_fails") or 0),
-        warnings=int(r.get("warnings") or 0),
-        pending=int(r.get("pending") or 0),
-        pass_rate=round(pass_locs / total * 100, 1) if total > 0 else 100.0,
-        lots_tested=int(r.get("lots_tested") or 0),
-        lots_planned=int(r.get("lots_tested") or 0),
-        risk_index=0.0,
-        pathogen_hits=0,
-    )
-
-
-async def _safe_count_floors(token: str, plant_id: str) -> int:
-    try:
-        rows = await plants_dal.count_plant_floors(token, plant_id)
-        return int(rows[0].get("n") or 0) if rows else 0
-    except Exception:
-        return 0
 
 
 @router.get("/plants", response_model=list[PlantInfo])
@@ -139,41 +46,7 @@ async def list_plants(
     days: int = Query(default=30, ge=7, le=730),
 ):
     """List all EM-active plants enriched with geo coordinates and rolling KPIs."""
-    token = user.raw_token
-
-    plant_ids = await plants_dal.fetch_active_plant_ids(token)
-    if not plant_ids:
-        return []
-
-    geo_rows, meta_rows, kpi_results, floor_counts = await asyncio.gather(
-        _safe_fetch_geo(token, plant_ids),
-        _safe_fetch_meta(token, plant_ids),
-        asyncio.gather(*[_safe_fetch_kpis(token, pid, days) for pid in plant_ids]),
-        asyncio.gather(*[_safe_count_floors(token, pid) for pid in plant_ids]),
-    )
-
-    metadata = _build_plant_metadata(plant_ids, geo_rows, meta_rows)
-
-    return [
-        PlantInfo(
-            plant_id=pid,
-            plant_name=meta.get("plant_name", pid),
-            plant_code=pid,
-            country=meta.get("country", ""),
-            region=meta.get("region", "EMEA"),
-            city=meta.get("city", ""),
-            product="",
-            employees=0,
-            lat=meta.get("lat", 0.0),
-            lon=meta.get("lon", 0.0),
-            floors=floors,
-            kpis=kpis,
-        )
-        for pid, kpis, floors, meta in zip(
-            plant_ids, kpi_results, floor_counts,
-            [metadata.get(pid, {}) for pid in plant_ids],
-        )
-    ]
+    return await inspection_queries.list_plants(user.raw_token, days)
 
 
 # ---------------------------------------------------------------------------
@@ -186,23 +59,7 @@ async def list_floors(
     user: UserIdentity = Depends(require_proxy_user),
 ):
     """List floors for a plant with mapped location counts."""
-    token = user.raw_token
-    floors_rows, count_rows = await asyncio.gather(
-        floors_dal.fetch_floors(token, plant_id),
-        floors_dal.fetch_floor_location_counts(token, plant_id),
-    )
-    count_map = {r["floor_id"]: int(r["location_count"] or 0) for r in count_rows}
-    return [
-        FloorInfo(
-            floor_id=r["floor_id"],
-            floor_name=r["floor_name"],
-            location_count=count_map.get(r["floor_id"], 0),
-            svg_url=r.get("svg_url"),
-            svg_width=float(r["svg_width"]) if r.get("svg_width") is not None else None,
-            svg_height=float(r["svg_height"]) if r.get("svg_height") is not None else None,
-        )
-        for r in floors_rows
-    ]
+    return await spatial_queries.list_floors(user.raw_token, plant_id)
 
 
 # ---------------------------------------------------------------------------
@@ -230,56 +87,17 @@ async def get_heatmap(
     SPC early-warning detection applies in both modes: three strictly increasing
     quantitative results escalate a PASS marker to WARNING.
     """
-    token = user.raw_token
     reference_date = as_of_date or date.today()
-    date_from = (reference_date - timedelta(days=time_window_days)).isoformat()
-    date_to = reference_date.isoformat()
-    applied_lambda = decay_lambda if decay_lambda is not None else _DEFAULT_LAMBDA
-    continuous_mode = decay_lambda is not None
-
-    rows = await heatmap_dal.fetch_heatmap_rows(
-        token, plant_id, floor_id, date_from, date_to, mics
-    )
-
-    by_loc: dict[str, list[dict]] = defaultdict(list)
-    coords: dict[str, dict] = {}
-    for r in rows:
-        lid = str(r["func_loc_id"])
-        by_loc[lid].append(r)
-        coords[lid] = {
-            "floor_id": str(r["floor_id"]),
-            "x": float(r["x_pos"]),
-            "y": float(r["y_pos"]),
-        }
-
-    markers: list[MarkerData] = []
-    for lid, loc_rows in by_loc.items():
-        risk = calculate_risk_score(loc_rows, reference_date, applied_lambda)
-        early_warning = detect_early_warning(loc_rows)
-        status = derive_location_status(loc_rows, risk, continuous_mode, early_warning)
-
-        fails = sum(1 for r in loc_rows if (r.get("valuation") or "").upper() in ("R", "REJ", "REJECT"))
-        passes = sum(1 for r in loc_rows if (r.get("valuation") or "").upper() in ("A", "ACC", "ACCEPT"))
-
-        c = coords[lid]
-        markers.append(MarkerData(
-            func_loc_id=lid,
-            floor_id=c["floor_id"],
-            x_pos=c["x"],
-            y_pos=c["y"],
-            status=status,
-            fail_count=fails,
-            pass_count=passes,
-            total_count=len(loc_rows),
-            risk_score=round(risk, 2),
-        ))
-
-    return HeatmapResponse(
+    return await inspection_queries.get_heatmap(
+        user.raw_token,
+        plant_id=plant_id,
         floor_id=floor_id,
-        mode="continuous" if continuous_mode else "deterministic",
+        mics=mics,
         time_window_days=time_window_days,
-        decay_lambda=applied_lambda,
-        markers=markers,
+        decay_lambda=decay_lambda,
+        reference_date=reference_date,
+        default_decay_lambda=_DEFAULT_LAMBDA,
+        mic_decay_rates=MIC_DECAY_RATES,
     )
 
 
@@ -295,20 +113,7 @@ async def list_locations(
     user: UserIdentity = Depends(require_proxy_user),
 ):
     """List functional locations for a plant with coordinate mapping status."""
-    token = user.raw_token
-    rows = await coordinates_dal.fetch_locations(token, plant_id, floor_id, mapped_only)
-    return [
-        LocationMeta(
-            func_loc_id=r["func_loc_id"],
-            func_loc_name=None,
-            plant_id=plant_id,
-            floor_id=r.get("floor_id"),
-            x_pos=float(r["x_pos"]) if r.get("x_pos") is not None else None,
-            y_pos=float(r["y_pos"]) if r.get("y_pos") is not None else None,
-            is_mapped=bool(r.get("is_mapped", False)),
-        )
-        for r in rows
-    ]
+    return await spatial_queries.list_locations(user.raw_token, plant_id, floor_id, mapped_only)
 
 
 @router.get("/locations/{func_loc_id}/summary", response_model=LocationSummary)
@@ -318,38 +123,7 @@ async def get_location_summary(
     user: UserIdentity = Depends(require_proxy_user),
 ):
     """Return coordinate metadata, distinct MICs, and 5 most recent lots for a location."""
-    token = user.raw_token
-    date_from = (date.today() - timedelta(days=180)).isoformat()
-
-    meta_rows, mic_rows, lot_rows = await asyncio.gather(
-        coordinates_dal.fetch_location_coordinate(token, plant_id, func_loc_id),
-        lots_dal.fetch_location_mics(token, plant_id, func_loc_id, date_from),
-        lots_dal.fetch_location_recent_lots(token, plant_id, func_loc_id, date_from),
-    )
-
-    if meta_rows:
-        r = meta_rows[0]
-        meta = LocationMeta(
-            func_loc_id=r["func_loc_id"], plant_id=plant_id,
-            floor_id=r["floor_id"], x_pos=float(r["x_pos"]),
-            y_pos=float(r["y_pos"]), is_mapped=True,
-        )
-    else:
-        meta = LocationMeta(func_loc_id=func_loc_id, plant_id=plant_id, is_mapped=False)
-
-    mics = [r["mic_name"] for r in mic_rows if r.get("mic_name")]
-    recent_lots = [
-        {
-            "lot_id": r["lot_id"],
-            "func_loc_id": r["func_loc_id"],
-            "inspection_start_date": str(r["inspection_start_date"])[:10] if r.get("inspection_start_date") else None,
-            "inspection_end_date":   str(r["inspection_end_date"])[:10]   if r.get("inspection_end_date")   else None,
-            "valuation": r["valuation"],
-            "status": lot_status(r["valuation"], r.get("inspection_end_date")),
-        }
-        for r in lot_rows
-    ]
-    return LocationSummary(meta=meta, mics=mics, recent_lots=recent_lots)
+    return await inspection_queries.get_location_summary(user.raw_token, plant_id, func_loc_id, date.today())
 
 
 # ---------------------------------------------------------------------------
@@ -363,10 +137,7 @@ async def list_mics(
     user: UserIdentity = Depends(require_proxy_user),
 ):
     """List distinct normalised MIC names for a plant, optionally filtered to one location."""
-    token = user.raw_token
-    date_from = (date.today() - timedelta(days=180)).isoformat()
-    rows = await trends_dal.fetch_mics(token, plant_id, func_loc_id, date_from)
-    return [r["mic_name"] for r in rows if r.get("mic_name")]
+    return await inspection_queries.list_mics(user.raw_token, plant_id, func_loc_id, date.today())
 
 
 @router.get("/trends", response_model=TrendResponse)
@@ -378,23 +149,14 @@ async def get_trends(
     user: UserIdentity = Depends(require_proxy_user),
 ):
     """Return chronological MIC result time-series for one location."""
-    token = user.raw_token
-    date_from = (date.today() - timedelta(days=window_days)).isoformat()
-    rows = await trends_dal.fetch_trends(
-        token, plant_id, func_loc_id, mic_name.upper().strip(), date_from
+    return await inspection_queries.get_trends(
+        user.raw_token,
+        plant_id,
+        func_loc_id,
+        mic_name,
+        window_days,
+        date.today(),
     )
-    points = [
-        TrendPoint(
-            inspection_date=str(r["inspection_date"])[:10],
-            mic_name=r["mic_name"],
-            result_value=float(r["result_value"]) if r.get("result_value") is not None else None,
-            valuation=r.get("valuation"),
-            upper_limit=float(r["upper_limit"]) if r.get("upper_limit") is not None else None,
-            lower_limit=float(r["lower_limit"]) if r.get("lower_limit") is not None else None,
-        )
-        for r in rows
-    ]
-    return TrendResponse(func_loc_id=func_loc_id, mic_name=mic_name, window_days=window_days, points=points)
 
 
 # ---------------------------------------------------------------------------
@@ -409,20 +171,13 @@ async def list_lots(
     user: UserIdentity = Depends(require_proxy_user),
 ):
     """List inspection lots for a functional location within the time window."""
-    token = user.raw_token
-    date_from = (date.today() - timedelta(days=time_window_days)).isoformat()
-    rows = await lots_dal.fetch_lots(token, plant_id, func_loc_id, date_from)
-    return [
-        InspectionLot(
-            lot_id=r["lot_id"],
-            func_loc_id=r["func_loc_id"],
-            inspection_start_date=str(r["inspection_start_date"])[:10] if r.get("inspection_start_date") else None,
-            inspection_end_date=str(r["inspection_end_date"])[:10] if r.get("inspection_end_date") else None,
-            valuation=r.get("valuation"),
-            status=lot_status(r.get("valuation"), r.get("inspection_end_date")),
-        )
-        for r in rows
-    ]
+    return await inspection_queries.list_lots(
+        user.raw_token,
+        plant_id,
+        func_loc_id,
+        time_window_days,
+        date.today(),
+    )
 
 
 @router.get("/lots/{lot_id}", response_model=LotDetailResponse)
@@ -432,20 +187,4 @@ async def get_lot_detail(
     user: UserIdentity = Depends(require_proxy_user),
 ):
     """Return individual MIC results for a specific inspection lot."""
-    token = user.raw_token
-    rows = await lots_dal.fetch_lot_detail(token, lot_id, plant_id)
-    return LotDetailResponse(
-        lot_id=lot_id,
-        mic_results=[
-            MicResult(
-                lot_id=r["lot_id"],
-                mic_id=r.get("mic_id", ""),
-                mic_name=r["mic_name"],
-                result_value=float(r["result_value"]) if r.get("result_value") is not None else None,
-                valuation=r.get("valuation"),
-                upper_limit=float(r["upper_limit"]) if r.get("upper_limit") is not None else None,
-                lower_limit=float(r["lower_limit"]) if r.get("lower_limit") is not None else None,
-            )
-            for r in rows
-        ],
-    )
+    return await inspection_queries.get_lot_detail(user.raw_token, lot_id, plant_id)

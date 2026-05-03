@@ -1,6 +1,5 @@
 """Chart Config — locked limits and exclusion snapshot endpoints."""
 
-import json
 import logging
 import uuid
 from typing import Annotated, Optional
@@ -8,12 +7,10 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ValidationError, field_validator
 
-from backend.chart_config.dal.exclusions import fetch_latest_exclusion_snapshot, save_exclusion_snapshot
-from backend.chart_config.dal.locked_limits import delete_locked_limits, fetch_locked_limits, save_locked_limits
+from backend.chart_config.application import commands as chart_config_commands
 from backend.utils.db import (
     check_warehouse_config,
     classify_sql_runtime_error,
-    run_sql_async,
 )
 from shared_db.utils import handle_locked_limits_error
 from backend.schemas.spc_schemas import (
@@ -66,26 +63,7 @@ async def lock_limits(
     check_warehouse_config()
 
     try:
-        return await save_locked_limits(
-            token,
-            body.material_id,
-            body.mic_id,
-            body.plant_id,
-            body.chart_type,
-            body.cl,
-            body.ucl,
-            body.lcl,
-            body.ucl_r,
-            body.lcl_r,
-            body.sigma_within,
-            body.baseline_from,
-            body.baseline_to,
-            operation_id=body.operation_id,
-            unified_mic_key=body.unified_mic_key,
-            mic_origin=body.mic_origin,
-            spec_signature=body.spec_signature,
-            locking_note=body.locking_note,
-        )
+        return await chart_config_commands.lock_limits(token, body)
     except Exception as exc:
         handle_locked_limits_error(exc)
 
@@ -118,12 +96,12 @@ async def get_locked_limits(
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
 
     try:
-        row = await fetch_locked_limits(
+        row = await chart_config_commands.get_limits(
             token,
-            material_id,
-            mic_id,
-            plant_id,
-            chart_type,
+            material_id=material_id,
+            mic_id=mic_id,
+            plant_id=plant_id,
+            chart_type=chart_type,
             operation_id=operation_id,
             unified_mic_key=unified_mic_key,
         )
@@ -144,15 +122,7 @@ async def delete_locked_limits_route(
     token = user.raw_token
     check_warehouse_config()
     try:
-        return await delete_locked_limits(
-            token,
-            body.material_id,
-            body.mic_id,
-            body.plant_id,
-            body.chart_type,
-            operation_id=body.operation_id,
-            unified_mic_key=body.unified_mic_key,
-        )
+        return await chart_config_commands.delete_limits(token, body)
     except Exception as exc:
         handle_locked_limits_error(exc)
 
@@ -269,49 +239,10 @@ async def save_exclusions(
     token = user.raw_token
     check_warehouse_config()
 
-    payload = {
-        "event_id": str(uuid.uuid4()),
-        "material_id": body.material_id,
-        "mic_id": body.mic_id,
-        "mic_name": body.mic_name,
-        "operation_id": body.operation_id,
-        "plant_id": body.plant_id,
-        "stratify_all": body.stratify_all,
-        "stratify_by": body.stratify_by,
-        "chart_type": body.chart_type,
-        "date_from": body.date_from,
-        "date_to": body.date_to,
-        "rule_set": body.rule_set,
-        "justification": body.justification,
-        "action": body.action,
-        "excluded_count": len(body.excluded_points),
-        "excluded_points": [point.model_dump() for point in body.excluded_points],
-        "before_limits": body.before_limits.model_dump() if body.before_limits else None,
-        "after_limits": body.after_limits.model_dump() if body.after_limits else None,
-    }
-
     try:
-        await save_exclusion_snapshot(token, payload)
+        return await chart_config_commands.save_exclusions(token, body)
     except RuntimeError as exc:
         _handle_exclusion_sql_error(exc)
-
-    try:
-        actor_rows = await run_sql_async(
-            token,
-            "SELECT CURRENT_USER() AS user_id, CAST(CURRENT_TIMESTAMP() AS STRING) AS event_ts",
-            endpoint_hint="spc.exclusions.actor-metadata",
-        )
-    except RuntimeError as exc:
-        logger.warning("exclusions.actor_metadata_lookup_failed: %s", exc)
-        actor_rows = [{"user_id": None, "event_ts": None}]
-    actor = actor_rows[0] if actor_rows else {"user_id": None, "event_ts": None}
-
-    return {
-        "saved": True,
-        "event_id": payload["event_id"],
-        "user_id": actor.get("user_id"),
-        "event_ts": actor.get("event_ts"),
-    }
 
 
 @router.get("/exclusions")
@@ -326,18 +257,7 @@ async def fetch_exclusions(
     check_warehouse_config()
 
     try:
-        row = await fetch_latest_exclusion_snapshot(
-            token,
-            query.material_id,
-            query.mic_id,
-            query.chart_type,
-            query.operation_id,
-            query.plant_id,
-            query.stratify_all,
-            query.stratify_by,
-            query.date_from,
-            query.date_to,
-        )
+        row = await chart_config_commands.get_exclusions(token, query)
     except RuntimeError as exc:
         _handle_exclusion_sql_error(exc)
 

@@ -2,62 +2,47 @@
 
 from typing import Optional
 
+from backend.chart_config.domain.locked_limits import LockedLimits
 from backend.utils.db import run_sql_async, sql_param, tbl
 
 
 async def save_locked_limits(
     token: str,
-    material_id: str,
-    mic_id: str,
-    plant_id: Optional[str],
-    chart_type: str,
-    cl: float,
-    ucl: float,
-    lcl: float,
-    ucl_r: Optional[float],
-    lcl_r: Optional[float],
-    sigma_within: Optional[float],
-    baseline_from: Optional[str],
-    baseline_to: Optional[str],
-    operation_id: Optional[str] = None,
-    unified_mic_key: Optional[str] = None,
-    mic_origin: Optional[str] = None,
-    spec_signature: Optional[str] = None,
-    locking_note: Optional[str] = None,
+    limits: LockedLimits,
 ) -> dict:
     """MERGE-upsert a locked-limits record for the given MIC/material/plant/chart scope."""
     params = [
-        sql_param("material_id", material_id),
-        sql_param("mic_id", mic_id),
-        sql_param("chart_type", chart_type),
-        sql_param("cl", cl),
-        sql_param("ucl", ucl),
-        sql_param("lcl", lcl),
-        sql_param("ucl_r", ucl_r),
-        sql_param("lcl_r", lcl_r),
-        sql_param("sigma_within", sigma_within),
-        sql_param("baseline_from", baseline_from),
-        sql_param("baseline_to", baseline_to),
-        sql_param("unified_mic_key", unified_mic_key),
-        sql_param("mic_origin", mic_origin),
-        sql_param("spec_signature", spec_signature),
-        sql_param("locking_note", locking_note),
+        sql_param("material_id", limits.material_id),
+        sql_param("mic_id", limits.mic_id),
+        sql_param("chart_type", limits.chart_type),
+        sql_param("cl", limits.cl),
+        sql_param("ucl", limits.ucl),
+        sql_param("lcl", limits.lcl),
+        sql_param("ucl_r", limits.ucl_r),
+        sql_param("lcl_r", limits.lcl_r),
+        sql_param("sigma_within", limits.sigma_within),
+        sql_param("baseline_from", limits.baseline_from),
+        sql_param("baseline_to", limits.baseline_to),
+        sql_param("unified_mic_key", limits.unified_mic_key),
+        sql_param("mic_origin", limits.mic_origin),
+        sql_param("spec_signature", limits.spec_signature),
+        sql_param("locking_note", limits.locking_note),
     ]
-    if plant_id:
+    if limits.plant_id:
         source_plant_expr = "CAST(:plant_id AS STRING)"
         plant_on_clause = "COALESCE(t.plant_id, '') = COALESCE(s.plant_id, '')"
-        params.append(sql_param("plant_id", plant_id))
+        params.append(sql_param("plant_id", limits.plant_id))
     else:
         source_plant_expr = "NULL"
         plant_on_clause = "t.plant_id IS NULL AND s.plant_id IS NULL"
-    if operation_id:
+    if limits.operation_id:
         source_operation_id_expr = "CAST(:operation_id AS STRING)"
         operation_id_on_clause = "COALESCE(t.operation_id, '') = COALESCE(s.operation_id, '')"
-        params.append(sql_param("operation_id", operation_id))
+        params.append(sql_param("operation_id", limits.operation_id))
     else:
         source_operation_id_expr = "NULL"
         operation_id_on_clause = "t.operation_id IS NULL AND s.operation_id IS NULL"
-    if unified_mic_key:
+    if limits.unified_mic_key:
         mic_identity_on_clause = (
             "(COALESCE(t.unified_mic_key, '') = COALESCE(s.unified_mic_key, '') "
             "OR (t.unified_mic_key IS NULL AND t.mic_id = s.mic_id))"

@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import AsyncMock
 from backend.process_control.dal import charts as spc_charts_dal
 from backend.chart_config.dal import locked_limits as locked_limits_dal
+from backend.chart_config.domain.locked_limits import LockedLimits
 
 def test_fetch_chart_data_page_generates_expected_sql(monkeypatch):
     calls = []
@@ -127,7 +128,17 @@ async def test_fetch_chart_data_values(monkeypatch):
 async def test_save_locked_limits(monkeypatch):
     mock_run = AsyncMock(return_value=[])
     monkeypatch.setattr(locked_limits_dal, "run_sql_async", mock_run)
-    await locked_limits_dal.save_locked_limits("token", "M1", "MIC1", "P1", "imr", 10, 12, 8, None, None, 1.0, None, None)
+    limits = LockedLimits(
+        material_id="M1",
+        mic_id="MIC1",
+        plant_id="P1",
+        chart_type="imr",
+        cl=10,
+        ucl=12,
+        lcl=8,
+        sigma_within=1.0,
+    )
+    await locked_limits_dal.save_locked_limits("token", limits)
     assert mock_run.called
 
 async def test_delete_locked_limits(monkeypatch):

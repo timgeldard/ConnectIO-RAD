@@ -16,6 +16,16 @@ async def save_exclusion_snapshot(token: str, payload: dict) -> None:
     await insert_spc_exclusion_snapshot(token, payload)
 
 
+async def fetch_actor_metadata(token: str) -> dict:
+    """Return audit actor metadata from the SQL runtime."""
+    rows = await run_sql_async(
+        token,
+        "SELECT CURRENT_USER() AS user_id, CAST(CURRENT_TIMESTAMP() AS STRING) AS event_ts",
+        endpoint_hint="spc.exclusions.actor-metadata",
+    )
+    return rows[0] if rows else {"user_id": None, "event_ts": None}
+
+
 async def fetch_latest_exclusion_snapshot(
     token: str,
     material_id: str,
