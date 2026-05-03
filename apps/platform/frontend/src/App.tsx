@@ -231,6 +231,19 @@ const OPERATIONS_CARDS: ModuleCard[] = [
     ],
     href: '/pi-sheet/',
   },
+  {
+    moduleId: 'lineside-monitor',
+    displayName: 'Lineside Monitor',
+    tag: 'Production floor wallboard · live line status',
+    desc: 'Wall-mounted TV display for the production floor. Rotating panels show current order, activity feed, next orders, blocked lines, staging status, and shift plan.',
+    color: '#289BA2',
+    stats: [
+      { value: 'u2014', label: 'Lines active' },
+      { value: 'u2014', label: 'Orders running' },
+      { value: 'u2014', label: 'Blocked' },
+    ],
+    href: '/lineside-monitor/',
+  },
 ]
 
 const WAREHOUSE_CARDS: ModuleCard[] = [

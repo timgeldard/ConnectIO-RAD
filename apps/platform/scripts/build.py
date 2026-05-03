@@ -36,7 +36,7 @@ STANDALONE_DIR = APP_DIR / "standalone"
 
 SHARED_LIBS = ["shared-db", "shared-api", "shared-auth"]
 
-STANDALONE_SLUGS = ["enzymes", "pi-sheet", "warehouse", "maintenance", "tpm", "imwm", "pex-e-35"]
+STANDALONE_SLUGS = ["enzymes", "pi-sheet", "warehouse", "maintenance", "tpm", "imwm", "pex-e-35", "lineside-monitor"]
 
 
 def copy_shared_libs() -> None:

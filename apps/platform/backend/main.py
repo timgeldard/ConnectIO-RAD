@@ -60,6 +60,7 @@ MAINTENANCE_STATIC = _STATIC / "maintenance"
 TPM_STATIC        = _STATIC / "tpm"
 IMWM_STATIC       = _STATIC / "imwm"
 PEX_E35_STATIC    = _STATIC / "pex-e-35"
+LINESIDE_STATIC   = _STATIC / "lineside-monitor"
 
 app = create_api_app(title="ConnectIO Platform API")
 
@@ -146,6 +147,9 @@ if IMWM_STATIC.exists():
 
 if PEX_E35_STATIC.exists():
     app.mount("/pex-e-35", StaticFiles(directory=str(PEX_E35_STATIC), html=True), name="pex-e-35")
+
+if LINESIDE_STATIC.exists():
+    app.mount("/lineside-monitor", StaticFiles(directory=str(LINESIDE_STATIC), html=True), name="lineside-monitor")
 
 if HOME_STATIC.exists():
     app.mount("/", StaticFiles(directory=str(HOME_STATIC), html=True), name="home")

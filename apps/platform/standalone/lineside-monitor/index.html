@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Lineside Monitor — PEX-E-35</title>
+<link rel="stylesheet" href="kerry/colors_and_type.css" />
+<link rel="stylesheet" href="kerry/monitor.css" />
+<link rel="icon" href="kerry/assets/kerry-k-slate.png" />
+<style>
+  html, body { width: 100%; height: 100%; }
+  body {
+    margin: 0;
+    background: #0a0a0a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    padding: 24px 0;
+  }
+  .tv-mount {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform-origin: center center;
+  }
+  .tv-mount-inner {
+    background: #0a0a0a;
+    padding: 28px;
+    border-radius: 10px;
+    box-shadow:
+      0 0 0 1px #1f1f1f,
+      inset 0 0 0 1px rgba(255,255,255,0.04),
+      0 60px 120px rgba(0,0,0,0.55);
+    position: relative;
+  }
+  .tv-mount-inner::after {
+    content: "";
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 4px;
+    border-radius: 2px;
+    background: #1a1a1a;
+  }
+  .tv-screen {
+    border-radius: 4px;
+    overflow: hidden;
+    background: #000;
+  }
+  .tv-stand-arm {
+    width: 26px;
+    height: 80px;
+    background: linear-gradient(180deg, #222, #0a0a0a);
+    margin-top: -2px;
+  }
+  .tv-stand-base {
+    width: 320px;
+    height: 14px;
+    background: linear-gradient(180deg, #1f1f1f, #050505);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 12px 24px rgba(0,0,0,0.4);
+  }
+  .room-tag {
+    margin-top: 28px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="kerry/monitor-data.jsx"></script>
+  <script type="text/babel" src="kerry/monitor-panels-1.jsx"></script>
+  <script type="text/babel" src="kerry/monitor-panels-2.jsx"></script>
+  <script type="text/babel" src="kerry/monitor-shell.jsx"></script>
+
+  <script type="text/babel">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "plantId": "listowel-04",
+      "lineIds": ["L-04"],
+      "panels": ["now", "activity", "next", "blocked", "staging", "plan"],
+      "refreshSec": 30,
+      "panelDuration": 6000
+    }/*EDITMODE-END*/;
+
+    function App() {
+      const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const [scale, setScale] = React.useState(1);
+
+      React.useEffect(() => {
+        function fit() {
+          const PAD = 48, BEZEL = 56, ARM = 80, BASE = 14, TAG = 60;
+          const targetW = 1920 + BEZEL + 40;
+          const targetH = 1080 + BEZEL + ARM + BASE + TAG + PAD;
+          const s = Math.min(window.innerWidth/targetW, window.innerHeight/targetH);
+          setScale(s);
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        return () => window.removeEventListener("resize", fit);
+      }, []);
+
+      const config = {
+        plantId: tweaks.plantId,
+        lineIds: tweaks.lineIds,
+        panels:  tweaks.panels,
+        refreshSec: tweaks.refreshSec,
+        panelDuration: tweaks.panelDuration,
+      };
+      function onConfigChange(next) {
+        setTweak({
+          plantId: next.plantId,
+          lineIds: next.lineIds,
+          panels:  next.panels,
+          refreshSec: next.refreshSec,
+          panelDuration: next.panelDuration,
+        });
+      }
+
+      return (
+        <React.Fragment>
+          <div className="tv-mount" style={{ transform: `scale(${scale})` }}>
+            <div className="tv-mount-inner">
+              <div className="tv-screen">
+                <LinesideMonitor config={config} onConfigChange={onConfigChange} />
+              </div>
+            </div>
+            <div className="tv-stand-arm" />
+            <div className="tv-stand-base" />
+            <div className="room-tag">Wall-mount · 55" · 1920 × 1080 · {(window.MonitorData.PLANTS.find(p => p.id === config.plantId) || {}).name} · Production Floor</div>
+          </div>
+        </React.Fragment>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
