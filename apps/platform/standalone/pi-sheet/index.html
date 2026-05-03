@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1480" />
+  <title>Process Execution Cockpit · ConnectIO·RAD</title>
+  <link rel="icon" href="kerry/kerry-k-icon.png" />
+  <link rel="stylesheet" href="app.css" />
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body data-screen-label="App">
+  <div id="root"></div>
+
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="shell.jsx"></script>
+  <script type="text/babel" src="page-queue.jsx"></script>
+  <script type="text/babel" src="page-execution.jsx"></script>
+  <script type="text/babel" src="page-operator-misc.jsx"></script>
+  <script type="text/babel" src="page-monitor-analytics.jsx"></script>
+  <script type="text/babel" src="page-ebr.jsx"></script>
+  <script type="text/babel" src="hold-modal.jsx"></script>
+
+  <script type="text/babel">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "theme": "light",
+      "density": "comfortable",
+      "tabletFrame": true,
+      "primaryColor": "#005776"
+    }/*EDITMODE-END*/;
+
+    const App = () => {
+      const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const [active, setActive] = React.useState("queue");
+      const [holdOpen, setHoldOpen] = React.useState(false);
+
+      // Apply theme
+      React.useEffect(() => {
+        document.documentElement.setAttribute("data-theme", tweaks.theme);
+        document.documentElement.style.setProperty("--pec-brand", tweaks.primaryColor);
+      }, [tweaks.theme, tweaks.primaryColor]);
+
+      const go = (id) => setActive(id);
+
+      // Operator pages render inside a tablet frame
+      const isOperatorPage = ["queue","exec","material","ipqc","batch"].includes(active);
+      const useTablet = isOperatorPage && tweaks.tabletFrame;
+
+      const pageContent = (() => {
+        switch (active) {
+          case "queue":      return <QueuePage go={go}/>;
+          case "exec":       return <ExecutionPage go={go} openHold={()=>setHoldOpen(true)}/>;
+          case "material":   return <MaterialPage/>;
+          case "ipqc":       return <IPQCPage/>;
+          case "batch":      return <BatchPage/>;
+          case "exceptions": return <ExceptionsPage/>;
+          case "monitor":    return <SupervisorPage openExc={()=>setActive("exceptions")}/>;
+          case "ebr":        return <EBRPage/>;
+          case "analytics":  return <AnalyticsPage/>;
+          default:           return <QueuePage go={go}/>;
+        }
+      })();
+
+      const screenLabel = NAV_ITEMS.find(n=>n.id===active)?.label || "Cockpit";
+
+      const shellEl = (
+        <div data-screen-label={screenLabel} style={{height: useTablet ? "100%" : "100vh"}}>
+          <Shell active={active} setActive={setActive}>{pageContent}</Shell>
+          <HoldModal open={holdOpen} onClose={()=>setHoldOpen(false)}/>
+        </div>
+      );
+
+      return (
+        <>
+          {useTablet ? (
+            <div style={{minHeight:"100vh",background:"var(--pec-bg)",display:"flex",flexDirection:"column",alignItems:"center",padding:"16px 0",overflow:"auto"}}>
+              <div className="mono" style={{fontSize:11,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--pec-ink-muted)",margin:"4px 0 0"}}>
+                Tablet · landscape · {screenLabel} · operator view
+              </div>
+              <div className="tablet-frame">
+                <div className="tablet-frame__cam"></div>
+                <div className="tablet-frame__home"></div>
+                <div className="tablet-frame__screen">{shellEl}</div>
+              </div>
+            </div>
+          ) : shellEl}
+
+          <TweaksPanel title="Tweaks">
+            <TweakSection title="Theme">
+              <TweakRadio
+                label="Color mode"
+                value={tweaks.theme}
+                onChange={v=>setTweak("theme",v)}
+                options={[{value:"light",label:"Light"},{value:"dark",label:"Dark"}]}
+              />
+              <TweakColor label="Primary color" value={tweaks.primaryColor} onChange={v=>setTweak("primaryColor",v)} />
+            </TweakSection>
+            <TweakSection title="Layout">
+              <TweakToggle
+                label="Show tablet frame on operator pages"
+                value={tweaks.tabletFrame}
+                onChange={v=>setTweak("tabletFrame",v)}
+              />
+            </TweakSection>
+            <TweakSection title="Jump to module">
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                {NAV_ITEMS.filter(n=>!n.section).map(n=>(
+                  <button key={n.id} className="chip" style={{justifyContent:"flex-start",fontSize:11,background:active===n.id?"var(--pec-brand)":undefined,color:active===n.id?"#fff":undefined,borderColor:active===n.id?"var(--pec-brand)":undefined}} onClick={()=>setActive(n.id)}>
+                    <Icon name={n.icon} size={11}/> {n.label}
+                  </button>
+                ))}
+              </div>
+            </TweakSection>
+          </TweaksPanel>
+        </>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>

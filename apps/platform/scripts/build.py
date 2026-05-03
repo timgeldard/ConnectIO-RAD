@@ -1,14 +1,16 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Platform build script.
 
 Steps:
   1. Copy shared Python libs (shared_db, shared_api, shared_auth) into app root.
   2. Copy POH backend as poh_backend, rewriting all internal `backend.` import
      references to `poh_backend.` so both backends coexist in one process.
-  3. Copy CQ backend as cq_backend (routers only — no renaming needed since
-     CQ routers are pure stubs with no internal backend.* imports).
+  3. Copy CQ backend as cq_backend, rewriting `backend.` imports to `cq_backend.`
+     so both backends coexist in one process.
   4. Build CQ frontend with VITE_BASE_PATH=/cq/ and copy dist to static/cq/.
   5. Build POH frontend with VITE_BASE_PATH=/poh/ and copy dist to static/poh/.
+  6. Build Platform frontend (base=/) and copy dist to static/home/.
+  7. Copy standalone app sources from standalone/<slug>/ to static/<slug>/.
 
 Run via `make deploy` or `python3 scripts/build.py` from the app root.
 """
@@ -25,8 +27,12 @@ APP_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = APP_DIR.parents[1]
 CQ_DIR = REPO_ROOT / "apps" / "connectedquality"
 POH_DIR = REPO_ROOT / "apps" / "processorderhistory"
+PLATFORM_FRONTEND_DIR = APP_DIR / "frontend"
+STANDALONE_DIR = APP_DIR / "standalone"
 
 SHARED_LIBS = ["shared-db", "shared-api", "shared-auth"]
+
+STANDALONE_SLUGS = ["enzymes", "pi-sheet", "warehouse", "maintenance", "tpm", "imwm"]
 
 
 def copy_shared_libs() -> None:
@@ -50,7 +56,7 @@ def copy_and_rename_poh_backend() -> None:
         src, dst,
         ignore=shutil.ignore_patterns("tests", "__pycache__", "*.pyc", "main.py"),
     )
-    # Rewrite: `from backend.` → `from poh_backend.`  and  `import backend.` → `import poh_backend.`
+    # Rewrite: `from backend.` -> `from poh_backend.`  and  `import backend.` -> `import poh_backend.`
     for py_file in dst.rglob("*.py"):
         text = py_file.read_text(encoding="utf-8")
         new_text = text.replace("from backend.", "from poh_backend.")
@@ -97,6 +103,23 @@ def copy_static(src: Path, dst: Path) -> None:
     shutil.copytree(src, dst)
 
 
+def build_platform_frontend() -> None:
+    """Build the platform portal frontend and copy dist to static/home/."""
+    build_frontend(PLATFORM_FRONTEND_DIR, "/")
+    copy_static(PLATFORM_FRONTEND_DIR / "dist", APP_DIR / "static" / "home")
+
+
+def copy_standalone_apps() -> None:
+    """Copy standalone HTML apps from standalone/<slug>/ to static/<slug>/."""
+    for slug in STANDALONE_SLUGS:
+        src = STANDALONE_DIR / slug
+        if src.exists():
+            copy_static(src, APP_DIR / "static" / slug)
+            print(f"-> copied standalone/{slug}")
+        else:
+            print(f"-> WARNING: standalone/{slug} not found, skipping")
+
+
 if __name__ == "__main__":
     copy_shared_libs()
     copy_and_rename_poh_backend()
@@ -111,5 +134,11 @@ if __name__ == "__main__":
     build_frontend(POH_DIR / "frontend", "/poh/")
     copy_static(POH_DIR / "frontend" / "dist", APP_DIR / "static" / "poh")
     print("-> POH static ready")
+
+    print("-> building Platform frontend (base=/)")
+    build_platform_frontend()
+    print("-> Platform static ready")
+
+    copy_standalone_apps()
 
     sys.exit(0)

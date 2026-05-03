@@ -143,6 +143,15 @@ export const CQ_MODULES: ConnectIOModule[] = [
     sidebarOrder: 4,
     defaultTab: '',
     tabs: [],
+    landingCard: {
+      tag: 'Quality lab wallboard',
+      desc: 'Live lab results wallboard for in-process quality checks, finished-goods testing, and CoA status across all active batches.',
+      stats: [
+        { value: '—', label: 'Samples today' },
+        { value: '—', label: 'Pass rate' },
+        { value: '—', label: 'Open holds' },
+      ],
+    },
     contextBarSlot: false,
     layoutMode: 'fullscreen',
     routeBase: '/lab',
@@ -208,6 +217,7 @@ export const CQ_COMPOSITION: AppComposition = {
     appTag: 'Quality',
   },
   sidebarBottomItems: [
+    { id: 'platform-home', icon: 'home', iconSet: 'cq', tooltip: 'Platform Home', action: 'external', target: '/' },
     { id: 'help', icon: 'help',     iconSet: 'cq', tooltip: 'Help',     action: 'modal',    target: 'help' },
     { id: 'user', icon: 'user',     iconSet: 'cq', tooltip: 'User',     action: 'navigate', target: 'admin' },
   ],

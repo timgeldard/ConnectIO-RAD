@@ -95,6 +95,15 @@ export const POH_MODULES: ConnectIOModule[] = [
     sidebarOrder: 3,
     defaultTab: '',
     tabs: [],
+    landingCard: {
+      tag: 'Vessel planning analytics',
+      desc: 'Vessel scheduling, utilisation, and changeover analysis across all production lines.',
+      stats: [
+        { value: '—', label: 'Vessels active' },
+        { value: '—', label: 'Utilisation' },
+        { value: '—', label: 'Changeovers' },
+      ],
+    },
     contextBarSlot: false,
     routeBase: '/vessel-planning',
     i18nNamespace: 'poh.vessel-planning',
@@ -146,6 +155,15 @@ export const POH_MODULES: ConnectIOModule[] = [
     sidebarOrder: 1,
     defaultTab: '',
     tabs: [],
+    landingCard: {
+      tag: 'Day-level operations view',
+      desc: 'Hour-by-hour production timeline with order status, shift handover context, and line performance for a selected day.',
+      stats: [
+        { value: '—', label: 'Orders today' },
+        { value: '—', label: 'Lines running' },
+        { value: '—', label: 'Shifts' },
+      ],
+    },
     contextBarSlot: false,
     routeBase: '/day-view',
     i18nNamespace: 'poh.day-view',
@@ -197,6 +215,15 @@ export const POH_MODULES: ConnectIOModule[] = [
     sidebarOrder: 3,
     defaultTab: '',
     tabs: [],
+    landingCard: {
+      tag: 'Quality analytics',
+      desc: 'In-process quality check results, inspection lot status, and quality-driven order holds across all process orders.',
+      stats: [
+        { value: '—', label: 'Inspections' },
+        { value: '—', label: 'Pass rate' },
+        { value: '—', label: 'Open lots' },
+      ],
+    },
     contextBarSlot: false,
     routeBase: '/quality',
     i18nNamespace: 'poh.quality',
@@ -218,6 +245,15 @@ export const POH_MODULES: ConnectIOModule[] = [
     sidebarOrder: 4,
     defaultTab: '',
     tabs: [],
+    landingCard: {
+      tag: 'Equipment performance insights',
+      desc: 'OEE, downtime attribution, and shift-level performance breakdowns for individual pieces of equipment.',
+      stats: [
+        { value: '—', label: 'Equipment tracked' },
+        { value: '—', label: 'Avg OEE' },
+        { value: '—', label: 'Downtime events' },
+      ],
+    },
     contextBarSlot: false,
     routeBase: '/equipment-insights',
     i18nNamespace: 'poh.equipment-insights',
@@ -239,6 +275,15 @@ export const POH_MODULES: ConnectIOModule[] = [
     sidebarOrder: 5,
     defaultTab: '',
     tabs: [],
+    landingCard: {
+      tag: 'Equipment estate overview',
+      desc: 'Four-tab estate view across all equipment — performance, availability, downtime, and trend summaries.',
+      stats: [
+        { value: '—', label: 'Total equipment' },
+        { value: '—', label: 'Active' },
+        { value: '—', label: 'Alerts' },
+      ],
+    },
     contextBarSlot: false,
     routeBase: '/equipment-insights-2',
     i18nNamespace: 'poh.equipment-insights-2',
@@ -267,7 +312,9 @@ export const POH_COMPOSITION: AppComposition = {
     logoAlt: 'Kerry',
     appTag: 'Operations',
   },
-  sidebarBottomItems: [],
+  sidebarBottomItems: [
+    { id: 'platform-home', icon: 'home', iconSet: 'shared-ui', tooltip: 'Platform Home', action: 'external', target: '/' },
+  ],
   landingConfig: {
     greetingPrefix: 'GOOD AFTERNOON,',
     operatingConsoleLabel: 'POH · UAT',

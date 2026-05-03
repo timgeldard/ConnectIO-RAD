@@ -86,7 +86,10 @@ function ActivePage({
 
 /** Root application — drives the platform shell from the CQ manifest. */
 export function App() {
-  const [activeModule, setActiveModule] = useState(CQ_COMPOSITION.defaultModule)
+  const [activeModule, setActiveModule] = useState(() => {
+    const m = new URLSearchParams(window.location.search).get('module')
+    return m && CQ_MODULES.some(x => x.moduleId === m) ? m : CQ_COMPOSITION.defaultModule
+  })
   const [tabState, setTabState] = useState<Record<string, string>>({})
   const [pinnedModules, setPinnedModules] = useState<string[] | null>(null)
 

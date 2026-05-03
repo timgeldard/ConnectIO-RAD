@@ -59,7 +59,10 @@ function moduleToView(moduleId: string): View {
 }
 
 function AppContent() {
-  const [view, setView] = useState<View>({ name: 'list' })
+  const [view, setView] = useState<View>(() => {
+    const m = new URLSearchParams(window.location.search).get('module')
+    return m ? moduleToView(m) : { name: 'list' }
+  })
   const [lineFilter, setLineFilter] = useState('ALL')
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [genieOpen, setGenieOpen] = useState(false)

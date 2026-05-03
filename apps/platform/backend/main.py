@@ -9,7 +9,6 @@ Run `python3 scripts/build.py` first, then deploy via `make deploy`.
 """
 from pathlib import Path
 
-from fastapi.responses import RedirectResponse
 from starlette.staticfiles import StaticFiles
 
 from shared_api import create_api_app, health_payload, databricks_sql_ready
@@ -43,6 +42,13 @@ from poh_backend.routers.equipment_insights2_router import router as poh_equipme
 _STATIC = Path(__file__).parent.parent / "static"
 CQ_STATIC = _STATIC / "cq"
 POH_STATIC = _STATIC / "poh"
+HOME_STATIC = _STATIC / "home"
+ENZYMES_STATIC    = _STATIC / "enzymes"
+PI_SHEET_STATIC   = _STATIC / "pi-sheet"
+WAREHOUSE_STATIC  = _STATIC / "warehouse"
+MAINTENANCE_STATIC = _STATIC / "maintenance"
+TPM_STATIC        = _STATIC / "tpm"
+IMWM_STATIC       = _STATIC / "imwm"
 
 app = create_api_app(title="ConnectIO Platform API")
 
@@ -88,12 +94,6 @@ async def ready():
     )
 
 
-@app.get("/", include_in_schema=False)
-async def root():
-    """Redirect root to the default app (POH)."""
-    return RedirectResponse("/poh/")
-
-
 # Static mounts AFTER all API routes.
 # StaticFiles(html=True) serves index.html for any path that doesn't match a file,
 # enabling SPA client-side routing under each prefix.
@@ -102,3 +102,27 @@ if CQ_STATIC.exists():
 
 if POH_STATIC.exists():
     app.mount("/poh", StaticFiles(directory=str(POH_STATIC), html=True), name="poh")
+
+if ENZYMES_STATIC.exists():
+    app.mount("/enzymes", StaticFiles(directory=str(ENZYMES_STATIC), html=True), name="enzymes")
+
+if PI_SHEET_STATIC.exists():
+    app.mount("/pi-sheet", StaticFiles(directory=str(PI_SHEET_STATIC), html=True), name="pi-sheet")
+
+if WAREHOUSE_STATIC.exists():
+    app.mount("/warehouse", StaticFiles(directory=str(WAREHOUSE_STATIC), html=True), name="warehouse")
+
+if MAINTENANCE_STATIC.exists():
+    app.mount("/maintenance", StaticFiles(directory=str(MAINTENANCE_STATIC), html=True), name="maintenance")
+
+if TPM_STATIC.exists():
+    app.mount("/tpm", StaticFiles(directory=str(TPM_STATIC), html=True), name="tpm")
+
+if IMWM_STATIC.exists():
+    app.mount("/imwm", StaticFiles(directory=str(IMWM_STATIC), html=True), name="imwm")
+
+if HOME_STATIC.exists():
+    app.mount("/", StaticFiles(directory=str(HOME_STATIC), html=True), name="home")
+
+
+
