@@ -25,8 +25,8 @@ from backend.utils.db import (
 )
 from backend.utils.rate_limit import limiter
 from shared_auth import UserIdentity, require_proxy_user
-from backend.dal.spc_analysis_dal import fetch_scorecard
-from backend.dal.spc_charts_dal import (
+from backend.process_control.dal.analysis import fetch_scorecard
+from backend.process_control.dal.charts import (
     fetch_chart_data,
     fetch_count_chart_data,
     fetch_p_chart_data,

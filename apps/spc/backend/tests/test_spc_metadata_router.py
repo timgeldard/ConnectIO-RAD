@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
-import backend.routers.spc_metadata as meta_router
+import backend.process_control.router_metadata as meta_router
 from unittest.mock import AsyncMock
 
 client = TestClient(app)

@@ -1,7 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
-import backend.routers.spc_charts as charts_router
+import backend.process_control.router_charts as charts_router
+import backend.chart_config.router as chart_config_router
 from unittest.mock import AsyncMock
 
 client = TestClient(app)
@@ -14,15 +15,24 @@ def mock_charts_dal(monkeypatch):
         "fetch_control_limits": AsyncMock(return_value={"cl": 10, "ucl": 12, "lcl": 8}),
         "fetch_p_chart_data": AsyncMock(return_value={"data": []}),
         "fetch_count_chart_data": AsyncMock(return_value={"data": []}),
+    }
+    for name, m in mocks.items():
+        monkeypatch.setattr(charts_router, name, m)
+    monkeypatch.setattr(charts_router, "check_warehouse_config", lambda: None)
+    monkeypatch.setattr(charts_router, "attach_data_freshness", AsyncMock(side_effect=lambda data, *args, **kwargs: data))
+    return type("Mocks", (), mocks)
+
+
+@pytest.fixture
+def mock_locked_limits_dal(monkeypatch):
+    mocks = {
         "fetch_locked_limits": AsyncMock(return_value=None),
         "save_locked_limits": AsyncMock(return_value={"id": "LOCKED-1"}),
         "delete_locked_limits": AsyncMock(return_value={"deleted": True}),
     }
     for name, m in mocks.items():
-        monkeypatch.setattr(charts_router, name, m)
-    
-    monkeypatch.setattr(charts_router, "check_warehouse_config", lambda: None)
-    monkeypatch.setattr(charts_router, "attach_data_freshness", AsyncMock(side_effect=lambda data, *args, **kwargs: data))
+        monkeypatch.setattr(chart_config_router, name, m)
+    monkeypatch.setattr(chart_config_router, "check_warehouse_config", lambda: None)
     return type("Mocks", (), mocks)
 
 
@@ -90,12 +100,12 @@ def test_count_chart_data_endpoint(mock_charts_dal):
     assert response.status_code == 200
     mock_charts_dal.fetch_count_chart_data.assert_called_once()
 
-def test_locked_limits_endpoints(mock_charts_dal):
+def test_locked_limits_endpoints(mock_locked_limits_dal):
     # GET
     response = client.get("/api/spc/locked-limits?material_id=MAT1&mic_id=MIC1")
     assert response.status_code == 200
-    mock_charts_dal.fetch_locked_limits.assert_called_once()
-    
+    mock_locked_limits_dal.fetch_locked_limits.assert_called_once()
+
     # POST
     payload = {
         "material_id": "MAT1", "mic_id": "MIC1", "chart_type": "imr",
@@ -103,13 +113,13 @@ def test_locked_limits_endpoints(mock_charts_dal):
     }
     response = client.post("/api/spc/lock-limits", json=payload)
     assert response.status_code == 200
-    mock_charts_dal.save_locked_limits.assert_called_once()
+    mock_locked_limits_dal.save_locked_limits.assert_called_once()
     assert response.json()["id"] == "LOCKED-1" or "id" in response.json()
-    
+
     # DELETE
     response = client.request(
         "DELETE", "/api/spc/locked-limits",
         json={"material_id": "MAT1", "mic_id": "MIC1", "chart_type": "imr"}
     )
     assert response.status_code == 200
-    mock_charts_dal.delete_locked_limits.assert_called_once()
+    mock_locked_limits_dal.delete_locked_limits.assert_called_once()

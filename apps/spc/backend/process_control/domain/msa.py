@@ -1,8 +1,4 @@
-"""Backend Gauge R&R calculation reference.
-
-Provides governed Average & Range and crossed ANOVA Gauge R&R calculations so
-frontend MSA results can be checked against a backend implementation.
-"""
+"""Gauge R&R (MSA) calculations — Average & Range and crossed ANOVA methods."""
 
 from __future__ import annotations
 
@@ -83,6 +79,7 @@ def _finalize_grr(
 
 
 def compute_grr(data: MeasurementCube, tolerance: float) -> dict[str, Any]:
+    """Gauge R&R via the Average & Range method."""
     n_operators = len(data)
     n_parts = len(data[0]) if data else 0
     n_replicates = len(data[0][0]) if data and data[0] else 0
@@ -151,6 +148,7 @@ def compute_grr(data: MeasurementCube, tolerance: float) -> dict[str, Any]:
 
 
 def compute_grr_anova(data: MeasurementCube, tolerance: float) -> dict[str, Any]:
+    """Gauge R&R via crossed ANOVA with interaction pooling decision."""
     n_operators = len(data)
     n_parts = len(data[0]) if data else 0
     n_replicates = len(data[0][0]) if data and data[0] else 0
@@ -160,7 +158,7 @@ def compute_grr_anova(data: MeasurementCube, tolerance: float) -> dict[str, Any]
 
     triples: list[tuple[int, int, int, float]] = []
     for oi, op_data in enumerate(data):
-      for pi, part_data in enumerate(op_data):
+        for pi, part_data in enumerate(op_data):
             for ri, raw_value in enumerate(part_data):
                 if _is_number(raw_value):
                     triples.append((oi, pi, ri, float(raw_value)))

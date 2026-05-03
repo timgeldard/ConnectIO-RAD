@@ -1,4 +1,4 @@
-from backend.utils.msa import compute_grr, compute_grr_anova
+from backend.process_control.domain.msa import compute_grr, compute_grr_anova
 
 
 def test_compute_grr_returns_expected_components():

@@ -1,3 +1,5 @@
+"""Hotelling T² multivariate SPC analysis."""
+
 from __future__ import annotations
 
 import math
@@ -31,6 +33,7 @@ def compute_hotelling_t2(
     selected_mic_ids: list[str],
     alpha: float = 0.0027,
 ) -> dict[str, Any]:
+    """Compute Hotelling T² control chart with anomaly attribution."""
     if len(selected_mic_ids) < 2:
         raise ValueError("At least 2 characteristics are required for multivariate analysis")
 

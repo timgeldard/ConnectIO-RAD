@@ -2,8 +2,8 @@ import asyncio
 
 import pytest
 
-from backend.dal import spc_analysis_dal
-from backend.utils.multivariate import compute_hotelling_t2
+from backend.process_control.dal import analysis as spc_analysis_dal
+from backend.process_control.domain.multivariate import compute_hotelling_t2
 
 
 def test_compute_hotelling_t2_flags_injected_multivariate_anomaly():

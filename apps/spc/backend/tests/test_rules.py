@@ -1,4 +1,4 @@
-from backend.utils.statistical_utils import detect_nelson_rules
+from backend.process_control.domain.control_charts import detect_nelson_rules
 
 def test_nelson_rule_1():
     # 1 point > 3 sigma

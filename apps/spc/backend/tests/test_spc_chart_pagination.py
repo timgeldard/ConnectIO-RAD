@@ -3,8 +3,8 @@ import asyncio
 from fastapi.testclient import TestClient
 
 import backend.main as main_module
-import backend.routers.spc_charts as spc_charts_module
-from backend.dal import spc_charts_dal
+import backend.process_control.router_charts as spc_charts_module
+from backend.process_control.dal import charts as spc_charts_dal
 
 
 client = TestClient(main_module.app)

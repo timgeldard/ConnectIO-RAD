@@ -1,8 +1,10 @@
+"""Process Control — plant, material, and characteristic discovery endpoints."""
+
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend.dal.spc_metadata_dal import (
+from backend.process_control.dal.metadata import (
     fetch_attribute_characteristics,
     fetch_characteristics,
     fetch_materials,
@@ -29,6 +31,7 @@ async def spc_plants(
     material_id: str,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Return all plants that have data for the given material."""
     token = user.raw_token
     check_warehouse_config()
     try:
@@ -51,6 +54,7 @@ async def spc_validate_material(
     body: ValidateMaterialRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Check whether a material ID exists and return its display name."""
     token = user.raw_token
     check_warehouse_config()
     try:
@@ -68,7 +72,7 @@ async def spc_validate_material(
         },
         token,
         request.url.path,
-        attach_freshness_func=attach_data_freshness
+        attach_freshness_func=attach_data_freshness,
     )
 
 
@@ -78,6 +82,7 @@ async def spc_materials(
     request: Request,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Return the full list of materials available for SPC analysis."""
     token = user.raw_token
     check_warehouse_config()
     try:
@@ -100,6 +105,7 @@ async def spc_characteristics(
     body: CharacteristicsRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Return quantitative and attribute MIC characteristics for a material."""
     token = user.raw_token
     check_warehouse_config()
     try:
@@ -122,6 +128,7 @@ async def spc_attribute_characteristics(
     body: AttributeCharacteristicsRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Return attribute-only MIC characteristics for a material."""
     token = user.raw_token
     check_warehouse_config()
     try:

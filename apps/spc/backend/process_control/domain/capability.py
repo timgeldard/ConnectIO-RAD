@@ -1,23 +1,15 @@
+"""Process capability indices, normality testing, and Cpk classification thresholds."""
+
 import math
-from typing import Optional
+from typing import List, Optional
 
+from backend.process_control.domain.control_charts import mean, moving_range, stddev
 
-D2_TABLE = {
-    2: 1.128,
-    3: 1.693,
-    4: 2.059,
-    5: 2.326,
-    6: 2.534,
-    7: 2.704,
-    8: 2.847,
-    9: 2.970,
-    10: 3.078,
-    11: 3.173,
-    12: 3.258,
-    13: 3.336,
-    14: 3.407,
-    15: 3.472,
-}
+# Cpk capability thresholds — single source of truth shared by backend and tests.
+# Matching values are exported from frontend/src/spc/spcConstants.js.
+CPK_HIGHLY_CAPABLE: float = 1.67
+CPK_CAPABLE: float = 1.33
+CPK_MARGINAL: float = 1.00
 
 
 def normal_cdf(z: float) -> float:
@@ -107,3 +99,76 @@ def compute_normality_result(values: list[Optional[float]]) -> dict:
     result["p_value"] = round(float(p_value), 6)
     result["is_normal"] = bool(float(p_value) >= alpha)
     return result
+
+
+def compute_capability_indices(
+    values: List[float],
+    usl: Optional[float] = None,
+    lsl: Optional[float] = None,
+    target: Optional[float] = None,
+) -> dict:
+    """Compute Cp, Cpk, Pp, Ppk, Cpm."""
+    mu = mean(values)
+    s_overall = stddev(values, ddof=1)
+
+    mr = moving_range(values)
+    mr_bar = mean(mr)
+    d2 = 1.128
+    sigma_within = mr_bar / d2
+
+    results = {}
+
+    if usl is not None and lsl is not None:
+        results["cp"] = (usl - lsl) / (6 * sigma_within) if sigma_within > 0 else None
+
+    if usl is not None or lsl is not None:
+        cpk_u = (usl - mu) / (3 * sigma_within) if usl is not None and sigma_within > 0 else float("inf")
+        cpk_l = (mu - lsl) / (3 * sigma_within) if lsl is not None and sigma_within > 0 else float("inf")
+        results["cpk"] = min(cpk_u, cpk_l)
+
+    if usl is not None and lsl is not None:
+        results["pp"] = (usl - lsl) / (6 * s_overall) if s_overall > 0 else None
+
+    if usl is not None or lsl is not None:
+        ppk_u = (usl - mu) / (3 * s_overall) if usl is not None and s_overall > 0 else float("inf")
+        ppk_l = (mu - lsl) / (3 * s_overall) if lsl is not None and s_overall > 0 else float("inf")
+        results["ppk"] = min(ppk_u, ppk_l)
+
+    if target is not None and usl is not None and lsl is not None:
+        denom = 6 * math.sqrt(s_overall ** 2 + (mu - target) ** 2)
+        results["cpm"] = (usl - lsl) / denom if denom > 0 else None
+
+    return results
+
+
+def compute_non_parametric_capability(
+    values: List[float],
+    usl: Optional[float] = None,
+    lsl: Optional[float] = None,
+) -> dict:
+    """ISO 22514-2 (Percentile Method)."""
+    if not values:
+        return {}
+
+    sorted_vals = sorted(values)
+    n = len(sorted_vals)
+
+    def get_percentile(p: float) -> float:
+        idx = p * (n - 1)
+        i = math.floor(idx)
+        d = idx - i
+        if i >= n - 1:
+            return sorted_vals[-1]
+        return sorted_vals[i] * (1 - d) + sorted_vals[i + 1] * d
+
+    p00135 = get_percentile(0.00135)
+    p50 = get_percentile(0.5)
+    p99865 = get_percentile(0.99865)
+
+    results = {}
+    if usl is not None or lsl is not None:
+        ppk_u = (usl - p50) / (p99865 - p50) if usl is not None and p99865 > p50 else float("inf")
+        ppk_l = (p50 - lsl) / (p50 - p00135) if lsl is not None and p50 > p00135 else float("inf")
+        results["ppk_non_parametric"] = min(ppk_u, ppk_l)
+
+    return results

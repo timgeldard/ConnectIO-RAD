@@ -1,26 +1,25 @@
-"""
-SPC exclusions audit router.
-
-Persists immutable exclusion snapshots for quantitative control charts so
-manual and auto-cleaned point removals survive refreshes and leave an auditable
-trail of who changed what, when, and with which before/after limits.
-"""
+"""Chart Config — locked limits and exclusion snapshot endpoints."""
 
 import json
 import logging
 import uuid
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from pydantic import BaseModel, field_validator
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, ValidationError, field_validator
 
+from backend.chart_config.dal.exclusions import fetch_latest_exclusion_snapshot, save_exclusion_snapshot
+from backend.chart_config.dal.locked_limits import delete_locked_limits, fetch_locked_limits, save_locked_limits
 from backend.utils.db import (
     check_warehouse_config,
     classify_sql_runtime_error,
-    insert_spc_exclusion_snapshot,
     run_sql_async,
-    sql_param,
-    tbl,
+)
+from shared_db.utils import handle_locked_limits_error
+from backend.schemas.spc_schemas import (
+    DeleteLockedLimitsRequest,
+    GetLockedLimitsRequest,
+    LockLimitsRequest,
 )
 from backend.utils.rate_limit import limiter
 from shared_auth import UserIdentity, require_proxy_user
@@ -32,7 +31,7 @@ _CHART_TYPES = {"imr", "xbar_r", "p_chart"}
 _STRATIFY_KEYS = {"plant_id", "inspection_lot_id", "operation_id"}
 
 
-def _handle_sql_error(exc: Exception) -> None:
+def _handle_exclusion_sql_error(exc: Exception) -> None:
     mapped_error = classify_sql_runtime_error(
         exc,
         missing_table_detail=(
@@ -50,6 +49,117 @@ def _handle_sql_error(exc: Exception) -> None:
         detail=f"Internal server error; reference id: {error_id}",
     )
 
+
+# ---------------------------------------------------------------------------
+# Locked Limits
+# ---------------------------------------------------------------------------
+
+@router.post("/lock-limits")
+@limiter.limit("30/minute")
+async def lock_limits(
+    request: Request,
+    body: LockLimitsRequest,
+    user: UserIdentity = Depends(require_proxy_user),
+):
+    """Persist or update locked control limits for the active SPC chart scope."""
+    token = user.raw_token
+    check_warehouse_config()
+
+    try:
+        return await save_locked_limits(
+            token,
+            body.material_id,
+            body.mic_id,
+            body.plant_id,
+            body.chart_type,
+            body.cl,
+            body.ucl,
+            body.lcl,
+            body.ucl_r,
+            body.lcl_r,
+            body.sigma_within,
+            body.baseline_from,
+            body.baseline_to,
+            operation_id=body.operation_id,
+            unified_mic_key=body.unified_mic_key,
+            mic_origin=body.mic_origin,
+            spec_signature=body.spec_signature,
+            locking_note=body.locking_note,
+        )
+    except Exception as exc:
+        handle_locked_limits_error(exc)
+
+
+@router.get("/locked-limits")
+@limiter.limit("120/minute")
+async def get_locked_limits(
+    request: Request,
+    material_id: str,
+    mic_id: str,
+    user: UserIdentity = Depends(require_proxy_user),
+    unified_mic_key: Optional[str] = None,
+    plant_id: Optional[str] = None,
+    operation_id: Optional[str] = None,
+    chart_type: str = "imr",
+):
+    """Return the most recently locked limits for the given chart scope."""
+    token = user.raw_token
+    check_warehouse_config()
+    try:
+        GetLockedLimitsRequest(
+            material_id=material_id,
+            mic_id=mic_id,
+            unified_mic_key=unified_mic_key,
+            plant_id=plant_id,
+            operation_id=operation_id,
+            chart_type=chart_type,
+        )
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+    try:
+        row = await fetch_locked_limits(
+            token,
+            material_id,
+            mic_id,
+            plant_id,
+            chart_type,
+            operation_id=operation_id,
+            unified_mic_key=unified_mic_key,
+        )
+    except Exception as exc:
+        handle_locked_limits_error(exc)
+
+    return {"locked_limits": row}
+
+
+@router.delete("/locked-limits")
+@limiter.limit("30/minute")
+async def delete_locked_limits_route(
+    request: Request,
+    body: DeleteLockedLimitsRequest,
+    user: UserIdentity = Depends(require_proxy_user),
+):
+    """Delete the locked limits for the given chart scope."""
+    token = user.raw_token
+    check_warehouse_config()
+    try:
+        return await delete_locked_limits(
+            token,
+            body.material_id,
+            body.mic_id,
+            body.plant_id,
+            body.chart_type,
+            operation_id=body.operation_id,
+            unified_mic_key=body.unified_mic_key,
+        )
+    except Exception as exc:
+        handle_locked_limits_error(exc)
+
+
+# ---------------------------------------------------------------------------
+# Exclusions
+# ---------------------------------------------------------------------------
 
 class LimitSnapshot(BaseModel):
     cl: Optional[float] = None
@@ -181,9 +291,9 @@ async def save_exclusions(
     }
 
     try:
-        await insert_spc_exclusion_snapshot(token, payload)
+        await save_exclusion_snapshot(token, payload)
     except RuntimeError as exc:
-        _handle_sql_error(exc)
+        _handle_exclusion_sql_error(exc)
 
     try:
         actor_rows = await run_sql_async(
@@ -215,73 +325,22 @@ async def fetch_exclusions(
     token = user.raw_token
     check_warehouse_config()
 
-
-    params = [
-        sql_param("material_id", query.material_id),
-        sql_param("mic_id", query.mic_id),
-        sql_param("operation_id", query.operation_id),
-        sql_param("plant_id", query.plant_id),
-        sql_param("stratify_all", query.stratify_all),
-        sql_param("stratify_by", query.stratify_by),
-        sql_param("chart_type", query.chart_type),
-        sql_param("date_from", query.date_from),
-        sql_param("date_to", query.date_to),
-    ]
-
-    sql = f"""
-        SELECT
-            event_id,
-            material_id,
-            mic_id,
-            mic_name,
-            operation_id,
-            plant_id,
-            stratify_all,
-            stratify_by,
-            chart_type,
-            date_from,
-            date_to,
-            rule_set,
-            justification,
-            action,
-            excluded_count,
-            excluded_points_json,
-            before_limits_json,
-            after_limits_json,
-            user_id,
-            CAST(event_ts AS STRING) AS event_ts
-        FROM {tbl('spc_exclusions')}
-        WHERE material_id = :material_id
-          AND mic_id = :mic_id
-          AND chart_type = :chart_type
-          AND operation_id <=> :operation_id
-          AND plant_id <=> :plant_id
-          AND COALESCE(stratify_all, false) = CAST(:stratify_all AS BOOLEAN)
-          AND (
-            stratify_by <=> :stratify_by
-            OR (
-              CAST(:stratify_all AS BOOLEAN) = true
-              AND :stratify_by = 'plant_id'
-              AND stratify_by IS NULL
-            )
-          )
-          AND date_from <=> :date_from
-          AND date_to <=> :date_to
-        ORDER BY event_ts DESC
-        LIMIT 1
-    """
-
     try:
-        rows = await run_sql_async(token, sql, params, endpoint_hint="spc.exclusions.get")
+        row = await fetch_latest_exclusion_snapshot(
+            token,
+            query.material_id,
+            query.mic_id,
+            query.chart_type,
+            query.operation_id,
+            query.plant_id,
+            query.stratify_all,
+            query.stratify_by,
+            query.date_from,
+            query.date_to,
+        )
     except RuntimeError as exc:
-        _handle_sql_error(exc)
+        _handle_exclusion_sql_error(exc)
 
-    if not rows:
+    if row is None:
         return {"exclusions": None}
-
-    row = rows[0]
-    row["excluded_count"] = int(float(row["excluded_count"])) if row.get("excluded_count") is not None else 0
-    row["excluded_points"] = json.loads(row.pop("excluded_points_json") or "[]")
-    row["before_limits"] = json.loads(row.pop("before_limits_json") or "null")
-    row["after_limits"] = json.loads(row.pop("after_limits_json") or "null")
     return {"exclusions": row}

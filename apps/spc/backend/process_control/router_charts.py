@@ -1,31 +1,27 @@
+"""Process Control — chart data, control limits, and data quality endpoints."""
+
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import ValidationError
 
-from backend.dal.spc_charts_dal import (
-    fetch_control_limits,
+from backend.process_control.dal.charts import (
     decode_chart_cursor,
-    delete_locked_limits,
     fetch_chart_data_page,
+    fetch_control_limits,
     fetch_count_chart_data,
     fetch_data_quality_summary,
-    fetch_locked_limits,
     fetch_normality_summary,
     fetch_p_chart_data,
     fetch_spec_drift_summary,
-    save_locked_limits,
 )
-from shared_db.utils import handle_locked_limits_error, handle_sql_error
+from shared_db.utils import handle_sql_error
 from backend.schemas.spc_schemas import (
     ChartDataRequest,
     ControlLimitsRequest,
     CountChartDataRequest,
     DataQualityRequest,
-    DeleteLockedLimitsRequest,
-    GetLockedLimitsRequest,
-    LockLimitsRequest,
     PChartDataRequest,
 )
 from backend.utils.db import attach_data_freshness, check_warehouse_config
@@ -48,16 +44,10 @@ async def spc_chart_data(
 ):
     """
     Retrieve a paginated set of observation points for SPC charting.
-    
-    This endpoint supports cursor-based pagination to handle large datasets
-    without overloading the Databricks SQL Warehouse. Optionally includes
-    normality and specification drift summaries for the selected cohort.
-    
-    Args:
-        body: Chart configuration including material, MIC, and date range.
-        cursor: Opaque pagination cursor from a previous response.
-        limit: Maximum number of points to return in this page.
-        include_summary: If true, calculates normality and spec drift (first page only).
+
+    Supports cursor-based pagination to handle large datasets without overloading
+    the Databricks SQL Warehouse. Optionally includes normality and spec drift
+    summaries for the selected cohort.
     """
     token = user.raw_token
     check_warehouse_config()
@@ -158,12 +148,7 @@ async def spc_data_quality(
     body: DataQualityRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
-    """
-    Evaluate the quality and consistency of observation data.
-    
-    Checks for missing results, illegal values, and date-range gaps for 
-    the selected material/MIC combination.
-    """
+    """Evaluate the quality and consistency of observation data."""
     token = user.raw_token
     check_warehouse_config()
     try:
@@ -194,12 +179,7 @@ async def spc_control_limits(
     body: ControlLimitsRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
-    """
-    Retrieve calculated control limits for a specific cohort.
-    
-    Includes grand mean, UCL, LCL, and sigma estimates based on the 
-    requested stratification and statistical method.
-    """
+    """Retrieve calculated control limits for a specific cohort."""
     token = user.raw_token
     check_warehouse_config()
     try:
@@ -230,9 +210,7 @@ async def spc_p_chart_data(
     body: PChartDataRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
-    """
-    Retrieve data specifically aggregated for P-Charts (Proportion Defective).
-    """
+    """Retrieve data specifically aggregated for P-Charts (Proportion Defective)."""
     token = user.raw_token
     check_warehouse_config()
     try:
@@ -264,9 +242,7 @@ async def spc_count_chart_data(
     body: CountChartDataRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
-    """
-    Retrieve data specifically aggregated for C-Charts or U-Charts (Count of Defects).
-    """
+    """Retrieve data specifically aggregated for C-Charts or U-Charts (Count of Defects)."""
     token = user.raw_token
     check_warehouse_config()
     try:
@@ -290,103 +266,3 @@ async def spc_count_chart_data(
         ["spc_attribute_subgroup_mv"],
         request_path=request.url.path,
     )
-
-
-@router.post("/lock-limits")
-@limiter.limit("30/minute")
-async def lock_limits(
-    request: Request,
-    body: LockLimitsRequest,
-    user: UserIdentity = Depends(require_proxy_user),
-):
-    token = user.raw_token
-    check_warehouse_config()
-
-    try:
-        return await save_locked_limits(
-            token,
-            body.material_id,
-            body.mic_id,
-            body.plant_id,
-            body.chart_type,
-            body.cl,
-            body.ucl,
-            body.lcl,
-            body.ucl_r,
-            body.lcl_r,
-            body.sigma_within,
-            body.baseline_from,
-            body.baseline_to,
-            operation_id=body.operation_id,
-            unified_mic_key=body.unified_mic_key,
-            mic_origin=body.mic_origin,
-            spec_signature=body.spec_signature,
-            locking_note=body.locking_note,
-        )
-    except Exception as exc:
-        handle_locked_limits_error(exc)
-
-
-@router.get("/locked-limits")
-@limiter.limit("120/minute")
-async def get_locked_limits(
-    request: Request,
-    material_id: str,
-    mic_id: str,
-    user: UserIdentity = Depends(require_proxy_user),
-    unified_mic_key: Optional[str] = None,
-    plant_id: Optional[str] = None,
-    operation_id: Optional[str] = None,
-    chart_type: str = "imr",
-):
-    token = user.raw_token
-    check_warehouse_config()
-    try:
-        GetLockedLimitsRequest(
-            material_id=material_id,
-            mic_id=mic_id,
-            unified_mic_key=unified_mic_key,
-            plant_id=plant_id,
-            operation_id=operation_id,
-            chart_type=chart_type,
-        )
-    except ValidationError as exc:
-        raise HTTPException(status_code=422, detail=exc.errors()) from exc
-
-    try:
-        row = await fetch_locked_limits(
-            token,
-            material_id,
-            mic_id,
-            plant_id,
-            chart_type,
-            operation_id=operation_id,
-            unified_mic_key=unified_mic_key,
-        )
-    except Exception as exc:
-        handle_locked_limits_error(exc)
-
-    return {"locked_limits": row}
-
-
-@router.delete("/locked-limits")
-@limiter.limit("30/minute")
-async def delete_locked_limits_route(
-    request: Request,
-    body: DeleteLockedLimitsRequest,
-    user: UserIdentity = Depends(require_proxy_user),
-):
-    token = user.raw_token
-    check_warehouse_config()
-    try:
-        return await delete_locked_limits(
-            token,
-            body.material_id,
-            body.mic_id,
-            body.plant_id,
-            body.chart_type,
-            operation_id=body.operation_id,
-            unified_mic_key=body.unified_mic_key,
-        )
-    except Exception as exc:
-        handle_locked_limits_error(exc)

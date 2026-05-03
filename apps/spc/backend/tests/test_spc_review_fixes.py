@@ -4,8 +4,12 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from starlette.requests import Request
 
-from backend.dal import spc_analysis_dal, spc_charts_dal, spc_metadata_dal, spc_shared
-from backend.routers import exclusions
+from backend.process_control.dal import analysis as spc_analysis_dal
+from backend.process_control.dal import charts as spc_charts_dal
+from backend.process_control.dal import metadata as spc_metadata_dal
+from backend.process_control.domain.capability import infer_spec_type
+import backend.chart_config.router as exclusions
+import backend.chart_config.dal.exclusions as exclusions_dal
 from shared_db import utils as spc_common
 from backend.schemas.spc_schemas import ProcessFlowRequest
 
@@ -133,7 +137,7 @@ def test_get_exclusions_includes_legacy_plant_fallback(monkeypatch):
         calls.append((query, params or []))
         return []
 
-    monkeypatch.setattr(exclusions, "run_sql_async", fake_run_sql_async)
+    monkeypatch.setattr(exclusions_dal, "run_sql_async", fake_run_sql_async)
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
 
     request = Request({"type": "http", "method": "GET", "headers": []})
@@ -161,11 +165,11 @@ def test_get_exclusions_includes_legacy_plant_fallback(monkeypatch):
 
 
 def test_infer_spec_type_distinguishes_unspecified_and_asymmetric_specs():
-    assert spc_shared.infer_spec_type(None, None) == "unspecified"
-    assert spc_shared.infer_spec_type(13.0, 7.0, 10.0) == "bilateral_symmetric"
-    assert spc_shared.infer_spec_type(14.0, 7.0, 10.0) == "bilateral_asymmetric"
-    assert spc_shared.infer_spec_type(12.0, None, 10.0) == "unilateral_upper"
-    assert spc_shared.infer_spec_type(None, 8.0, 10.0) == "unilateral_lower"
+    assert infer_spec_type(None, None) == "unspecified"
+    assert infer_spec_type(13.0, 7.0, 10.0) == "bilateral_symmetric"
+    assert infer_spec_type(14.0, 7.0, 10.0) == "bilateral_asymmetric"
+    assert infer_spec_type(12.0, None, 10.0) == "unilateral_upper"
+    assert infer_spec_type(None, 8.0, 10.0) == "unilateral_lower"
 
 
 def test_process_flow_request_allows_configurable_lineage_depth():

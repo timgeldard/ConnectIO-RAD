@@ -7,7 +7,8 @@ from starlette.requests import Request as StarletteRequest
 
 from backend import main
 from backend.main import app
-from backend.routers import spc_charts, trace
+import backend.process_control.router_charts as spc_charts
+from backend.routers import trace
 
 
 client = TestClient(app)

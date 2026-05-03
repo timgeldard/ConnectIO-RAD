@@ -4,12 +4,12 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import Depends, Header, HTTPException
-from backend.routers.exclusions import router as exclusions_router
+from backend.chart_config.router import router as chart_config_router
+from backend.process_control.router_analysis import router as spc_analysis_router
+from backend.process_control.router_charts import router as spc_charts_router
+from backend.process_control.router_metadata import router as spc_metadata_router
 from backend.routers.export import router as export_router
 from backend.routers.genie import router as genie_router
-from backend.routers.spc_analysis import router as spc_analysis_router
-from backend.routers.spc_charts import router as spc_charts_router
-from backend.routers.spc_metadata import router as spc_metadata_router
 from backend.routers.trace import router as trace_router
 from backend.utils.db import (
     DATABRICKS_HOST,
@@ -62,7 +62,7 @@ app.include_router(spc_metadata_router, prefix="/api/spc", tags=["SPC"])
 app.include_router(spc_charts_router, prefix="/api/spc", tags=["SPC"])
 app.include_router(spc_analysis_router, prefix="/api/spc", tags=["SPC"])
 app.include_router(export_router, prefix="/api/spc", tags=["SPC Export"])
-app.include_router(exclusions_router, prefix="/api/spc", tags=["SPC Exclusions"])
+app.include_router(chart_config_router, prefix="/api/spc", tags=["SPC Chart Config"])
 app.include_router(genie_router, prefix="/api/spc", tags=["Genie"])
 
 

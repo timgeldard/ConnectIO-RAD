@@ -1,7 +1,8 @@
 import asyncio
 import pytest
 from unittest.mock import AsyncMock
-from backend.dal import spc_charts_dal
+from backend.process_control.dal import charts as spc_charts_dal
+from backend.chart_config.dal import locked_limits as locked_limits_dal
 
 def test_fetch_chart_data_page_generates_expected_sql(monkeypatch):
     calls = []
@@ -101,9 +102,9 @@ def test_fetch_locked_limits_prefers_unified_mic_key(monkeypatch):
         captured["query"] = query
         captured["params"] = params or []
         return []
-    monkeypatch.setattr(spc_charts_dal, "run_sql_async", fake_run_sql_async)
+    monkeypatch.setattr(locked_limits_dal, "run_sql_async", fake_run_sql_async)
 
-    result = asyncio.run(spc_charts_dal.fetch_locked_limits("token", "MAT-1", "MIC-1", "PLANT-1", "imr", operation_id="OP-10", unified_mic_key="U-1"))
+    result = asyncio.run(locked_limits_dal.fetch_locked_limits("token", "MAT-1", "MIC-1", "PLANT-1", "imr", operation_id="OP-10", unified_mic_key="U-1"))
     assert result is None
 
 def test_fetch_chart_data_page_stratification(monkeypatch):
@@ -125,14 +126,14 @@ async def test_fetch_chart_data_values(monkeypatch):
 
 async def test_save_locked_limits(monkeypatch):
     mock_run = AsyncMock(return_value=[])
-    monkeypatch.setattr(spc_charts_dal, "run_sql_async", mock_run)
-    await spc_charts_dal.save_locked_limits("token", "M1", "MIC1", "P1", "imr", 10, 12, 8, None, None, 1.0, None, None)
+    monkeypatch.setattr(locked_limits_dal, "run_sql_async", mock_run)
+    await locked_limits_dal.save_locked_limits("token", "M1", "MIC1", "P1", "imr", 10, 12, 8, None, None, 1.0, None, None)
     assert mock_run.called
 
 async def test_delete_locked_limits(monkeypatch):
     mock_run = AsyncMock(return_value=[])
-    monkeypatch.setattr(spc_charts_dal, "run_sql_async", mock_run)
-    res = await spc_charts_dal.delete_locked_limits("token", "M1", "MIC1", "P1", "imr")
+    monkeypatch.setattr(locked_limits_dal, "run_sql_async", mock_run)
+    res = await locked_limits_dal.delete_locked_limits("token", "M1", "MIC1", "P1", "imr")
     assert res["deleted"] is True
 
 async def test_fetch_data_quality_summary(monkeypatch):

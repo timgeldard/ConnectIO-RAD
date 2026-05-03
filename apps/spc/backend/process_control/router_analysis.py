@@ -1,8 +1,10 @@
+"""Process Control — process flow, scorecard, MSA, correlation, and multivariate endpoints."""
+
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Request
 
-from backend.dal.spc_analysis_dal import (
+from backend.process_control.dal.analysis import (
     fetch_compare_scorecard,
     fetch_correlation,
     fetch_correlation_scatter,
@@ -23,7 +25,7 @@ from backend.schemas.spc_schemas import (
     ScorecardRequest,
 )
 from backend.utils.db import attach_data_freshness, check_warehouse_config
-from backend.utils.msa import compute_grr, compute_grr_anova
+from backend.process_control.domain.msa import compute_grr, compute_grr_anova
 from backend.utils.rate_limit import limiter
 from shared_auth import UserIdentity, require_proxy_user
 
@@ -39,8 +41,8 @@ async def spc_process_flow(
 ):
     """
     Retrieve material lineage and process flow data for a specific material.
-    
-    Returns a graph-compatible structure of upstream inputs and downstream 
+
+    Returns a graph-compatible structure of upstream inputs and downstream
     outputs, including process health indicators at each node.
     """
     token = user.raw_token
@@ -72,12 +74,7 @@ async def spc_scorecard(
     body: ScorecardRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
-    """
-    Generate a quality scorecard summary for all MICs of a material.
-    
-    Aggregates Cp/Cpk, Pp/Ppk, and violation counts for each characteristic
-    within the requested cohort.
-    """
+    """Generate a quality scorecard summary for all MICs of a material."""
     token = user.raw_token
     check_warehouse_config()
     try:
@@ -100,9 +97,7 @@ async def compare_scorecard(
     body: CompareScorecardsRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
-    """
-    Compare quality performance across multiple materials.
-    """
+    """Compare quality performance across multiple materials."""
     token = user.raw_token
     check_warehouse_config()
     try:
@@ -118,6 +113,7 @@ async def msa_save(
     body: SaveMSARequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Persist a Gauge R&R session result."""
     token = user.raw_token
     check_warehouse_config()
     try:
@@ -144,6 +140,7 @@ async def msa_calculate(
     body: CalculateMSARequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Calculate Gauge R&R (Average & Range or ANOVA) from measurement data."""
     try:
         if body.method == "anova":
             return compute_grr_anova(body.measurement_data, body.tolerance)
@@ -159,6 +156,7 @@ async def spc_correlation(
     body: CorrelationRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Compute pairwise Pearson correlation for all qualified MIC pairs."""
     token = user.raw_token
     check_warehouse_config()
     try:
@@ -188,6 +186,7 @@ async def spc_correlation_scatter(
     body: CorrelationScatterRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Retrieve scatter plot data for a specific MIC pair."""
     token = user.raw_token
     check_warehouse_config()
     try:
@@ -211,6 +210,7 @@ async def spc_multivariate(
     body: MultivariateRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Compute Hotelling T² multivariate SPC chart for selected MICs."""
     token = user.raw_token
     check_warehouse_config()
     try:

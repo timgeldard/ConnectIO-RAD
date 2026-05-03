@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from backend.main import app
-import backend.routers.exclusions as exclusions
+import backend.chart_config.router as exclusions
 from shared_auth import require_proxy_user
 
 
@@ -66,14 +66,14 @@ def test_save_exclusions_blank_justification():
 def test_save_exclusions_persists_snapshot(monkeypatch):
     captured = {}
 
-    async def fake_insert(_token, payload):
+    async def fake_save(_token, payload):
         captured["payload"] = payload
 
     async def fake_run_sql_async(*_args, **_kwargs):
         return [{"user_id": "qa@example.com", "event_ts": "2026-04-13 08:00:00"}]
 
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
-    monkeypatch.setattr(exclusions, "insert_spc_exclusion_snapshot", fake_insert)
+    monkeypatch.setattr(exclusions, "save_exclusion_snapshot", fake_save)
     monkeypatch.setattr(exclusions, "run_sql_async", fake_run_sql_async)
 
     response = client.post(
@@ -96,14 +96,14 @@ def test_save_exclusions_persists_snapshot(monkeypatch):
 
 
 def test_save_exclusions_actor_lookup_failure(monkeypatch):
-    async def fake_insert(_token, payload):
+    async def fake_save(_token, payload):
         return None
 
     async def fake_run_sql_async(*_args, **_kwargs):
         raise RuntimeError("warehouse unavailable")
 
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
-    monkeypatch.setattr(exclusions, "insert_spc_exclusion_snapshot", fake_insert)
+    monkeypatch.setattr(exclusions, "save_exclusion_snapshot", fake_save)
     monkeypatch.setattr(exclusions, "run_sql_async", fake_run_sql_async)
 
     response = client.post(
@@ -126,19 +126,19 @@ def test_save_exclusions_actor_lookup_failure(monkeypatch):
 
 def test_handle_sql_error_permission_denied():
     with pytest_http_exception(403) as exc:
-        exclusions._handle_sql_error(RuntimeError("permission denied"))
+        exclusions._handle_exclusion_sql_error(RuntimeError("permission denied"))
     assert "Access denied" in exc.detail
 
 
 def test_handle_sql_error_table_not_found():
     with pytest_http_exception(503) as exc:
-        exclusions._handle_sql_error(RuntimeError("table or view not found"))
+        exclusions._handle_exclusion_sql_error(RuntimeError("table or view not found"))
     assert "exclusions audit table" in exc.detail.lower()
 
 
 def test_handle_sql_error_unknown_masks_detail():
     with pytest_http_exception(500) as exc:
-        exclusions._handle_sql_error(RuntimeError("connection string secret"))
+        exclusions._handle_exclusion_sql_error(RuntimeError("connection string secret"))
     assert "secret" not in exc.detail
 
 
@@ -159,11 +159,11 @@ class pytest_http_exception:
 
 def test_get_exclusions_returns_none_when_empty(monkeypatch):
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
-    
-    async def fake_run_sql_async(*args, **kwargs):
-        return []
-    monkeypatch.setattr(exclusions, "run_sql_async", fake_run_sql_async)
-    
+
+    async def fake_fetch_latest(*args, **kwargs):
+        return None
+    monkeypatch.setattr(exclusions, "fetch_latest_exclusion_snapshot", fake_fetch_latest)
+
     response = client.get(
         "/api/spc/exclusions?material_id=M1&mic_id=MIC1",
         headers={"x-forwarded-access-token": "token"}
@@ -173,11 +173,11 @@ def test_get_exclusions_returns_none_when_empty(monkeypatch):
 
 def test_save_exclusions_sql_error(monkeypatch):
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
-    
-    async def fake_insert(*args, **kwargs):
+
+    async def fake_save(*args, **kwargs):
         raise RuntimeError("SQL Error")
-    monkeypatch.setattr(exclusions, "insert_spc_exclusion_snapshot", fake_insert)
-    
+    monkeypatch.setattr(exclusions, "save_exclusion_snapshot", fake_save)
+
     response = client.post(
         "/api/spc/exclusions",
         headers={"x-forwarded-access-token": "token"},

@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
-import backend.routers.spc_analysis as spc_router
+import backend.process_control.router_analysis as spc_router
 from unittest.mock import AsyncMock
 
 client = TestClient(app)

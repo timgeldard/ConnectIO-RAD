@@ -1,6 +1,6 @@
 import asyncio
 
-from backend.dal import spc_analysis_dal
+from backend.process_control.dal import analysis as spc_analysis_dal
 from unittest.mock import AsyncMock
 
 

@@ -1,7 +1,7 @@
 import pytest
 import json
 import os
-from backend.utils.statistical_utils import compute_capability_indices
+from backend.process_control.domain.capability import compute_capability_indices
 
 def load_fixture(name):
     path = os.path.join(os.path.dirname(__file__), "fixtures", name)

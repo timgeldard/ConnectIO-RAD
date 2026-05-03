@@ -1,5 +1,5 @@
 import pytest
-from backend.utils.statistical_utils import compute_non_parametric_capability
+from backend.process_control.domain.capability import compute_non_parametric_capability
 
 def test_non_parametric_capability():
     # Simple uniform distribution from 0 to 100

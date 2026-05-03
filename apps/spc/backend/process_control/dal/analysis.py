@@ -3,10 +3,9 @@ import math
 import uuid
 from typing import Optional, TypedDict
 
-from backend.dal.spc_shared import infer_spec_type
-from backend.utils.multivariate import compute_hotelling_t2
+from backend.process_control.domain.capability import CPK_CAPABLE, CPK_HIGHLY_CAPABLE, CPK_MARGINAL, infer_spec_type
+from backend.process_control.domain.multivariate import compute_hotelling_t2
 from backend.utils.db import run_sql_async, sql_param, tbl
-from backend.utils.spc_thresholds import CPK_CAPABLE, CPK_HIGHLY_CAPABLE, CPK_MARGINAL
 
 _MULTIVARIATE_MAX_SOURCE_ROWS = 50000
 
