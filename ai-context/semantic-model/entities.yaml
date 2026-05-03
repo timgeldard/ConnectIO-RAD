@@ -736,6 +736,104 @@ entities:
       - "This table is written by the EnvMon app backend, not by a pipeline"
       - "Column names are lowercase (app convention), unlike gold-layer tables which are UPPERCASE"
 
+  # ---------------------------------------------------------------------------
+  # APP TABLE: em_plant_floor
+  # ---------------------------------------------------------------------------
+  - name: em_plant_floor
+    business_name: Plant Floor
+    type: app_table
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      App-managed table defining floor levels within a plant for the EnvMon app.
+      Each row is one floor with its display name, SVG floor plan URL, and
+      rendering dimensions. Maintained by QM engineers via the admin screen.
+    grain: One row per (plant_id, floor_id)
+    primary_keys: [plant_id, floor_id]
+    preferred_synonyms:
+      - floor
+      - floor plan
+      - plant floor
+    important_dimensions:
+      - name: plant_id
+        type: STRING
+        description: SAP 4-character plant code
+        example: "P225"
+      - name: floor_id
+        type: STRING
+        description: "Application floor identifier (e.g. F1, F2, F3)"
+        example: "F1"
+      - name: floor_name
+        type: STRING
+        description: Human-readable floor label shown in the UI
+        example: "Production Floor 1"
+      - name: svg_url
+        type: STRING
+        description: URL of the SVG floor plan asset (relative path or full URL)
+      - name: svg_width
+        type: DOUBLE
+        description: Natural SVG width in pixels — used to scale coordinate percentages
+      - name: svg_height
+        type: DOUBLE
+        description: Natural SVG height in pixels
+      - name: sort_order
+        type: INT
+        description: Display sort order within a plant (ascending)
+      - name: created_at
+        type: TIMESTAMP
+        description: Row insertion timestamp
+    traps:
+      - "svg_url may be NULL for floors not yet assigned an SVG"
+      - "svg_width and svg_height may be NULL — frontend must handle missing viewport metadata"
+    notes:
+      - "Written by the EnvMon admin screen via POST /api/em/floors"
+      - "Column names are lowercase (app convention)"
+
+  # ---------------------------------------------------------------------------
+  # APP TABLE: em_plant_geo
+  # ---------------------------------------------------------------------------
+  - name: em_plant_geo
+    business_name: Plant Geographic Coordinates
+    type: app_table
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      App-managed table storing WGS-84 lat/lon coordinates for each plant pin
+      on the global MapLibre map. Maintained by admins via the plant-geo admin
+      screen. Falls back to (0, 0) when no entry exists for a plant.
+    grain: One row per plant_id
+    primary_keys: [plant_id]
+    preferred_synonyms:
+      - plant geo
+      - plant coordinates
+      - map pin
+      - plant location
+    important_dimensions:
+      - name: plant_id
+        type: STRING
+        description: SAP 4-character plant code
+        example: "P225"
+      - name: lat
+        type: DOUBLE
+        description: WGS-84 latitude (-90.0 to 90.0)
+        example: "37.4"
+      - name: lon
+        type: DOUBLE
+        description: WGS-84 longitude (-180.0 to 180.0)
+        example: "-5.9"
+      - name: updated_at
+        type: TIMESTAMP
+        description: Timestamp of last coordinate update
+      - name: updated_by
+        type: STRING
+        description: Databricks identity who last updated the coordinates
+    traps:
+      - "Default (0, 0) will place a pin in the Gulf of Guinea — always check for missing entries"
+      - "lat and lon are DOUBLE — do not cast to STRING before arithmetic"
+    notes:
+      - "Written by the EnvMon admin screen via PUT /api/em/plant-geo/{plant_id}"
+      - "Column names are lowercase (app convention)"
+
   # ===========================================================================
   # SHARED (trace2 + spc + envmon)
   # ===========================================================================
