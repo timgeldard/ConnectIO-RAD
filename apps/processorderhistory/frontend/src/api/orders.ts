@@ -2,6 +2,8 @@
 // Order list types (consumed by OrderList)
 // ---------------------------------------------------------------------------
 
+import { fetchJson, postJson } from './client'
+
 /** Shape consumed by OrderList and OrderDetail components. */
 export interface Order {
   id: string
@@ -174,23 +176,16 @@ export async function fetchOrders(params: {
   plantId?: string
   limit?: number
 } = {}): Promise<OrderListResponse> {
-  const res = await fetch('/api/orders', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
+  const data = await postJson<{ total?: unknown; orders?: Record<string, unknown>[] }>(
+    '/api/orders',
+    {
       plant_id: params.plantId ?? null,
       limit: params.limit ?? 2000,
-    }),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Orders fetch failed (${res.status}): ${text}`)
-  }
-  const data = await res.json()
+    },
+  )
   return {
     total: Number(data.total ?? 0),
-    orders: (data.orders as Record<string, unknown>[]).map(mapOrder),
+    orders: (data.orders ?? []).map(mapOrder),
   }
 }
 
@@ -323,12 +318,9 @@ function mapUsageDecision(raw: Record<string, unknown>): UsageDecision {
  * @throws Error if the API request fails or the order is not found.
  */
 export async function fetchOrderDetail(processOrderId: string): Promise<OrderDetailData> {
-  const res = await fetch(`/api/orders/${encodeURIComponent(processOrderId)}`, { credentials: 'include' })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Order detail fetch failed (${res.status}): ${text}`)
-  }
-  const data = await res.json()
+  const data = await fetchJson<Record<string, unknown>>(`/api/orders/${encodeURIComponent(processOrderId)}`, {
+    credentials: 'include',
+  })
   const ts = (data.time_summary ?? {}) as Record<string, unknown>
   const ms = (data.movement_summary ?? {}) as Record<string, unknown>
   return {

@@ -55,7 +55,7 @@ def create_api_app(
         latency_budgets_ms: A mapping of paths to their latency budgets in milliseconds.
         default_latency_budget_ms: The default latency budget for paths not in latency_budgets_ms.
         latency_alert_callback: A callback triggered when a request exceeds its latency budget.
-        allow_origins: A list of origins allowed for CORS. Defaults to ["*"] if None.
+        allow_origins: A list of origins allowed for CORS. Defaults to [] if None.
         enable_rate_limit: Whether to enable the built-in rate limiting middleware.
         trust_forwarded_user: Whether to trust the x-forwarded-preferred-username header for identity.
         same_origin_middleware: The middleware class to use for same-origin enforcement.
@@ -91,7 +91,7 @@ def create_api_app(
     # Security: CORS
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"] if allow_origins is None else allow_origins,
+        allow_origins=[] if allow_origins is None else allow_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

@@ -2,6 +2,8 @@
 // Yield analytics types and fetch helper
 // ---------------------------------------------------------------------------
 
+import { postJson } from './client'
+
 /** Per-order yield computed from MT-101 (received) and MT-261 (issued) movements. */
 export interface YieldOrder {
   process_order_id: string
@@ -50,20 +52,13 @@ export async function fetchYieldAnalytics(params?: {
   date_from?: string
   date_to?: string
 }): Promise<YieldData> {
-  const res = await fetch('/api/yield', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
+  return postJson<YieldData>(
+    '/api/yield',
+    {
       plant_id: params?.plant_id ?? null,
       date_from: params?.date_from ?? null,
       date_to: params?.date_to ?? null,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    }),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Yield analytics request failed (${res.status}): ${text}`)
-  }
-  return res.json() as Promise<YieldData>
+    },
+  )
 }

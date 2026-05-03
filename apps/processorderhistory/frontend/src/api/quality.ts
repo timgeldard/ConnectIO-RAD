@@ -2,6 +2,8 @@
 // Quality analytics types and fetch helper
 // ---------------------------------------------------------------------------
 
+import { postJson } from './client'
+
 /** A single inspection result row for the requested date range. */
 export interface QualityResultRow {
   process_order: string
@@ -63,20 +65,13 @@ export async function fetchQualityAnalytics(params?: {
   date_from?: string
   date_to?: string
 }): Promise<QualityData> {
-  const res = await fetch('/api/quality/analytics', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
+  return postJson<QualityData>(
+    '/api/quality/analytics',
+    {
       plant_id: params?.plant_id ?? null,
       date_from: params?.date_from ?? null,
       date_to: params?.date_to ?? null,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    }),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Quality analytics request failed (${res.status}): ${text}`)
-  }
-  return res.json() as Promise<QualityData>
+    },
+  )
 }

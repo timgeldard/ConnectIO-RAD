@@ -1,3 +1,5 @@
+import { fetchJson, postJson } from './client'
+
 export interface GeniePageContext {
   mode: 'process_order' | 'filtered_result_set' | 'global'
   selected_process_order?: string | null
@@ -31,22 +33,8 @@ export interface GenieQueryResult {
   raw: unknown
 }
 
-async function parseOrThrow(res: Response, label: string) {
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`${label} failed (${res.status}): ${text}`)
-  }
-  return res.json()
-}
-
 export async function startGenieConversation(prompt: string, pageContext: GeniePageContext): Promise<GenieMessageResponse> {
-  const res = await fetch('/api/genie/start', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ prompt, pageContext }),
-  })
-  return parseOrThrow(res, 'Genie start')
+  return postJson<GenieMessageResponse>('/api/genie/start', { prompt, pageContext })
 }
 
 export async function sendGenieFollowup(
@@ -54,19 +42,12 @@ export async function sendGenieFollowup(
   prompt: string,
   pageContext: GeniePageContext,
 ): Promise<GenieMessageResponse> {
-  const res = await fetch('/api/genie/followup', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ conversationId, prompt, pageContext }),
-  })
-  return parseOrThrow(res, 'Genie follow-up')
+  return postJson<GenieMessageResponse>('/api/genie/followup', { conversationId, prompt, pageContext })
 }
 
 export async function fetchGenieMessage(conversationId: string, messageId: string): Promise<GenieMessageResponse> {
   const params = new URLSearchParams({ conversationId, messageId })
-  const res = await fetch(`/api/genie/message?${params.toString()}`, { credentials: 'include' })
-  return parseOrThrow(res, 'Genie message')
+  return fetchJson<GenieMessageResponse>(`/api/genie/message?${params.toString()}`, { credentials: 'include' })
 }
 
 export async function fetchGenieQueryResult(
@@ -75,6 +56,5 @@ export async function fetchGenieQueryResult(
   attachmentId: string,
 ): Promise<GenieQueryResult> {
   const params = new URLSearchParams({ conversationId, messageId, attachmentId })
-  const res = await fetch(`/api/genie/query-result?${params.toString()}`, { credentials: 'include' })
-  return parseOrThrow(res, 'Genie query result')
+  return fetchJson<GenieQueryResult>(`/api/genie/query-result?${params.toString()}`, { credentials: 'include' })
 }

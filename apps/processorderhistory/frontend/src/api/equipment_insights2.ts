@@ -2,6 +2,8 @@
 // Equipment Insights v2 — types and fetch helper
 // ---------------------------------------------------------------------------
 
+import { postJson } from './client'
+
 /** One piece of production equipment in the estate. */
 export interface EquipmentItem {
   id: string
@@ -98,18 +100,11 @@ export interface EquipmentInsights2Summary {
 export async function fetchEquipmentInsights2(params?: {
   plant_id?: string
 }): Promise<EquipmentInsights2Summary> {
-  const res = await fetch('/api/equipment-insights-v2/summary', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
+  return postJson<EquipmentInsights2Summary>(
+    '/api/equipment-insights-v2/summary',
+    {
       plant_id: params?.plant_id ?? null,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    }),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Equipment insights v2 request failed (${res.status}): ${text}`)
-  }
-  return res.json() as Promise<EquipmentInsights2Summary>
+    },
+  )
 }

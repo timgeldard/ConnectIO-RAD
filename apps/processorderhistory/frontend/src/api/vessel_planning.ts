@@ -2,6 +2,8 @@
 // Vessel planning analytics types and fetch helper
 // ---------------------------------------------------------------------------
 
+import { postJson } from './client'
+
 /** Affinity entry: how many times a vessel has processed a given material. */
 export interface VesselAffinityEntry {
   material_id: string
@@ -107,20 +109,13 @@ export async function fetchVesselPlanningAnalytics(params?: {
   dateFrom?: string
   dateTo?: string
 }): Promise<VesselPlanningData> {
-  const res = await fetch('/api/vessel-planning/analytics', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
+  return postJson<VesselPlanningData>(
+    '/api/vessel-planning/analytics',
+    {
       plant_id: params?.plantId ?? null,
       date_from: params?.dateFrom ?? null,
       date_to: params?.dateTo ?? null,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    }),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Vessel planning request failed (${res.status}): ${text}`)
-  }
-  return res.json() as Promise<VesselPlanningData>
+    },
+  )
 }

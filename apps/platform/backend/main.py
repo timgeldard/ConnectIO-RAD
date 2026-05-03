@@ -1,52 +1,74 @@
-﻿"""ConnectIO Platform â€” unified FastAPI entry point.
+﻿"""ConnectIO Platform - unified FastAPI entry point.
 
 Serves ConnectedQuality (at /cq), ProcessOrderHistory (at /poh), and
 Warehouse360 (at /warehouse360) from a single Databricks App process.
 
-IMPORTANT: This module cannot be run standalone. It imports from poh_backend,
-cq_backend, and w360_backend which are build artifacts produced by scripts/build.py.
-Run `python3 scripts/build.py` first, then deploy via `make deploy`.
+Backend bundles are produced by scripts/build.py. The module is still importable
+before that build step so health/readiness can report a clear degraded state.
 """
+from importlib import import_module
 from pathlib import Path
+from typing import Any
 
+from fastapi import HTTPException
 from starlette.staticfiles import StaticFiles
 
 from shared_api import create_api_app, health_payload, databricks_sql_ready
 
-# CQ API routers (build.py rewrites backend.* imports to cq_backend.*)
-from cq_backend.routers.alarms import router as cq_alarms_router
-from cq_backend.routers.envmon import router as cq_envmon_router
-from cq_backend.routers.lab import router as cq_lab_router
-from cq_backend.routers.spc import router as cq_spc_router
-from cq_backend.routers.trace import router as cq_trace_router
-from cq_backend.routers.me_router import router as cq_me_router
+_missing_build_artifacts: dict[str, str] = {}
 
-# POH API routers â€” imports rewritten from backend.* to poh_backend.* by build.py
-from poh_backend.db import check_warehouse_config, run_sql_async
-from poh_backend.routers.me_router import router as poh_me_router
-from poh_backend.routers.orders import router as poh_orders_router
-from poh_backend.routers.order_detail_router import router as poh_order_detail_router
-from poh_backend.routers.pours_router import router as poh_pours_router
-from poh_backend.routers.planning_router import router as poh_planning_router
-from poh_backend.routers.day_view_router import router as poh_day_view_router
-from poh_backend.routers.yield_router import router as poh_yield_router
-from poh_backend.routers.quality_router import router as poh_quality_router
-from poh_backend.routers.downtime_router import router as poh_downtime_router
-from poh_backend.routers.oee_router import router as poh_oee_router
-from poh_backend.routers.adherence_router import router as poh_adherence_router
-from poh_backend.routers.genie_router import router as poh_genie_router
-from poh_backend.routers.vessel_planning_router import router as poh_vessel_planning_router
-from poh_backend.routers.equipment_insights_router import router as poh_equipment_insights_router
-from poh_backend.routers.equipment_insights2_router import router as poh_equipment_insights2_router
 
-# W360 API routers â€” imports rewritten from backend.* to w360_backend.* by build.py
-from w360_backend.routers.process_orders import router as w360_process_orders_router
-from w360_backend.routers.deliveries import router as w360_deliveries_router
-from w360_backend.routers.inbound import router as w360_inbound_router
-from w360_backend.routers.inventory import router as w360_inventory_router
-from w360_backend.routers.dispensary import router as w360_dispensary_router
-from w360_backend.routers.kpis import router as w360_kpis_router
-from w360_backend.routers.plants import router as w360_plants_router
+def _optional_attr(module_name: str, attr_name: str, artifact: str) -> Any | None:
+    try:
+        return getattr(import_module(module_name), attr_name)
+    except ModuleNotFoundError as exc:
+        _missing_build_artifacts[artifact] = str(exc)
+        return None
+
+
+def _optional_router(module_name: str, artifact: str) -> Any | None:
+    return _optional_attr(module_name, "router", artifact)
+
+
+check_warehouse_config = _optional_attr("poh_backend.db", "check_warehouse_config", "poh_backend")
+run_sql_async = _optional_attr("poh_backend.db", "run_sql_async", "poh_backend")
+
+CQ_ROUTERS = [
+    (_optional_router("cq_backend.routers.trace", "cq_backend"), "/api/cq", ["CQ-Trace"]),
+    (_optional_router("cq_backend.routers.envmon", "cq_backend"), "/api/cq", ["CQ-EnvMon"]),
+    (_optional_router("cq_backend.routers.spc", "cq_backend"), "/api/cq", ["CQ-SPC"]),
+    (_optional_router("cq_backend.routers.lab", "cq_backend"), "/api/cq", ["CQ-Lab"]),
+    (_optional_router("cq_backend.routers.me_router", "cq_backend"), "/api/cq", ["CQ-Me"]),
+    (_optional_router("cq_backend.routers.alarms", "cq_backend"), "/api/cq", ["CQ-Alarms"]),
+]
+
+POH_ROUTERS = [
+    (_optional_router("poh_backend.routers.me_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.orders", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.order_detail_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.pours_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.planning_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.day_view_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.yield_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.quality_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.downtime_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.oee_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.adherence_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.genie_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.vessel_planning_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.equipment_insights_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.routers.equipment_insights2_router", "poh_backend"), "/api", None),
+]
+
+W360_ROUTERS = [
+    (_optional_router("w360_backend.routers.process_orders", "w360_backend"), "/api/wh", ["W360-ProcessOrders"]),
+    (_optional_router("w360_backend.routers.deliveries", "w360_backend"), "/api/wh", ["W360-Deliveries"]),
+    (_optional_router("w360_backend.routers.inbound", "w360_backend"), "/api/wh", ["W360-Inbound"]),
+    (_optional_router("w360_backend.routers.inventory", "w360_backend"), "/api/wh", ["W360-Inventory"]),
+    (_optional_router("w360_backend.routers.dispensary", "w360_backend"), "/api/wh", ["W360-Dispensary"]),
+    (_optional_router("w360_backend.routers.kpis", "w360_backend"), "/api/wh", ["W360-KPIs"]),
+    (_optional_router("w360_backend.routers.plants", "w360_backend"), "/api/wh", ["W360-Plants"]),
+]
 
 _STATIC = Path(__file__).parent.parent / "static"
 CQ_STATIC = _STATIC / "cq"
@@ -64,39 +86,18 @@ LINESIDE_STATIC   = _STATIC / "lineside-monitor"
 
 app = create_api_app(title="ConnectIO Platform API")
 
-# --- CQ API (/api/cq/...) ---
-app.include_router(cq_trace_router, prefix="/api/cq", tags=["CQ-Trace"])
-app.include_router(cq_envmon_router, prefix="/api/cq", tags=["CQ-EnvMon"])
-app.include_router(cq_spc_router, prefix="/api/cq", tags=["CQ-SPC"])
-app.include_router(cq_lab_router, prefix="/api/cq", tags=["CQ-Lab"])
-app.include_router(cq_me_router, prefix="/api/cq", tags=["CQ-Me"])
-app.include_router(cq_alarms_router, prefix="/api/cq", tags=["CQ-Alarms"])
 
-# --- POH API (/api/...) ---
-app.include_router(poh_me_router, prefix="/api")
-app.include_router(poh_orders_router, prefix="/api")
-app.include_router(poh_order_detail_router, prefix="/api")
-app.include_router(poh_pours_router, prefix="/api")
-app.include_router(poh_planning_router, prefix="/api")
-app.include_router(poh_day_view_router, prefix="/api")
-app.include_router(poh_yield_router, prefix="/api")
-app.include_router(poh_quality_router, prefix="/api")
-app.include_router(poh_downtime_router, prefix="/api")
-app.include_router(poh_oee_router, prefix="/api")
-app.include_router(poh_adherence_router, prefix="/api")
-app.include_router(poh_genie_router, prefix="/api")
-app.include_router(poh_vessel_planning_router, prefix="/api")
-app.include_router(poh_equipment_insights_router, prefix="/api")
-app.include_router(poh_equipment_insights2_router, prefix="/api")
+def _include_available_routers() -> None:
+    for router, prefix, tags in [*CQ_ROUTERS, *POH_ROUTERS, *W360_ROUTERS]:
+        if router is None:
+            continue
+        kwargs = {"prefix": prefix}
+        if tags is not None:
+            kwargs["tags"] = tags
+        app.include_router(router, **kwargs)
 
-# --- W360 API (/api/wh/...) ---
-app.include_router(w360_process_orders_router, prefix="/api/wh", tags=["W360-ProcessOrders"])
-app.include_router(w360_deliveries_router, prefix="/api/wh", tags=["W360-Deliveries"])
-app.include_router(w360_inbound_router, prefix="/api/wh", tags=["W360-Inbound"])
-app.include_router(w360_inventory_router, prefix="/api/wh", tags=["W360-Inventory"])
-app.include_router(w360_dispensary_router, prefix="/api/wh", tags=["W360-Dispensary"])
-app.include_router(w360_kpis_router, prefix="/api/wh", tags=["W360-KPIs"])
-app.include_router(w360_plants_router, prefix="/api/wh", tags=["W360-Plants"])
+
+_include_available_routers()
 
 
 @app.get("/api/health", include_in_schema=False)
@@ -107,7 +108,21 @@ async def health():
 
 @app.get("/api/ready", include_in_schema=False)
 async def ready():
-    """Readiness probe â€” POH warehouse connectivity."""
+    """Readiness probe - build artifacts and POH warehouse connectivity."""
+    if _missing_build_artifacts:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "not_ready",
+                "reason": "platform_build_artifacts_missing",
+                "artifacts": sorted(_missing_build_artifacts),
+            },
+        )
+    if check_warehouse_config is None or run_sql_async is None:
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "not_ready", "reason": "poh_backend_unavailable"},
+        )
     return await databricks_sql_ready(
         check_warehouse_config=check_warehouse_config,
         run_sql=run_sql_async,

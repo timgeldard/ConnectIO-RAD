@@ -24,6 +24,19 @@ def test_create_api_app_registers_same_origin_middleware():
     assert response.json()["detail"] == "Cross-origin mutation blocked"
 
 
+def test_create_api_app_does_not_allow_wildcard_cors_by_default():
+    app = create_api_app(title="Test API")
+
+    @app.get("/api/read")
+    async def read():
+        return {"ok": True}
+
+    response = TestClient(app).get("/api/read", headers={"Origin": "https://evil.example.com"})
+
+    assert response.status_code == 200
+    assert "access-control-allow-origin" not in response.headers
+
+
 def test_register_spa_routes_uses_dynamic_static_dir(tmp_path):
     app = FastAPI()
     missing_dir = tmp_path / "missing"

@@ -2,6 +2,8 @@
 // Day View types and fetch helper
 // ---------------------------------------------------------------------------
 
+import { postJson } from './client'
+
 /** A Gantt block derived from first/last ADP movement on the selected day. */
 export interface DayBlock {
   id: string
@@ -52,18 +54,11 @@ export async function fetchDayView(params?: {
   day?: string
   plantId?: string
 }): Promise<DayViewData> {
-  const res = await fetch('/api/dayview', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
+  return postJson<DayViewData>(
+    '/api/dayview',
+    {
       day: params?.day ?? null,
       plant_id: params?.plantId ?? null,
-    }),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Day View request failed (${res.status}): ${text}`)
-  }
-  return res.json() as Promise<DayViewData>
+    },
+  )
 }

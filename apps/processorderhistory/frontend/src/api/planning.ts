@@ -2,6 +2,8 @@
 // Planning board types and fetch helper
 // ---------------------------------------------------------------------------
 
+import { postJson } from './client'
+
 /** A single scheduled order block on the Gantt chart. */
 export interface PlanningBlock {
   id: string
@@ -80,15 +82,5 @@ export interface PlanningScheduleResponse {
 export async function fetchPlanningSchedule(params?: {
   plantId?: string
 }): Promise<PlanningScheduleResponse> {
-  const res = await fetch('/api/planning/schedule', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ plant_id: params?.plantId ?? null }),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Planning schedule request failed (${res.status}): ${text}`)
-  }
-  return res.json() as Promise<PlanningScheduleResponse>
+  return postJson<PlanningScheduleResponse>('/api/planning/schedule', { plant_id: params?.plantId ?? null })
 }

@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json"
   },
   "dependencies": {
+    "@connectio/shared-frontend-api": "file:../../../libs/shared-frontend-api",
     "@connectio/shared-frontend-i18n": "file:../../../libs/shared-frontend-i18n",
     "@connectio/shared-ui": "file:../../../libs/shared-ui",
     "react": "^18.3.1",

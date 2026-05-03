@@ -2,6 +2,8 @@
 // Equipment insights types and fetch helper
 // ---------------------------------------------------------------------------
 
+import { postJson } from './client'
+
 /** One row in the equipment type distribution. */
 export interface EquipmentTypeEntry {
   equipment_type: string
@@ -55,18 +57,11 @@ export async function fetchEquipmentInsights(params?: {
   plantId?: string
   timezone?: string
 }): Promise<EquipmentInsightsData> {
-  const res = await fetch('/api/equipment-insights/summary', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
+  return postJson<EquipmentInsightsData>(
+    '/api/equipment-insights/summary',
+    {
       plant_id: params?.plantId ?? null,
       timezone: params?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
-    }),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Equipment insights request failed (${res.status}): ${text}`)
-  }
-  return res.json() as Promise<EquipmentInsightsData>
+    },
+  )
 }

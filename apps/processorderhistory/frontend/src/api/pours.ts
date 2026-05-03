@@ -2,6 +2,8 @@
 // Pour analytics types and fetch helper
 // ---------------------------------------------------------------------------
 
+import { postJson } from './client'
+
 /** A single pour event (movement type-261) for the requested date range. */
 export interface PourEvent {
   ts_ms: number
@@ -54,20 +56,13 @@ export async function fetchPoursAnalytics(params?: {
   dateFrom?: string
   dateTo?: string
 }): Promise<PoursData> {
-  const res = await fetch('/api/pours/analytics', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
+  return postJson<PoursData>(
+    '/api/pours/analytics',
+    {
       plant_id: params?.plantId ?? null,
       date_from: params?.dateFrom ?? null,
       date_to: params?.dateTo ?? null,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    }),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Pours analytics request failed (${res.status}): ${text}`)
-  }
-  return res.json() as Promise<PoursData>
+    },
+  )
 }
