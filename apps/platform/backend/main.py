@@ -1,4 +1,4 @@
-"""ConnectIO Platform — unified FastAPI entry point.
+﻿"""ConnectIO Platform â€” unified FastAPI entry point.
 
 Serves ConnectedQuality (at /cq), ProcessOrderHistory (at /poh), and
 Warehouse360 (at /warehouse360) from a single Databricks App process.
@@ -21,7 +21,7 @@ from cq_backend.routers.spc import router as cq_spc_router
 from cq_backend.routers.trace import router as cq_trace_router
 from cq_backend.routers.me_router import router as cq_me_router
 
-# POH API routers — imports rewritten from backend.* to poh_backend.* by build.py
+# POH API routers â€” imports rewritten from backend.* to poh_backend.* by build.py
 from poh_backend.db import check_warehouse_config, run_sql_async
 from poh_backend.routers.me_router import router as poh_me_router
 from poh_backend.routers.orders import router as poh_orders_router
@@ -39,7 +39,7 @@ from poh_backend.routers.vessel_planning_router import router as poh_vessel_plan
 from poh_backend.routers.equipment_insights_router import router as poh_equipment_insights_router
 from poh_backend.routers.equipment_insights2_router import router as poh_equipment_insights2_router
 
-# W360 API routers — imports rewritten from backend.* to w360_backend.* by build.py
+# W360 API routers â€” imports rewritten from backend.* to w360_backend.* by build.py
 from w360_backend.routers.process_orders import router as w360_process_orders_router
 from w360_backend.routers.deliveries import router as w360_deliveries_router
 from w360_backend.routers.inbound import router as w360_inbound_router
@@ -59,6 +59,7 @@ WAREHOUSE_STATIC  = _STATIC / "warehouse"
 MAINTENANCE_STATIC = _STATIC / "maintenance"
 TPM_STATIC        = _STATIC / "tpm"
 IMWM_STATIC       = _STATIC / "imwm"
+PEX_E35_STATIC    = _STATIC / "pex-e-35"
 
 app = create_api_app(title="ConnectIO Platform API")
 
@@ -105,7 +106,7 @@ async def health():
 
 @app.get("/api/ready", include_in_schema=False)
 async def ready():
-    """Readiness probe — POH warehouse connectivity."""
+    """Readiness probe â€” POH warehouse connectivity."""
     return await databricks_sql_ready(
         check_warehouse_config=check_warehouse_config,
         run_sql=run_sql_async,
@@ -142,6 +143,9 @@ if TPM_STATIC.exists():
 
 if IMWM_STATIC.exists():
     app.mount("/imwm", StaticFiles(directory=str(IMWM_STATIC), html=True), name="imwm")
+
+if PEX_E35_STATIC.exists():
+    app.mount("/pex-e-35", StaticFiles(directory=str(PEX_E35_STATIC), html=True), name="pex-e-35")
 
 if HOME_STATIC.exists():
     app.mount("/", StaticFiles(directory=str(HOME_STATIC), html=True), name="home")

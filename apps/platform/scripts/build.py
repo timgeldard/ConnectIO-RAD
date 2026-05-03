@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Platform build script.
 
 Steps:
@@ -36,7 +36,7 @@ STANDALONE_DIR = APP_DIR / "standalone"
 
 SHARED_LIBS = ["shared-db", "shared-api", "shared-auth"]
 
-STANDALONE_SLUGS = ["enzymes", "pi-sheet", "warehouse", "maintenance", "tpm", "imwm"]
+STANDALONE_SLUGS = ["enzymes", "pi-sheet", "warehouse", "maintenance", "tpm", "imwm", "pex-e-35"]
 
 
 def copy_shared_libs() -> None:
