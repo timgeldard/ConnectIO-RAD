@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import ValidationError
 
-from backend.process_control.dal.charts import (
+from backend.process_control.application.charts import (
     decode_chart_cursor,
     fetch_chart_data_page,
     fetch_control_limits,

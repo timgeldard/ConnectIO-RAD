@@ -4,7 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
 
-from backend.process_control.dal.analysis import (
+from backend.process_control.application.analysis import (
     fetch_compare_scorecard,
     fetch_correlation,
     fetch_correlation_scatter,

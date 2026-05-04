@@ -28,11 +28,11 @@ This document outlines the complete plan to finalize the Domain-Driven Design (D
 - [x] **`envmon`**: Enrich inspection analysis and spatial config contexts.
 - [x] **`warehouse360`** & **`processorderhistory`**: Enrich the newly created but formerly anemic context structures.
 
-## Phase 3: Stabilization & Cross-Cutting Concerns
-- [ ] **Ubiquitous Language Enforcement**: Update docs, comments, and variable names to use consistent domain terms.
-- [ ] **Event-Driven Foundations**: Define domain events in shared lib; implement basic in-memory publishing.
-- [ ] **Testing Strategy**: Segregate tests into Domain unit tests (no DB), Repository integration tests, and Application service tests with mocks.
-- [ ] **Dependency Rules**: Enforce rules via linting (Domain cannot depend on infrastructure or application layers).
+## Phase 3: Stabilization & Cross-Cutting Concerns (Completed)
+- [x] **Ubiquitous Language Enforcement**: Update docs, comments, and variable names to use consistent domain terms.
+- [x] **Event-Driven Foundations**: Define domain events in shared lib; implement basic in-memory publishing.
+- [x] **Testing Strategy**: Segregate tests into Domain unit tests (no DB), Repository integration tests, and Application service tests with mocks.
+- [x] **Dependency Rules**: Enforce rules via linting (Domain cannot depend on infrastructure or application layers).
 
 ## Phase 4: Validation, Documentation & Handover
 - [ ] **ADR**: Document the final DDD approach.

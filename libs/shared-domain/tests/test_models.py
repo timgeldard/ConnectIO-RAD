@@ -1,6 +1,6 @@
 import pytest
 from dataclasses import dataclass
-from shared_domain import Entity, AggregateRoot, ValueObject, DomainEvent
+from shared_domain import Entity, AggregateRoot, ValueObject, DomainEvent, DomainEventPublisher
 
 @dataclass(frozen=True)
 class Address(ValueObject):
@@ -53,3 +53,49 @@ def test_aggregate_root_domain_events():
     
     order.clear_events()
     assert len(order.domain_events) == 0
+
+
+def test_domain_event_publisher_invokes_subscribed_handler():
+    publisher = DomainEventPublisher()
+    seen: list[OrderCreated] = []
+
+    publisher.subscribe(OrderCreated, seen.append)
+    event = OrderCreated(order_id="order-1")
+    publisher.publish(event)
+
+    assert seen == [event]
+
+
+def test_domain_event_publisher_matches_base_event_handlers():
+    publisher = DomainEventPublisher()
+    seen: list[DomainEvent] = []
+
+    publisher.subscribe(DomainEvent, seen.append)
+    event = OrderCreated(order_id="order-1")
+    publisher.publish(event)
+
+    assert seen == [event]
+
+
+def test_domain_event_publisher_unsubscribe_removes_handler():
+    publisher = DomainEventPublisher()
+    seen: list[OrderCreated] = []
+
+    publisher.subscribe(OrderCreated, seen.append)
+    publisher.unsubscribe(OrderCreated, seen.append)
+    publisher.publish(OrderCreated(order_id="order-1"))
+
+    assert seen == []
+
+
+def test_domain_event_publisher_publish_all_preserves_order():
+    publisher = DomainEventPublisher()
+    seen: list[str] = []
+
+    publisher.subscribe(OrderCreated, lambda event: seen.append(event.order_id))
+    publisher.publish_all([
+        OrderCreated(order_id="order-1"),
+        OrderCreated(order_id="order-2"),
+    ])
+
+    assert seen == ["order-1", "order-2"]

@@ -24,9 +24,8 @@ from backend.schemas.em import (
     FloorInfo,
     LocationMeta,
 )
-from backend.spatial_config.dal import coordinates as coordinates_dal
-from backend.spatial_config.dal import floors as floors_dal
-from backend.spatial_config.dal import plant_geo as plant_geo_dal
+from backend.spatial_config.application import commands as spatial_commands
+from backend.spatial_config.application import queries as spatial_queries
 from backend.spatial_config.domain.coordinate import LocationCoordinate
 from backend.spatial_config.domain.plant_geo import PlantGeo
 from shared_auth import UserIdentity, require_proxy_user
@@ -78,7 +77,7 @@ async def add_floor(
 ):
     """Upsert a floor definition. Idempotent: updates metadata if floor_id already exists."""
     token = user.raw_token
-    await floors_dal.upsert_floor(
+    await spatial_commands.upsert_floor(
         token,
         body.plant_id, body.floor_id, body.floor_name,
         body.svg_url, body.svg_width, body.svg_height, body.sort_order,
@@ -101,7 +100,7 @@ async def delete_floor(
 ):
     """Remove a floor definition. Coordinate mappings for this floor are not automatically removed."""
     token = user.raw_token
-    await floors_dal.delete_floor(token, plant_id, floor_id)
+    await spatial_commands.delete_floor(token, plant_id, floor_id)
 
 
 # ---------------------------------------------------------------------------
@@ -115,7 +114,7 @@ async def list_unmapped(
 ):
     """Return functional locations that have inspection history but no coordinate mapping."""
     token = user.raw_token
-    rows = await coordinates_dal.fetch_unmapped_locations(token, plant_id)
+    rows = await spatial_queries.fetch_unmapped_locations(token, plant_id)
     return [
         LocationMeta(func_loc_id=r["func_loc_id"], func_loc_name=None,
                      plant_id=plant_id, floor_id=None, x_pos=None, y_pos=None, is_mapped=False)
@@ -130,7 +129,7 @@ async def list_mapped(
 ):
     """Return all coordinate-mapped locations for a plant."""
     token = user.raw_token
-    rows = await coordinates_dal.fetch_mapped_locations(token, plant_id)
+    rows = await spatial_queries.fetch_mapped_locations(token, plant_id)
     return [
         LocationMeta(func_loc_id=r["func_loc_id"], func_loc_name=None,
                      plant_id=plant_id, floor_id=r["floor_id"],
@@ -156,7 +155,7 @@ async def upsert_coordinate(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    await coordinates_dal.upsert_coordinate(
+    await spatial_commands.upsert_coordinate(
         token, body.plant_id, coord.func_loc_id, coord.floor_id, coord.x_pct, coord.y_pct
     )
     return CoordinateUpsertResponse(
@@ -176,7 +175,7 @@ async def delete_coordinate(
 ):
     """Remove a coordinate mapping for a functional location."""
     token = user.raw_token
-    await coordinates_dal.delete_coordinate(token, plant_id, func_loc_id)
+    await spatial_commands.delete_coordinate(token, plant_id, func_loc_id)
 
 
 # ---------------------------------------------------------------------------
@@ -189,7 +188,7 @@ async def list_plant_geo(
 ):
     """Return all configured plant geographic pins."""
     token = user.raw_token
-    rows = await plant_geo_dal.fetch_all_plant_geo(token)
+    rows = await spatial_queries.fetch_all_plant_geo(token)
     return [
         PlantGeoEntry(
             plant_id=r["plant_id"],
@@ -215,5 +214,5 @@ async def upsert_plant_geo(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    await plant_geo_dal.upsert_plant_geo(token, geo.plant_id, geo.lat, geo.lon)
+    await spatial_commands.upsert_plant_geo(token, geo.plant_id, geo.lat, geo.lon)
     return PlantGeoEntry(plant_id=geo.plant_id, lat=geo.lat, lon=geo.lon)
