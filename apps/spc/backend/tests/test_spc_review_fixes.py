@@ -164,6 +164,35 @@ def test_get_exclusions_includes_legacy_plant_fallback(monkeypatch):
     assert any(param["name"] == "stratify_by" and param["value"] == "plant_id" for param in params)
 
 
+def test_fetch_actor_metadata_returns_sql_runtime_row(monkeypatch):
+    """Actor metadata DAL returns the SQL runtime identity row."""
+    async def fake_run_sql_async(token, query, params=None, **kwargs):
+        assert token == "token"
+        assert "CURRENT_USER()" in query
+        assert params is None
+        assert kwargs["endpoint_hint"] == "spc.exclusions.actor-metadata"
+        return [{"user_id": "alice@example.com", "event_ts": "2026-01-01T00:00:00"}]
+
+    monkeypatch.setattr(exclusions_dal, "run_sql_async", fake_run_sql_async)
+
+    result = asyncio.run(exclusions_dal.fetch_actor_metadata("token"))
+
+    assert result == {"user_id": "alice@example.com", "event_ts": "2026-01-01T00:00:00"}
+
+
+def test_fetch_actor_metadata_defaults_when_runtime_returns_no_rows(monkeypatch):
+    """Actor metadata DAL returns null fields when SQL returns no rows."""
+    async def fake_run_sql_async(_token, _query, params=None, **_kwargs):
+        assert params is None
+        return []
+
+    monkeypatch.setattr(exclusions_dal, "run_sql_async", fake_run_sql_async)
+
+    result = asyncio.run(exclusions_dal.fetch_actor_metadata("token"))
+
+    assert result == {"user_id": None, "event_ts": None}
+
+
 def test_infer_spec_type_distinguishes_unspecified_and_asymmetric_specs():
     assert infer_spec_type(None, None) == "unspecified"
     assert infer_spec_type(13.0, 7.0, 10.0) == "bilateral_symmetric"

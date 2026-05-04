@@ -15,6 +15,7 @@ from backend.inspection_analysis.dal import trends as trends_dal
 from backend.inspection_analysis.domain.risk import calculate_risk_score
 from backend.inspection_analysis.domain.spc import detect_early_warning
 from backend.inspection_analysis.domain.status import derive_location_status, lot_status
+from backend.inspection_analysis.domain.valuation import ACCEPT_VALUATIONS, REJECT_VALUATIONS, normalize_valuation
 from backend.schemas.em import (
     HeatmapResponse,
     InspectionLot,
@@ -30,6 +31,7 @@ from backend.schemas.em import (
 from backend.spatial_config.application import queries as spatial_queries
 
 logger = logging.getLogger(__name__)
+_PLANT_QUERY_CONCURRENCY = 8
 
 
 def _build_plant_metadata(
@@ -91,7 +93,7 @@ async def _safe_fetch_kpis(token: str, plant_id: str, days: int) -> PlantKpis:
         pending=int(row.get("pending") or 0),
         pass_rate=round(pass_locs / total * 100, 1) if total > 0 else 100.0,
         lots_tested=int(row.get("lots_tested") or 0),
-        lots_planned=int(row.get("lots_tested") or 0),
+        lots_planned=int(row.get("lots_planned") or 0),
         risk_index=0.0,
         pathogen_hits=0,
     )
@@ -106,15 +108,30 @@ async def _safe_count_floors(token: str, plant_id: str) -> int:
 
 
 async def list_plants(token: str, days: int) -> list[PlantInfo]:
+    """List all active plants with metadata, rolling KPIs, and floor counts.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+        days: Rolling window, in days, used for KPI aggregation.
+
+    Returns:
+        Plant portfolio rows enriched with geo metadata and KPI summaries.
+    """
     plant_ids = await plants_dal.fetch_active_plant_ids(token)
     if not plant_ids:
         return []
 
+    semaphore = asyncio.Semaphore(_PLANT_QUERY_CONCURRENCY)
+
+    async def bounded(coro):
+        async with semaphore:
+            return await coro
+
     geo_rows, meta_rows, kpi_results, floor_counts = await asyncio.gather(
         _safe_fetch_geo(token, plant_ids),
         _safe_fetch_meta(token, plant_ids),
-        asyncio.gather(*[_safe_fetch_kpis(token, pid, days) for pid in plant_ids]),
-        asyncio.gather(*[_safe_count_floors(token, pid) for pid in plant_ids]),
+        asyncio.gather(*[bounded(_safe_fetch_kpis(token, pid, days)) for pid in plant_ids]),
+        asyncio.gather(*[bounded(_safe_count_floors(token, pid)) for pid in plant_ids]),
     )
     metadata = _build_plant_metadata(plant_ids, geo_rows, meta_rows)
     return [
@@ -175,8 +192,8 @@ async def get_heatmap(
         risk = calculate_risk_score(loc_rows, reference_date, applied_lambda, mic_decay_rates)
         early_warning = detect_early_warning(loc_rows)
         status = derive_location_status(loc_rows, risk, continuous_mode, early_warning)
-        fails = sum(1 for row in loc_rows if (row.get("valuation") or "").upper() in ("R", "REJ", "REJECT"))
-        passes = sum(1 for row in loc_rows if (row.get("valuation") or "").upper() in ("A", "ACC", "ACCEPT"))
+        fails = sum(1 for row in loc_rows if normalize_valuation(row.get("valuation")) in REJECT_VALUATIONS)
+        passes = sum(1 for row in loc_rows if normalize_valuation(row.get("valuation")) in ACCEPT_VALUATIONS)
         coord = coords[location_id]
         markers.append(MarkerData(
             func_loc_id=location_id,

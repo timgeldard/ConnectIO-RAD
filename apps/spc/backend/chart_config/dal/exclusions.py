@@ -17,7 +17,19 @@ async def save_exclusion_snapshot(token: str, payload: dict) -> None:
 
 
 async def fetch_actor_metadata(token: str) -> dict:
-    """Return audit actor metadata from the SQL runtime."""
+    """Fetch audit actor metadata from the SQL runtime.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+
+    Returns:
+        A dict with ``user_id`` and ``event_ts`` populated from SQL runtime
+        metadata, or ``None`` values for both keys when the runtime returns no
+        rows.
+
+    Raises:
+        RuntimeError: Propagates SQL runtime failures.
+    """
     rows = await run_sql_async(
         token,
         "SELECT CURRENT_USER() AS user_id, CAST(CURRENT_TIMESTAMP() AS STRING) AS event_ts",

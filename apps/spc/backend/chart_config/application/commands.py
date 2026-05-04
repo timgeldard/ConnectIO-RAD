@@ -1,10 +1,8 @@
 """Application command handlers for chart configuration writes."""
 
-from __future__ import annotations
-
-import uuid
 import logging
-from typing import Any, Optional
+import uuid
+from typing import Optional, Protocol
 
 from backend.chart_config.dal import exclusions as exclusions_dal
 from backend.chart_config.dal import locked_limits as locked_limits_dal
@@ -14,8 +12,86 @@ from backend.chart_config.domain.locked_limits import LockedLimits
 logger = logging.getLogger(__name__)
 
 
-def build_locked_limits(command: Any) -> LockedLimits:
-    """Convert an API command object into the chart_config domain value object."""
+class LockLimitsCommand(Protocol):
+    """Protocol describing fields required to lock control limits."""
+
+    material_id: str
+    mic_id: str
+    plant_id: Optional[str]
+    operation_id: Optional[str]
+    chart_type: str
+    cl: float
+    ucl: float
+    lcl: float
+    ucl_r: Optional[float]
+    lcl_r: Optional[float]
+    sigma_within: Optional[float]
+    baseline_from: Optional[str]
+    baseline_to: Optional[str]
+    unified_mic_key: Optional[str]
+    mic_origin: Optional[str]
+    spec_signature: Optional[str]
+    locking_note: Optional[str]
+
+
+class DeleteLimitsCommand(Protocol):
+    """Protocol describing fields required to delete locked limits."""
+
+    material_id: str
+    mic_id: str
+    plant_id: Optional[str]
+    operation_id: Optional[str]
+    chart_type: str
+    unified_mic_key: Optional[str]
+
+
+class ExclusionsCommand(Protocol):
+    """Protocol describing fields required to persist an exclusion snapshot."""
+
+    material_id: str
+    mic_id: str
+    mic_name: Optional[str]
+    operation_id: Optional[str]
+    plant_id: Optional[str]
+    stratify_all: bool
+    stratify_by: Optional[str]
+    chart_type: str
+    date_from: Optional[str]
+    date_to: Optional[str]
+    rule_set: Optional[str]
+    justification: str
+    action: str
+    excluded_points: list
+    before_limits: object | None
+    after_limits: object | None
+
+
+class ExclusionsQuery(Protocol):
+    """Protocol describing fields required to fetch an exclusion snapshot."""
+
+    material_id: str
+    mic_id: str
+    operation_id: Optional[str]
+    plant_id: Optional[str]
+    stratify_all: bool
+    stratify_by: Optional[str]
+    chart_type: str
+    date_from: Optional[str]
+    date_to: Optional[str]
+
+
+def build_locked_limits(command: LockLimitsCommand) -> LockedLimits:
+    """Convert an API command object into the chart_config domain value object.
+
+    Args:
+        command: Request-like object containing chart scope and limit details.
+
+    Returns:
+        A validated ``LockedLimits`` domain value object.
+
+    Raises:
+        ValueError: Raised by ``LockedLimits`` when domain invariants fail.
+    """
     return LockedLimits(
         material_id=command.material_id,
         mic_id=command.mic_id,
@@ -37,12 +113,37 @@ def build_locked_limits(command: Any) -> LockedLimits:
     )
 
 
-async def lock_limits(token: str, command: Any) -> dict:
+async def lock_limits(token: str, command: LockLimitsCommand) -> dict:
+    """Persist validated locked limits for a chart scope.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+        command: Request-like object containing chart scope and limit details.
+
+    Returns:
+        Save result returned by the locked-limits DAL.
+
+    Raises:
+        RuntimeError: Propagates DAL or SQL runtime failures.
+        ValueError: Raised when domain validation fails.
+    """
     limits = build_locked_limits(command)
     return await locked_limits_dal.save_locked_limits(token, limits)
 
 
-async def delete_limits(token: str, command: Any) -> dict:
+async def delete_limits(token: str, command: DeleteLimitsCommand) -> dict:
+    """Delete locked limits for a chart scope.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+        command: Request-like object containing the chart scope.
+
+    Returns:
+        Delete result returned by the locked-limits DAL.
+
+    Raises:
+        RuntimeError: Propagates DAL or SQL runtime failures.
+    """
     return await locked_limits_dal.delete_locked_limits(
         token,
         command.material_id,
@@ -64,6 +165,23 @@ async def get_limits(
     operation_id: Optional[str],
     unified_mic_key: Optional[str],
 ) -> Optional[dict]:
+    """Fetch locked limits for a chart scope.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+        material_id: Material identifier.
+        mic_id: MIC identifier.
+        plant_id: Optional plant scope.
+        chart_type: SPC chart type.
+        operation_id: Optional operation scope.
+        unified_mic_key: Optional unified MIC identity.
+
+    Returns:
+        Locked-limits row when one exists, otherwise ``None``.
+
+    Raises:
+        RuntimeError: Propagates DAL or SQL runtime failures.
+    """
     return await locked_limits_dal.fetch_locked_limits(
         token,
         material_id,
@@ -75,8 +193,18 @@ async def get_limits(
     )
 
 
-def build_exclusion_payload(command: Any) -> dict:
-    """Build the immutable audit payload after enforcing domain invariants."""
+def build_exclusion_payload(command: ExclusionsCommand) -> dict:
+    """Build the immutable audit payload after enforcing domain invariants.
+
+    Args:
+        command: Request-like object containing exclusion snapshot details.
+
+    Returns:
+        Dict payload ready for the exclusions DAL insert helper.
+
+    Raises:
+        ValueError: Raised by ``Exclusion`` when domain invariants fail.
+    """
     exclusion = Exclusion(
         material_id=command.material_id,
         mic_id=command.mic_id,
@@ -106,7 +234,20 @@ def build_exclusion_payload(command: Any) -> dict:
     }
 
 
-async def save_exclusions(token: str, command: Any) -> dict:
+async def save_exclusions(token: str, command: ExclusionsCommand) -> dict:
+    """Persist an exclusion snapshot and return audit metadata.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+        command: Request-like object containing exclusion snapshot details.
+
+    Returns:
+        Save confirmation including event id and best-effort actor metadata.
+
+    Raises:
+        RuntimeError: Propagates snapshot persistence failures.
+        ValueError: Raised when domain validation fails.
+    """
     payload = build_exclusion_payload(command)
     await exclusions_dal.save_exclusion_snapshot(token, payload)
     try:
@@ -122,7 +263,19 @@ async def save_exclusions(token: str, command: Any) -> dict:
     }
 
 
-async def get_exclusions(token: str, query: Any) -> Optional[dict]:
+async def get_exclusions(token: str, query: ExclusionsQuery) -> Optional[dict]:
+    """Fetch the latest exclusion snapshot for a chart scope.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+        query: Request-like object containing exclusion lookup scope.
+
+    Returns:
+        Latest exclusion snapshot row when one exists, otherwise ``None``.
+
+    Raises:
+        RuntimeError: Propagates DAL or SQL runtime failures.
+    """
     return await exclusions_dal.fetch_latest_exclusion_snapshot(
         token,
         query.material_id,

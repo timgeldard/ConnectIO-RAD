@@ -11,6 +11,20 @@ from backend.spatial_config.dal import floors as floors_dal
 
 
 async def list_floors(token: str, plant_id: str) -> list[FloorInfo]:
+    """Fetch floor metadata for a plant with mapped-location counts.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+        plant_id: SAP plant identifier used to scope the query.
+
+    Returns:
+        Floor metadata rows with numeric SVG dimensions and zero location counts
+        for floors that have no mapped locations.
+
+    Raises:
+        RuntimeError: Propagates DAL or SQL runtime failures.
+        ValueError: Propagates invalid numeric SVG dimensions.
+    """
     floors_rows, count_rows = await asyncio.gather(
         floors_dal.fetch_floors(token, plant_id),
         floors_dal.fetch_floor_location_counts(token, plant_id),
@@ -35,6 +49,22 @@ async def list_locations(
     floor_id: Optional[str],
     mapped_only: bool,
 ) -> list[LocationMeta]:
+    """Fetch functional locations with optional floor and mapping filters.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+        plant_id: SAP plant identifier used to scope the query.
+        floor_id: Optional floor identifier used to narrow results.
+        mapped_only: Whether to return only locations that already have
+            coordinate mappings.
+
+    Returns:
+        Location metadata rows with nullable coordinate values preserved.
+
+    Raises:
+        RuntimeError: Propagates DAL or SQL runtime failures.
+        ValueError: Propagates invalid numeric coordinate values.
+    """
     rows = await coordinates_dal.fetch_locations(token, plant_id, floor_id, mapped_only)
     return [
         LocationMeta(
@@ -51,6 +81,21 @@ async def list_locations(
 
 
 async def get_location_coordinate(token: str, plant_id: str, func_loc_id: str) -> LocationMeta:
+    """Fetch one location's coordinate mapping or return an unmapped fallback.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+        plant_id: SAP plant identifier used to scope the query.
+        func_loc_id: Functional location identifier.
+
+    Returns:
+        Populated location metadata when a coordinate row exists, otherwise an
+        unmapped ``LocationMeta`` with no floor or coordinates.
+
+    Raises:
+        RuntimeError: Propagates DAL or SQL runtime failures.
+        ValueError: Propagates invalid numeric coordinate values.
+    """
     rows = await coordinates_dal.fetch_location_coordinate(token, plant_id, func_loc_id)
     if not rows:
         return LocationMeta(func_loc_id=func_loc_id, plant_id=plant_id, is_mapped=False)
@@ -60,7 +105,7 @@ async def get_location_coordinate(token: str, plant_id: str, func_loc_id: str) -
         func_loc_id=row["func_loc_id"],
         plant_id=plant_id,
         floor_id=row["floor_id"],
-        x_pos=float(row["x_pos"]),
-        y_pos=float(row["y_pos"]),
+        x_pos=float(row["x_pos"]) if row.get("x_pos") is not None else None,
+        y_pos=float(row["y_pos"]) if row.get("y_pos") is not None else None,
         is_mapped=True,
     )

@@ -10,7 +10,18 @@ async def save_locked_limits(
     token: str,
     limits: LockedLimits,
 ) -> dict:
-    """MERGE-upsert a locked-limits record for the given MIC/material/plant/chart scope."""
+    """MERGE-upsert a locked-limits record for a chart scope.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+        limits: Validated locked-limits domain value object.
+
+    Returns:
+        Dict indicating that the record was saved.
+
+    Raises:
+        RuntimeError: Propagates SQL runtime failures.
+    """
     params = [
         sql_param("material_id", limits.material_id),
         sql_param("mic_id", limits.mic_id),
