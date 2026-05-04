@@ -55,6 +55,30 @@ pour analytics from KPI strip) is exposed via two `window` hooks
 (`__navigateToOrder`, `__navigateToPourAnalytics`) — preserved verbatim from
 the prototype to keep the JSX→TSX port mechanical.
 
+## DDD Layer Boundaries
+
+`processorderhistory` is structured as a pragmatic DDD modular monolith following the same boundary rules as the other ConnectIO-RAD apps (see `docs/adr/ddd-migration-architecture.md`). The backend is organized into four bounded contexts:
+
+| Context | Purpose |
+|---|---|
+| `manufacturing_analytics` | OEE, yield, quality, equipment insight, adherence analytics |
+| `order_execution` | Process order list, detail, pours, downtime |
+| `production_planning` | Gantt-style day view and planning schedule |
+| `genie_assist` | Natural-language query interface via Genie streaming API |
+
+All contexts follow the standard four-layer boundary:
+
+| Layer | Allowed imports | Forbidden imports |
+|---|---|---|
+| `domain/` | stdlib, `shared-domain` base classes | fastapi, dal, schemas, router |
+| `application/` | domain, dal | fastapi request/response types, routers |
+| `dal/` | db utils, SQL runtime | domain, application |
+| `router*.py` | application, schemas, rate limit, auth | dal, SQL runtime |
+
+**Deliberate exception:** `genie_assist/application/genie_client.py` imports `starlette` for streaming response support. This is an approved narrow exception: the Genie streaming protocol requires a streaming adapter, and the Starlette import is isolated to this one file. It is documented as an exception in the Phase 3 guardrail ADR and excluded from the transport-agnostic test.
+
+Architecture guardrail tests at `scripts/tests/test_ddd_architecture_guardrails.py` enforce these rules automatically on every CI run.
+
 ## Data layer
 
 All SQL queries target gold-layer views only (Rule 1.1).  `day_view_dal` and 

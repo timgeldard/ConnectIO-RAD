@@ -127,6 +127,21 @@ Floor plan coordinates are stored as **X/Y percentages** (0–100) relative to t
 - **Personas:** 5 views (regional, site, sanitation, auditor, admin) with different default navigation levels
 - **i18n:** 13 languages via `i18n/resources.json`
 
+## DDD Layer Boundaries
+
+envmon follows the pragmatic DDD boundary rules documented in `docs/adr/ddd-migration-architecture.md`:
+
+| Layer | Allowed imports | Forbidden imports |
+|---|---|---|
+| `domain/` | stdlib, `shared-domain` base classes | fastapi, dal, schemas, router, sqlalchemy |
+| `application/` | domain, dal, other contexts' application modules | fastapi request/response types, routers |
+| `dal/` | db utils, SQL runtime | domain, application |
+| `router.py` | application, schemas, rate limit, auth | dal, SQL runtime |
+
+Cross-context access: `inspection_analysis/application/queries.py` imports `spatial_config.application.queries` for coordinate lookups — the only cross-context dependency, and approved because it stays at the application layer.
+
+Architecture guardrail tests at `scripts/tests/test_ddd_architecture_guardrails.py` enforce these rules automatically on every CI run.
+
 ## Explicit Non-Goals
 
 - Repository pattern on read paths
