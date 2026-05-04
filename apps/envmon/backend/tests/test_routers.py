@@ -33,7 +33,7 @@ async def test_list_plants():
         if "GOLD_PLANT" in s:
             return [{"PLANT_ID": "P225", "PLANT_NAME": "Seville", "COUNTRY_ID": "ES", "CITY": "Seville"}]
         if "WITH BASE AS" in s:
-            return [{"total_locs": 100, "active_fails": 5, "warnings": 10, "pending": 2, "pass_locs": 83, "lots_tested": 50}]
+            return [{"total_locs": 100, "active_fails": 5, "warnings": 10, "pending": 2, "pass_locs": 83, "lots_tested": 50, "lots_planned": 75}]
         if "COUNT(*) AS N" in s:
             return [{"n": 3}]
         return []
@@ -50,6 +50,8 @@ async def test_list_plants():
     assert data[0]["lon"] == -5.9
     assert data[0]["floors"] == 3
     assert data[0]["kpis"]["pass_rate"] == 83.0
+    assert data[0]["kpis"]["lots_tested"] == 50
+    assert data[0]["kpis"]["lots_planned"] == 75
 
 
 @pytest.mark.asyncio
@@ -187,6 +189,28 @@ def test_risk_score_positive_for_fail_results():
     rows = [{"valuation": "R", "mic_name": "ATP", "lot_date": "2024-01-01"}]
     score = calculate_risk_score(rows, date(2024, 1, 1), 0.1)
     assert score == pytest.approx(10.0)
+
+
+def test_risk_score_uses_mic_specific_decay_rates():
+    """MIC-specific decay rates override the default decay lambda."""
+    from datetime import date
+    import math
+    from backend.inspection_analysis.domain.risk import calculate_risk_score
+
+    rows = [{"valuation": "R", "mic_name": "atp", "lot_date": "2024-01-01"}]
+    score = calculate_risk_score(rows, date(2024, 1, 2), 0.1, {"ATP": 0.5})
+    assert score == pytest.approx(10.0 * math.exp(-0.5))
+
+
+def test_risk_score_normalizes_decay_rate_keys():
+    """Lowercase MIC-specific decay keys match normalized MIC names."""
+    from datetime import date
+    import math
+    from backend.inspection_analysis.domain.risk import calculate_risk_score
+
+    rows = [{"valuation": "R", "mic_name": "ATP", "lot_date": "2024-01-01"}]
+    score = calculate_risk_score(rows, date(2024, 1, 2), 0.1, {"atp": 0.5})
+    assert score == pytest.approx(10.0 * math.exp(-0.5))
 
 
 def test_spc_no_warning_fewer_than_3_results():
