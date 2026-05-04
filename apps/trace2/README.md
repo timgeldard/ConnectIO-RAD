@@ -18,9 +18,12 @@ Detailed documentation is available in the `docs/` folder:
 ```
 backend/
   main.py                    FastAPI entry, readiness + SPA serving
-  routers/trace.py           9 POST endpoints, rate-limited, freshness-tagged
-  dal/trace_dal.py           all SQL queries against gold_* views
-  schemas/trace_schemas.py   pydantic request models
+  batch_trace/               core batch identity, trace tree, summary, impact
+  lineage_analysis/          directional lineage, recall readiness, supplier risk
+  quality_record/            CoA, quality results, production history
+  routers/trace.py           (shim) backward compatibility for routers
+  dal/trace_dal.py           (shim) backward compatibility for data access
+  schemas/trace_schemas.py   (shim) backward compatibility for schemas
   utils/db.py                token passthrough, parameterised run_sql_async
   utils/rate_limit.py        slowapi config
 frontend/

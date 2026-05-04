@@ -5,7 +5,9 @@ from typing import Optional
 from fastapi import Header, HTTPException
 from starlette.requests import Request as StarletteRequest
 
-from backend.routers.trace import router as trace_router
+from backend.batch_trace.router import router as batch_trace_router
+from backend.lineage_analysis.router import router as lineage_router
+from backend.quality_record.router import router as quality_router
 from backend.utils.db import (
     DATABRICKS_HOST,
     TRACE_CATALOG,
@@ -37,7 +39,9 @@ app = create_api_app(
     title="Trace2 API",
 )
 
-app.include_router(trace_router, prefix="/api", tags=["Traceability"])
+app.include_router(batch_trace_router, prefix="/api", tags=["Batch Trace"])
+app.include_router(lineage_router, prefix="/api", tags=["Lineage Analysis"])
+app.include_router(quality_router, prefix="/api", tags=["Quality Record"])
 
 
 @app.get("/api/health")

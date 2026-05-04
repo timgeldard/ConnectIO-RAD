@@ -6,7 +6,7 @@ Accepted.
 
 ## Context
 
-SPC and EnvMon are moving from route/DAL organization toward bounded contexts. The apps are read-heavy Databricks applications, so the target is a pragmatic modular monolith with CQRS-style read models where they simplify delivery, not pure tactical DDD everywhere.
+Trace2, SPC, and EnvMon are moving from route/DAL organization toward bounded contexts. The apps are read-heavy Databricks applications, so the target is a pragmatic modular monolith with CQRS-style read models where they simplify delivery, not pure tactical DDD everywhere.
 
 ## Decision
 
