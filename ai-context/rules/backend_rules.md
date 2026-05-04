@@ -5,16 +5,18 @@
 
 ## 1. Architecture
 
+We encourage a Pragmatic DDD / Modular Monolith architecture for complex apps.
+
 ```
 backend/
 ├── main.py           ← FastAPI app, middleware, global error handler, static serving
-├── routers/          ← API route handlers (one file per domain)
-│   ├── trace.py      ← Traceability endpoints
-│   └── spc.py        ← SPC/quality endpoints (if applicable)
-├── dal/              ← Data Access Layer — SQL queries live here
-│   └── trace_dal.py  ← SQL queries for traceability
-├── schemas/          ← Pydantic request/response models
-│   └── trace_schemas.py
+├── core_domain/      ← Bounded Context
+│   ├── application/  ← Query handlers, use cases, freshness attachment
+│   ├── domain/       ← Value objects, pure business rules
+│   ├── dal/          ← SQL queries and data access adapters
+│   └── router.py     ← FastAPI routes for this context
+├── other_domain/     ← Another Bounded Context
+│   └── ...
 └── utils/
     ├── db.py         ← SQL execution, token resolution, tbl(), sql_param()
     └── rate_limit.py ← Rate limiting configuration
@@ -23,9 +25,9 @@ backend/
 ## 2. Data Access Layer (DAL) Rules
 
 ### 2.1 SQL Location
-- ALL SQL queries live in `dal/` files — never in routers or utils
-- Each domain has its own DAL file (trace_dal.py, spc_dal.py, etc.)
-- DAL functions are `async` and return `list[dict]` or typed results
+- ALL SQL queries live in `dal/` files — never in routers or utils.
+- Each context has its own DAL file or adapter (e.g., `core_domain/dal/core.py`).
+- DAL functions are `async` and return `list[dict]` or typed results.
 
 ### 2.2 Table References
 - Always use `tbl('table_name')` for fully-qualified backtick-quoted references

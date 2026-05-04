@@ -3,7 +3,7 @@ import asyncio
 
 import pytest
 
-from backend.dal import yield_analytics_dal as dal
+from backend.manufacturing_analytics.dal import yield_analytics_dal as dal
 
 # ---------------------------------------------------------------------------
 # _coerce_order

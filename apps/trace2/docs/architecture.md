@@ -17,44 +17,48 @@ The `trace2` application provides comprehensive batch-level traceability across 
     - **CoA (Certificate of Analysis):** Access to quality certificates for batches.
 
 ### Backend
+- **Architecture:** Pragmatic DDD / Modular Monolith (Read-heavy CQRS).
+- **Bounded Contexts:**
+    - **batch_trace**: Core batch identity, header lookup, trace tree, summary, and impact.
+    - **lineage_analysis**: Directional lineage, recall readiness, and supplier risk.
+    - **quality_record**: CoA, quality results, quality lot summaries, and production history.
 - **Framework:** FastAPI.
-- **Data Access:** All SQL queries are encapsulated in `trace_dal.py`, targeting `gold_*` views in Unity Catalog.
+- **Data Access:** SQL queries are centralized in `libs/shared-trace`, wrapped by context-specific DAL adapters.
 - **Performance:** Endpoints are rate-limited and use freshness tags to ensure data integrity while protecting the SQL Warehouse.
-- **Key Modules:**
-    - `trace.py`: Contains the 9 primary POST endpoints corresponding to the frontend pages.
-    - `trace_dal.py`: Implements complex recursive SQL queries for multi-level lineage.
+
+## 🛡️ Dependency Rules
+To maintain modularity, we enforce strict boundary rules:
+1. **Domain**: Standard library only. No framework or database dependencies.
+2. **Application**: Coordinates between Domain and DAL. Handles freshness and business logic.
+3. **DAL**: Infrastructure adapters over shared database utilities and the core trace engine.
+4. **Router**: Pure transport layer. Parses requests, calls application services, and maps errors.
 
 ## 📊 Traceability Engine
 
 The core value of `trace2` lies in its ability to traverse complex material relationships:
-- **Recursive Lineage:** Uses SQL Common Table Expressions (CTEs) to perform deep traversal of material movements.
+- **Recursive Lineage:** Uses SQL Common Table Expressions (CTEs) in `libs/shared-trace` to perform deep traversal.
 - **Multi-Entity Tracking:** Tracks relationships between Raw Materials, Intermediates, Finished Goods, and Customer Deliveries.
 
 ## 🔗 Data Flow
-
-The following diagram illustrates the end-to-end flow for a Recall Readiness investigation:
 
 ```mermaid
 sequenceDiagram
     participant User
     participant Frontend as React SPA
-    participant Backend as FastAPI
+    participant Router as Context Router
+    participant App as Application Service
+    participant DAL as Context DAL
     participant SQLW as Databricks SQL Warehouse
-    participant UC as Unity Catalog (Gold)
 
     User->>Frontend: Enter Suspect Batch ID
-    Frontend->>Backend: POST /api/trace/recall-readiness {batch_id}
-    Backend->>SQLW: Execute Recursive CTE (trace_dal.py)
-    SQLW->>UC: Traverse Material Lineage (recursive)
-    UC-->>SQLW: Lineage Nodes (Material, Batch, Customer)
-    SQLW-->>Backend: Result Set (Raw Rows)
-    Backend->>Backend: Aggregate & Map to Schema
-    Backend-->>Frontend: JSON Response (exposure tree)
+    Frontend->>Router: POST /api/recall-readiness {batch_id}
+    Router->>App: get_recall_readiness(token, identity)
+    App->>DAL: fetch_recall_readiness(token, identity)
+    DAL->>SQLW: Execute Recursive CTE
+    SQLW-->>DAL: Result Set
+    DAL-->>App: Raw Data
+    App->>App: Attach Freshness Metadata
+    App-->>Router: Typed Payload
+    Router-->>Frontend: JSON Response
     Frontend->>User: Render Downstream Impact Map
 ```
-
-1.  **Selection:** User provides a Batch ID or Lot ID in the frontend.
-2.  **Request:** The frontend sends a POST request with the ID and optional filters (e.g., date range, depth).
-3.  **Extraction:** The backend executes optimized SQL against the Unity Catalog gold views.
-4.  **Response:** A structured JSON response containing the lineage nodes, quality results, or delivery records is returned.
-5.  **Visualization:** The frontend renders the data using interactive tables and charts.

@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
 from backend.main import app
-import backend.routers.quality_router as quality_router
+import backend.manufacturing_analytics.router_quality as quality_router
 
 client = TestClient(app)
 

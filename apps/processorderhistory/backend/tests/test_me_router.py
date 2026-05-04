@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
 from backend.main import app
-import backend.routers.me_router as me_router
+import backend.order_execution.router_me as me_router
 
 client = TestClient(app)
 
@@ -60,8 +60,8 @@ def test_name_from_email_capitalises_parts():
 def mock_me(monkeypatch):
     """Fixture to mock the database and token resolution for /api/me."""
     monkeypatch.setattr(me_router, "check_warehouse_config", lambda: None)
-    mock = AsyncMock(return_value=[{"email": "alice.smith@example.com"}])
-    monkeypatch.setattr(me_router, "run_sql_async", mock)
+    mock = AsyncMock(return_value="alice.smith@example.com")
+    monkeypatch.setattr(me_router, "get_user_email", mock)
     return mock
 
 
@@ -86,7 +86,7 @@ def test_get_me_returns_all_keys(mock_me):
 def test_get_me_handles_empty_sql_result(monkeypatch):
     """Verify that /api/me gracefully handles cases where no user record is found."""
     monkeypatch.setattr(me_router, "check_warehouse_config", lambda: None)
-    monkeypatch.setattr(me_router, "run_sql_async", AsyncMock(return_value=[]))
+    monkeypatch.setattr(me_router, "get_user_email", AsyncMock(return_value=""))
     response = client.get("/api/me")
     assert response.status_code == 200
     data = response.json()

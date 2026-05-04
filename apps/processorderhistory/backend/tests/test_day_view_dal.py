@@ -4,7 +4,7 @@ from datetime import timezone, datetime
 
 import pytest
 
-from backend.dal import day_view_dal as dal
+from backend.order_execution.dal import day_view_dal as dal
 
 _MS_PER_DAY = 86_400_000
 _MS_PER_SEC = 1_000

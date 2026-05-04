@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
 from backend.main import app
-import backend.routers.downtime_router as downtime_router
+import backend.manufacturing_analytics.router_downtime as downtime_router
 
 client = TestClient(app)
 

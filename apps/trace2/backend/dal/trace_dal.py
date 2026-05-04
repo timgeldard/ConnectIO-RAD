@@ -1,16 +1,62 @@
-import os
+"""
+Compatibility shim for Trace2 DAL.
+Delegates to context-specific DAL modules.
+"""
+
 from typing import Optional
 
-from shared_trace.dal import TraceCoreDal
+from backend.batch_trace.dal.trace import (
+    MAX_TRACE_LEVELS,
+    fetch_batch_details as _fetch_batch_details,
+    fetch_batch_header as _fetch_batch_header,
+    fetch_impact as _fetch_impact,
+    fetch_summary as _fetch_summary,
+    fetch_trace_tree as _fetch_trace_tree,
+)
+from backend.batch_trace.dal.trace_core import get_trace_core_dal
+from backend.batch_trace.domain.identity import BatchIdentity, BatchOnlyIdentity
+from backend.batch_trace.domain.trace_tree import build_trace_tree as build_tree_imported
+from backend.lineage_analysis.dal.lineage import (
+    fetch_bottom_up as _fetch_bottom_up,
+    fetch_recall_readiness as _fetch_recall_readiness,
+    fetch_supplier_risk as _fetch_supplier_risk,
+    fetch_top_down as _fetch_top_down,
+)
+from backend.lineage_analysis.domain.lineage import LineageDepth
+from backend.quality_record.dal.quality import (
+    fetch_batch_compare as _fetch_batch_compare,
+    fetch_coa as _fetch_coa,
+    fetch_mass_balance as _fetch_mass_balance,
+    fetch_production_history as _fetch_production_history,
+    fetch_quality as _fetch_quality,
+)
 
-from backend.utils.db import run_sql_async, sql_param, tbl
+# Re-export for compatibility with tests that patch _trace_core_dal
+_trace_core_dal = get_trace_core_dal()
 
-MAX_TRACE_LEVELS: int = int(os.environ.get("MAX_TRACE_LEVELS", "10"))
-_trace_core_dal = TraceCoreDal(run_sql_async=run_sql_async, tbl=tbl, sql_param=sql_param)
-
+# Re-export for compatibility
+__all__ = [
+    "MAX_TRACE_LEVELS",
+    "_build_tree",
+    "fetch_trace_tree",
+    "fetch_summary",
+    "fetch_batch_details",
+    "fetch_impact",
+    "fetch_recall_readiness",
+    "fetch_batch_header",
+    "fetch_coa",
+    "fetch_mass_balance",
+    "fetch_quality",
+    "fetch_production_history",
+    "fetch_batch_compare",
+    "fetch_bottom_up",
+    "fetch_top_down",
+    "fetch_supplier_risk",
+    "_trace_core_dal",
+]
 
 def _build_tree(rows: list[dict]) -> dict | None:
-    return _trace_core_dal.build_tree(rows)
+    return build_tree_imported(rows)
 
 
 async def fetch_trace_tree(
@@ -19,56 +65,70 @@ async def fetch_trace_tree(
     batch_id: str,
     max_levels: int = MAX_TRACE_LEVELS,
 ) -> list[dict]:
-    return await _trace_core_dal.fetch_trace_tree(token, material_id, batch_id, max_levels)
+    identity = BatchIdentity.from_strings(material_id, batch_id)
+    return await _fetch_trace_tree(token, identity, max_levels)
 
 
 async def fetch_summary(token: str, batch_id: str) -> dict | None:
-    return await _trace_core_dal.fetch_summary(token, batch_id)
+    identity = BatchOnlyIdentity.from_string(batch_id)
+    return await _fetch_summary(token, identity)
 
 
 async def fetch_batch_details(token: str, material_id: str, batch_id: str) -> dict:
-    return await _trace_core_dal.fetch_batch_details(token, material_id, batch_id)
+    identity = BatchIdentity.from_strings(material_id, batch_id)
+    return await _fetch_batch_details(token, identity)
 
 
 async def fetch_impact(token: str, batch_id: str) -> dict:
-    return await _trace_core_dal.fetch_impact(token, batch_id)
+    identity = BatchOnlyIdentity.from_string(batch_id)
+    return await _fetch_impact(token, identity)
 
 
 async def fetch_recall_readiness(token: str, material_id: str, batch_id: str) -> dict:
-    return await _trace_core_dal.fetch_recall_readiness(token, material_id, batch_id)
+    identity = BatchIdentity.from_strings(material_id, batch_id)
+    return await _fetch_recall_readiness(token, identity)
 
 
 async def fetch_batch_header(token: str, material_id: str, batch_id: str) -> Optional[dict]:
-    return await _trace_core_dal.fetch_batch_header(token, material_id, batch_id)
+    identity = BatchIdentity.from_strings(material_id, batch_id)
+    return await _fetch_batch_header(token, identity)
 
 
 async def fetch_coa(token: str, material_id: str, batch_id: str) -> dict:
-    return await _trace_core_dal.fetch_coa(token, material_id, batch_id)
+    identity = BatchIdentity.from_strings(material_id, batch_id)
+    return await _fetch_coa(token, identity)
 
 
 async def fetch_mass_balance(token: str, material_id: str, batch_id: str) -> dict:
-    return await _trace_core_dal.fetch_mass_balance(token, material_id, batch_id)
+    identity = BatchIdentity.from_strings(material_id, batch_id)
+    return await _fetch_mass_balance(token, identity)
 
 
 async def fetch_quality(token: str, material_id: str, batch_id: str) -> dict:
-    return await _trace_core_dal.fetch_quality(token, material_id, batch_id)
+    identity = BatchIdentity.from_strings(material_id, batch_id)
+    return await _fetch_quality(token, identity)
 
 
 async def fetch_production_history(token: str, material_id: str, batch_id: str, limit: int = 24) -> dict:
-    return await _trace_core_dal.fetch_production_history(token, material_id, batch_id, limit)
+    identity = BatchIdentity.from_strings(material_id, batch_id)
+    return await _fetch_production_history(token, identity, limit)
 
 
 async def fetch_batch_compare(token: str, material_id: str, batch_id: str, limit: int = 24) -> dict:
-    return await _trace_core_dal.fetch_batch_compare(token, material_id, batch_id, limit)
+    identity = BatchIdentity.from_strings(material_id, batch_id)
+    return await _fetch_batch_compare(token, identity, limit)
 
 
 async def fetch_bottom_up(token: str, material_id: str, batch_id: str, max_levels: int = 4) -> dict:
-    return await _trace_core_dal.fetch_bottom_up(token, material_id, batch_id, max_levels)
+    identity = BatchIdentity.from_strings(material_id, batch_id)
+    return await _fetch_bottom_up(token, identity, LineageDepth(max_levels))
 
 
 async def fetch_top_down(token: str, material_id: str, batch_id: str, max_levels: int = 4) -> dict:
-    return await _trace_core_dal.fetch_top_down(token, material_id, batch_id, max_levels)
+    identity = BatchIdentity.from_strings(material_id, batch_id)
+    return await _fetch_top_down(token, identity, LineageDepth(max_levels))
 
 
 async def fetch_supplier_risk(token: str, material_id: str, batch_id: str) -> dict:
-    return await _trace_core_dal.fetch_supplier_risk(token, material_id, batch_id)
+    identity = BatchIdentity.from_strings(material_id, batch_id)
+    return await _fetch_supplier_risk(token, identity)

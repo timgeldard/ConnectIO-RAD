@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
 from backend.main import app
-import backend.routers.order_detail_router as detail_router
+import backend.order_execution.router_order_detail as detail_router
 
 client = TestClient(app)
 
