@@ -27,11 +27,25 @@ The `trace2` application provides comprehensive batch-level traceability across 
 - **Performance:** Endpoints are rate-limited and use freshness tags to ensure data integrity while protecting the SQL Warehouse.
 
 ## 🛡️ Dependency Rules
+
 To maintain modularity, we enforce strict boundary rules:
+
 1. **Domain**: Standard library only. No framework or database dependencies.
 2. **Application**: Coordinates between Domain and DAL. Handles freshness and business logic.
 3. **DAL**: Infrastructure adapters over shared database utilities and the core trace engine.
 4. **Router**: Pure transport layer. Parses requests, calls application services, and maps errors.
+
+These rules are enforced automatically by `scripts/tests/test_ddd_architecture_guardrails.py` on every CI run. See `docs/adr/ddd-migration-architecture.md` for the full import boundary specification.
+
+### Shared domain models
+
+`libs/shared-trace` provides reusable value objects and aggregate roots used across all three bounded contexts:
+
+- `BatchId` — trimmed string, max 80 chars; raises `BusinessRuleValidationException` on blank or overlong input
+- `MaterialId` — trimmed string, max 40 chars; same invariant enforcement
+- `BatchIdentity` — composite value object (`material_id + batch_id`) used as the identity for the `Batch` aggregate
+- `Batch` — aggregate root enforcing: must have a plant, cannot be released after expiry without override
+- `Material` — aggregate root with description and base unit of measure
 
 ## 📊 Traceability Engine
 

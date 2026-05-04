@@ -32,10 +32,10 @@ class Entity(ABC, Generic[TIdentity]):
         return self._identity
         
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, type(self)):
+        if type(other) is not type(self):
             return False
         return self._identity == other.identity
-        
+
     def __hash__(self) -> int:
         return hash(self._identity)
 

@@ -22,6 +22,30 @@ Currently, `warehouse360` is primarily a frontend-driven application with a ligh
 - **Purpose:** Serves the compiled React application and provides a base structure for future API integration.
 - **Testing:** Comprehensive unit tests for core API routes and application readiness.
 
+## DDD Layer Boundaries
+
+`warehouse360` is structured as a pragmatic DDD modular monolith following the same boundary rules as the other ConnectIO-RAD apps (see `docs/adr/ddd-migration-architecture.md`). The backend is organized into four bounded contexts:
+
+| Context | Purpose | Layer status |
+|---|---|---|
+| `dispensary_ops` | Weighing and dispensing of raw materials | domain + application + dal |
+| `inventory_management` | Real-time stock levels and storage location queries | domain + application + dal |
+| `order_fulfillment` | Inbound/outbound shipment monitoring | domain + application + dal |
+| `operations_control_tower` | KPI aggregation and alert surfacing | domain + application + dal |
+
+All four contexts follow the standard four-layer boundary:
+
+| Layer | Allowed imports | Forbidden imports |
+|---|---|---|
+| `domain/` | stdlib, `shared-domain` base classes | fastapi, dal, schemas, router |
+| `application/` | domain, dal | fastapi request/response types, routers |
+| `dal/` | db utils, SQL runtime | domain, application |
+| `router.py` | application, schemas, rate limit, auth | dal, SQL runtime |
+
+**Current state:** domain and application layers contain value objects and query handlers against mock data fixtures. When live SAP/WMS integration is completed, domain logic will deepen to enforce inventory invariants (e.g., quantity bounds, storage-type validation).
+
+Architecture guardrail tests at `scripts/tests/test_ddd_architecture_guardrails.py` enforce these rules automatically on every CI run.
+
 ## 📊 Mock Data Strategy
 
 To demonstrate the full capability of the cockpit without requiring a live connection to an ERP system, the application uses a comprehensive `mockData.js` file. This allows for:

@@ -125,6 +125,21 @@ Value objects in `chart_config/domain/` validate business invariants at construc
 - **Data freshness:** `attach_data_freshness()` appends last-modified timestamps from materialized view metadata to every read response
 - **Rate limiting:** SlowAPI limiter with per-endpoint budgets; write endpoints are tighter (30/min) than read endpoints (60–120/min)
 
+## DDD Layer Boundaries
+
+SPC follows the pragmatic DDD boundary rules documented in `docs/adr/ddd-migration-architecture.md`:
+
+| Layer | Allowed imports | Forbidden imports |
+|---|---|---|
+| `domain/` | stdlib, numpy/pandas/scipy for statistical computation | fastapi, dal, schemas, router |
+| `application/` | domain, dal | fastapi request/response types, routers |
+| `dal/` | db utils, SQL runtime | domain, application |
+| `router.py` | application, schemas, rate limit, auth | dal, SQL runtime |
+
+The `domain/multivariate.py` dependency on numpy/pandas/scipy is approved: these are statistical computation libraries, not infrastructure or transport. Domain rules on value objects (`LockedLimits`, `Exclusion`) are enforced at construction time before any SQL executes.
+
+Architecture guardrail tests at `scripts/tests/test_ddd_architecture_guardrails.py` enforce these rules automatically on every CI run.
+
 ## Infrastructure (unchanged)
 
 ```

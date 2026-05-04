@@ -1,11 +1,11 @@
 """
 Core traceability domain models.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from shared_domain import AggregateRoot, Entity, ValueObject, BusinessRuleValidationException
+from shared_domain import AggregateRoot, ValueObject, BusinessRuleValidationException
 
 class BatchId(str):
     """
