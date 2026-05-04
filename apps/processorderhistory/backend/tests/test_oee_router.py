@@ -20,7 +20,7 @@ def mock_oee(monkeypatch):
     monkeypatch.setattr(oee_router, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(oee_router, "validate_timezone", lambda tz: tz or "UTC")
     mock = AsyncMock(return_value=_OEE_PAYLOAD)
-    monkeypatch.setattr(oee_router, "fetch_oee_analytics", mock)
+    monkeypatch.setattr(oee_router.analytics_queries, "get_oee_analytics", mock)
     return mock
 
 

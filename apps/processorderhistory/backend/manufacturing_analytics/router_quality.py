@@ -5,7 +5,7 @@ from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
-from backend.manufacturing_analytics.dal.quality_analytics_dal import fetch_quality_analytics
+from backend.manufacturing_analytics.application import queries as analytics_queries
 from backend.db import check_warehouse_config, validate_timezone
 
 router = APIRouter()
@@ -35,7 +35,7 @@ async def get_quality_analytics(body: QualityAnalyticsRequest,
     """
     token = user.raw_token
     check_warehouse_config()
-    return await fetch_quality_analytics(
+    return await analytics_queries.get_quality_analytics(
         token,
         plant_id=body.plant_id,
         date_from=body.date_from,

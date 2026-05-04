@@ -5,7 +5,7 @@ from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
-from backend.manufacturing_analytics.dal.equipment_insights_dal import fetch_equipment_insights
+from backend.manufacturing_analytics.application import queries as analytics_queries
 from backend.db import check_warehouse_config, validate_timezone
 
 router = APIRouter()
@@ -38,4 +38,4 @@ async def get_equipment_insights(body: EquipmentInsightsRequest,
     token = user.raw_token
     check_warehouse_config()
     tz = validate_timezone(body.timezone)
-    return await fetch_equipment_insights(token, plant_id=body.plant_id, timezone=tz)
+    return await analytics_queries.get_equipment_insights(token, plant_id=body.plant_id, timezone=tz)

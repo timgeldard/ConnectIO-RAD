@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Header
 
-from backend.order_execution.dal.orders_dal import fetch_orders_list
+from backend.order_execution.application import queries as order_queries
 from backend.db import check_warehouse_config
 from backend.schemas.order_schemas import OrderListRequest
 from shared_auth import UserIdentity, require_proxy_user
@@ -23,7 +23,7 @@ async def list_orders(
     """
     token = user.raw_token
     check_warehouse_config()
-    rows = await fetch_orders_list(
+    rows = await order_queries.list_orders(
         token,
         plant_id=body.plant_id,
         limit=body.limit,

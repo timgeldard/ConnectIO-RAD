@@ -5,7 +5,7 @@ from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
-from backend.order_execution.dal.day_view_dal import fetch_day_view
+from backend.order_execution.application import queries as order_queries
 from backend.db import check_warehouse_config
 
 router = APIRouter()
@@ -31,4 +31,4 @@ async def get_day_view(body: DayViewRequest,
     """
     token = user.raw_token
     check_warehouse_config()
-    return await fetch_day_view(token, day=body.day, plant_id=body.plant_id)
+    return await order_queries.get_day_view(token, day=body.day, plant_id=body.plant_id)

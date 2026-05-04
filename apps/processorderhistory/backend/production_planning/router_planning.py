@@ -5,7 +5,7 @@ from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
-from backend.production_planning.dal.planning_dal import fetch_planning_schedule
+from backend.production_planning.application import queries as planning_queries
 from backend.db import check_warehouse_config
 
 router = APIRouter()
@@ -31,4 +31,4 @@ async def get_planning_schedule(body: PlanningScheduleRequest,
     """
     token = user.raw_token
     check_warehouse_config()
-    return await fetch_planning_schedule(token, plant_id=body.plant_id)
+    return await planning_queries.get_planning_schedule(token, plant_id=body.plant_id)

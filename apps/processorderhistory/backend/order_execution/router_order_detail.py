@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Header, HTTPException
 
-from backend.order_execution.dal.order_detail_dal import fetch_order_detail
+from backend.order_execution.application import queries as order_queries
 from backend.db import check_warehouse_config
 from shared_auth import UserIdentity, require_proxy_user
 
@@ -42,7 +42,7 @@ async def get_order_detail(
     """
     token = user.raw_token
     check_warehouse_config()
-    detail = await fetch_order_detail(token, order_id=order_id)
+    detail = await order_queries.get_order_detail(token, order_id=order_id)
     if not detail:
         raise HTTPException(
             status_code=404, detail=f"Process order '{order_id}' not found."

@@ -22,7 +22,7 @@ _QUALITY_PAYLOAD = {
 def mock_quality(monkeypatch):
     monkeypatch.setattr(quality_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=_QUALITY_PAYLOAD)
-    monkeypatch.setattr(quality_router, "fetch_quality_analytics", mock)
+    monkeypatch.setattr(quality_router.analytics_queries, "get_quality_analytics", mock)
     return mock
 
 

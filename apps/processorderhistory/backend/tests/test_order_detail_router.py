@@ -40,7 +40,7 @@ _DETAIL_PAYLOAD = {
 def mock_detail(monkeypatch):
     monkeypatch.setattr(detail_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=_DETAIL_PAYLOAD)
-    monkeypatch.setattr(detail_router, "fetch_order_detail", mock)
+    monkeypatch.setattr(detail_router.order_queries, "get_order_detail", mock)
     return mock
 
 
@@ -48,7 +48,7 @@ def mock_detail(monkeypatch):
 def mock_detail_not_found(monkeypatch):
     monkeypatch.setattr(detail_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=None)
-    monkeypatch.setattr(detail_router, "fetch_order_detail", mock)
+    monkeypatch.setattr(detail_router.order_queries, "get_order_detail", mock)
     return mock
 
 

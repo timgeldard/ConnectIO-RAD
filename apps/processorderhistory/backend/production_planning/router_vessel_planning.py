@@ -5,7 +5,7 @@ from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
-from backend.production_planning.dal.vessel_planning_dal import fetch_vessel_planning_analytics
+from backend.production_planning.application import queries as planning_queries
 from backend.db import check_warehouse_config, validate_timezone
 
 router = APIRouter()
@@ -37,7 +37,7 @@ async def get_vessel_planning_analytics(body: VesselPlanningRequest,
     """
     token = user.raw_token
     check_warehouse_config()
-    return await fetch_vessel_planning_analytics(
+    return await planning_queries.get_vessel_planning_analytics(
         token,
         plant_id=body.plant_id,
         date_from=body.date_from,

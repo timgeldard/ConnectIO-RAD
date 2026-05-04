@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from backend.manufacturing_analytics.dal.yield_analytics_dal import fetch_yield_analytics
+from backend.manufacturing_analytics.application import queries as analytics_queries
 from backend.db import check_warehouse_config
 from backend.schemas.order_schemas import AnalyticsRequest
 from shared_auth import UserIdentity, require_proxy_user
@@ -29,7 +29,7 @@ async def fetch_yield(
     """
     token = user.raw_token
     check_warehouse_config()
-    return await fetch_yield_analytics(
+    return await analytics_queries.get_yield_analytics(
         token,
         plant_id=body.plant_id,
         date_from=body.date_from,
