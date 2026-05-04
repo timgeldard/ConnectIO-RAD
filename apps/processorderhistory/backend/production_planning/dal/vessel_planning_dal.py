@@ -24,23 +24,21 @@ from datetime import datetime, timezone as dt_timezone
 from typing import Optional
 
 from backend.db import run_sql_async, silver_tbl, sql_param, tbl, tz_date
-from backend.config.vessel_capacity import VESSEL_CAPACITY, check_capacity, get_vessel_capacity
+from backend.config.vessel_capacity import check_capacity
+from backend.production_planning.domain.vessels import (
+    AVAILABLE_KEYWORDS,
+    DIRTY_KEYWORDS,
+    IN_USE_KEYWORDS,
+    classify_state as domain_classify_state,
+    coerce_event_row as domain_coerce_event_row,
+    coerce_int_ms as domain_coerce_int_ms,
+    derive_planning_data as domain_derive_planning_data,
+    state_reason as domain_state_reason,
+)
 
-_MS_PER_DAY = 86_400_000
-
-# Keyword sets for vessel state heuristic classification (matched against upper-cased STATUS_TO).
-_IN_USE_KEYWORDS = frozenset({
-    'IN USE', 'IN-USE', 'INUSE', 'RUNNING', 'OCCUPIED', 'ACTIVE', 'PRODUCTION', 'PROCESS',
-    'IN PRODUCTION', 'IN PROCESS',
-})
-_DIRTY_KEYWORDS = frozenset({
-    'DIRTY', 'UNCLEAN', 'CLEAN REQUIRED', 'NEEDS CLEAN', 'NEED CLEAN',
-    'CIP REQUIRED', 'SOAKING', 'RINSE', 'AWAITING CLEAN',
-})
-_AVAILABLE_KEYWORDS = frozenset({
-    'AVAILABLE', 'CLEAN', 'FREE', 'READY', 'IDLE', 'EMPTY',
-    'SANITISED', 'SANITIZED', 'CLEANED',
-})
+_IN_USE_KEYWORDS = IN_USE_KEYWORDS
+_DIRTY_KEYWORDS = DIRTY_KEYWORDS
+_AVAILABLE_KEYWORDS = AVAILABLE_KEYWORDS
 
 # CASE expression returning a nullable UI-status string.
 # Uses ``eh`` for the equipment-history alias and ``po`` for the process-order JOIN.
@@ -227,18 +225,7 @@ def _classify_state(status_to: Optional[str], order_status: Optional[str]) -> st
     with an active PO is by definition in use regardless of its logged status text.
     Returns one of: 'IN_USE', 'DIRTY', 'AVAILABLE', 'UNKNOWN'.
     """
-    if order_status == 'running':
-        return 'IN_USE'
-    if not status_to:
-        return 'UNKNOWN'
-    upper = status_to.upper()
-    if any(kw in upper for kw in _IN_USE_KEYWORDS):
-        return 'IN_USE'
-    if any(kw in upper for kw in _DIRTY_KEYWORDS):
-        return 'DIRTY'
-    if any(kw in upper for kw in _AVAILABLE_KEYWORDS):
-        return 'AVAILABLE'
-    return 'UNKNOWN'
+    return domain_classify_state(status_to, order_status)
 
 
 # ---------------------------------------------------------------------------
@@ -247,17 +234,12 @@ def _classify_state(status_to: Optional[str], order_status: Optional[str]) -> st
 
 def _coerce_event_row(row: dict) -> dict:
     """Coerce Databricks string-serialised values in an equipment event row."""
-    v = row.get("change_at_ms")
-    row["change_at_ms"] = int(v) if v is not None else 0
-    row["instrument_id"] = str(row.get("instrument_id") or "")
-    row["process_order_id"] = str(row.get("process_order_id") or "") or None
-    row["material_id"] = str(row.get("material_id") or "") or None
-    return row
+    return domain_coerce_event_row(row)
 
 
 def _coerce_int_ms(v: object) -> Optional[int]:
     """Safely coerce a nullable epoch-ms value to int."""
-    return int(v) if v is not None else None
+    return domain_coerce_int_ms(v)
 
 
 # ---------------------------------------------------------------------------
@@ -266,17 +248,7 @@ def _coerce_int_ms(v: object) -> Optional[int]:
 
 def _state_reason(state: str, status_to, order_status, po_id) -> str:
     """Return a human-readable explanation for why this vessel state was assigned."""
-    if order_status == 'running':
-        return f"Running PO {po_id or 'unknown'}"
-    if state == 'IN_USE':
-        return f"STATUS_TO matched in-use keyword: {status_to!r}"
-    if state == 'DIRTY':
-        return f"STATUS_TO matched dirty keyword: {status_to!r}"
-    if state == 'AVAILABLE':
-        return f"STATUS_TO matched available keyword: {status_to!r}"
-    if not status_to:
-        return "No STATUS_TO value recorded"
-    return f"STATUS_TO {status_to!r} — no keyword match"
+    return domain_state_reason(state, status_to, order_status, po_id)
 
 
 def _derive_planning_data(
@@ -299,255 +271,12 @@ def _derive_planning_data(
     always — no confirmed gold-layer quantity field on released POs), capacity filtering
     degrades gracefully: candidates are not excluded but an evidence note is added.
     """
-    if capacity_config is None:
-        capacity_config = []
-
-    # 1. Build vessel state map keyed by instrument_id.
-    vessel_states: dict[str, dict] = {}
-    for row in latest_rows:
-        iid = str(row.get("instrument_id") or "")
-        if not iid:
-            continue
-        state = _classify_state(row.get("status_to"), row.get("order_status"))
-        vessel_states[iid] = {
-            "instrument_id": iid,
-            "equipment_type": row.get("equipment_type"),
-            "state": state,
-            "state_reason": _state_reason(
-                state, row.get("status_to"), row.get("order_status"),
-                str(row.get("process_order_id") or "") or None,
-            ),
-            "current_po_id": str(row.get("process_order_id") or "") or None,
-            "current_material_id": str(row.get("material_id") or "") or None,
-            "current_material_name": str(row.get("material_name") or "") or None,
-            "state_since_ms": _coerce_int_ms(row.get("change_at_ms")),
-            "status_to": row.get("status_to"),
-            "status_from": row.get("status_from"),
-            "affinity_materials": [],
-            "blocked_orders": [],
-            "blocked_order_count": 0,
-            "top_affinity_material_count": 0,
-            "recommended_action": None,
-            "action_reason": None,
-            "action_priority": None,
-        }
-
-    # 2. Build material-vessel affinity from events_range.
-    #    affinity_map: {material_id -> {instrument_id -> count}}
-    #    material_last_seen: {material_id -> max change_at_ms}
-    affinity_map: dict[str, dict[str, int]] = {}
-    material_names: dict[str, str] = {}
-    material_last_seen: dict[str, int] = {}
-    for row in events_rows:
-        mid = str(row.get("material_id") or "")
-        iid = str(row.get("instrument_id") or "")
-        if not mid or not iid:
-            continue
-        affinity_map.setdefault(mid, {})
-        affinity_map[mid][iid] = affinity_map[mid].get(iid, 0) + 1
-        if row.get("material_name"):
-            material_names[mid] = str(row["material_name"])
-        ts = int(row.get("change_at_ms") or 0)
-        if ts > material_last_seen.get(mid, 0):
-            material_last_seen[mid] = ts
-
-    # 3. Build per-vessel affinity_materials (top materials this vessel has processed).
-    vessel_top_materials: dict[str, list[dict]] = {}
-    for mid, vessel_counts in affinity_map.items():
-        for iid, count in vessel_counts.items():
-            vessel_top_materials.setdefault(iid, [])
-            vessel_top_materials[iid].append({
-                "material_id": mid,
-                "material_name": material_names.get(mid, mid),
-                "use_count": count,
-            })
-    for iid, entries in vessel_top_materials.items():
-        entries.sort(key=lambda x: x["use_count"], reverse=True)
-        if iid in vessel_states:
-            vessel_states[iid]["affinity_materials"] = entries[:10]
-            vessel_states[iid]["top_affinity_material_count"] = len(entries)
-
-    # 4. Enrich released orders: feasibility, constraint, evidence, recommendations.
-    released_enriched: list[dict] = []
-    constrained_po_ids: set[str] = set()
-    unblock_actions: set[str] = set()
-
-    # Vessel IDs that have a capacity config entry.
-    configured_vessels: set[str] = {c["instrument_id"] for c in capacity_config}
-
-    for i, row in enumerate(released_rows):
-        po_id = str(row.get("po_id") or "")
-        mid = str(row.get("material_id") or "")
-        material_name = str(row.get("material_name") or po_id)
-        scheduled_start_ms = _coerce_int_ms(row.get("scheduled_start_ms"))
-        plant_id = row.get("plant_id")
-
-        # Order quantity: not available from current data sources — always None.
-        # Capacity filtering activates automatically when this is populated.
-        order_qty: Optional[float] = None
-
-        # Affinity candidates sorted by historical co-occurrence count.
-        sorted_affinity = sorted(
-            affinity_map.get(mid, {}).items(),
-            key=lambda kv: kv[1],
-            reverse=True,
-        )
-        all_affinity_vessels = [iid for iid, _ in sorted_affinity]
-        likely_vessels = all_affinity_vessels[:5]
-        has_affinity = bool(likely_vessels)
-
-        # Evidence notes accumulated throughout derivation.
-        evidence_notes: list[str] = []
-
-        # Capacity filtering — degrades gracefully when order_qty is unknown.
-        if order_qty is not None:
-            filtered: list[str] = []
-            for iid in likely_vessels:
-                fits, note = check_capacity(iid, order_qty, plant_id)
-                if fits:
-                    filtered.append(iid)
-                else:
-                    evidence_notes.append(note)
-            likely_vessels = filtered
-        else:
-            evidence_notes.append("capacity not validated — order quantity unavailable")
-
-        def _affinity_rank(iid: str) -> Optional[int]:
-            for rank, (vid, _) in enumerate(sorted_affinity, start=1):
-                if vid == iid:
-                    return rank
-            return None
-
-        available = [v for v in likely_vessels if vessel_states.get(v, {}).get("state") == "AVAILABLE"]
-        dirty = [v for v in likely_vessels if vessel_states.get(v, {}).get("state") == "DIRTY"]
-        in_use = [v for v in likely_vessels if vessel_states.get(v, {}).get("state") == "IN_USE"]
-
-        if available:
-            aff_count = affinity_map.get(mid, {}).get(available[0], 0)
-            feasible = True
-            constraint_type = None
-            recommended_vessel = available[0]
-            recommendation = (
-                f"Assign to {available[0]} — "
-                f"{aff_count} prior use{'s' if aff_count != 1 else ''}"
-            )
-            confidence = "high" if aff_count >= 3 else "medium" if aff_count >= 1 else "low"
-            ev_rank = _affinity_rank(available[0])
-        elif dirty:
-            aff_count = affinity_map.get(mid, {}).get(dirty[0], 0)
-            feasible = False
-            constraint_type = "dirty_vessel"
-            recommended_vessel = dirty[0]
-            recommendation = f"Schedule CIP cleaning for {dirty[0]}, then assign"
-            confidence = "high" if has_affinity else "medium"
-            ev_rank = _affinity_rank(dirty[0])
-            constrained_po_ids.add(po_id)
-            unblock_actions.add(f"clean:{dirty[0]}")
-        elif in_use:
-            in_use_po = vessel_states.get(in_use[0], {}).get("current_po_id")
-            aff_count = affinity_map.get(mid, {}).get(in_use[0], 0)
-            feasible = False
-            constraint_type = "in_use_vessel"
-            recommended_vessel = in_use[0]
-            recommendation = (
-                f"Expedite current order on {in_use[0]}"
-                + (f" (PO {in_use_po})" if in_use_po else "")
-            )
-            confidence = "high" if has_affinity else "medium"
-            ev_rank = _affinity_rank(in_use[0])
-            constrained_po_ids.add(po_id)
-            if in_use_po:
-                unblock_actions.add(f"expedite:{in_use_po}")
-        else:
-            aff_count = 0
-            feasible = False
-            constraint_type = "no_vessel" if not has_affinity else "in_use_vessel"
-            recommended_vessel = None
-            recommendation = (
-                "No vessel affinity data — manual assignment required"
-                if not has_affinity
-                else "All known vessels are busy or dirty"
-            )
-            confidence = "low" if not has_affinity else "medium"
-            ev_rank = None
-            constrained_po_ids.add(po_id)
-
-        released_enriched.append({
-            "po_id": po_id,
-            "material_id": mid or None,
-            "material_name": material_name,
-            "plant_id": plant_id,
-            "scheduled_start_ms": scheduled_start_ms,
-            "rank": i + 1,
-            "feasible": feasible,
-            "constraint_type": constraint_type,
-            "likely_vessels": likely_vessels,
-            "recommended_vessel": recommended_vessel,
-            "recommendation": recommendation,
-            "heuristic_confidence": confidence,
-            "evidence_affinity_count": aff_count,
-            "evidence_affinity_rank": ev_rank,
-            "evidence_candidate_vessel_count": len(all_affinity_vessels),
-            "evidence_last_seen_at_ms": material_last_seen.get(mid) if mid else None,
-            "evidence_source": "affinity_history" if has_affinity else "no_affinity_data",
-            "evidence_notes": evidence_notes,
-        })
-
-    # 5. Compute blocked_orders per vessel and recommended_action.
-    vessel_blocked: dict[str, list[dict]] = {}
-    for po in released_enriched:
-        if po["feasible"]:
-            continue
-        for iid in po["likely_vessels"]:
-            if vessel_states.get(iid, {}).get("state") in ("DIRTY", "IN_USE", "UNKNOWN"):
-                vessel_blocked.setdefault(iid, [])
-                if len(vessel_blocked[iid]) < 10:
-                    vessel_blocked[iid].append({
-                        "po_id": po["po_id"],
-                        "material_name": po["material_name"],
-                        "scheduled_start_ms": po["scheduled_start_ms"],
-                    })
-
-    for iid, info in vessel_states.items():
-        blocked = vessel_blocked.get(iid, [])
-        info["blocked_orders"] = blocked
-        info["blocked_order_count"] = len(blocked)
-        state = info["state"]
-        if state == "DIRTY":
-            info["recommended_action"] = f"Schedule CIP cleaning for {iid}"
-            info["action_reason"] = (
-                f"{len(blocked)} released order{'s' if len(blocked) != 1 else ''} waiting"
-                if blocked else "vessel requires cleaning before use"
-            )
-            info["action_priority"] = 2
-        elif state == "IN_USE":
-            current_po = info.get("current_po_id")
-            info["recommended_action"] = (
-                f"Expedite PO {current_po} to free vessel" if current_po else None
-            )
-            info["action_reason"] = (
-                f"{len(blocked)} released order{'s' if len(blocked) != 1 else ''} waiting"
-                if blocked else None
-            )
-            info["action_priority"] = 1 if blocked else 3
-        else:
-            info["recommended_action"] = None
-            info["action_reason"] = None
-            info["action_priority"] = None
-
-    # 6. KPIs.
-    vessel_list = list(vessel_states.values())
-    kpis = {
-        "released_po_count": len(released_rows),
-        "constrained_po_count": len(constrained_po_ids),
-        "available_vessel_count": sum(1 for v in vessel_list if v["state"] == "AVAILABLE"),
-        "dirty_vessel_count": sum(1 for v in vessel_list if v["state"] == "DIRTY"),
-        "in_use_vessel_count": sum(1 for v in vessel_list if v["state"] == "IN_USE"),
-        "unknown_vessel_count": sum(1 for v in vessel_list if v["state"] == "UNKNOWN"),
-        "unblock_action_count": len(unblock_actions),
-    }
-
-    return vessel_list, released_enriched, kpis
+    return domain_derive_planning_data(
+        latest_rows,
+        events_rows,
+        released_rows,
+        capacity_check=check_capacity,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -584,8 +313,9 @@ async def fetch_vessel_planning_analytics(
     latest_coerced = [_coerce_event_row(r) for r in latest_rows]
 
     vessels, released_enriched, kpis = _derive_planning_data(
-        latest_coerced, events_coerced, released_rows,
-        capacity_config=VESSEL_CAPACITY,
+        latest_coerced,
+        events_coerced,
+        released_rows,
     )
 
     return {

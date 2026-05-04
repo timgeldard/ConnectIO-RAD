@@ -12,7 +12,7 @@ This document outlines the complete plan to finalize the Domain-Driven Design (D
 - [x] Enrich core domain models in `shared-trace` (Batch, Material).
 - [x] Ensure models are pure with 100% test coverage for domain logic.
 
-## Phase 2: Migrate Individual Apps
+## Phase 2: Migrate Individual Apps (Completed)
 *Objective: Transform anemic models into rich domain models with proper application services orchestrating repositories and domain logic.*
 
 **Per-App Migration Pattern:**
@@ -23,10 +23,10 @@ This document outlines the complete plan to finalize the Domain-Driven Design (D
 5.  Update frontend TypeScript clients to reflect domain language.
 
 **Prioritization:**
-- [ ] **`trace2`**: Complete the migration of its bounded contexts (`batch_trace`, `lineage_analysis`, `quality_record`).
-- [ ] **`spc`**: Enrich chart config and process control contexts.
-- [ ] **`envmon`**: Enrich inspection analysis and spatial config contexts.
-- [ ] **`warehouse360`** & **`processorderhistory`**: Enrich the newly created but currently anemic context structures.
+- [x] **`trace2`**: Complete the migration of its bounded contexts (`batch_trace`, `lineage_analysis`, `quality_record`).
+- [x] **`spc`**: Enrich chart config and process control contexts.
+- [x] **`envmon`**: Enrich inspection analysis and spatial config contexts.
+- [x] **`warehouse360`** & **`processorderhistory`**: Enrich the newly created but formerly anemic context structures.
 
 ## Phase 3: Stabilization & Cross-Cutting Concerns
 - [ ] **Ubiquitous Language Enforcement**: Update docs, comments, and variable names to use consistent domain terms.

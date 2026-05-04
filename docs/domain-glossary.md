@@ -9,8 +9,8 @@ This document catalogs the current state of Domain-Driven Design (DDD) adoption 
 | **`trace2`** | Modular Monolith / CQRS | High | Refactored into bounded contexts. Strong value objects for identity and risk. |
 | **`spc`** | Modular Monolith / CQRS | Medium | Domain rules extracted for MSA, Capability, and Exclusions. Needs base entity classes. |
 | **`envmon`** | Modular Monolith / CQRS | Medium | Strong value objects for spatial coordinates and inspection risk. |
-| **`processorderhistory`**| Modular Monolith / CQRS | Anemic | Folders structure exists (`domain/`, `application/`, `dal/`), but no extracted pure domain models yet. |
-| **`warehouse360`** | Modular Monolith / CQRS | Anemic | Structure exists, but domain logic is still trapped in DAL or routers. |
+| **`processorderhistory`**| Modular Monolith / CQRS | Medium | Domain services now cover material movements, equipment insights, time-series buckets, planning schedule projections, and vessel feasibility heuristics. |
+| **`warehouse360`** | Modular Monolith / CQRS | Low / Medium | Application services route warehouse contexts and shared plant scoping is modeled as a value object. More operational policies can still move inward in Phase 3. |
 | **`connectedquality`** | BFF / Integration | N/A | Gateway app. Minimal domain logic. `user_preferences` is isolated. |
 
 ---
@@ -64,7 +64,29 @@ This document catalogs the current state of Domain-Driven Design (DDD) adoption 
   - `QualityStatus`, `batch_status_from_quality_stock` (`status.py`)
   - `MassBalance` variance logic (`mass_balance.py`)
 
-### 4. Shared Libraries (`libs/`)
+### 4. Process Order History (`processorderhistory`)
+
+**Context: `order_execution`**
+- **Value Objects / Policies:**
+  - `GoodsMovement`, `MovementQuantity`, `MovementSummary` (`movements.py`)
+
+**Context: `manufacturing_analytics`**
+- **Domain Services / Policies:**
+  - Equipment estate aggregation and state classification (`equipment.py`)
+  - Local time-series bucket derivation (`series.py`)
+
+**Context: `production_planning`**
+- **Domain Services / Policies:**
+  - Schedule block and backlog projections (`planning.py`)
+  - Vessel state, affinity, feasibility, and unblock recommendations (`vessels.py`)
+
+### 5. Warehouse360 (`warehouse360`)
+
+**Context: `inventory_management`**
+- **Value Objects:**
+  - `PlantScope` (`plant_scope.py`)
+
+### 6. Shared Libraries (`libs/`)
 
 - **`shared-trace`**: Currently acts as a monolithic read-model engine (DAL) with giant recursive SQL queries (`shared_trace/dal.py`). This needs to be decomposed in future phases into standard domain components.
 

@@ -8,13 +8,11 @@ If ``date_from`` / ``date_to`` are omitted the reasons_range query falls back to
 24-hour rolling window.
 """
 import asyncio
-from datetime import datetime, timedelta, timezone as dt_timezone
+from datetime import datetime, timezone as dt_timezone
 from typing import Optional
-from zoneinfo import ZoneInfo
 
 from backend.db import run_sql_async, sql_param, tbl, tz_date, tz_day_ms
-
-_MS_PER_DAY = 86_400_000
+from backend.manufacturing_analytics.domain.series import local_day_buckets
 
 
 # ---------------------------------------------------------------------------
@@ -112,13 +110,7 @@ def _build_daily_series(daily_rows: list[dict], now_ms: int, tz_name: str = "UTC
 
     Bucket boundaries align to local midnight in ``tz_name``.
     """
-    tz = ZoneInfo(tz_name)
-    now_utc = datetime.fromtimestamp(now_ms / 1000, tz=dt_timezone.utc)
-    local_today = now_utc.astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0)
-    day_buckets = [
-        int((local_today - timedelta(days=29 - i)).astimezone(dt_timezone.utc).timestamp() * 1000)
-        for i in range(30)
-    ]
+    day_buckets = local_day_buckets(now_ms, tz_name)
 
     daily_dict: dict[int, dict] = {}
     for r in daily_rows:
