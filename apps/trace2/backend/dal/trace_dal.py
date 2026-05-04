@@ -14,7 +14,7 @@ from backend.batch_trace.dal.trace import (
     fetch_trace_tree as _fetch_trace_tree,
 )
 from backend.batch_trace.dal.trace_core import get_trace_core_dal
-from backend.batch_trace.domain.identity import BatchIdentity, BatchOnlyIdentity
+from shared_trace.domain.models import BatchIdentity, BatchOnlyIdentity
 from backend.batch_trace.domain.trace_tree import build_trace_tree as build_tree_imported
 from backend.lineage_analysis.dal.lineage import (
     fetch_bottom_up as _fetch_bottom_up,

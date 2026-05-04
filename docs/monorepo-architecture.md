@@ -9,7 +9,9 @@ The repository follows a monorepo structure, housing multiple applications and s
 ```mermaid
 graph TD
     subgraph "Applications (apps/)"
+        CQ[connectedquality]
         EM[envmon]
+        POH[processorderhistory]
         SPC[spc]
         T2[trace2]
         W360[warehouse360]
@@ -37,14 +39,32 @@ graph TD
     T2 -- uses --> S_DB
     T2 -- uses --> S_AUTH
     T2 -- uses --> S_TR
+    POH -- uses --> S_DB
+    W360 -- uses --> S_DB
+    CQ -- routes to --> EM
+    CQ -- routes to --> SPC
 
     EM -- runs on --> DAPP
     SPC -- runs on --> DAPP
     T2 -- runs on --> DAPP
+    POH -- runs on --> DAPP
+    W360 -- runs on --> DAPP
+    CQ -- runs on --> DAPP
 
     S_DB -- queries --> SQLW
     SQLW -- reads from --> UC
 ```
+
+## 📐 Architectural Style
+
+All applications are transitioning toward a **Pragmatic Domain-Driven Design (DDD) / Modular Monolith** architecture with CQRS-style read models. The apps are divided into bounded contexts containing:
+- **Domain**: Pure business rules and value objects.
+- **Application**: Query orchestrators and response payload generation.
+- **DAL**: Data access adapters scoped specifically to their bounded context.
+- **Routers**: Pure HTTP transport layer.
+
+See [`docs/domain-glossary.md`](./domain-glossary.md) for a full inventory of contexts and domain models.
+
 
 ## 🚀 Technology Stack
 

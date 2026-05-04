@@ -5,7 +5,7 @@ Application services for lineage analysis queries.
 from shared_db.utils import attach_payload_freshness
 from shared_trace.freshness_sources import TRACE2_PAGE_FRESHNESS_SOURCES
 
-from backend.batch_trace.domain.identity import BatchIdentity
+from shared_trace.domain.models import BatchIdentity
 from backend.lineage_analysis.dal.lineage import (
     fetch_bottom_up,
     fetch_recall_readiness,

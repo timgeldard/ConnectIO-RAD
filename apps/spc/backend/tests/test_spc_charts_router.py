@@ -22,16 +22,17 @@ def mock_charts_dal(monkeypatch):
     monkeypatch.setattr(charts_router, "attach_data_freshness", AsyncMock(side_effect=lambda data, *args, **kwargs: data))
     return type("Mocks", (), mocks)
 
-
 @pytest.fixture
 def mock_locked_limits_dal(monkeypatch):
+    import backend.chart_config.application.commands as chart_config_commands
+
     mocks = {
-        "fetch_locked_limits": AsyncMock(return_value=None),
-        "save_locked_limits": AsyncMock(return_value={"id": "LOCKED-1"}),
-        "delete_locked_limits": AsyncMock(return_value={"deleted": True}),
+        "get_limits": AsyncMock(return_value=None),
+        "lock_limits": AsyncMock(return_value={"id": "LOCKED-1"}),
+        "delete_limits": AsyncMock(return_value={"deleted": True}),
     }
     for name, m in mocks.items():
-        monkeypatch.setattr(chart_config_router, name, m)
+        monkeypatch.setattr(chart_config_commands, name, m)
     monkeypatch.setattr(chart_config_router, "check_warehouse_config", lambda: None)
     return type("Mocks", (), mocks)
 
@@ -104,7 +105,7 @@ def test_locked_limits_endpoints(mock_locked_limits_dal):
     # GET
     response = client.get("/api/spc/locked-limits?material_id=MAT1&mic_id=MIC1")
     assert response.status_code == 200
-    mock_locked_limits_dal.fetch_locked_limits.assert_called_once()
+    mock_locked_limits_dal.get_limits.assert_called_once()
 
     # POST
     payload = {
@@ -113,7 +114,7 @@ def test_locked_limits_endpoints(mock_locked_limits_dal):
     }
     response = client.post("/api/spc/lock-limits", json=payload)
     assert response.status_code == 200
-    mock_locked_limits_dal.save_locked_limits.assert_called_once()
+    mock_locked_limits_dal.lock_limits.assert_called_once()
     assert response.json()["id"] == "LOCKED-1" or "id" in response.json()
 
     # DELETE
@@ -122,4 +123,4 @@ def test_locked_limits_endpoints(mock_locked_limits_dal):
         json={"material_id": "MAT1", "mic_id": "MIC1", "chart_type": "imr"}
     )
     assert response.status_code == 200
-    mock_locked_limits_dal.delete_locked_limits.assert_called_once()
+    mock_locked_limits_dal.delete_limits.assert_called_once()

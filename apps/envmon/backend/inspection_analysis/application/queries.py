@@ -13,12 +13,13 @@ from backend.inspection_analysis.dal import lots as lots_dal
 from backend.inspection_analysis.dal import plants as plants_dal
 from backend.inspection_analysis.dal import trends as trends_dal
 from backend.inspection_analysis.domain.risk import calculate_risk_score
+from backend.inspection_analysis.domain.inspection import InspectionLot as DomainInspectionLot
 from backend.inspection_analysis.domain.spc import detect_early_warning
-from backend.inspection_analysis.domain.status import derive_location_status, lot_status
+from backend.inspection_analysis.domain.status import derive_location_status
 from backend.inspection_analysis.domain.valuation import ACCEPT_VALUATIONS, REJECT_VALUATIONS, normalize_valuation
 from backend.schemas.em import (
     HeatmapResponse,
-    InspectionLot,
+    InspectionLot as InspectionLotSchema,
     LocationSummary,
     LotDetailResponse,
     MarkerData,
@@ -32,6 +33,27 @@ from backend.spatial_config.application import queries as spatial_queries
 
 logger = logging.getLogger(__name__)
 _PLANT_QUERY_CONCURRENCY = 8
+
+
+def _inspection_lot_from_row(row: dict) -> DomainInspectionLot:
+    return DomainInspectionLot(
+        lot_id=row["lot_id"],
+        func_loc_id=row["func_loc_id"],
+        inspection_start_date=row.get("inspection_start_date"),
+        inspection_end_date=row.get("inspection_end_date"),
+        valuation=row.get("valuation"),
+    )
+
+
+def _inspection_lot_schema(lot: DomainInspectionLot) -> InspectionLotSchema:
+    return InspectionLotSchema(
+        lot_id=lot.lot_id,
+        func_loc_id=lot.func_loc_id,
+        inspection_start_date=lot.inspection_start_date,
+        inspection_end_date=lot.inspection_end_date,
+        valuation=lot.valuation,
+        status=lot.status,
+    )
 
 
 def _build_plant_metadata(
@@ -226,17 +248,7 @@ async def get_location_summary(token: str, plant_id: str, func_loc_id: str, refe
     return LocationSummary(
         meta=meta,
         mics=[row["mic_name"] for row in mic_rows if row.get("mic_name")],
-        recent_lots=[
-            {
-                "lot_id": row["lot_id"],
-                "func_loc_id": row["func_loc_id"],
-                "inspection_start_date": str(row["inspection_start_date"])[:10] if row.get("inspection_start_date") else None,
-                "inspection_end_date": str(row["inspection_end_date"])[:10] if row.get("inspection_end_date") else None,
-                "valuation": row["valuation"],
-                "status": lot_status(row["valuation"], row.get("inspection_end_date")),
-            }
-            for row in lot_rows
-        ],
+        recent_lots=[_inspection_lot_schema(_inspection_lot_from_row(row)) for row in lot_rows],
     )
 
 
@@ -270,20 +282,10 @@ async def get_trends(
     return TrendResponse(func_loc_id=func_loc_id, mic_name=mic_name, window_days=window_days, points=points)
 
 
-async def list_lots(token: str, plant_id: str, func_loc_id: str, time_window_days: int, reference_date: date) -> list[InspectionLot]:
+async def list_lots(token: str, plant_id: str, func_loc_id: str, time_window_days: int, reference_date: date) -> list[InspectionLotSchema]:
     date_from = (reference_date - timedelta(days=time_window_days)).isoformat()
     rows = await lots_dal.fetch_lots(token, plant_id, func_loc_id, date_from)
-    return [
-        InspectionLot(
-            lot_id=row["lot_id"],
-            func_loc_id=row["func_loc_id"],
-            inspection_start_date=str(row["inspection_start_date"])[:10] if row.get("inspection_start_date") else None,
-            inspection_end_date=str(row["inspection_end_date"])[:10] if row.get("inspection_end_date") else None,
-            valuation=row.get("valuation"),
-            status=lot_status(row.get("valuation"), row.get("inspection_end_date")),
-        )
-        for row in rows
-    ]
+    return [_inspection_lot_schema(_inspection_lot_from_row(row)) for row in rows]
 
 
 async def get_lot_detail(token: str, lot_id: str, plant_id: str) -> LotDetailResponse:

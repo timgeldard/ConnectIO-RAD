@@ -5,7 +5,7 @@ Data access layer for batch trace context.
 import os
 from typing import Optional
 from backend.batch_trace.dal.trace_core import get_trace_core_dal
-from backend.batch_trace.domain.identity import BatchIdentity, BatchOnlyIdentity
+from shared_trace.domain.models import BatchIdentity, BatchOnlyIdentity
 
 MAX_TRACE_LEVELS: int = int(os.environ.get("MAX_TRACE_LEVELS", "10"))
 _dal = get_trace_core_dal()

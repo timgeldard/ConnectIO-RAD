@@ -4,7 +4,7 @@ Router for quality record context.
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend.batch_trace.domain.identity import BatchIdentity
+from shared_trace.domain.models import BatchIdentity
 from backend.quality_record.application.queries import (
     get_batch_compare,
     get_coa,

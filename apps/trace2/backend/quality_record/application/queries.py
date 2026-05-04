@@ -5,7 +5,7 @@ Application services for quality record queries.
 from shared_db.utils import attach_payload_freshness
 from shared_trace.freshness_sources import TRACE2_PAGE_FRESHNESS_SOURCES
 
-from backend.batch_trace.domain.identity import BatchIdentity
+from shared_trace.domain.models import BatchIdentity
 from backend.quality_record.dal.quality import (
     fetch_batch_compare,
     fetch_coa,

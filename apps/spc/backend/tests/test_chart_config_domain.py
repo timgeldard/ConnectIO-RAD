@@ -2,6 +2,7 @@
 
 import pytest
 
+from shared_domain import BusinessRuleValidationException
 from backend.chart_config.domain.locked_limits import LockedLimits
 from backend.chart_config.domain.exclusion import Exclusion
 
@@ -18,23 +19,23 @@ class TestLockedLimits:
         assert ll.ucl == 12.0
 
     def test_rejects_empty_material_id(self):
-        with pytest.raises(ValueError, match="material_id"):
+        with pytest.raises(BusinessRuleValidationException, match="material_id"):
             self._valid(material_id="")
 
     def test_rejects_empty_mic_id(self):
-        with pytest.raises(ValueError, match="mic_id"):
+        with pytest.raises(BusinessRuleValidationException, match="mic_id"):
             self._valid(mic_id="")
 
     def test_rejects_unknown_chart_type(self):
-        with pytest.raises(ValueError, match="chart_type"):
+        with pytest.raises(BusinessRuleValidationException, match="chart_type"):
             self._valid(chart_type="bad_chart")
 
     def test_rejects_ucl_not_greater_than_lcl(self):
-        with pytest.raises(ValueError, match="ucl must be > lcl"):
+        with pytest.raises(BusinessRuleValidationException, match="ucl must be > lcl"):
             self._valid(ucl=8.0, lcl=8.0)
 
     def test_rejects_ucl_less_than_lcl(self):
-        with pytest.raises(ValueError, match="ucl must be > lcl"):
+        with pytest.raises(BusinessRuleValidationException, match="ucl must be > lcl"):
             self._valid(ucl=7.0, lcl=8.0)
 
     def test_p_chart_allows_equal_ucl_lcl(self):
@@ -42,7 +43,7 @@ class TestLockedLimits:
         assert ll.chart_type == "p_chart"
 
     def test_p_chart_rejects_ucl_less_than_lcl(self):
-        with pytest.raises(ValueError, match="ucl must be >= lcl for p_chart"):
+        with pytest.raises(BusinessRuleValidationException, match="ucl must be >= lcl for p_chart"):
             self._valid(chart_type="p_chart", ucl=-0.1, lcl=0.0)
 
     def test_all_recognised_chart_types_accepted(self):
@@ -74,23 +75,23 @@ class TestExclusion:
         assert ex.justification == "bad outlier"
 
     def test_rejects_empty_material_id(self):
-        with pytest.raises(ValueError, match="material_id"):
+        with pytest.raises(BusinessRuleValidationException, match="material_id"):
             self._valid(material_id="")
 
     def test_rejects_empty_mic_id(self):
-        with pytest.raises(ValueError, match="mic_id"):
+        with pytest.raises(BusinessRuleValidationException, match="mic_id"):
             self._valid(mic_id="")
 
     def test_rejects_unknown_chart_type(self):
-        with pytest.raises(ValueError, match="chart_type"):
+        with pytest.raises(BusinessRuleValidationException, match="chart_type"):
             self._valid(chart_type="not_a_chart")
 
     def test_rejects_short_justification(self):
-        with pytest.raises(ValueError, match="justification"):
+        with pytest.raises(BusinessRuleValidationException, match="justification"):
             self._valid(justification="  ")
 
     def test_rejects_invalid_stratify_by(self):
-        with pytest.raises(ValueError, match="stratify_by"):
+        with pytest.raises(BusinessRuleValidationException, match="stratify_by"):
             self._valid(stratify_by="bad_column")
 
     def test_valid_stratify_by_values(self):

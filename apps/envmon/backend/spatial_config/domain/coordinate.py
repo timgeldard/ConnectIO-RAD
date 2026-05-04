@@ -2,9 +2,11 @@
 
 from dataclasses import dataclass
 
+from shared_domain import ValueObject
+
 
 @dataclass(frozen=True)
-class LocationCoordinate:
+class LocationCoordinate(ValueObject):
     """Immutable value object for a spatial coordinate mapping.
 
     x_pct and y_pct are percentages (0–100) relative to the floor plan SVG dimensions.

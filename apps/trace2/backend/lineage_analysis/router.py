@@ -4,7 +4,7 @@ Router for lineage analysis context.
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend.batch_trace.domain.identity import BatchIdentity
+from shared_trace.domain.models import BatchIdentity
 from backend.lineage_analysis.application.queries import (
     get_bottom_up,
     get_recall_readiness,

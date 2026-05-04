@@ -17,7 +17,7 @@ from backend.batch_trace.dal.trace import (
     fetch_summary,
     fetch_trace_tree,
 )
-from backend.batch_trace.domain.identity import BatchIdentity, BatchOnlyIdentity
+from shared_trace.domain.models import BatchIdentity, BatchOnlyIdentity
 from backend.batch_trace.domain.trace_tree import build_trace_tree
 from backend.utils.db import attach_data_freshness
 from backend.utils.exceptions import TraceNotFound
