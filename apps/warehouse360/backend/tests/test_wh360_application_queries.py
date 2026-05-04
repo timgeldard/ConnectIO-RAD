@@ -17,8 +17,11 @@ async def test_dispensary_queries_normalize_plant_scope(monkeypatch):
 
     monkeypatch.setattr(dispensary_queries.dispensary_dal, "fetch_dispensary_tasks", fake_fetch)
 
-    assert await dispensary_queries.list_dispensary_tasks("token", " IE01 ") == [{"task_id": "T1"}]
+    result = await dispensary_queries.list_dispensary_tasks("token", " IE01 ")
     assert calls == [("token", "IE01")]
+    assert result[0]["task_id"] == "T1"
+    assert "status_normalized" in result[0]
+    assert "is_urgent" in result[0]
 
 
 @pytest.mark.asyncio
@@ -31,8 +34,10 @@ async def test_control_tower_queries_normalize_plant_scope(monkeypatch):
 
     monkeypatch.setattr(control_tower_queries.kpis_dal, "fetch_kpis", fake_fetch)
 
-    assert await control_tower_queries.list_kpis("token", " DE01 ") == [{"plant_id": "DE01"}]
+    result = await control_tower_queries.list_kpis("token", " DE01 ")
     assert calls == [("token", "DE01")]
+    assert result[0]["plant_id"] == "DE01"
+    assert "kpi_health" in result[0]
 
 
 @pytest.mark.asyncio

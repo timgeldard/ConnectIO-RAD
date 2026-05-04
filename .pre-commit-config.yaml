@@ -7,3 +7,18 @@ repos:
         language: system
         files: ^apps/.*/i18n/resources\.json$
         pass_filenames: false
+      - id: ddd-guardrails
+        name: DDD Architecture Guardrails
+        entry: python -m pytest
+        args:
+          - apps/envmon/backend/tests/test_architecture_boundaries.py
+          - apps/spc/backend/tests/test_architecture_boundaries.py
+          - apps/trace2/backend/tests/test_architecture_boundaries.py
+          - apps/warehouse360/backend/tests/test_architecture_boundaries.py
+          - apps/processorderhistory/backend/tests/test_architecture_boundaries.py
+          - -v
+          - --tb=short
+        language: system
+        pass_filenames: false
+        files: ^(apps|libs)/.*\.py$
+        stages: [pre-commit]
