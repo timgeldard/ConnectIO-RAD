@@ -1,12 +1,19 @@
 """DAL — dispensary weighing tasks."""
 
 from backend.utils.db import run_sql_async, sql_param, tbl
+from backend.inventory_management.domain.plant_scope import PlantScope
+
+
+def _plant_scope_filter(plant_id: str | None) -> tuple[str, list[dict]]:
+    scope = PlantScope.from_optional(plant_id)
+    if not scope.is_single_plant:
+        return "", []
+    return "WHERE plant_id = :plant_id", [sql_param("plant_id", scope.plant_id)]
 
 
 async def fetch_dispensary_tasks(token: str, plant_id: str | None = None) -> list[dict]:
     """Return open dispensary tasks ordered by time until required."""
-    params = [sql_param("plant_id", plant_id)] if plant_id else []
-    plant_filter = "WHERE plant_id = :plant_id" if plant_id else ""
+    plant_filter, params = _plant_scope_filter(plant_id)
     q = f"""
         SELECT *
         FROM {tbl('wh360_dispensary_tasks_v')}
