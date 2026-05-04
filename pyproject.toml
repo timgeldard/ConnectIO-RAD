@@ -9,6 +9,7 @@ members = [
   "libs/shared-api",
   "libs/shared-auth",
   "libs/shared-db",
+  "libs/shared-domain",
   "libs/shared-geo",
   "libs/shared-trace",
 ]
@@ -17,6 +18,7 @@ members = [
 shared-db   = { workspace = true }
 shared-auth = { workspace = true }
 shared-api  = { workspace = true }
+shared-domain = { workspace = true }
 shared-geo  = { workspace = true }
 shared-trace = { workspace = true }
 

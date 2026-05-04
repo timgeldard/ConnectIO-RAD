@@ -7,11 +7,9 @@ Runs 2 Databricks queries in parallel (asyncio.gather):
 import asyncio
 from datetime import datetime, timedelta, timezone as dt_timezone
 from typing import Optional
-from zoneinfo import ZoneInfo
 
 from backend.db import run_sql_async, sql_param, tbl, tz_date, tz_day_ms
-
-_MS_PER_DAY = 86_400_000
+from backend.manufacturing_analytics.domain.series import local_day_buckets, remap_utc_midnight_to_local_day
 
 
 # ---------------------------------------------------------------------------
@@ -111,13 +109,7 @@ def _coerce_adherence_row(row: dict) -> dict:
 
 def _build_daily_series(daily_rows: list[dict], now_ms: int, tz_name: str = "UTC") -> list[dict]:
     """Zero-padded 30-day adherence trend series."""
-    tz = ZoneInfo(tz_name)
-    now_utc = datetime.fromtimestamp(now_ms / 1000, tz=dt_timezone.utc)
-    local_today = now_utc.astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0)
-    day_buckets = [
-        int((local_today - timedelta(days=29 - i)).astimezone(dt_timezone.utc).timestamp() * 1000)
-        for i in range(30)
-    ]
+    day_buckets = local_day_buckets(now_ms, tz_name)
 
     daily_dict: dict[int, dict] = {}
     for r in daily_rows:
@@ -125,13 +117,7 @@ def _build_daily_series(daily_rows: list[dict], now_ms: int, tz_name: str = "UTC
             raw_day_ms = int(r.get("day_ms") or 0)
             # Metric views emit date keys at UTC midnight; remap them through the
             # user's timezone so non-UTC local-day buckets still match.
-            d_ms = int(
-                datetime.fromtimestamp(raw_day_ms / 1000, tz=dt_timezone.utc)
-                .astimezone(tz)
-                .replace(hour=0, minute=0, second=0, microsecond=0)
-                .astimezone(dt_timezone.utc)
-                .timestamp() * 1000
-            )
+            d_ms = remap_utc_midnight_to_local_day(raw_day_ms, tz_name)
             daily_dict[d_ms] = {
                 "otif_pct": float(r.get("otif_pct") or 0.0),
                 "on_time_pct": float(r.get("on_time_pct") or 0.0),

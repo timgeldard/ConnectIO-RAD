@@ -1,6 +1,20 @@
-import sys
-import pytest
+import ast
 from pathlib import Path
+
+
+ROOT = Path("apps/warehouse360/backend")
+
+
+def _imports(path: Path) -> list[str]:
+    tree = ast.parse(path.read_text(), filename=str(path))
+    imports: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imports.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imports.append(node.module)
+    return imports
+
 
 def test_domain_layer_isolation():
     """
@@ -14,7 +28,7 @@ def test_domain_layer_isolation():
         "shared_auth"
     ]
     
-    domain_files = list(Path("apps/warehouse360/backend").glob("**/domain/*.py"))
+    domain_files = list(ROOT.glob("**/domain/*.py"))
     
     for file_path in domain_files:
         content = file_path.read_text()
@@ -23,22 +37,22 @@ def test_domain_layer_isolation():
 
 def test_router_layer_isolation():
     """
-    Ensure routers do not import DAL directly if an application layer exists.
-    For this pragmatic migration, we allow direct router->DAL if it's a simple read.
-    But we enforce that Routers don't contain SQL execution.
+    Ensure routers stay transport-only and route through application services.
     """
-    router_files = list(Path("apps/warehouse360/backend").glob("**/router_*.py"))
+    router_files = list(ROOT.glob("**/router_*.py"))
     
     for file_path in router_files:
         content = file_path.read_text()
         assert "run_sql_async" not in content, f"Direct SQL execution found in {file_path}"
         assert "tbl(" not in content, f"Table reference found in {file_path}"
+        for imported_module in _imports(file_path):
+            assert ".dal" not in imported_module, f"Router imports DAL directly in {file_path}: {imported_module}"
 
 def test_application_layer_isolation():
     """
     Ensure application layer does not import FastAPI (keep it transport-agnostic).
     """
-    app_files = list(Path("apps/warehouse360/backend").glob("**/application/*.py"))
+    app_files = list(ROOT.glob("**/application/*.py"))
     
     for file_path in app_files:
         content = file_path.read_text()

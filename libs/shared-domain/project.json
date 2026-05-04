@@ -1,0 +1,32 @@
+{
+  "name": "shared-domain",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:backend"],
+  "targets": {
+    "sync": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync --package shared-domain",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "PYTHONPATH=libs/shared-domain/src uv run --no-sync --package shared-domain python -m pytest libs/shared-domain/tests",
+        "cwd": "{workspaceRoot}"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --no-sync ruff check .",
+        "cwd": "libs/shared-domain"
+      },
+      "inputs": ["pyFiles", "sharedGlobals"],
+      "cache": true
+    }
+  }
+}

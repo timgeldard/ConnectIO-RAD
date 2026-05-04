@@ -19,14 +19,12 @@ Quantity conversion (mirrors existing orders_dal pattern):
 TARGET_YIELD_PCT = 95.0
 """
 import asyncio
-from datetime import datetime, timedelta, timezone as dt_timezone
+from datetime import datetime, timezone as dt_timezone
 from typing import Optional
-from zoneinfo import ZoneInfo
 
 from backend.db import run_sql_async, sql_param, tbl, tz_date, tz_day_ms, tz_hour_ms
+from backend.manufacturing_analytics.domain.series import local_day_buckets, local_hour_buckets
 
-_MS_PER_HOUR = 3_600_000
-_MS_PER_DAY  = 86_400_000
 TARGET_YIELD_PCT = 95.0
 
 # ---------------------------------------------------------------------------
@@ -403,13 +401,7 @@ def _build_daily_series(daily_rows: list[dict], now_ms: int, tz_name: str = "UTC
     Returns a list of 30 dicts ``{"date": day_ms, "avg_yield_pct": float | None}``,
     oldest bucket first.  Buckets with no data carry ``None`` for ``avg_yield_pct``.
     """
-    tz = ZoneInfo(tz_name)
-    now_utc = datetime.fromtimestamp(now_ms / 1000, tz=dt_timezone.utc)
-    local_today = now_utc.astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0)
-    day_buckets = [
-        int((local_today - timedelta(days=29 - i)).astimezone(dt_timezone.utc).timestamp() * 1000)
-        for i in range(30)
-    ]
+    day_buckets = local_day_buckets(now_ms, tz_name)
 
     lookup: dict[int, Optional[float]] = {
         int(row["day_ms"]): (float(row["avg_yield_pct"]) if row["avg_yield_pct"] is not None else None)
@@ -426,13 +418,7 @@ def _build_hourly_series(hourly_rows: list[dict], now_ms: int, tz_name: str = "U
     Returns a list of 24 dicts ``{"hour": hour_ms, "avg_yield_pct": float | None}``,
     oldest bucket first.  Buckets with no data carry ``None`` for ``avg_yield_pct``.
     """
-    tz = ZoneInfo(tz_name)
-    now_utc = datetime.fromtimestamp(now_ms / 1000, tz=dt_timezone.utc)
-    local_now_hour = now_utc.astimezone(tz).replace(minute=0, second=0, microsecond=0)
-    hour_buckets = [
-        int((local_now_hour - timedelta(hours=24 - i)).astimezone(dt_timezone.utc).timestamp() * 1000)
-        for i in range(24)
-    ]
+    hour_buckets = local_hour_buckets(now_ms, tz_name)
 
     lookup: dict[int, Optional[float]] = {
         int(row["hour_ms"]): (float(row["avg_yield_pct"]) if row["avg_yield_pct"] is not None else None)

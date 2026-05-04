@@ -18,6 +18,11 @@ import asyncio
 from typing import Optional
 
 from backend.db import ORDER_STATUS_EXPR, run_sql_async, sql_param, tbl
+from backend.order_execution.domain.movements import (
+    MovementQuantity,
+    derive_materials,
+    movement_summary,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -308,45 +313,12 @@ def _derive_materials(movements: list[dict]) -> list[dict]:
     Materials with a net total of zero or less (fully reversed) are omitted.
     Takes the first batch_id seen from a MT-261 movement as the representative batch.
     """
-    seen: dict[str, dict] = {}
-    for mv in movements:
-        mt = str(mv.get("movement_type", ""))
-        if mt not in ("261", "262"):
-            continue
-        mid = str(mv.get("material_id", ""))
-        raw_uom = (mv.get("uom") or "").strip().upper()
-        if raw_uom == "EA":
-            continue
-        raw_qty = float(mv.get("quantity") or 0)
-        qty_kg = raw_qty / 1000.0 if raw_uom == "G" else raw_qty
-        sign = -1.0 if mt == "262" else 1.0
-        if mid not in seen:
-            seen[mid] = {
-                "material_id": mid,
-                "material_name": mv.get("material_name"),
-                "batch_id": mv.get("batch_id") if mt == "261" else None,
-                "total_qty": 0.0,
-                "uom": "KG" if raw_uom in ("G", "KG") else mv.get("uom"),
-            }
-        elif mt == "261" and seen[mid]["batch_id"] is None:
-            seen[mid]["batch_id"] = mv.get("batch_id")
-        seen[mid]["total_qty"] += sign * qty_kg
-    result = []
-    for item in seen.values():
-        item["total_qty"] = round(item["total_qty"], 6)
-        if item["total_qty"] > 0:
-            result.append(item)
-    return result
+    return derive_materials(movements)
 
 
 def _to_kg(qty: float, uom: str | None) -> float:
     """Normalise a quantity to KG. EA (each) returns 0; G (gram) is divided by 1000."""
-    u = (uom or "").strip().upper()
-    if u == "EA":
-        return 0.0
-    if u == "G":
-        return qty / 1000.0
-    return qty
+    return MovementQuantity(qty, uom).to_kg()
 
 
 def _movement_summary(movements: list[dict]) -> dict:
@@ -357,30 +329,7 @@ def _movement_summary(movements: list[dict]) -> dict:
     is subtracted from MT-101 receipts.  EA movements are excluded; G quantities
     are converted to KG before summing.  Totals are rounded to 6 decimal places.
     """
-    issued = sum(
-        _to_kg(float(mv.get("quantity") or 0), mv.get("uom"))
-        for mv in movements
-        if str(mv.get("movement_type", "")) == "261"
-    ) - sum(
-        _to_kg(float(mv.get("quantity") or 0), mv.get("uom"))
-        for mv in movements
-        if str(mv.get("movement_type", "")) == "262"
-    )
-    received = sum(
-        _to_kg(float(mv.get("quantity") or 0), mv.get("uom"))
-        for mv in movements
-        if str(mv.get("movement_type", "")) == "101"
-    ) - sum(
-        _to_kg(float(mv.get("quantity") or 0), mv.get("uom"))
-        for mv in movements
-        if str(mv.get("movement_type", "")) == "102"
-    )
-    issued = round(issued, 6)
-    received = round(received, 6)
-    return {
-        "qty_issued_kg": issued if issued > 0 else None,
-        "qty_received_kg": received if received > 0 else None,
-    }
+    return movement_summary(movements).to_dict()
 
 
 def _time_summary(phases: list[dict]) -> dict:

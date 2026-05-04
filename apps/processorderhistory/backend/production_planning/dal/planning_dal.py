@@ -28,20 +28,18 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from backend.db import run_sql_async, silver_tbl, sql_param, tbl
+from backend.production_planning.domain.planning import (
+    DEFAULT_BLOCK_HRS,
+    MS_PER_DAY,
+    build_kpis as domain_build_kpis,
+    coerce_backlog as domain_coerce_backlog,
+    coerce_block as domain_coerce_block,
+)
 
-_MS_PER_HOUR = 3_600_000
-_MS_PER_DAY = 86_400_000
-_DEFAULT_BLOCK_HRS = 8
+_MS_PER_DAY = MS_PER_DAY
+_DEFAULT_BLOCK_HRS = DEFAULT_BLOCK_HRS
 _WINDOW_DAYS_BACK = 2
 _WINDOW_DAYS_FORWARD = 5
-
-_STATUS_TO_KIND: dict[str, str | None] = {
-    "IN PROGRESS": "running",
-    "Tulip Load In Progress": "running",
-    "COMPLETED": "completed",
-    "CLOSED": "completed",
-    "CANCELLED": None,
-}
 
 
 # ---------------------------------------------------------------------------
@@ -108,62 +106,12 @@ async def _q_backlog(token: str, plant_id: Optional[str]) -> list[dict]:
 
 def _coerce_block(row: dict, now_ms: int) -> dict | None:
     """Map a blocks row to the Gantt block interface; returns None for excluded statuses."""
-    status = row.get("order_status") or ""
-    kind = _STATUS_TO_KIND.get(status, "firm")
-    if kind is None:
-        return None
-
-    sm = row.get("scheduled_start_ms")
-    start_ms = int(sm) if sm is not None else now_ms
-    end_ms = start_ms + _DEFAULT_BLOCK_HRS * _MS_PER_HOUR
-
-    po_id = str(row.get("process_order_id") or "")
-    line_id = str(row.get("line_id") or "UNKNOWN")
-    material_id = row.get("material_id")
-    material_name = str(row.get("material_name") or po_id)
-
-    return {
-        "id": f"{po_id}-{line_id}",
-        "poId": po_id,
-        "lineId": line_id,
-        "start": start_ms,
-        "end": end_ms,
-        "kind": kind,
-        "label": material_name,
-        "sublabel": str(material_id or ""),
-        "qty": 0,
-        "uom": "KG",
-        "materialId": material_id,
-        "customer": None,
-        "shift": None,
-        "operator": None,
-        "ratePerH": None,
-        "materials": [],
-        "shortageETA": None,
-        "shortageItem": None,
-        "activeDowntime": None,
-    }
+    return domain_coerce_block(row, now_ms)
 
 
 def _coerce_backlog(row: dict, due_ms: int) -> dict:
     """Map a backlog row to the backlog card interface."""
-    po_id = str(row.get("process_order_id") or "")
-    material_id = row.get("material_id")
-    material_name = str(row.get("material_name") or po_id)
-    return {
-        "id": f"bl-{po_id}",
-        "poId": po_id,
-        "product": material_name,
-        "materialId": material_id,
-        "category": None,
-        "qty": 0,
-        "uom": "KG",
-        "due": due_ms,
-        "priority": "normal",
-        "customer": "—",
-        "requiresLine": "—",
-        "durationH": _DEFAULT_BLOCK_HRS,
-    }
+    return domain_coerce_backlog(row, due_ms)
 
 
 # ---------------------------------------------------------------------------
@@ -176,29 +124,7 @@ def _build_kpis(blocks: list[dict], backlog: list[dict], now_ms: int) -> dict:
     Capacity-dependent metrics (utilization, on-time %) return 0 until a
     capacity master or schedule adherence metric view is wired in.
     """
-    today_start = (now_ms // _MS_PER_DAY) * _MS_PER_DAY
-    today_end = today_start + _MS_PER_DAY
-
-    running_count = sum(1 for b in blocks if b["kind"] == "running")
-    today_blocks = [b for b in blocks if today_start <= b["start"] < today_end]
-    today_qty = sum(b["qty"] for b in today_blocks)
-    total_lines = len({b["lineId"] for b in blocks})
-
-    return {
-        "runningCount": running_count,
-        "totalLines": total_lines,
-        "todaysQty": today_qty,
-        "todaysCount": len(today_blocks),
-        "utilization": 0,
-        "onTimePct": 0,
-        "atRiskCount": 0,
-        "materialShortCount": 0,
-        "wmInTransit": 0,
-        "downtimeMinsToday": 0,
-        "activeDowntimeCount": 0,
-        "backlogCount": len(backlog),
-        "backlogUrgent": 0,
-    }
+    return domain_build_kpis(blocks, backlog, now_ms)
 
 
 # ---------------------------------------------------------------------------

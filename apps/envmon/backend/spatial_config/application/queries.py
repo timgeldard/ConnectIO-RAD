@@ -8,6 +8,7 @@ from typing import Optional
 from backend.schemas.em import FloorInfo, LocationMeta
 from backend.spatial_config.dal import coordinates as coordinates_dal
 from backend.spatial_config.dal import floors as floors_dal
+from backend.spatial_config.dal.plant_geo import fetch_all_plant_geo
 
 
 async def list_floors(token: str, plant_id: str) -> list[FloorInfo]:
@@ -109,3 +110,18 @@ async def get_location_coordinate(token: str, plant_id: str, func_loc_id: str) -
         y_pos=float(row["y_pos"]) if row.get("y_pos") is not None else None,
         is_mapped=True,
     )
+
+
+fetch_mapped_locations = coordinates_dal.fetch_mapped_locations
+fetch_unmapped_locations = coordinates_dal.fetch_unmapped_locations
+
+__all__ = [
+    "coordinates_dal",
+    "fetch_all_plant_geo",
+    "fetch_mapped_locations",
+    "fetch_unmapped_locations",
+    "floors_dal",
+    "get_location_coordinate",
+    "list_floors",
+    "list_locations",
+]

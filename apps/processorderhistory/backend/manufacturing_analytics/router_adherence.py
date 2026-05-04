@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Header, Request
 
-from backend.manufacturing_analytics.dal.adherence_analytics_dal import fetch_adherence_analytics
+from backend.manufacturing_analytics.application import queries as analytics_queries
 from backend.db import check_warehouse_config
 from backend.schemas.order_schemas import AnalyticsRequest
 from shared_auth import UserIdentity, require_proxy_user
@@ -36,7 +36,7 @@ async def fetch_adherence(
     """
     token = user.raw_token
     check_warehouse_config()
-    return await fetch_adherence_analytics(
+    return await analytics_queries.get_adherence_analytics(
         token,
         plant_id=body.plant_id,
         date_from=body.date_from,

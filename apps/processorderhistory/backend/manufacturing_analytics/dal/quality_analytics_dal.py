@@ -18,14 +18,11 @@ If ``date_from`` / ``date_to`` are omitted the results_range query falls back to
 24-hour rolling window for backward compatibility, and prior7d is empty.
 """
 import asyncio
-from datetime import datetime, timedelta, timezone as dt_timezone
+from datetime import datetime, timezone as dt_timezone
 from typing import Optional
-from zoneinfo import ZoneInfo
 
 from backend.db import run_sql_async, sql_param, tbl, tz_date, tz_day_ms, tz_hour_ms
-
-_MS_PER_HOUR = 3_600_000
-_MS_PER_DAY = 86_400_000
+from backend.manufacturing_analytics.domain.series import local_day_buckets, local_hour_buckets
 
 
 # ---------------------------------------------------------------------------
@@ -249,13 +246,7 @@ def _build_daily_series(daily_rows: list[dict], now_ms: int, tz_name: str = "UTC
     Bucket boundaries align to local midnight in ``tz_name``.
     rft_pct is None for zero-result buckets (no inspections recorded that day).
     """
-    tz = ZoneInfo(tz_name)
-    now_utc = datetime.fromtimestamp(now_ms / 1000, tz=dt_timezone.utc)
-    local_today = now_utc.astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0)
-    day_buckets = [
-        int((local_today - timedelta(days=29 - i)).astimezone(dt_timezone.utc).timestamp() * 1000)
-        for i in range(30)
-    ]
+    day_buckets = local_day_buckets(now_ms, tz_name)
 
     sparse: dict[int, tuple[int, int]] = {}
     for row in daily_rows:
@@ -280,13 +271,7 @@ def _build_hourly_series(hourly_rows: list[dict], now_ms: int, tz_name: str = "U
     Bucket boundaries align to local hour starts in ``tz_name``.
     rft_pct is None for zero-result buckets (no inspections recorded that hour).
     """
-    tz = ZoneInfo(tz_name)
-    now_utc = datetime.fromtimestamp(now_ms / 1000, tz=dt_timezone.utc)
-    local_now_hour = now_utc.astimezone(tz).replace(minute=0, second=0, microsecond=0)
-    hour_buckets = [
-        int((local_now_hour - timedelta(hours=24 - i)).astimezone(dt_timezone.utc).timestamp() * 1000)
-        for i in range(24)
-    ]
+    hour_buckets = local_hour_buckets(now_ms, tz_name)
 
     sparse: dict[int, tuple[int, int]] = {}
     for row in hourly_rows:

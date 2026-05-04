@@ -5,7 +5,7 @@ from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header
 from pydantic import BaseModel
 
-from backend.order_execution.dal.pours_analytics_dal import fetch_pours_analytics
+from backend.order_execution.application import queries as order_queries
 from backend.db import check_warehouse_config, validate_timezone
 
 router = APIRouter()
@@ -35,7 +35,7 @@ async def get_pours_analytics(body: PoursAnalyticsRequest,
     """
     token = user.raw_token
     check_warehouse_config()
-    return await fetch_pours_analytics(
+    return await order_queries.get_pours_analytics(
         token,
         plant_id=body.plant_id,
         date_from=body.date_from,

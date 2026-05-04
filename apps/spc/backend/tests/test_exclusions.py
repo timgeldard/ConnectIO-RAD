@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from backend.main import app
+from backend.chart_config.application import commands as chart_config_commands
 import backend.chart_config.router as exclusions
 from shared_auth import require_proxy_user
 
@@ -69,12 +70,12 @@ def test_save_exclusions_persists_snapshot(monkeypatch):
     async def fake_save(_token, payload):
         captured["payload"] = payload
 
-    async def fake_run_sql_async(*_args, **_kwargs):
-        return [{"user_id": "qa@example.com", "event_ts": "2026-04-13 08:00:00"}]
+    async def fake_fetch_actor_metadata(_token):
+        return {"user_id": "qa@example.com", "event_ts": "2026-04-13 08:00:00"}
 
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
-    monkeypatch.setattr(exclusions, "save_exclusion_snapshot", fake_save)
-    monkeypatch.setattr(exclusions, "run_sql_async", fake_run_sql_async)
+    monkeypatch.setattr(chart_config_commands.exclusions_dal, "save_exclusion_snapshot", fake_save)
+    monkeypatch.setattr(chart_config_commands.exclusions_dal, "fetch_actor_metadata", fake_fetch_actor_metadata)
 
     response = client.post(
         "/api/spc/exclusions",
@@ -99,12 +100,12 @@ def test_save_exclusions_actor_lookup_failure(monkeypatch):
     async def fake_save(_token, payload):
         return None
 
-    async def fake_run_sql_async(*_args, **_kwargs):
+    async def fake_fetch_actor_metadata(_token):
         raise RuntimeError("warehouse unavailable")
 
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
-    monkeypatch.setattr(exclusions, "save_exclusion_snapshot", fake_save)
-    monkeypatch.setattr(exclusions, "run_sql_async", fake_run_sql_async)
+    monkeypatch.setattr(chart_config_commands.exclusions_dal, "save_exclusion_snapshot", fake_save)
+    monkeypatch.setattr(chart_config_commands.exclusions_dal, "fetch_actor_metadata", fake_fetch_actor_metadata)
 
     response = client.post(
         "/api/spc/exclusions",
@@ -162,7 +163,7 @@ def test_get_exclusions_returns_none_when_empty(monkeypatch):
 
     async def fake_fetch_latest(*args, **kwargs):
         return None
-    monkeypatch.setattr(exclusions, "fetch_latest_exclusion_snapshot", fake_fetch_latest)
+    monkeypatch.setattr(chart_config_commands.exclusions_dal, "fetch_latest_exclusion_snapshot", fake_fetch_latest)
 
     response = client.get(
         "/api/spc/exclusions?material_id=M1&mic_id=MIC1",
@@ -176,7 +177,7 @@ def test_save_exclusions_sql_error(monkeypatch):
 
     async def fake_save(*args, **kwargs):
         raise RuntimeError("SQL Error")
-    monkeypatch.setattr(exclusions, "save_exclusion_snapshot", fake_save)
+    monkeypatch.setattr(chart_config_commands.exclusions_dal, "save_exclusion_snapshot", fake_save)
 
     response = client.post(
         "/api/spc/exclusions",

@@ -9,6 +9,7 @@ dependencies = [
   "slowapi>=0.1.9",
   "databricks-sdk>=0.25",
   "databricks-sql-connector>=3.3",
+  "shared-domain",
   "shared-geo",
 ]
 

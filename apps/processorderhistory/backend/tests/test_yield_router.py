@@ -23,7 +23,7 @@ _YIELD_PAYLOAD = {
 def mock_yield(monkeypatch):
     monkeypatch.setattr(yield_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=_YIELD_PAYLOAD)
-    monkeypatch.setattr(yield_router, "fetch_yield_analytics", mock)
+    monkeypatch.setattr(yield_router.analytics_queries, "get_yield_analytics", mock)
     return mock
 
 

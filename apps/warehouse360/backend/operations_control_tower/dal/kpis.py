@@ -1,12 +1,19 @@
 """DAL — warehouse KPI snapshot."""
 
 from backend.utils.db import run_sql_async, sql_param, tbl
+from backend.inventory_management.domain.plant_scope import PlantScope
+
+
+def _plant_scope_filter(plant_id: str | None) -> tuple[str, list[dict]]:
+    scope = PlantScope.from_optional(plant_id)
+    if not scope.is_single_plant:
+        return "", []
+    return "WHERE plant_id = :plant_id", [sql_param("plant_id", scope.plant_id)]
 
 
 async def fetch_kpis(token: str, plant_id: str | None = None) -> list[dict]:
     """Return KPI rows for all plants, or a single plant if plant_id is given."""
-    params = [sql_param("plant_id", plant_id)] if plant_id else []
-    plant_filter = "WHERE plant_id = :plant_id" if plant_id else ""
+    plant_filter, params = _plant_scope_filter(plant_id)
     q = f"""
         SELECT *
         FROM {tbl('wh360_kpi_snapshot_v')}
@@ -23,8 +30,7 @@ async def fetch_kpi_snapshot(token: str, plant_id: str | None = None) -> dict:
     return the first available plant-level snapshot.
     Returns an empty dict if no row is present.
     """
-    params = [sql_param("plant_id", plant_id)] if plant_id else []
-    plant_filter = "WHERE plant_id = :plant_id" if plant_id else ""
+    plant_filter, params = _plant_scope_filter(plant_id)
     q = f"""
         SELECT *
         FROM {tbl('wh360_kpi_snapshot_v')}

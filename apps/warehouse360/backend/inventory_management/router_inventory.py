@@ -5,7 +5,7 @@ from typing import Optional
 from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header, Request
 
-from backend.inventory_management.dal.inventory import fetch_bin_stock, fetch_lineside
+from backend.inventory_management.application import queries as inventory_queries
 from backend.utils.db import attach_data_freshness, check_warehouse_config
 
 router = APIRouter()
@@ -21,7 +21,7 @@ async def list_bins(request: Request,
 ):
     token = user.raw_token
     check_warehouse_config()
-    rows = await fetch_bin_stock(token, plant_id=plant_id)
+    rows = await inventory_queries.list_bin_stock(token, plant_id=plant_id)
     return await attach_data_freshness(
         {"bins": rows},
         token,
@@ -37,7 +37,7 @@ async def list_lineside(request: Request,
 ):
     token = user.raw_token
     check_warehouse_config()
-    rows = await fetch_lineside(token, plant_id=plant_id)
+    rows = await inventory_queries.list_lineside_stock(token, plant_id=plant_id)
     return await attach_data_freshness(
         {"lineside": rows},
         token,

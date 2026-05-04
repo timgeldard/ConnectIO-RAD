@@ -39,7 +39,7 @@ _ANALYTICS_PAYLOAD = {
 def mock_analytics(monkeypatch):
     monkeypatch.setattr(pours_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=_ANALYTICS_PAYLOAD)
-    monkeypatch.setattr(pours_router, "fetch_pours_analytics", mock)
+    monkeypatch.setattr(pours_router.order_queries, "get_pours_analytics", mock)
     return mock
 
 

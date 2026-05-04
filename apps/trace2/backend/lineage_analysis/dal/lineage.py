@@ -3,7 +3,7 @@ Data access layer for lineage analysis context.
 """
 
 from backend.batch_trace.dal.trace_core import get_trace_core_dal
-from backend.batch_trace.domain.identity import BatchIdentity
+from shared_trace.domain.models import BatchIdentity
 from backend.lineage_analysis.domain.lineage import LineageDepth
 
 _dal = get_trace_core_dal()

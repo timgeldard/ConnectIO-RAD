@@ -19,7 +19,7 @@ _ADHERENCE_PAYLOAD = {
 def mock_adherence(monkeypatch):
     monkeypatch.setattr(adherence_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=_ADHERENCE_PAYLOAD)
-    monkeypatch.setattr(adherence_router, "fetch_adherence_analytics", mock)
+    monkeypatch.setattr(adherence_router.analytics_queries, "get_adherence_analytics", mock)
     return mock
 
 

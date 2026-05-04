@@ -43,7 +43,7 @@ _DAY_VIEW_PAYLOAD = {
 def mock_day_view(monkeypatch):
     monkeypatch.setattr(day_view_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=_DAY_VIEW_PAYLOAD)
-    monkeypatch.setattr(day_view_router, "fetch_day_view", mock)
+    monkeypatch.setattr(day_view_router.order_queries, "get_day_view", mock)
     return mock
 
 

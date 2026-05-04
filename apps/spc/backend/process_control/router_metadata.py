@@ -4,7 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend.process_control.dal.metadata import (
+from backend.process_control.application.metadata import (
     fetch_attribute_characteristics,
     fetch_characteristics,
     fetch_materials,

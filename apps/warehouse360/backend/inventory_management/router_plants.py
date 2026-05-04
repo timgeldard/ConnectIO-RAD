@@ -4,7 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, Request
 
-from backend.inventory_management.dal.plants import fetch_plants
+from backend.inventory_management.application import queries as inventory_queries
 from backend.utils.db import attach_data_freshness, check_warehouse_config
 from shared_auth import UserIdentity, require_proxy_user
 
@@ -26,7 +26,7 @@ async def list_plants(
 ):
     token = user.raw_token
     check_warehouse_config()
-    rows = await fetch_plants(token)
+    rows = await inventory_queries.list_plants(token)
     return await attach_data_freshness(
         {"plants": rows},
         token,

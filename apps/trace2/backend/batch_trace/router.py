@@ -11,7 +11,7 @@ from backend.batch_trace.application.queries import (
     get_summary,
     get_trace_tree,
 )
-from backend.batch_trace.domain.identity import BatchIdentity, BatchOnlyIdentity
+from shared_trace.domain.models import BatchIdentity, BatchOnlyIdentity
 from backend.batch_trace.schemas import (
     BatchDetailsRequest,
     BatchPageRequest,

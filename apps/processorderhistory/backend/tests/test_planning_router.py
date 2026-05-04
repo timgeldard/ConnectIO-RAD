@@ -75,7 +75,7 @@ _SCHEDULE_PAYLOAD = {
 def mock_schedule(monkeypatch):
     monkeypatch.setattr(planning_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=_SCHEDULE_PAYLOAD)
-    monkeypatch.setattr(planning_router, "fetch_planning_schedule", mock)
+    monkeypatch.setattr(planning_router.planning_queries, "get_planning_schedule", mock)
     return mock
 
 

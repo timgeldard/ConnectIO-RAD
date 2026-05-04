@@ -34,7 +34,7 @@ def mock_orders(monkeypatch):
     app.dependency_overrides[require_proxy_user] = mock_user
     monkeypatch.setattr(orders_router, "check_warehouse_config", lambda: None)
     mock = AsyncMock(return_value=[_ORDER_ROW])
-    monkeypatch.setattr(orders_router, "fetch_orders_list", mock)
+    monkeypatch.setattr(orders_router.order_queries, "list_orders", mock)
     yield mock
     app.dependency_overrides.clear()
 

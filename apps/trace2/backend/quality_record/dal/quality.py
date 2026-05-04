@@ -3,7 +3,7 @@ Data access layer for quality record context.
 """
 
 from backend.batch_trace.dal.trace_core import get_trace_core_dal
-from backend.batch_trace.domain.identity import BatchIdentity
+from shared_trace.domain.models import BatchIdentity
 
 _dal = get_trace_core_dal()
 
