@@ -14,6 +14,7 @@ from fastapi import HTTPException
 from starlette.staticfiles import StaticFiles
 
 from shared_api import create_api_app, health_payload, databricks_sql_ready
+from backend.routes.badges import router as badges_router
 
 _missing_build_artifacts: dict[str, str] = {}
 
@@ -98,6 +99,7 @@ def _include_available_routers() -> None:
 
 
 _include_available_routers()
+app.include_router(badges_router)
 
 
 @app.get("/api/health", include_in_schema=False)

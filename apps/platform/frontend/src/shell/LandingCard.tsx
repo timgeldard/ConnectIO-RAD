@@ -1,20 +1,25 @@
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
 
-/** Derives the navigation URL for a module. Standalone apps have routeBase ending in '/'. */
-export function moduleHref(mod: ConnectIOModule): string {
+/** Derives the navigation URL for a module, optionally landing on a specific tab view. */
+export function moduleHref(mod: ConnectIOModule, activeTabId?: string): string {
+  const tab = activeTabId ?? mod.defaultTab
+  // Standalone apps have routeBase ending in '/'; navigate there directly.
   if (mod.routeBase.endsWith('/')) return mod.routeBase
-  return `${mod.routeBase}/?module=${encodeURIComponent(mod.moduleId)}`
+  const base = `${mod.routeBase}/?module=${encodeURIComponent(mod.moduleId)}`
+  return tab ? `${base}&tab=${encodeURIComponent(tab)}` : base
 }
 
 interface LandingCardProps {
   mod: ConnectIOModule
+  /** The tab currently active in the shell SubNav — passed through to the Open link. */
+  activeTabId?: string
 }
 
 /** Landing card shown in the content panel when a module is selected but not yet opened. */
-export function LandingCard({ mod }: LandingCardProps) {
+export function LandingCard({ mod, activeTabId }: LandingCardProps) {
   const card = mod.landingCard
   if (!card) return null
-  const href = moduleHref(mod)
+  const href = moduleHref(mod, activeTabId)
 
   return (
     <div className="plat-landing" style={{ '--card-accent': mod.color } as React.CSSProperties}>
