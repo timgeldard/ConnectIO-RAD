@@ -5,7 +5,7 @@ from typing import Optional
 from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header, HTTPException, Request
 
-from backend.order_fulfillment.dal.process_orders import fetch_order_detail, fetch_process_orders
+from backend.order_fulfillment.application import queries as fulfillment_queries
 from backend.utils.db import attach_data_freshness, check_warehouse_config
 
 router = APIRouter()
@@ -26,7 +26,7 @@ async def list_process_orders(request: Request,
 ):
     token = user.raw_token
     check_warehouse_config()
-    rows = await fetch_process_orders(token, plant_id=plant_id)
+    rows = await fulfillment_queries.list_process_orders(token, plant_id=plant_id)
     return await attach_data_freshness(
         {"orders": rows},
         token,
@@ -42,7 +42,7 @@ async def get_process_order(order_id: str,
 ):
     token = user.raw_token
     check_warehouse_config()
-    detail = await fetch_order_detail(token, order_id)
+    detail = await fulfillment_queries.get_process_order_detail(token, order_id)
     if detail.get("order") is None:
         raise HTTPException(status_code=404, detail=f"Process order '{order_id}' not found.")
     return await attach_data_freshness(

@@ -5,7 +5,7 @@ from typing import Optional
 from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter, Header, Request
 
-from backend.dispensary_ops.dal.dispensary import fetch_dispensary_tasks
+from backend.dispensary_ops.application import queries as dispensary_queries
 from backend.utils.db import attach_data_freshness, check_warehouse_config
 
 router = APIRouter()
@@ -20,7 +20,7 @@ async def list_dispensary_tasks(request: Request,
 ):
     token = user.raw_token
     check_warehouse_config()
-    rows = await fetch_dispensary_tasks(token, plant_id=plant_id)
+    rows = await dispensary_queries.list_dispensary_tasks(token, plant_id=plant_id)
     return await attach_data_freshness(
         {"tasks": rows},
         token,

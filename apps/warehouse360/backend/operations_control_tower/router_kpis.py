@@ -4,7 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, Request
 
-from backend.operations_control_tower.dal.kpis import fetch_kpis
+from backend.operations_control_tower.application import queries as control_tower_queries
 from backend.utils.db import attach_data_freshness, check_warehouse_config
 from shared_auth import UserIdentity, require_proxy_user
 
@@ -44,7 +44,7 @@ async def get_kpis(
     """
     token = user.raw_token
     check_warehouse_config()
-    rows = await fetch_kpis(token, plant_id)
+    rows = await control_tower_queries.list_kpis(token, plant_id=plant_id)
     return await attach_data_freshness(
         {"kpis": rows},
         token,
