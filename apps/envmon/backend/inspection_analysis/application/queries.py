@@ -36,6 +36,7 @@ _PLANT_QUERY_CONCURRENCY = 8
 
 
 def _inspection_lot_from_row(row: dict) -> DomainInspectionLot:
+    """Convert a database row to a domain InspectionLot entity."""
     return DomainInspectionLot(
         lot_id=row["lot_id"],
         func_loc_id=row["func_loc_id"],
@@ -46,6 +47,7 @@ def _inspection_lot_from_row(row: dict) -> DomainInspectionLot:
 
 
 def _inspection_lot_schema(lot: DomainInspectionLot) -> InspectionLotSchema:
+    """Convert a domain InspectionLot to its API schema representation."""
     return InspectionLotSchema(
         lot_id=lot.lot_id,
         func_loc_id=lot.func_loc_id,
