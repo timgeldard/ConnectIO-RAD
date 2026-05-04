@@ -1,3 +1,5 @@
+"""Domain tests for supplier and exposure risk rules."""
+
 from backend.lineage_analysis.domain.risk import normalize_risk, supplier_risk_score
 
 def test_normalize_risk():

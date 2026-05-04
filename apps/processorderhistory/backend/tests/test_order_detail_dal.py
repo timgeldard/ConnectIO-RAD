@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from backend.dal import order_detail_dal as dal
+from backend.order_execution.dal import order_detail_dal as dal
 
 
 # ---------------------------------------------------------------------------

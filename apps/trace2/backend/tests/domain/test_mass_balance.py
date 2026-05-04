@@ -1,3 +1,5 @@
+"""Domain tests for mass balance variance and calculation rules."""
+
 from backend.quality_record.domain.mass_balance import calculate_mass_balance_variance, movement_delta
 
 def test_calculate_mass_balance_variance():

@@ -1,5 +1,3 @@
-import pytest
-from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 from shared_auth import UserIdentity, require_proxy_user
 from shared_trace.conformance import (

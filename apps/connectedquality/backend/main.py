@@ -5,7 +5,7 @@ from pathlib import Path
 from backend.routers.alarms import router as alarms_router
 from backend.routers.envmon import router as envmon_router
 from backend.routers.lab import router as lab_router
-from backend.routers.me_router import router as me_router
+from backend.user_preferences.router_me import router as me_router
 from backend.routers.spc import router as spc_router
 from backend.routers.trace import router as trace_router
 from shared_api import (

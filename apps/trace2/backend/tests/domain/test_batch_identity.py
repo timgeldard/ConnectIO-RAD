@@ -1,3 +1,5 @@
+"""Domain tests for Trace2 Batch and Material Identity models."""
+
 import pytest
 from backend.batch_trace.domain.identity import BatchId, MaterialId, BatchIdentity, BatchOnlyIdentity
 

@@ -8,21 +8,21 @@ from shared_api import (
     register_spa_routes,
 )
 from backend.db import check_warehouse_config, run_sql_async
-from backend.routers.me_router import router as me_router
-from backend.routers.orders import router as orders_router
-from backend.routers.order_detail_router import router as order_detail_router
-from backend.routers.pours_router import router as pours_router
-from backend.routers.planning_router import router as planning_router
-from backend.routers.day_view_router import router as day_view_router
-from backend.routers.yield_router import router as yield_router
-from backend.routers.quality_router import router as quality_router
-from backend.routers.downtime_router import router as downtime_router
-from backend.routers.oee_router import router as oee_router
-from backend.routers.adherence_router import router as adherence_router
-from backend.routers.genie_router import router as genie_router
-from backend.routers.vessel_planning_router import router as vessel_planning_router
-from backend.routers.equipment_insights_router import router as equipment_insights_router
-from backend.routers.equipment_insights2_router import router as equipment_insights2_router
+from backend.order_execution.router_me import router as me_router
+from backend.order_execution.router_orders import router as orders_router
+from backend.order_execution.router_order_detail import router as order_detail_router
+from backend.order_execution.router_pours import router as pours_router
+from backend.order_execution.router_day_view import router as day_view_router
+from backend.production_planning.router_planning import router as planning_router
+from backend.production_planning.router_vessel_planning import router as vessel_planning_router
+from backend.manufacturing_analytics.router_yield import router as yield_router
+from backend.manufacturing_analytics.router_quality import router as quality_router
+from backend.manufacturing_analytics.router_downtime import router as downtime_router
+from backend.manufacturing_analytics.router_oee import router as oee_router
+from backend.manufacturing_analytics.router_adherence import router as adherence_router
+from backend.manufacturing_analytics.router_equipment_insights import router as equipment_insights_router
+from backend.manufacturing_analytics.router_equipment_insights2 import router as equipment_insights2_router
+from backend.genie_assist.router_genie import router as genie_router
 
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 

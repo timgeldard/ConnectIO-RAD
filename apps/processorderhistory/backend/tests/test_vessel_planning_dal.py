@@ -2,7 +2,7 @@
 import pytest
 from unittest.mock import patch
 
-from backend.dal import vessel_planning_dal as dal
+from backend.production_planning.dal import vessel_planning_dal as dal
 from backend.config import vessel_capacity as vc
 from backend.config.vessel_capacity import check_capacity, get_vessel_capacity
 

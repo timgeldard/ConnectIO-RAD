@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import Header, HTTPException
-from starlette.requests import Request as StarletteRequest
 
 from backend.batch_trace.router import router as batch_trace_router
 from backend.lineage_analysis.router import router as lineage_router
@@ -18,18 +17,11 @@ from backend.utils.db import (
     resolve_token,
     run_sql_async,
 )
-from backend.utils.rate_limit import (
-    RateLimitExceeded,
-    SlowAPIMiddleware,
-    limiter,
-    rate_limit_handler,
-)
 from shared_api import (
     create_api_app,
     databricks_sql_ready,
     health_payload,
     register_spa_routes,
-    safe_global_exception_response,
 )
 
 ENABLE_DEBUG_ENDPOINTS: bool = os.environ.get("APP_ENV", "").strip().lower() == "development"

@@ -1,6 +1,8 @@
 import pytest
 
-from backend.dal import deliveries, inbound, inventory, kpis, process_orders
+from backend.order_fulfillment.dal import deliveries, process_orders
+from backend.inventory_management.dal import inbound, inventory
+from backend.operations_control_tower.dal import kpis
 
 
 @pytest.mark.asyncio

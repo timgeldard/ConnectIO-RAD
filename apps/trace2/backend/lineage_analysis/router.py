@@ -37,6 +37,8 @@ async def recall_readiness(
         return await get_recall_readiness(user.raw_token, identity, request.url.path)
     except TraceNotFound as exc:
         raise HTTPException(status_code=404, detail=exc.message)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -54,6 +56,8 @@ async def bottom_up(
         return await get_bottom_up(user.raw_token, identity, request.url.path)
     except TraceNotFound as exc:
         raise HTTPException(status_code=404, detail=exc.message)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -71,6 +75,8 @@ async def top_down(
         return await get_top_down(user.raw_token, identity, request.url.path)
     except TraceNotFound as exc:
         raise HTTPException(status_code=404, detail=exc.message)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -88,5 +94,7 @@ async def supplier_risk(
         return await get_supplier_risk(user.raw_token, identity, request.url.path)
     except TraceNotFound as exc:
         raise HTTPException(status_code=404, detail=exc.message)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)

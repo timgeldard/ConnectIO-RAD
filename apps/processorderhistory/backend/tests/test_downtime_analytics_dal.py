@@ -1,7 +1,7 @@
 """Unit tests for downtime_analytics_dal — coerce helpers, series builders, fetch."""
 import asyncio
 
-from backend.dal import downtime_analytics_dal as dal
+from backend.manufacturing_analytics.dal import downtime_analytics_dal as dal
 
 
 # ---------------------------------------------------------------------------

@@ -1,3 +1,5 @@
+"""Domain tests for Trace2 lineage analysis models."""
+
 from backend.lineage_analysis.domain.lineage import LineageDepth
 
 def test_lineage_depth_defaults_to_4():

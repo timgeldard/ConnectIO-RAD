@@ -44,6 +44,8 @@ async def trace(
         return await get_trace_tree(user.raw_token, identity, request.url.path)
     except TraceNotFound as exc:
         raise HTTPException(status_code=404, detail=exc.message)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -64,6 +66,8 @@ async def summary(
         return await get_summary(user.raw_token, identity, request.url.path)
     except TraceNotFound as exc:
         raise HTTPException(status_code=404, detail=exc.message)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -81,6 +85,8 @@ async def batch_details(
         return await get_batch_details(user.raw_token, identity, request.url.path)
     except TraceNotFound as exc:
         raise HTTPException(status_code=404, detail=exc.message)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -96,6 +102,8 @@ async def impact(
     identity = BatchOnlyIdentity.from_string(body.batch_id)
     try:
         return await get_impact(user.raw_token, identity, request.url.path)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -113,5 +121,7 @@ async def batch_header(
         return await get_batch_header(user.raw_token, identity)
     except TraceNotFound as exc:
         raise HTTPException(status_code=404, detail=exc.message)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)

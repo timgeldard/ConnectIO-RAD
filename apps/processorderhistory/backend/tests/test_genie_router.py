@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from backend.main import app
-from backend.routers import genie_router
+import backend.genie_assist.router_genie as genie_router
 
 
 client = TestClient(app)

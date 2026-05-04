@@ -4,24 +4,24 @@ Combines context-specific routers into a single router for backward compatibilit
 """
 
 from fastapi import APIRouter
-from backend.utils.db import check_warehouse_config
-from shared_db.utils import attach_payload_freshness
+from backend.utils.db import check_warehouse_config  # noqa: F401
+from shared_db.utils import attach_payload_freshness  # noqa: F401
 from backend.dal.trace_dal import (
-    _build_tree,
-    fetch_trace_tree,
-    fetch_summary,
-    fetch_batch_details,
-    fetch_impact,
-    fetch_batch_header,
-    fetch_coa,
-    fetch_mass_balance,
-    fetch_quality,
-    fetch_production_history,
-    fetch_batch_compare,
-    fetch_bottom_up,
-    fetch_top_down,
-    fetch_supplier_risk,
-    fetch_recall_readiness,
+    _build_tree,  # noqa: F401
+    fetch_trace_tree,  # noqa: F401
+    fetch_summary,  # noqa: F401
+    fetch_batch_details,  # noqa: F401
+    fetch_impact,  # noqa: F401
+    fetch_batch_header,  # noqa: F401
+    fetch_coa,  # noqa: F401
+    fetch_mass_balance,  # noqa: F401
+    fetch_quality,  # noqa: F401
+    fetch_production_history,  # noqa: F401
+    fetch_batch_compare,  # noqa: F401
+    fetch_bottom_up,  # noqa: F401
+    fetch_top_down,  # noqa: F401
+    fetch_supplier_risk,  # noqa: F401
+    fetch_recall_readiness,  # noqa: F401
 )
 from backend.batch_trace.router import router as batch_trace_router
 from backend.lineage_analysis.router import router as lineage_router

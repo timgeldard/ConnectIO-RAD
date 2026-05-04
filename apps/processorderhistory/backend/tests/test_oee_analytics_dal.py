@@ -2,7 +2,7 @@
 import asyncio
 from datetime import datetime, timezone as dt_timezone
 
-from backend.dal import oee_analytics_dal as dal
+from backend.manufacturing_analytics.dal import oee_analytics_dal as dal
 
 
 # ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
-import sys
-import pytest
+"""Tests to enforce domain, application, and router boundaries for Trace2."""
+
 from pathlib import Path
 
 def test_domain_layer_isolation():

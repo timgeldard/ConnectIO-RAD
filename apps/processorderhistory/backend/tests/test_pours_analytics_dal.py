@@ -3,7 +3,7 @@ import asyncio
 
 import pytest
 
-from backend.dal import pours_analytics_dal as dal
+from backend.order_execution.dal import pours_analytics_dal as dal
 
 
 # ---------------------------------------------------------------------------

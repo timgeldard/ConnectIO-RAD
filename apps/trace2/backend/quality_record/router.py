@@ -37,6 +37,8 @@ async def coa(
         return await get_coa(user.raw_token, identity, request.url.path)
     except TraceNotFound as exc:
         raise HTTPException(status_code=404, detail=exc.message)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -54,6 +56,8 @@ async def mass_balance(
         return await get_mass_balance(user.raw_token, identity, request.url.path)
     except TraceNotFound as exc:
         raise HTTPException(status_code=404, detail=exc.message)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -71,6 +75,8 @@ async def quality(
         return await get_quality(user.raw_token, identity, request.url.path)
     except TraceNotFound as exc:
         raise HTTPException(status_code=404, detail=exc.message)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -88,6 +94,8 @@ async def production_history(
         return await get_production_history(user.raw_token, identity, request.url.path)
     except TraceNotFound as exc:
         raise HTTPException(status_code=404, detail=exc.message)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -105,5 +113,7 @@ async def batch_compare(
         return await get_batch_compare(user.raw_token, identity, request.url.path)
     except TraceNotFound as exc:
         raise HTTPException(status_code=404, detail=exc.message)
+    except HTTPException:
+        raise
     except Exception as exc:
         handle_sql_error(exc)

@@ -9,13 +9,13 @@ from shared_api import (
     safe_global_exception_response,
 )
 
-from backend.routers.process_orders import router as process_orders_router
-from backend.routers.deliveries import router as deliveries_router
-from backend.routers.inbound import router as inbound_router
-from backend.routers.inventory import router as inventory_router
-from backend.routers.dispensary import router as dispensary_router
-from backend.routers.kpis import router as kpis_router
-from backend.routers.plants import router as plants_router
+from backend.order_fulfillment.router_process_orders import router as process_orders_router
+from backend.order_fulfillment.router_deliveries import router as deliveries_router
+from backend.inventory_management.router_inbound import router as inbound_router
+from backend.inventory_management.router_inventory import router as inventory_router
+from backend.dispensary_ops.router_dispensary import router as dispensary_router
+from backend.operations_control_tower.router_kpis import router as kpis_router
+from backend.inventory_management.router_plants import router as plants_router
 
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 
