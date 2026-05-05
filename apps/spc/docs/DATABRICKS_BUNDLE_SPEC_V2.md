@@ -922,7 +922,7 @@ Each pipeline MV has EXPECT constraints:
 
 ### 9.4 Machine-Readable Contract
 
-**Path**: `backend/schema/spc_gold_views.v1.json`
+**Path**: `backend/schemas/spc_gold_views.v1.json`
 
 ```json
 {
@@ -1119,7 +1119,7 @@ jobs:
         run: |
           python -c "
           import json
-          with open('backend/schema/spc_gold_views.v1.json') as f:
+          with open('backend/schemas/spc_gold_views.v1.json') as f:
               contract = json.load(f)
           print(f'Schema contract valid: {len(contract[\"objects\"])} objects defined')
           "
@@ -1539,7 +1539,7 @@ See Section 9.2 (`docs/GOLD_LAYER.md`) and Section 9.3 (`docs/SPC_DATA_MODEL.md`
 1. Apply `scripts/grants/spc_gold_grants.sql`
 2. Apply `scripts/tags/spc_gold_tags.sql`
 3. Update `.github/workflows/deploy.yml` with new jobs
-4. Add `backend/schema/spc_gold_views.v1.json` contract
+4. Add `backend/schemas/spc_gold_views.v1.json` contract
 5. Add SQL integration tests to CI
 6. Enable production alerts
 
@@ -1572,7 +1572,7 @@ See Section 9.2 (`docs/GOLD_LAYER.md`) and Section 9.3 (`docs/SPC_DATA_MODEL.md`
 | `docs/GOLD_LAYER.md` | Markdown | Create | 1 |
 | `docs/SPC_DATA_MODEL.md` | Markdown | Create | 1 |
 | `docs/DATA_CONTRACT.md` | Markdown | Update | 1 |
-| `backend/schema/spc_gold_views.v1.json` | JSON | Create | 5 |
+| `backend/schemas/spc_gold_views.v1.json` | JSON | Create | 5 |
 | `backend/dal/spc_analysis_dal.py` | Python | Update | 3 |
 | `backend/tests/test_spc_analysis_dal.py` | Python | Update | 3 |
 | `.github/workflows/deploy.yml` | YAML | Update | 5 |

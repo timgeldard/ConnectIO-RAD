@@ -70,11 +70,16 @@ def detect_nelson_rules(values: List[float], centerline: float, sigma: float) ->
             violations[1].append(i)
 
         if i >= 8:
+            # Rule 2: 9 consecutive points on the same side of the centerline.
+            # Window spans indices [i-8, i] inclusive.
             window = z_scores[i - 8:i + 1]
             if all(w > 0 for w in window) or all(w < 0 for w in window):
                 violations[2].append(i)
 
         if i >= 5:
+            # Rule 3: 6 consecutive points steadily increasing or decreasing.
+            # Window spans indices [i-5, i] inclusive (5 consecutive differences).
+            # Follows Montgomery (2009) / Nelson (1984) standard.
             window = values[i - 5:i + 1]
             if all(window[j] > window[j - 1] for j in range(1, 6)) or \
                all(window[j] < window[j - 1] for j in range(1, 6)):

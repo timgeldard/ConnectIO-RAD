@@ -1,3 +1,4 @@
+# GENERATED FILE - DO NOT EDIT MANUALLY. Source of truth is pyproject.toml / uv.lock
 fastapi>=0.110.0
 uvicorn[standard]>=0.29.0
 python-dotenv>=1.0.1

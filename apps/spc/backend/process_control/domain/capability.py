@@ -146,12 +146,20 @@ def compute_non_parametric_capability(
     usl: Optional[float] = None,
     lsl: Optional[float] = None,
 ) -> dict:
-    """ISO 22514-2 (Percentile Method)."""
+    """
+    ISO 22514-2 (Percentile Method).
+
+    Requires a minimum sample size of 125 to provide stable Ppk estimates.
+    Returns an empty dict with a warning if n < 125.
+    """
     if not values:
         return {}
 
+    n = len(values)
+    if n < 125:
+        return {"warning": f"Non-parametric Ppk requires n >= 125 (received n={n})."}
+
     sorted_vals = sorted(values)
-    n = len(sorted_vals)
 
     def get_percentile(p: float) -> float:
         idx = p * (n - 1)

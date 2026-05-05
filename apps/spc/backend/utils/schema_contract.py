@@ -4,7 +4,7 @@ The SPC app reads from a small set of gold views it does not own. When the
 upstream team adds, renames, or removes a column, the DAL currently fails at
 query time with an unhelpful SQL error — and in some cases produces quietly
 wrong numbers. This module compares the live warehouse schema to a frozen
-contract in `backend/schema/gold_views.v1.json` and reports any diff, so the
+contract in `backend/schemas/gold_views.v1.json` and reports any diff, so the
 readiness probe can fail fast with an actionable error.
 
 The check queries Unity Catalog's `system.information_schema.columns`. It is
@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
-_SCHEMA_FILE = Path(__file__).parent.parent / "schema" / "gold_views.v1.json"
+_SCHEMA_FILE = Path(__file__).parent.parent / "schemas" / "gold_views.v1.json"
 _CACHE_TTL_SECONDS = 60.0
 
 # Separate, longer-lived cache for optional-column probes. Optional columns

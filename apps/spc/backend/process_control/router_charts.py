@@ -69,6 +69,10 @@ async def spc_chart_data(
             limit=limit,
             operation_id=body.operation_id,
         )
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
         handle_sql_error(exc)
     normality = None
@@ -84,9 +88,15 @@ async def spc_chart_data(
                 body.date_to,
                 operation_id=body.operation_id,
             )
+        except HTTPException:
+            raise
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         except Exception as exc:
             handle_sql_error(exc)
         try:
+            # Spec drift is treated as non-critical enrichment; if it fails,
+            # we log and continue without failing the main request.
             drift_raw = await fetch_spec_drift_summary(
                 token,
                 body.material_id,
@@ -160,6 +170,10 @@ async def spc_data_quality(
             body.date_to,
             operation_id=body.operation_id,
         )
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -191,6 +205,10 @@ async def spc_control_limits(
             body.date_to,
             operation_id=body.operation_id,
         )
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -223,6 +241,10 @@ async def spc_p_chart_data(
             body.date_to,
             operation_id=body.operation_id,
         )
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
         handle_sql_error(exc)
 
@@ -256,6 +278,10 @@ async def spc_count_chart_data(
             body.chart_subtype,
             operation_id=body.operation_id,
         )
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
         handle_sql_error(exc)
 

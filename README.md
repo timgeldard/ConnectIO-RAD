@@ -29,6 +29,8 @@ The following applications are housed within this monorepo:
 
 | Application | Description | Documentation |
 | :--- | :--- | :--- |
+| **`platform`** | Unified Shell & Portal for all ConnectIO apps | [README](./apps/platform/README.md) |
+| **`connectedquality`** | Cross-domain quality monitoring and alerting | [README](./apps/connectedquality/README.md) |
 | **`envmon`** | Environmental Monitoring Visualisation | [README](./apps/envmon/README.md) |
 | **`spc`** | Statistical Process Control & Traceability | [README](./apps/spc/README.md) |
 | **`trace2`** | Comprehensive Batch Traceability | [README](./apps/trace2/README.md) |

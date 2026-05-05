@@ -39,7 +39,6 @@ LATENCY_BUDGETS_MS = {
     "/api/spc/characteristics": 3_000,
     "/api/spc/materials": 2_000,
 }
-_LATENCY_BUDGETS_MS = LATENCY_BUDGETS_MS
 
 
 def _latency_budget_ms_for_path(path: str) -> int:
@@ -115,7 +114,7 @@ async def ready():
                 "reason": "gold_view_schema_drift",
                 "message": (
                     "Gold view schema has drifted from the frozen contract. "
-                    "Update backend/schema/gold_views.v1.json after reconciling with the upstream team."
+                    "Update backend/schemas/gold_views.v1.json after reconciling with the upstream team."
                 ),
                 "schema_check": schema_result.as_dict(),
             },
