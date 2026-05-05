@@ -1,4 +1,4 @@
-﻿# Databricks Apps configuration — generated from app.template.yaml by `make render-app-config`
+# Databricks Apps configuration — generated from app.template.yaml by `make render-app-config`
 # Do not edit app.yaml directly; edit this template instead.
 # auth_type and requested_scopes are configured via the App Settings UI (User authorization).
 resources:
@@ -32,5 +32,7 @@ env:
   - name: PREFS_DB_PATH
     value: "${PREFS_DB_PATH}"
 
+  # Databricks Apps proxy pre-validates JWTs before forwarding to this process;
+  # value is set per-target in deploy.toml. Override via shell env to disable for non-proxy deploys.
   - name: AUTH_ALLOW_UNVERIFIED_JWT
-    value: "true"
+    value: "${AUTH_ALLOW_UNVERIFIED_JWT}"

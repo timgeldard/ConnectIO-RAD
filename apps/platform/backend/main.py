@@ -1,4 +1,4 @@
-﻿"""ConnectIO Platform - unified FastAPI entry point.
+"""ConnectIO Platform - unified FastAPI entry point.
 
 Serves ConnectedQuality (at /cq), ProcessOrderHistory (at /poh), and
 Warehouse360 (at /warehouse360) from a single Databricks App process.

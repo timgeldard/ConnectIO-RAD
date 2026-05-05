@@ -24,10 +24,14 @@ function readUrlParams(): { moduleId: string; tabState: Record<string, string> }
 }
 
 function writeUrlParams(moduleId: string, tabState: Record<string, string>): void {
-  const params = new URLSearchParams()
+  const params = new URLSearchParams(window.location.search)
   params.set('module', moduleId)
   const tab = tabState[moduleId]
-  if (tab) params.set('tab', tab)
+  if (tab) {
+    params.set('tab', tab)
+  } else {
+    params.delete('tab')
+  }
   history.replaceState(null, '', `?${params.toString()}`)
 }
 

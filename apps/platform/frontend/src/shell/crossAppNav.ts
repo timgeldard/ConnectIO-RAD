@@ -36,7 +36,7 @@ export function buildSpaContextUrl(
   const base = moduleHref(targetModule, activeTabId)
   const params = new URLSearchParams()
   params.set('entity', ctx.entity)
-  params.set('from', ctx.from ?? '')
+  if (ctx.from) params.set('from', ctx.from)
   if (ctx.processOrderId) params.set('processOrderId', ctx.processOrderId)
   const sep = base.includes('?') ? '&' : '?'
   return `${base}${sep}${params.toString()}`

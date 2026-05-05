@@ -64,4 +64,13 @@ describe('buildSpaContextUrl', () => {
     const url = buildSpaContextUrl(enzymes, ctx)
     expect(url).toContain('/enzymes/')
   })
+
+  it('omits from param when ctx.from is absent', () => {
+    const noFrom = { entity: 'processOrder' as const, processOrderId: '1001234' }
+    const url = buildSpaContextUrl(traceModule, noFrom)
+    const qs = url.split('?').slice(1).join('?')
+    const params = new URLSearchParams(qs)
+    expect(params.has('from')).toBe(false)
+    expect(url).not.toContain('from=')
+  })
 })

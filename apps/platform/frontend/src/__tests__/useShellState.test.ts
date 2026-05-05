@@ -59,6 +59,19 @@ describe('useShellState', () => {
     expect(result.current[0].ctxState).toBeNull()
   })
 
+  it('onTabChange preserves cross-app context params in URL', () => {
+    setSearch('?module=spc&tab=charts&entity=processOrder&processOrderId=1001&from=trace')
+    const { result } = renderHook(() => useShellState())
+    act(() => result.current[1].onTabChange('spc', 'alarms'))
+    const calls = vi.mocked(history.replaceState).mock.calls
+    const lastUrl = calls[calls.length - 1][2] as string
+    const params = new URLSearchParams(lastUrl.startsWith('?') ? lastUrl.slice(1) : lastUrl)
+    expect(params.get('entity')).toBe('processOrder')
+    expect(params.get('processOrderId')).toBe('1001')
+    expect(params.get('from')).toBe('trace')
+    expect(params.get('tab')).toBe('alarms')
+  })
+
   it('ctxState is null when no entity param in URL', () => {
     setSearch('?module=spc')
     const { result } = renderHook(() => useShellState())

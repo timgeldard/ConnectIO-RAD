@@ -136,7 +136,7 @@ async def msa_save(
 
 @router.post("/msa/calculate")
 @limiter.limit("20/minute")
-async def msa_calculate(
+async def msa_calculate_endpoint(
     body: CalculateMSARequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
