@@ -46,7 +46,7 @@ export const W360_MODULES: ConnectIOModule[] = [
     },
     contextBarSlot: true,
     routeBase: '/staging',
-    i18nNamespace: 'w360.process-orders',
+    i18nNamespace: 'w360.wh-cockpit',
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,

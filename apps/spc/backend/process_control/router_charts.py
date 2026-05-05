@@ -4,7 +4,6 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import ValidationError
 
 from backend.process_control.application.charts import (
     decode_chart_cursor,
@@ -16,7 +15,7 @@ from backend.process_control.application.charts import (
     fetch_p_chart_data,
     fetch_spec_drift_summary,
 )
-from shared_db.utils import handle_sql_error
+from backend.utils.db import handle_sql_error
 from backend.schemas.spc_schemas import (
     ChartDataRequest,
     ControlLimitsRequest,

@@ -28,8 +28,28 @@ def _imported_names(path: Path) -> list[str]:
         if isinstance(node, ast.Import):
             names.extend(alias.asname or alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
-            names.extend(alias.name for alias in node.names)
+            names.extend(alias.asname or alias.name for alias in node.names)
     return names
+
+
+def _detect_usage_violations(path: Path) -> list[str]:
+    """Detect direct usage of forbidden SQL helpers via AST inspection."""
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    violations = []
+    forbidden_symbols = {"run_sql_async", "tbl"}
+    for node in ast.walk(tree):
+        # Check for direct calls: run_sql_async(...) or db.run_sql_async(...)
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id in forbidden_symbols:
+                violations.append(f"direct call to {node.func.id}")
+            elif isinstance(node.func, ast.Attribute) and node.func.attr in forbidden_symbols:
+                violations.append(f"call to {node.func.attr}")
+
+        # Check for attribute access: db.tbl or obj.tbl
+        if isinstance(node, ast.Attribute) and node.attr == "tbl":
+            violations.append("attribute access to .tbl")
+
+    return sorted(list(set(violations)))
 
 
 def test_chart_config_router_has_no_direct_sql_runtime_dependency() -> None:
@@ -64,18 +84,31 @@ def test_domain_layer_isolation() -> None:
 def test_router_layer_isolation() -> None:
     """Routers must stay transport-only — no direct SQL, DAL, or domain imports."""
     offenders = []
+    forbidden_modules = ("shared_db",)
     for file_path in ROOT.glob("**/router*.py"):
         modules = _imports(file_path)
         names = _imported_names(file_path)
-        if "run_sql_async" in names:
-            offenders.append(f"{file_path.relative_to(ROOT)}: imports run_sql_async directly")
-        if "tbl" in names:
-            offenders.append(f"{file_path.relative_to(ROOT)}: imports tbl directly")
+
+        # 1. Check module-level forbidden imports
         for module in modules:
+            if any(module == m or module.startswith(m + ".") for m in forbidden_modules):
+                offenders.append(f"{file_path.relative_to(ROOT)}: forbidden import {module}")
             if ".dal" in module:
                 offenders.append(f"{file_path.relative_to(ROOT)}: imports DAL module {module}")
             if ".domain." in module:
                 offenders.append(f"{file_path.relative_to(ROOT)}: imports domain module {module}")
+
+        # 2. Check for forbidden imported names (handles asname)
+        if "run_sql_async" in names:
+            offenders.append(f"{file_path.relative_to(ROOT)}: imports run_sql_async")
+        if "tbl" in names:
+            offenders.append(f"{file_path.relative_to(ROOT)}: imports tbl")
+
+        # 3. Check for usage violations (direct calls or attribute access)
+        violations = _detect_usage_violations(file_path)
+        for v in violations:
+            offenders.append(f"{file_path.relative_to(ROOT)}: {v}")
+
     assert offenders == [], "\n".join(offenders)
 
 

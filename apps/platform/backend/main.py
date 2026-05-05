@@ -6,7 +6,6 @@ Warehouse360 (at /warehouse360) from a single Databricks App process.
 Backend bundles are produced by scripts/build.py. The module is still importable
 before that build step so health/readiness can report a clear degraded state.
 """
-from importlib import import_module
 from pathlib import Path
 from typing import Any
 

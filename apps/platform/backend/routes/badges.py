@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends
 from shared_auth.identity import require_proxy_user, UserIdentity
 from backend.utils import _optional_attr
 
-logger = logging.getLogger("platform.badges")
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Hoist the optional CQ alarms getter to avoid circular imports and enable tracking.
@@ -37,7 +37,7 @@ async def _fetch_cq_counts() -> dict[str, int]:
             "trace": open_count,
         }
     except Exception as exc:
-        logger.error("Failed to fetch CQ alarm counts: %s", exc, exc_info=True)
+        logger.exception("Failed to fetch CQ alarm counts: %s", exc)
         return {"spc": 0, "envmon": 0, "trace": 0}
 
 

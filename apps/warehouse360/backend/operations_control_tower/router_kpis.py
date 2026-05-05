@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Request
 
 from backend.operations_control_tower.application import queries as control_tower_queries
 from backend.utils.db import attach_data_freshness, check_warehouse_config

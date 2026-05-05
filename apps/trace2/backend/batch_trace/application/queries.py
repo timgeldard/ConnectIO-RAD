@@ -2,7 +2,7 @@
 Application services for batch trace queries.
 """
 
-from shared_db.utils import attach_payload_freshness
+from backend.utils.db import attach_payload_freshness
 from shared_trace.freshness_sources import (
     BATCH_DETAILS_FRESHNESS_SOURCES,
     IMPACT_FRESHNESS_SOURCES,

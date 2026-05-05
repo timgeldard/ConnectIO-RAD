@@ -1,7 +1,7 @@
 """Pure control chart mathematics — no DB or framework dependencies."""
 
 import math
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 D2_TABLE: dict[int, float] = {
     2: 1.128, 3: 1.693, 4: 2.059, 5: 2.326, 6: 2.534, 7: 2.704,

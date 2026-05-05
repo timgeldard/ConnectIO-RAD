@@ -124,7 +124,6 @@ def assert_core_trace_route_contract(
 
         from shared_trace.freshness_sources import (
             TRACE2_PAGE_FRESHNESS_SOURCES,
-            CORE_TRACE_FRESHNESS_SOURCES,
         )
 
         expected_sources = CORE_TRACE_FRESHNESS_SOURCES.get(source_key)

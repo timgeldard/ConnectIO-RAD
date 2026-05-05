@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 from backend.main import app
 from shared_auth import UserIdentity, require_proxy_user
 

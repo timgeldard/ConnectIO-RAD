@@ -2,7 +2,7 @@
 Application services for quality record queries.
 """
 
-from shared_db.utils import attach_payload_freshness
+from backend.utils.db import attach_payload_freshness
 from shared_trace.freshness_sources import TRACE2_PAGE_FRESHNESS_SOURCES
 
 from shared_trace.domain.models import BatchIdentity

@@ -1,6 +1,5 @@
 """Process Control — process flow, scorecard, MSA, correlation, and multivariate endpoints."""
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
 
@@ -14,7 +13,7 @@ from backend.process_control.application.analysis import (
     msa_calculate,
     save_msa_session,
 )
-from shared_db.utils import handle_analysis_error, handle_sql_error
+from backend.utils.db import handle_analysis_error, handle_sql_error
 from backend.schemas.spc_schemas import (
     CalculateMSARequest,
     CompareScorecardsRequest,

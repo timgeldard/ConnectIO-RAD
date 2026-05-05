@@ -3,7 +3,7 @@
 from typing import Optional
 
 from shared_auth import UserIdentity, require_proxy_user
-from fastapi import Depends, APIRouter, Header, Request
+from fastapi import Depends, APIRouter, Request
 
 from backend.dispensary_ops.application import queries as dispensary_queries
 from backend.utils.db import attach_data_freshness, check_warehouse_config

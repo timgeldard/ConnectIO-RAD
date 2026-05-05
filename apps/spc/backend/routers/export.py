@@ -13,7 +13,7 @@ import io
 import json
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, TypeAdapter, field_validator, model_validator
 import openpyxl
@@ -31,7 +31,7 @@ from backend.process_control.dal.charts import (
     fetch_count_chart_data,
     fetch_p_chart_data,
 )
-from shared_db.utils import handle_sql_error
+from backend.utils.db import handle_sql_error
 from backend.schemas.spc_schemas import _validate_date
 
 router = APIRouter()

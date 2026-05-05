@@ -1,9 +1,7 @@
 """Unit tests for dispensary_ops domain — task status derivation."""
 
-import pytest
 
 from backend.dispensary_ops.domain.task_status import (
-    TaskStatus,
     is_urgent,
     normalize_task_status,
 )

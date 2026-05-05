@@ -1,6 +1,5 @@
-from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from shared_trace.freshness_sources import (
     BATCH_DETAILS_FRESHNESS_SOURCES,
@@ -28,7 +27,7 @@ from backend.dal.trace_dal import (
     fetch_top_down,
     fetch_trace_tree,
 )
-from shared_db.utils import attach_payload_freshness, handle_sql_error
+from backend.utils.db import attach_payload_freshness, handle_sql_error
 from backend.schemas.trace_schemas import (
     BatchDetailsRequest,
     BatchPageRequest,

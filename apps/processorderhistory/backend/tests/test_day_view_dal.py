@@ -2,7 +2,6 @@
 import asyncio
 from datetime import timezone, datetime
 
-import pytest
 
 from backend.order_execution.dal import day_view_dal as dal
 

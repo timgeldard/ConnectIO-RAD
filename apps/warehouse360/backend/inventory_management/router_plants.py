@@ -1,8 +1,7 @@
 """Router - warehouse plant selection."""
 
-from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Request
 
 from backend.inventory_management.application import queries as inventory_queries
 from backend.utils.db import attach_data_freshness, check_warehouse_config

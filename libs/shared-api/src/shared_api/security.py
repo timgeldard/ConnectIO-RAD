@@ -14,11 +14,14 @@ import os
 from typing import Iterable, Optional
 from urllib.parse import urlparse
 
-from fastapi import Header, HTTPException
+from fastapi import Header
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp
+
+from shared_auth import require_user as require_identity
+from shared_auth import resolve_token as auth_resolve_token
 
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 _log = logging.getLogger(__name__)
@@ -133,10 +136,6 @@ class SameOriginMiddleware(BaseHTTPMiddleware):
             },
         )
 
-from shared_auth import require_user as require_identity
-from shared_auth import resolve_token as auth_resolve_token
-
-...
 
 def resolve_token(
     x_forwarded_access_token: Optional[str],

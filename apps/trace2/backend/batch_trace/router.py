@@ -23,7 +23,7 @@ from backend.utils.db import check_warehouse_config
 from backend.utils.exceptions import TraceNotFound
 from backend.utils.rate_limit import limiter
 from shared_auth import UserIdentity, require_proxy_user
-from shared_db.utils import handle_sql_error
+from backend.utils.db import handle_sql_error
 
 router = APIRouter()
 
