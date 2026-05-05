@@ -21,6 +21,7 @@ Every task is only "Done" when:
 2. **Docs Updated**: External `/docs` and `apps/*/docs` are updated to match code changes.
 3. **100% Test Coverage**: Every new or changed line of code is covered by unit tests.
 4. **DDD Frozen Boundaries**: All logic follows the 4-layer context boundaries and passes `scripts/tests/test_ddd_architecture_guardrails.py`.
+5. **Branch Protection**: No direct commits to `main`. All work must be on a branch.
 
 ---
 

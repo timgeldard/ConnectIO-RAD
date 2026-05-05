@@ -34,6 +34,12 @@ The architectural boundaries for core DDD apps are **Frozen** to prevent drift a
 - **Guardrails**: All changes MUST pass the architecture guardrail suite (`uv run pytest scripts/tests/test_ddd_architecture_guardrails.py`). Unauthorized new bounded contexts or boundary violations will result in PR rejection.
 - **Glossary**: New domain terms must be added to `docs/domain-glossary.md` and aligned with the owning context's ubiquitous language.
 
+## 6. Branch Protection & Git Workflow
+Direct commits to the `main` or `master` branches are strictly forbidden:
+- **Isolation**: All new features, bug fixes, or documentation updates MUST be performed on a dedicated feature or fix branch.
+- **Review**: Changes must be submitted via Pull Request and pass all automated CI checks (Lint, Test, i18n, DDD Guardrails) before merging.
+- **Agent Enforcement**: As an AI agent, you must always check the current branch and refuse to commit directly to `main`. If on `main`, you must create a new branch before making changes.
+
 ---
 
 > **Note**: These mandates are foundational. Failure to follow them will result in the work being rejected by the system maintainer.
