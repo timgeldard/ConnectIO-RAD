@@ -13,7 +13,17 @@ CPK_MARGINAL: float = 1.00
 
 
 def normal_cdf(z: float) -> float:
-    """Abramowitz & Stegun 26.2.17 approximation, max error 7.5e-8."""
+    """
+    Calculate the cumulative distribution function for a standard normal distribution.
+
+    Uses the Abramowitz & Stegun 26.2.17 approximation, with a maximum error of 7.5e-8.
+
+    Args:
+        z: The Z-score (standardized value) for which to calculate the CDF.
+
+    Returns:
+        The probability that a standard normal variable is less than or equal to z.
+    """
     t = 1 / (1 + 0.2316419 * abs(z))
     poly = t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))))
     base = 1 - (1 / math.sqrt(2 * math.pi)) * math.exp(-0.5 * z * z) * poly
@@ -21,7 +31,19 @@ def normal_cdf(z: float) -> float:
 
 
 def cpk_ci(cpk: float, n: int) -> tuple[Optional[float], Optional[float]]:
-    """95% confidence interval on Cpk (Montgomery 2009). Valid for n >= 25."""
+    """
+    Calculate the 95% confidence interval for a Cpk value.
+
+    Follows the Montgomery (2009) approximation. The interval is considered
+    statistically valid only for sample sizes n >= 25.
+
+    Args:
+        cpk: The calculated Cpk index.
+        n: The number of observation points in the sample.
+
+    Returns:
+        A tuple of (lower_bound, upper_bound), or (None, None) if n < 25.
+    """
     if n < 25:
         return None, None
     se = math.sqrt(1 / (9 * n) + cpk ** 2 / (2 * (n - 1)))
@@ -35,7 +57,18 @@ def infer_spec_type(
     lsl: Optional[float],
     nominal: Optional[float] = None,
 ) -> str:
-    """Infer spec type from resolved USL/LSL values."""
+    """
+    Infer the type of specification (bilateral, unilateral) from limit values.
+
+    Args:
+        usl: Upper Specification Limit, if any.
+        lsl: Lower Specification Limit, if any.
+        nominal: Target or nominal value, used to distinguish symmetric/asymmetric.
+
+    Returns:
+        One of: "bilateral_symmetric", "bilateral_asymmetric", "unilateral_upper",
+        "unilateral_lower", or "unspecified".
+    """
     if usl is not None and lsl is not None:
         if nominal is not None:
             upper_span = usl - nominal
@@ -52,7 +85,16 @@ def infer_spec_type(
 
 
 def compute_normality_result(values: list[Optional[float]]) -> dict:
-    """Return normality metadata for variable capability analysis."""
+    """
+    Evaluate if a dataset follows a normal distribution using Shapiro-Wilk.
+
+    Args:
+        values: A list of potentially null/non-numeric observation values.
+
+    Returns:
+        A dictionary containing "is_normal" (bool), "p_value", and "method".
+        Includes a "warning" if normality testing was skipped or sampled.
+    """
     alpha = 0.05
     valid_values = [
         float(v) for v in values
@@ -107,7 +149,21 @@ def compute_capability_indices(
     lsl: Optional[float] = None,
     target: Optional[float] = None,
 ) -> dict:
-    """Compute Cp, Cpk, Pp, Ppk, Cpm."""
+    """
+    Compute standard process capability indices (Cp, Cpk, Pp, Ppk, Cpm).
+
+    Uses the average moving range (d2=1.128) to estimate within-batch sigma
+    for Cp/Cpk, and sample standard deviation for Pp/Ppk.
+
+    Args:
+        values: List of numeric observation values.
+        usl: Upper Specification Limit.
+        lsl: Lower Specification Limit.
+        target: Target process value (required for Cpm).
+
+    Returns:
+        A dictionary mapping index names to their numeric values.
+    """
     mu = mean(values)
     s_overall = stddev(values, ddof=1)
 

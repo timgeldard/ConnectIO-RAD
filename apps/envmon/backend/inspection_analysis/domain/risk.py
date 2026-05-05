@@ -1,4 +1,9 @@
-"""Domain — risk score calculation using weighted exponential time decay."""
+"""Domain logic for inspection risk analysis.
+
+This module provides functions to calculate risk scores for functional locations
+based on historical inspection results, applying weighted exponential time decay
+to prioritize recent failures.
+"""
 
 import math
 from datetime import date
@@ -15,16 +20,28 @@ def calculate_risk_score(
     """Compute weighted exponential-decay risk score for a location's result rows.
 
     Each failing result contributes weight * e^(-lambda * days_ago). Passing results
-    contribute zero weight. MIC-specific lambdas from config override the default.
+    contribute zero weight. MIC-specific lambdas from configuration override the
+    system default lambda.
+
+    The score represents the cumulative risk posed by historical inspection
+    failures, where older failures are weighted less heavily than recent ones.
 
     Args:
-        rows: Result rows for one functional location.
-        today: Reference date used to compute age-based decay.
-        decay_lambda: Default exponential decay lambda.
-        mic_decay_rates: Optional MIC-specific lambdas keyed by MIC name.
+        rows: A list of dictionaries representing inspection result rows for a
+            functional location. Each row should contain 'valuation', 'mic_name',
+            and 'lot_date'.
+        today: The reference date used as "now" to compute the age of each result.
+        decay_lambda: The default exponential decay constant (lambda) to use
+            if no MIC-specific override is found.
+        mic_decay_rates: Optional dictionary mapping MIC names to specific
+            decay constants.
 
     Returns:
-        Weighted risk score for the location.
+        The total calculated risk score as a float. A score of 0.0 indicates
+        no recent failures.
+
+    Raises:
+        TypeError: If rows is not a list or today is not a date object.
     """
     decay_rates = {key.upper().strip(): value for key, value in mic_decay_rates.items()} if mic_decay_rates else {}
     score = 0.0

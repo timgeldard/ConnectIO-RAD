@@ -1,6 +1,10 @@
-"""Domain — heatmap and lot status derivation rules."""
+"""Domain logic for status derivation.
 
-from typing import Literal, Optional
+This module contains rules for deriving location and lot-level statuses
+based on inspection results, risk scores, and operational modes.
+"""
+
+from typing import Any, Literal, Optional
 
 from backend.inspection_analysis.domain.valuation import ACCEPT_VALUATIONS, REJECT_VALUATIONS, normalize_valuation
 
@@ -17,17 +21,25 @@ def derive_location_status(
 ) -> DerivedLocationStatus:
     """Derive a marker status from result rows, risk score, mode, and SPC flag.
 
-    Deterministic mode: latest valuation only. Continuous mode: risk score thresholds
-    with hard override for any active rejection. Early warning escalates PASS to WARNING.
+    In deterministic mode, the status is based solely on the latest valuation.
+    In continuous mode, the status is determined by risk score thresholds,
+    with a hard override if the latest valuation is a rejection.
+    The early warning flag can escalate a 'PASS' status to 'WARNING'.
 
     Args:
-        loc_rows: Result rows for one location, ordered by the DAL.
-        risk: Continuous risk score for the same location.
-        continuous_mode: Whether risk thresholds should be used.
-        early_warning: Whether SPC early-warning logic flagged the location.
+        loc_rows: A list of result rows for one location, typically ordered
+            by date (latest last).
+        risk: The calculated continuous risk score for the location.
+        continuous_mode: Boolean flag indicating if risk-based continuous
+            monitoring logic should be applied.
+        early_warning: Boolean flag indicating if SPC (Statistical Process
+            Control) logic has triggered an early warning.
 
     Returns:
-        Derived marker status for the heatmap.
+        The derived status as a string: 'PASS', 'FAIL', or 'WARNING'.
+
+    Raises:
+        ValueError: If an invalid status is somehow derived.
     """
     latest = loc_rows[-1] if loc_rows else {}
     l_val = normalize_valuation(latest.get("valuation"))
@@ -49,15 +61,21 @@ def derive_location_status(
     return status
 
 
-def lot_status(valuation: Optional[str], end_date) -> LotStatus:
+def lot_status(valuation: Optional[str], end_date: Any) -> LotStatus:
     """Derive lot-level status from its aggregate valuation and end date.
 
+    Determines if a lot is 'PASS', 'FAIL', 'PENDING' (if not finished),
+    or 'NO_DATA' (if valuation is unknown).
+
     Args:
-        valuation: Aggregate lot valuation value.
-        end_date: Inspection end date; missing values indicate pending lots.
+        valuation: The aggregate valuation string from the inspection lot.
+        end_date: The inspection end date. If None, the lot is considered PENDING.
 
     Returns:
-        Lot-level status value for API response mapping.
+        The derived lot status: 'PASS', 'FAIL', 'PENDING', or 'NO_DATA'.
+
+    Raises:
+        None explicitly, but handles unexpected valuation strings gracefully.
     """
     if end_date is None:
         return "PENDING"

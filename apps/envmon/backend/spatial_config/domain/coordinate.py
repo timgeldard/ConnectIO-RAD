@@ -1,4 +1,8 @@
-"""Domain — LocationCoordinate value object with invariant validation."""
+"""Domain models for location coordinates.
+
+This module defines the LocationCoordinate value object, which represents
+a position on a floor plan relative to its dimensions.
+"""
 
 from dataclasses import dataclass
 
@@ -9,9 +13,21 @@ from shared_domain import ValueObject
 class LocationCoordinate(ValueObject):
     """Immutable value object for a spatial coordinate mapping.
 
-    x_pct and y_pct are percentages (0–100) relative to the floor plan SVG dimensions.
-    Construction fails fast if any invariant is violated, so routers get a 422 before
-    any SQL is executed.
+    This value object represents a functional location's position on a specific
+    floor plan using percentage-based coordinates. It ensures that the position
+    is within the valid 0-100% range of the floor plan dimensions.
+
+    Invariants:
+        - func_loc_id must be a non-empty string.
+        - floor_id must be a non-empty string.
+        - x_pct must be between 0.0 and 100.0 (inclusive).
+        - y_pct must be between 0.0 and 100.0 (inclusive).
+
+    Args:
+        func_loc_id: The unique identifier for the functional location.
+        floor_id: The unique identifier for the floor plan.
+        x_pct: The horizontal position as a percentage (0-100).
+        y_pct: The vertical position as a percentage (0-100).
     """
 
     func_loc_id: str
@@ -20,6 +36,11 @@ class LocationCoordinate(ValueObject):
     y_pct: float
 
     def __post_init__(self) -> None:
+        """Validates the LocationCoordinate invariants after initialization.
+
+        Raises:
+            ValueError: If identifiers are empty or coordinates are outside 0-100%.
+        """
         if not self.func_loc_id:
             raise ValueError("func_loc_id must not be empty")
         if not self.floor_id:

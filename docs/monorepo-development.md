@@ -81,3 +81,11 @@ Vite is used as the build tool for all frontend applications, providing fast HMR
 - **Python**: We follow PEP8, enforced by **Ruff**.
 - **TypeScript**: We use **ESLint** and **Prettier** for code formatting and quality.
 - **Git**: Follow conventional commits for clear history.
+
+### 📚 Internal Documentation (10/10 Standard)
+
+Every code change must adhere to the **10/10 Documentation Standard** defined in `GEMINI.md`:
+
+- **Python (PEP 257)**: Every function, class, and module must have a multi-line docstring. Complex logic requires `Args:`, `Returns:`, and `Raises:` sections.
+- **TypeScript/React (JSDoc)**: Every exported interface, type, component, and custom hook must have `/** ... */` JSDoc annotations. Component props must be individually documented.
+- **Why over What**: Non-obvious algorithms or business logic must have inline comments explaining the "why" behind the implementation.
