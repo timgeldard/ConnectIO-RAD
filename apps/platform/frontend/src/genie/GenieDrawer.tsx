@@ -180,7 +180,8 @@ export function GenieDrawer({ open, onOpen, onClose, moduleId, pageContext }: Ge
       <button
         className="plat-genie-trigger"
         onClick={open ? onClose : onOpen}
-        aria-label="Open Genie assistant"
+        aria-label={open ? 'Close Genie assistant' : 'Open Genie assistant'}
+        aria-expanded={open}
       >
         <SparkleIcon />
         <span>Ask Genie</span>

@@ -89,6 +89,12 @@ def _include_available_routers() -> None:
             kwargs["tags"] = tags
         app.include_router(router, **kwargs)
 
+    if _missing_build_artifacts:
+        logger.warning(
+            "Platform started with missing build artifacts: %s. Some routes will return 404.",
+            ", ".join(sorted(_missing_build_artifacts.keys())),
+        )
+
 
 _include_available_routers()
 app.include_router(badges_router)

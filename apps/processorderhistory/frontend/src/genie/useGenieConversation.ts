@@ -72,6 +72,8 @@ export function useGenieConversation(getPageContext: () => GeniePageContext) {
       const cid = initial.conversationId
       const mid = initial.messageId
       if (!cid || !mid) throw new Error('Genie did not return conversation/message identifiers.')
+
+      if (activeRun.current !== runId) return
       setConversationId(cid)
 
       let message = initial
@@ -81,6 +83,12 @@ export function useGenieConversation(getPageContext: () => GeniePageContext) {
         if (activeRun.current !== runId) return
         message = await fetchGenieMessage(cid, mid)
         delay = Math.min(Math.round(delay * 1.25), 3500)
+      }
+
+      if (activeRun.current !== runId) return
+      if (!TERMINAL.has(String(message.status))) {
+        message.status = 'FAILED'
+        message.error = 'Conversation timed out while waiting for a response.'
       }
 
       const attachments = message.attachments ?? []

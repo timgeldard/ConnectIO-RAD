@@ -61,7 +61,6 @@ export function App() {
           moduleId={state.activeModuleId}
           modules={MODULES}
           activeTabId={activeTabId}
-          onModuleChange={handlers.onModuleChange}
         />
       </PlatformShell>
 

@@ -3,13 +3,22 @@
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def _imports(path: Path) -> list[str]:
-    """Return imported module names from a Python source file (AST-based)."""
+    """
+    Return imported module names from a Python source file (AST-based).
+
+    Args:
+        path: Path to the Python source file.
+
+    Returns:
+        A list of fully qualified module names imported in the file.
+    """
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     modules: list[str] = []
     for node in ast.walk(tree):
@@ -21,19 +30,41 @@ def _imports(path: Path) -> list[str]:
 
 
 def _imported_names(path: Path) -> list[str]:
-    """Return symbol names from all import statements in a Python source file."""
+    """
+    Return symbol names from all import statements in a Python source file.
+
+    Collects both the original name and any alias (asname) for each imported symbol.
+
+    Args:
+        path: Path to the Python source file.
+
+    Returns:
+        A list of symbol names (both original and aliased) imported in the file.
+    """
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     names: list[str] = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            names.extend(alias.asname or alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom):
-            names.extend(alias.asname or alias.name for alias in node.names)
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                names.append(alias.name)
+                if alias.asname:
+                    names.append(alias.asname)
     return names
 
 
 def _detect_usage_violations(path: Path) -> list[str]:
-    """Detect direct usage of forbidden SQL helpers via AST inspection."""
+    """
+    Detect direct usage of forbidden SQL helpers via AST inspection.
+
+    Scans the AST for direct calls to forbidden symbols (e.g., run_sql_async)
+    or attribute access to forbidden members (e.g., .tbl).
+
+    Args:
+        path: Path to the Python source file.
+
+    Returns:
+        A sorted list of unique violation descriptions found in the file.
+    """
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     violations = []
     forbidden_symbols = {"run_sql_async", "tbl"}
@@ -53,6 +84,12 @@ def _detect_usage_violations(path: Path) -> list[str]:
 
 
 def test_chart_config_router_has_no_direct_sql_runtime_dependency() -> None:
+    """
+    Ensure the chart config router does not import SQL execution helpers.
+
+    The router should not have direct dependencies on low-level database
+    utilities.
+    """
     tree = ast.parse((ROOT / "chart_config" / "router.py").read_text())
     imported_sql_runtime = []
     for node in ast.walk(tree):
@@ -63,13 +100,24 @@ def test_chart_config_router_has_no_direct_sql_runtime_dependency() -> None:
 
 
 def test_chart_config_write_application_enforces_domain_value_objects() -> None:
+    """
+    Ensure application commands depend on domain-level value objects.
+
+    Application services should use domain concepts rather than primitive
+    types for business logic operations.
+    """
     imports = _imports(ROOT / "chart_config" / "application" / "commands.py")
     assert "backend.chart_config.domain.locked_limits" in imports
     assert "backend.chart_config.domain.exclusion" in imports
 
 
 def test_domain_layer_isolation() -> None:
-    """Broad sweep — domain must not import infrastructure or framework libraries."""
+    """
+    Broad sweep — domain must not import infrastructure or framework libraries.
+
+    Enforces that domain modules stay focused on business logic and do not leak
+    implementation details from the transport or database layers.
+    """
     forbidden_prefixes = ("fastapi", "backend.schemas", "backend.utils.db", "shared_db", "shared_auth")
     offenders = []
     for file_path in ROOT.glob("**/domain/*.py"):
@@ -82,7 +130,12 @@ def test_domain_layer_isolation() -> None:
 
 
 def test_router_layer_isolation() -> None:
-    """Routers must stay transport-only — no direct SQL, DAL, or domain imports."""
+    """
+    Routers must stay transport-only — no direct SQL, DAL, or domain imports.
+
+    Ensures that routers only handle request/response mapping and delegate
+    business logic to the application layer.
+    """
     offenders = []
     forbidden_modules = ("shared_db",)
     for file_path in ROOT.glob("**/router*.py"):
@@ -93,9 +146,9 @@ def test_router_layer_isolation() -> None:
         for module in modules:
             if any(module == m or module.startswith(m + ".") for m in forbidden_modules):
                 offenders.append(f"{file_path.relative_to(ROOT)}: forbidden import {module}")
-            if ".dal" in module:
+            if re.search(r"(^|\.)dal($|\.)", module):
                 offenders.append(f"{file_path.relative_to(ROOT)}: imports DAL module {module}")
-            if ".domain." in module:
+            if re.search(r"(^|\.)domain($|\.)", module):
                 offenders.append(f"{file_path.relative_to(ROOT)}: imports domain module {module}")
 
         # 2. Check for forbidden imported names (handles asname)
@@ -113,7 +166,11 @@ def test_router_layer_isolation() -> None:
 
 
 def test_application_layer_isolation() -> None:
-    """Application layer must not import FastAPI — keep it transport-agnostic."""
+    """
+    Application layer must not import FastAPI — keep it transport-agnostic.
+
+    Ensures that application services can be reused outside of a web context.
+    """
     offenders = []
     for file_path in ROOT.glob("**/application/*.py"):
         if file_path.name == "__init__.py":

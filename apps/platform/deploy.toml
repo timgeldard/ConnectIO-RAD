@@ -35,7 +35,7 @@ TRACE_CATALOG = "connected_plant_uat"
 TRACE_SCHEMA = "gold"
 # Preferences SQLite path (survives within a single container lifecycle)
 PREFS_DB_PATH = "/tmp/connectio_platform_prefs.db"
-AUTH_ALLOW_UNVERIFIED_JWT = "true"
+AUTH_ALLOW_UNVERIFIED_JWT = "false"
 
 [targets.prod.env]
 DATABRICKS_WAREHOUSE_ID = "161e0117e7a3507f"
@@ -51,4 +51,4 @@ GENIE_SPACE_WAREHOUSE = "01f1446c282c1f29815ef4dfa6824739"
 TRACE_CATALOG = "connected_plant_prod"
 TRACE_SCHEMA = "gold"
 PREFS_DB_PATH = "/tmp/connectio_platform_prefs.db"
-AUTH_ALLOW_UNVERIFIED_JWT = "true"
+AUTH_ALLOW_UNVERIFIED_JWT = "false"
