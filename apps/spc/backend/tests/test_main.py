@@ -1,5 +1,3 @@
-import asyncio
-import json
 
 from starlette.requests import Request
 from fastapi import FastAPI
@@ -52,7 +50,6 @@ def test_test_query_hidden_in_production(monkeypatch):
 
 def test_global_exception_handler_returns_safe_500():
     # To test the global exception handler, we use a fresh app to avoid polluting the shared one.
-    from fastapi import FastAPI
     from shared_api import safe_global_exception_response
 
     test_app = FastAPI()

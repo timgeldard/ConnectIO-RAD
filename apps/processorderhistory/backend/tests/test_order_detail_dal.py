@@ -1,8 +1,6 @@
 """Unit tests for order_detail_dal — coerce helpers, derivation helpers, and fetch_order_detail."""
 import asyncio
-from unittest.mock import patch
 
-import pytest
 
 from backend.order_execution.dal import order_detail_dal as dal
 

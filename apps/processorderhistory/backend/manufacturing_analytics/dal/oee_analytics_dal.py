@@ -5,10 +5,10 @@ Runs 2 Databricks queries in parallel (asyncio.gather):
   2. daily30d       — OEE trend over the last 30 days
 """
 import asyncio
-from datetime import datetime, timedelta, timezone as dt_timezone
+from datetime import datetime, timezone as dt_timezone
 from typing import Optional
 
-from backend.db import run_sql_async, sql_param, tbl, tz_date, tz_day_ms
+from backend.db import run_sql_async, sql_param, tbl
 from backend.manufacturing_analytics.domain.series import local_day_buckets, remap_utc_midnight_to_local_day
 
 
@@ -25,7 +25,7 @@ async def _q_oee_range(
 ) -> list[dict]:
     """Aggregate OEE metrics over the requested date range, grouped by line."""
     if date_from and date_to:
-        date_clause = f"AND PRODUCTION_DATE >= :date_from AND PRODUCTION_DATE <= :date_to"
+        date_clause = "AND PRODUCTION_DATE >= :date_from AND PRODUCTION_DATE <= :date_to"
         params: list[dict] = [sql_param("date_from", date_from), sql_param("date_to", date_to)]
     else:
         date_clause = "AND PRODUCTION_DATE >= current_date() - INTERVAL 7 DAYS"

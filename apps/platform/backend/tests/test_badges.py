@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 from fastapi import FastAPI
-from backend.routes.badges import router
+from backend.routes.badges import router, require_proxy_user
 from shared_auth.identity import UserIdentity
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def test_get_badge_counts_unauthenticated(client):
     assert response.status_code in (401, 403)
 
 @patch("backend.routes.badges.require_proxy_user")
-@patch("backend.routes.badges._get_cq_alarms")
+@patch("backend.routes.badges._get_cq_alarms", new_callable=AsyncMock)
 async def test_get_badge_counts_success(mock_alarms, mock_require_user, app, mock_user):
     """Should return filtered badge counts when authenticated."""
     mock_require_user.return_value = mock_user
@@ -45,7 +45,7 @@ async def test_get_badge_counts_success(mock_alarms, mock_require_user, app, moc
     app.dependency_overrides.clear()
 
 @patch("backend.routes.badges.require_proxy_user")
-@patch("backend.routes.badges._get_cq_alarms")
+@patch("backend.routes.badges._get_cq_alarms", new_callable=AsyncMock)
 async def test_get_badge_counts_filtering(mock_alarms, mock_require_user, app, mock_user):
     """Should omit zero-valued counts."""
     mock_require_user.return_value = mock_user
@@ -61,7 +61,7 @@ async def test_get_badge_counts_filtering(mock_alarms, mock_require_user, app, m
     app.dependency_overrides.clear()
 
 @patch("backend.routes.badges.require_proxy_user")
-@patch("backend.routes.badges._get_cq_alarms")
+@patch("backend.routes.badges._get_cq_alarms", new_callable=AsyncMock)
 async def test_get_badge_counts_error_handling(mock_alarms, mock_require_user, app, mock_user):
     """Should handle sub-backend errors gracefully and return empty counts."""
     mock_require_user.return_value = mock_user

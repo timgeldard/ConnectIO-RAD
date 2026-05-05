@@ -12,7 +12,7 @@ from backend.utils.db import (
     check_warehouse_config,
     classify_sql_runtime_error,
 )
-from shared_db.utils import handle_locked_limits_error
+from backend.utils.db import handle_locked_limits_error
 from backend.schemas.spc_schemas import (
     DeleteLockedLimitsRequest,
     GetLockedLimitsRequest,

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Request
 
 from backend.manufacturing_analytics.application import queries as analytics_queries
 from backend.db import check_warehouse_config

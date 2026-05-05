@@ -1,9 +1,6 @@
-import asyncio
 from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
-from fastapi.responses import JSONResponse
-from starlette.requests import Request as StarletteRequest
 
 from backend import main
 from backend.main import app

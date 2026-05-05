@@ -1,7 +1,6 @@
 """Unit tests for yield_analytics_dal — coerce helpers, series builders, fetch."""
 import asyncio
 
-import pytest
 
 from backend.manufacturing_analytics.dal import yield_analytics_dal as dal
 

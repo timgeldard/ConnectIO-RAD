@@ -3,7 +3,7 @@
 from typing import Optional
 
 from shared_auth import UserIdentity, require_proxy_user
-from fastapi import Depends, APIRouter, Header, HTTPException, Request
+from fastapi import Depends, APIRouter, HTTPException, Request
 
 from backend.inventory_management.application import queries as inventory_queries
 from backend.utils.db import attach_data_freshness, check_warehouse_config

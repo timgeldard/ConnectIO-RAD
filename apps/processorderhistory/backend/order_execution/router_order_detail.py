@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from backend.order_execution.application import queries as order_queries
 from backend.db import check_warehouse_config

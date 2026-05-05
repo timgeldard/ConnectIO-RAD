@@ -3,7 +3,7 @@
 from typing import Optional
 
 from shared_auth import UserIdentity, require_proxy_user
-from fastapi import Depends, APIRouter, Header, HTTPException, Request
+from fastapi import Depends, APIRouter, HTTPException, Request
 
 from backend.order_fulfillment.application import queries as fulfillment_queries
 from backend.utils.db import attach_data_freshness, check_warehouse_config
@@ -19,7 +19,7 @@ _DETAIL_FRESHNESS_SOURCES = [
 ]
 
 
-@router.get("/process-orders")
+@router.get("/wh-cockpit")
 async def list_process_orders(request: Request,
     plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user)

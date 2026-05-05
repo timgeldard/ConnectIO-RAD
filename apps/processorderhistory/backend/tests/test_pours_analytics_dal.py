@@ -1,7 +1,6 @@
 """Unit tests for pours_analytics_dal — coerce helpers, series builders, fetch."""
 import asyncio
 
-import pytest
 
 from backend.order_execution.dal import pours_analytics_dal as dal
 

@@ -1,0 +1,397 @@
+/* ── Genie assistant drawer — platform app ───────────────────────────────────
+   Uses --shell-* CSS variables from libs/shared-ui/src/shell/shell.css.
+   Class prefix: plat-genie-*
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Trigger button (fixed bottom-right) */
+.plat-genie-trigger {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 75;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--shell-accent, #005776);
+  border-radius: 6px;
+  background: var(--shell-accent, #005776);
+  color: #fff;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  transition: opacity 150ms;
+}
+
+.plat-genie-trigger:hover { opacity: 0.88; }
+
+/* Backdrop */
+.plat-genie-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 78;
+  background: rgba(14, 31, 10, 0.2);
+}
+
+/* Drawer panel */
+.plat-genie-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 80;
+  width: min(420px, calc(100vw - 24px));
+  background: var(--shell-surface, #fff);
+  border-left: 1px solid var(--shell-line, #DAD9C9);
+  box-shadow: -16px 0 36px rgba(0, 0, 0, 0.16);
+  display: grid;
+  grid-template-rows: auto auto 1fr auto auto;
+}
+
+/* Header */
+.plat-genie-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--shell-line, #DAD9C9);
+  background: var(--shell-surface-2, #FAFAF3);
+}
+
+.plat-genie-eyebrow {
+  font-family: var(--font-mono, monospace);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--shell-fg-3, #7A8A75);
+  margin-bottom: 3px;
+}
+
+.plat-genie-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--shell-fg, #0E1F0A);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.plat-genie-title svg { color: var(--shell-accent, #005776); }
+
+.plat-genie-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plat-genie-action-btn {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--shell-line, #DAD9C9);
+  border-radius: 4px;
+  background: var(--shell-surface, #fff);
+  color: var(--shell-fg-2, #4A5C45);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 120ms;
+}
+
+.plat-genie-action-btn:hover { background: var(--shell-surface-2, #FAFAF3); }
+
+.plat-genie-icon-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--shell-line, #DAD9C9);
+  border-radius: 4px;
+  background: var(--shell-surface, #fff);
+  color: var(--shell-fg-2, #4A5C45);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms;
+}
+
+.plat-genie-icon-btn:hover { background: var(--shell-surface-2, #FAFAF3); }
+
+/* Context strip */
+.plat-genie-context {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--shell-line, #DAD9C9);
+  background: var(--shell-surface, #fff);
+}
+
+.plat-genie-context-module {
+  font-family: var(--font-mono, monospace);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--shell-accent, #005776);
+}
+
+.plat-genie-context-entity {
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  color: var(--shell-fg-2, #4A5C45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Messages area */
+.plat-genie-messages {
+  overflow-y: auto;
+  padding: 14px;
+  background: var(--shell-surface-2, #FAFAF3);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Empty / welcome state */
+.plat-genie-empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.plat-genie-welcome {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--shell-fg-2, #4A5C45);
+  margin: 0;
+}
+
+.plat-genie-starters {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plat-genie-starter {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  text-align: left;
+  background: var(--shell-surface, #fff);
+  border: 1px solid var(--shell-line, #DAD9C9);
+  border-radius: 5px;
+  color: var(--shell-fg, #0E1F0A);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms;
+}
+
+.plat-genie-starter:hover {
+  border-color: var(--shell-accent, #005776);
+  background: #f0f7fa;
+}
+
+/* Individual message */
+.plat-genie-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plat-genie-msg-role {
+  font-family: var(--font-mono, monospace);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--shell-fg-3, #7A8A75);
+}
+
+.plat-genie-msg-body {
+  border: 1px solid var(--shell-line, #DAD9C9);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: var(--shell-surface, #fff);
+  color: var(--shell-fg, #0E1F0A);
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.plat-genie-msg--user .plat-genie-msg-role { color: var(--shell-accent, #005776); }
+
+.plat-genie-msg--user .plat-genie-msg-body {
+  background: var(--shell-accent, #005776);
+  border-color: var(--shell-accent, #005776);
+  color: #fff;
+}
+
+.plat-genie-thinking {
+  color: var(--shell-fg-3, #7A8A75);
+  font-style: italic;
+}
+
+.plat-genie-msg-error {
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: #FBF0EA;
+  color: #8B2900;
+  font-size: 11.5px;
+}
+
+/* Attachments */
+.plat-genie-attachment {
+  margin-top: 10px;
+  border-top: 1px solid var(--shell-line, #DAD9C9);
+  padding-top: 8px;
+}
+
+.plat-genie-attachment p {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+}
+
+.plat-genie-attachment details { margin-top: 6px; }
+
+.plat-genie-attachment summary {
+  cursor: pointer;
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--shell-accent, #005776);
+  user-select: none;
+}
+
+.plat-genie-attachment pre {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 5px;
+  background: var(--shell-fg, #0E1F0A);
+  color: #E8EFF3;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  white-space: pre-wrap;
+  overflow: auto;
+}
+
+/* Result table */
+.plat-genie-table-wrap {
+  overflow: auto;
+  margin-top: 8px;
+  border: 1px solid var(--shell-line, #DAD9C9);
+  border-radius: 5px;
+}
+
+.plat-genie-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.plat-genie-table th,
+.plat-genie-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--shell-line, #DAD9C9);
+  text-align: left;
+}
+
+.plat-genie-table th {
+  position: sticky;
+  top: 0;
+  background: var(--shell-surface-2, #FAFAF3);
+  font-family: var(--font-mono, monospace);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--shell-fg-3, #7A8A75);
+}
+
+.plat-genie-empty {
+  padding: 6px 0;
+  font-size: 11px;
+  color: var(--shell-fg-3, #7A8A75);
+}
+
+/* Global error bar */
+.plat-genie-global-error {
+  padding: 8px 14px;
+  background: #FBF0EA;
+  border-top: 1px solid #F0C9BA;
+  color: #8B2900;
+  font-size: 12px;
+}
+
+/* Input row */
+.plat-genie-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--shell-line, #DAD9C9);
+  background: var(--shell-surface, #fff);
+}
+
+.plat-genie-input textarea {
+  resize: none;
+  min-height: 44px;
+  max-height: 110px;
+  border: 1px solid var(--shell-line, #DAD9C9);
+  border-radius: 5px;
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--shell-fg, #0E1F0A);
+  background: var(--shell-surface, #fff);
+  transition: border-color 120ms;
+}
+
+.plat-genie-input textarea:focus {
+  outline: none;
+  border-color: var(--shell-accent, #005776);
+  box-shadow: 0 0 0 2px rgba(0, 87, 118, 0.1);
+}
+
+.plat-genie-send {
+  align-self: end;
+  width: 36px;
+  height: 36px;
+  border-radius: 5px;
+  border: none;
+  background: var(--shell-accent, #005776);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 150ms;
+}
+
+.plat-genie-send:disabled { opacity: 0.4; cursor: not-allowed; }
+.plat-genie-send:not(:disabled):hover { opacity: 0.88; }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .plat-genie-drawer { width: 100vw; }
+  .plat-genie-trigger { right: 12px; bottom: 12px; }
+}

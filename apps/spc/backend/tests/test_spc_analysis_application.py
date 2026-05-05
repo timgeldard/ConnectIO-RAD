@@ -8,7 +8,6 @@ DAL import chain so the module can load in the test environment.
 from __future__ import annotations
 
 import sys
-from types import ModuleType
 from unittest.mock import MagicMock, patch
 
 

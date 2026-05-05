@@ -14,6 +14,7 @@ import threading
 from typing import Any, Optional
 
 from fastapi import HTTPException
+from shared_auth import resolve_token as auth_resolve_token
 
 try:
     from cachetools import TTLCache as _CachetoolsTTLCache  # type: ignore[import-untyped]
@@ -75,10 +76,6 @@ def check_warehouse_config() -> str:
         )
     return WAREHOUSE_HTTP_PATH
 
-
-from shared_auth import resolve_token as auth_resolve_token
-
-...
 
 def resolve_token(
     x_forwarded_access_token: Optional[str],

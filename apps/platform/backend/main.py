@@ -6,7 +6,6 @@ Warehouse360 (at /warehouse360) from a single Databricks App process.
 Backend bundles are produced by scripts/build.py. The module is still importable
 before that build step so health/readiness can report a clear degraded state.
 """
-from importlib import import_module
 from pathlib import Path
 from typing import Any
 
@@ -89,6 +88,12 @@ def _include_available_routers() -> None:
         if tags is not None:
             kwargs["tags"] = tags
         app.include_router(router, **kwargs)
+
+    if _missing_build_artifacts:
+        logger.warning(
+            "Platform started with missing build artifacts: %s. Some routes will return 404.",
+            ", ".join(sorted(_missing_build_artifacts.keys())),
+        )
 
 
 _include_available_routers()

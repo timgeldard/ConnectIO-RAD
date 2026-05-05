@@ -1,8 +1,6 @@
 """Unit tests for planning_dal — coerce helpers, KPI builder, fetch."""
 import asyncio
-from unittest.mock import patch
 
-import pytest
 
 from backend.production_planning.dal import planning_dal as dal
 
