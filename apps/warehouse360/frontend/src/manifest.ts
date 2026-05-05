@@ -23,7 +23,7 @@ export const W360_MODULES: ConnectIOModule[] = [
     backendPrefix: '/api/wh',
   },
   {
-    moduleId: 'process-orders',
+    moduleId: 'wh-cockpit',
     displayName: 'Production Staging',
     shortName: 'STAGING',
     tagline: 'Production staging and orders',
@@ -187,7 +187,7 @@ export const W360_COMPOSITION: AppComposition = {
   databricksAppName: 'warehouse360',
   enabledModules: [
     'home',
-    'process-orders',
+    'wh-cockpit',
     'deliveries',
     'inbound',
     'inventory',

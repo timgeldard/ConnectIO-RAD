@@ -32,7 +32,8 @@ function writeUrlParams(moduleId: string, tabState: Record<string, string>): voi
   } else {
     params.delete('tab')
   }
-  history.replaceState(null, '', `?${params.toString()}`)
+  const qs = params.toString()
+  history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
 }
 
 /** URL-param-backed state machine for the platform shell. No routing library. */
@@ -65,6 +66,20 @@ export function useShellState(): [ShellState, Handlers] {
     params.delete('from')
     const qs = params.toString()
     history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
+    setState((prev) => ({ ...prev, ctxState: null }))
+  }, [])
+
+  return [state, { onModuleChange, onTabChange, onClearContext }]
+}
+')
+    const qs = params.toString()
+    history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
+    setState((prev) => ({ ...prev, ctxState: null }))
+  }, [])
+
+  return [state, { onModuleChange, onTabChange, onClearContext }]
+}
+  history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
     setState((prev) => ({ ...prev, ctxState: null }))
   }, [])
 

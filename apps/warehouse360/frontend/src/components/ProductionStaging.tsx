@@ -70,7 +70,7 @@ const ProductionStaging = ({ onOpenOrder }: ProductionStagingProps) => {
   const [filters, setFilters] = React.useState({ risk: 'all', shift: 'all', line: 'all', window: 'today' });
   const [sort, setSort] = React.useState({ key: 'start', dir: 'asc' });
 
-  const { data: ordersResp, loading: ordersLoading, error: ordersError } = useApi<any>('/api/process-orders');
+  const { data: ordersResp, loading: ordersLoading, error: ordersError } = useApi<any>('/api/wh-cockpit');
   const { data: linesideResp } = useApi<any>('/api/inventory/lineside');
   const { data: tasksResp } = useApi<any>('/api/dispensary');
   const allOrders = React.useMemo(() => {

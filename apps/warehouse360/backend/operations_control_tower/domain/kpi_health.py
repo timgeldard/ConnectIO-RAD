@@ -15,7 +15,7 @@ class KpiThreshold(ValueObject):
     """Immutable threshold pair for a single KPI metric.
 
     KPI value at or above ``warning`` triggers WARNING; at or above ``critical``
-    triggers CRITICAL. Both thresholds are expressed as fractions (0.0–1.0)
+    triggers CRITICAL. Both thresholds are expressed as fractions (0.0-1.0)
     for rate-style KPIs (e.g., fill rate, on-time rate).
 
     Attrs:
@@ -27,6 +27,12 @@ class KpiThreshold(ValueObject):
     critical: float
 
     def __post_init__(self) -> None:
+        """
+        Validate that critical threshold is not greater than warning threshold.
+
+        Raises:
+            ValueError: If critical threshold is greater than warning threshold.
+        """
         if self.critical > self.warning:
             raise ValueError(
                 f"critical threshold ({self.critical}) must be <= warning threshold ({self.warning})"
@@ -41,7 +47,7 @@ def classify_kpi_health(value: float, threshold: KpiThreshold) -> KpiHealth:
     Otherwise → HEALTHY.
 
     Args:
-        value: Current KPI value (rate-style, 0.0–1.0, or absolute count).
+        value: Current KPI value (rate-style, 0.0-1.0, or absolute count).
         threshold: Threshold pair for this KPI metric.
 
     Returns:

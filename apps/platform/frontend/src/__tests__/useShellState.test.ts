@@ -5,6 +5,7 @@ import { useShellState } from '../shell/useShellState'
 function setSearch(qs: string) {
   Object.defineProperty(window, 'location', {
     writable: true,
+    configurable: true,
     value: { ...window.location, search: qs },
   })
 }

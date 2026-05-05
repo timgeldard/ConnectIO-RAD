@@ -38,7 +38,7 @@ export interface LandingCard {
  * The shell (LeftRail, SubNav, Home landing cards) is fully driven by this manifest.
  */
 export interface ConnectIOModule {
-  /** Kebab-case identifier e.g. 'trace', 'order-list'. */
+  /** Kebab-case identifier e.g. 'trace', 'poh-orders'. */
   moduleId: string
   /** TopBar breadcrumb label e.g. 'Trace'. */
   displayName: string
@@ -76,7 +76,7 @@ export interface ConnectIOModule {
   layoutMode?: 'default' | 'fullscreen'
   /** Future URL segment e.g. '/trace'. Not used by the state-machine shell yet. */
   routeBase: string
-  /** i18n namespace e.g. 'cq.trace', 'poh.order-list'. */
+  /** i18n namespace e.g. 'cq.trace', 'poh.poh-orders'. */
   i18nNamespace: string
   /** User can toggle this module on/off in preferences. */
   isUserSelectable: boolean

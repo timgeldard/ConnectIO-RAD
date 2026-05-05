@@ -47,19 +47,29 @@ def test_domain_layer_isolation() -> None:
     for file_path in ROOT.glob("**/domain/*.py"):
         if file_path.name == "__init__.py":
             continue
-        content = file_path.read_text()
+        actual_imports = _imports(file_path)
         for forbidden in forbidden_imports:
-            assert forbidden not in content, (
-                f"Forbidden import '{forbidden}' found in {file_path}"
-            )
+            for imp in actual_imports:
+                assert forbidden not in imp, (
+                    f"Forbidden import '{forbidden}' found in {file_path}: {imp}"
+                )
 
 
 def test_router_layer_isolation() -> None:
     """Routers must stay transport-only — no direct SQL, DAL, or domain imports."""
     for file_path in ROOT.glob("**/router*.py"):
-        content = file_path.read_text()
-        assert "run_sql_async" not in content, f"Direct SQL execution found in {file_path}"
-        assert "tbl(" not in content, f"Table reference found in {file_path}"
+        tree = ast.parse(file_path.read_text(), filename=str(file_path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                func_name = ""
+                if isinstance(node.func, ast.Name):
+                    func_name = node.func.id
+                elif isinstance(node.func, ast.Attribute):
+                    func_name = node.func.attr
+
+                assert func_name != "run_sql_async", f"Direct SQL execution (run_sql_async) found in {file_path}"
+                assert func_name != "tbl", f"Direct Table reference (tbl) found in {file_path}"
+
         for imported_module in _imports(file_path):
             assert ".dal" not in imported_module, (
                 f"Router imports DAL directly in {file_path}: {imported_module}"
@@ -74,6 +84,12 @@ def test_application_layer_isolation() -> None:
     for file_path in ROOT.glob("**/application/*.py"):
         if file_path.name == "__init__.py":
             continue
-        content = file_path.read_text()
-        assert "fastapi" not in content, f"FastAPI import found in application service {file_path}"
-        assert "APIRouter" not in content, f"APIRouter found in application service {file_path}"
+        actual_imports = _imports(file_path)
+        for imp in actual_imports:
+            assert "fastapi" not in imp, f"FastAPI import found in application service {file_path}: {imp}"
+
+        # APIRouter is a class, check for it in AST as well
+        tree = ast.parse(file_path.read_text(), filename=str(file_path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name) and node.id == "APIRouter":
+                assert False, f"APIRouter found in application service {file_path}"
