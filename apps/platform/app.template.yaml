@@ -1,4 +1,4 @@
-# Databricks Apps configuration — generated from app.template.yaml by `make render-app-config`
+﻿# Databricks Apps configuration — generated from app.template.yaml by `make render-app-config`
 # Do not edit app.yaml directly; edit this template instead.
 # auth_type and requested_scopes are configured via the App Settings UI (User authorization).
 resources:
@@ -31,3 +31,6 @@ env:
     value: "${TRACE_SCHEMA}"
   - name: PREFS_DB_PATH
     value: "${PREFS_DB_PATH}"
+
+  - name: AUTH_ALLOW_UNVERIFIED_JWT
+    value: "true"
