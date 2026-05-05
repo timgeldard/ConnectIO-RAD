@@ -2,9 +2,18 @@
 # Do not edit app.yaml directly; edit this template instead.
 # auth_type and requested_scopes are configured via the App Settings UI (User authorization).
 resources:
-  genie-space:
+  genie-space-quality:
     type: genie
-    id: "${GENIE_SPACE_ID}"
+    id: "${GENIE_SPACE_QUALITY}"
+  genie-space-poh:
+    type: genie
+    id: "${GENIE_SPACE_POH}"
+  genie-space-trace:
+    type: genie
+    id: "${GENIE_SPACE_TRACE}"
+  genie-space-warehouse:
+    type: genie
+    id: "${GENIE_SPACE_WAREHOUSE}"
 
 command:
   - uvicorn
@@ -23,8 +32,17 @@ env:
     value: "${POH_SCHEMA}"
   - name: APP_TRUST_X_FORWARDED_HOST
     value: "true"
+  # Legacy fallback - points to POH (the most general space)
   - name: GENIE_SPACE_ID
-    value: "${GENIE_SPACE_ID}"
+    value: "${GENIE_SPACE_POH}"
+  - name: GENIE_SPACE_QUALITY
+    value: "${GENIE_SPACE_QUALITY}"
+  - name: GENIE_SPACE_POH
+    value: "${GENIE_SPACE_POH}"
+  - name: GENIE_SPACE_TRACE
+    value: "${GENIE_SPACE_TRACE}"
+  - name: GENIE_SPACE_WAREHOUSE
+    value: "${GENIE_SPACE_WAREHOUSE}"
   - name: TRACE_CATALOG
     value: "${TRACE_CATALOG}"
   - name: TRACE_SCHEMA

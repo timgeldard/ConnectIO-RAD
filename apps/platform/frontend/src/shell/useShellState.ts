@@ -98,17 +98,3 @@ export function useShellState(): [ShellState, Handlers] {
 
   return [state, { onModuleChange, onTabChange, onClearContext }]
 }
-')
-    const qs = params.toString()
-    history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
-    setState((prev) => ({ ...prev, ctxState: null }))
-  }, [])
-
-  return [state, { onModuleChange, onTabChange, onClearContext }]
-}
-  history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
-    setState((prev) => ({ ...prev, ctxState: null }))
-  }, [])
-
-  return [state, { onModuleChange, onTabChange, onClearContext }]
-}
