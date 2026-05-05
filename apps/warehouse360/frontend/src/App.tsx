@@ -36,7 +36,7 @@ type DrawerState =
 function moduleToRoute(moduleId: string): string {
   const map: Record<string, string> = {
     home: 'today',
-    'process-orders': 'staging',
+    'wh-cockpit': 'staging',
     deliveries: 'outbound',
     inbound: 'inbound',
     inventory: 'inventory',
@@ -54,7 +54,7 @@ function moduleToRoute(moduleId: string): string {
 function routeToModule(route: string): string {
   const map: Record<string, string> = {
     today: 'home',
-    staging: 'process-orders',
+    staging: 'wh-cockpit',
     outbound: 'deliveries',
     inbound: 'inbound',
     inventory: 'inventory',

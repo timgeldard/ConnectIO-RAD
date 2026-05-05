@@ -35,7 +35,7 @@ const HOUR = 3600 * 1000
 function viewToModule(view: View): string {
   switch (view.name) {
     case 'list':
-    case 'detail':            return 'order-list'
+    case 'detail':            return 'poh-orders'
     case 'planning':          return 'planning-board'
     case 'quality':           return 'quality-analytics'
     default:                  return view.name
@@ -45,7 +45,7 @@ function viewToModule(view: View): string {
 function moduleToView(moduleId: string): View {
   switch (moduleId) {
     case 'home':
-    case 'order-list':           return { name: 'list' }
+    case 'poh-orders':           return { name: 'list' }
     case 'planning-board':       return { name: 'planning' }
     case 'quality-analytics':    return { name: 'quality' }
     case 'pours':                return { name: 'pours' }

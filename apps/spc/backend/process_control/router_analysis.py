@@ -11,6 +11,7 @@ from backend.process_control.application.analysis import (
     fetch_multivariate,
     fetch_process_flow,
     fetch_scorecard,
+    msa_calculate,
     save_msa_session,
 )
 from shared_db.utils import handle_analysis_error, handle_sql_error
@@ -25,7 +26,6 @@ from backend.schemas.spc_schemas import (
     ScorecardRequest,
 )
 from backend.utils.db import attach_data_freshness, check_warehouse_config
-from backend.process_control.domain.msa import compute_grr, compute_grr_anova
 from backend.utils.rate_limit import limiter
 from shared_auth import UserIdentity, require_proxy_user
 
@@ -136,15 +136,26 @@ async def msa_save(
 
 @router.post("/msa/calculate")
 @limiter.limit("20/minute")
-async def msa_calculate(
+async def msa_calculate_endpoint(
     body: CalculateMSARequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
-    """Calculate Gauge R&R (Average & Range or ANOVA) from measurement data."""
+    """
+    Calculate Gauge R&R (Average & Range or ANOVA) from measurement data.
+
+    Args:
+        body: Validated MSA calculation request containing measurement data,
+            tolerance, and calculation method.
+        user: Authenticated user identity.
+
+    Returns:
+        Dictionary containing Gauge R&R results (repeatability, reproducibility, etc.).
+
+    Raises:
+        HTTPException: If the calculation fails due to domain logic or data errors.
+    """
     try:
-        if body.method == "anova":
-            return compute_grr_anova(body.measurement_data, body.tolerance)
-        return compute_grr(body.measurement_data, body.tolerance)
+        return msa_calculate(body)
     except Exception as exc:
         handle_analysis_error(exc)
 

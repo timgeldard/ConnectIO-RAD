@@ -31,3 +31,8 @@ env:
     value: "${TRACE_SCHEMA}"
   - name: PREFS_DB_PATH
     value: "${PREFS_DB_PATH}"
+
+  # Databricks Apps proxy pre-validates JWTs before forwarding to this process;
+  # value is set per-target in deploy.toml. Override via shell env to disable for non-proxy deploys.
+  - name: AUTH_ALLOW_UNVERIFIED_JWT
+    value: "${AUTH_ALLOW_UNVERIFIED_JWT}"
