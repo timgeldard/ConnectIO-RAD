@@ -6,7 +6,6 @@ Warehouse360 (at /warehouse360) from a single Databricks App process.
 Backend bundles are produced by scripts/build.py. The module is still importable
 before that build step so health/readiness can report a clear degraded state.
 """
-from importlib import import_module
 from pathlib import Path
 from typing import Any
 
@@ -15,16 +14,9 @@ from starlette.staticfiles import StaticFiles
 
 from shared_api import create_api_app, health_payload, databricks_sql_ready
 from backend.routes.badges import router as badges_router
+from backend.utils import _optional_attr, get_missing_artifacts
 
-_missing_build_artifacts: dict[str, str] = {}
-
-
-def _optional_attr(module_name: str, attr_name: str, artifact: str) -> Any | None:
-    try:
-        return getattr(import_module(module_name), attr_name)
-    except ModuleNotFoundError as exc:
-        _missing_build_artifacts[artifact] = str(exc)
-        return None
+_missing_build_artifacts = get_missing_artifacts()
 
 
 def _optional_router(module_name: str, artifact: str) -> Any | None:

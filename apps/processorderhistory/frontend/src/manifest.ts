@@ -23,7 +23,7 @@ export const POH_MODULES: ConnectIOModule[] = [
     backendPrefix: '/api',
   },
   {
-    moduleId: 'order-list',
+    moduleId: 'poh-orders',
     displayName: 'Process Orders',
     shortName: 'ORDERS',
     tagline: 'Process order list and history',
@@ -46,7 +46,7 @@ export const POH_MODULES: ConnectIOModule[] = [
     },
     contextBarSlot: false,
     routeBase: '/orders',
-    i18nNamespace: 'poh.order-list',
+    i18nNamespace: 'poh.poh-orders',
     isUserSelectable: false,
     isPinnedByDefault: false,
     isMandatory: true,
@@ -292,8 +292,8 @@ export const POH_MODULES: ConnectIOModule[] = [
     isMandatory: false,
     backendPrefix: '/api',
   },
-  // order-detail is intentionally absent: it is a parameterized view within order-list,
-  // not a navigable top-level module. The shell only knows about order-list.
+  // order-detail is intentionally absent: it is a parameterized view within poh-orders,
+  // not a navigable top-level module. The shell only knows about poh-orders.
 ]
 
 export const POH_COMPOSITION: AppComposition = {
@@ -302,11 +302,11 @@ export const POH_COMPOSITION: AppComposition = {
   appTagline: 'A Kerry Platform · UAT',
   databricksAppName: 'processorderhistory',
   enabledModules: [
-    'home', 'order-list', 'planning-board', 'vessel-planning',
+    'home', 'poh-orders', 'planning-board', 'vessel-planning',
     'pours', 'day-view', 'yield', 'quality-analytics', 'equipment-insights', 'equipment-insights-2',
   ],
-  mandatoryModules: ['home', 'order-list'],
-  defaultModule: 'order-list',
+  mandatoryModules: ['home', 'poh-orders'],
+  defaultModule: 'poh-orders',
   sidebarBranding: {
     logoSrc: '/kerry-logo-slate.png',
     logoAlt: 'Kerry',

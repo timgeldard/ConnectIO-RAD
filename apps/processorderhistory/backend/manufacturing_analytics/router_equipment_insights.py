@@ -2,7 +2,7 @@
 from typing import Optional
 
 from shared_auth import UserIdentity, require_proxy_user
-from fastapi import Depends, APIRouter, Header
+from fastapi import Depends, APIRouter
 from pydantic import BaseModel
 
 from backend.manufacturing_analytics.application import queries as analytics_queries

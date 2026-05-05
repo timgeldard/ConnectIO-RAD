@@ -1,8 +1,7 @@
 """User identity and preferences endpoints — GET /api/me, GET/POST /api/me/preferences."""
-from typing import Optional
 
 from shared_auth import UserIdentity, require_proxy_user
-from fastapi import Depends, APIRouter, Header
+from fastapi import Depends, APIRouter
 from pydantic import BaseModel
 
 from backend.db import check_warehouse_config

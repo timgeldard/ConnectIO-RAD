@@ -1,7 +1,6 @@
 """Smoke tests for the Process Order History FastAPI shell."""
 
 from fastapi.testclient import TestClient
-import backend.main as main_module
 
 from backend.main import app
 

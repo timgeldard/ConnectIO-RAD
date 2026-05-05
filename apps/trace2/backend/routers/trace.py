@@ -5,7 +5,7 @@ Combines context-specific routers into a single router for backward compatibilit
 
 from fastapi import APIRouter
 from backend.utils.db import check_warehouse_config  # noqa: F401
-from shared_db.utils import attach_payload_freshness  # noqa: F401
+from backend.utils.db import attach_payload_freshness  # noqa: F401
 from backend.dal.trace_dal import (
     _build_tree,  # noqa: F401
     fetch_trace_tree,  # noqa: F401

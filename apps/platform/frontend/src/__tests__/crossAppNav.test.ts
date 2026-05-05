@@ -3,7 +3,7 @@ import { buildCrossAppUrl, buildSpaContextUrl } from '../shell/crossAppNav'
 import { MODULES } from '../shell/modules'
 
 const traceModule = MODULES.find((m) => m.moduleId === 'trace')!
-const orderModule = MODULES.find((m) => m.moduleId === 'order-list')!
+const orderModule = MODULES.find((m) => m.moduleId === 'poh-orders')!
 
 const ctx = {
   entity: 'processOrder' as const,
@@ -15,7 +15,7 @@ describe('buildCrossAppUrl', () => {
   it('sets module and entity params', () => {
     const url = buildCrossAppUrl(orderModule, ctx, 'trace')
     const params = new URLSearchParams(url.slice(1))
-    expect(params.get('module')).toBe('order-list')
+    expect(params.get('module')).toBe('poh-orders')
     expect(params.get('entity')).toBe('processOrder')
     expect(params.get('from')).toBe('trace')
   })

@@ -1,7 +1,6 @@
 """Orders router — process order list endpoint."""
-from typing import Optional
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends
 
 from backend.order_execution.application import queries as order_queries
 from backend.db import check_warehouse_config

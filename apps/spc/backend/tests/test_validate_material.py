@@ -2,7 +2,6 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 import backend.main as main_module
-import shared_db.utils as spc_common
 import backend.process_control.router_metadata as spc_module
 
 

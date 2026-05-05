@@ -1,9 +1,8 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, HTTPException
 from backend.chart_config.router import router as chart_config_router
 from backend.process_control.router_analysis import router as spc_analysis_router
 from backend.process_control.router_charts import router as spc_charts_router

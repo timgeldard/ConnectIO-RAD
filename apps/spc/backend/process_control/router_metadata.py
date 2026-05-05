@@ -1,8 +1,7 @@
 """Process Control — plant, material, and characteristic discovery endpoints."""
 
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 
 from backend.process_control.application.metadata import (
     fetch_attribute_characteristics,
@@ -11,7 +10,7 @@ from backend.process_control.application.metadata import (
     fetch_plants,
     validate_material,
 )
-from shared_db.utils import attach_validation_freshness, handle_sql_error
+from backend.utils.db import attach_validation_freshness, handle_sql_error
 from backend.schemas.spc_schemas import (
     AttributeCharacteristicsRequest,
     CharacteristicsRequest,

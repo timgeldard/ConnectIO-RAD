@@ -2,7 +2,7 @@
 from typing import Optional
 
 from shared_auth import UserIdentity, require_proxy_user
-from fastapi import Depends, APIRouter, Header
+from fastapi import Depends, APIRouter
 from pydantic import BaseModel
 
 from backend.order_execution.application import queries as order_queries

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-import sys, json
+import sys
+import json
 
 inp = json.load(sys.stdin)
 f = inp.get('tool_input', {}).get('file_path', '')

@@ -1,5 +1,4 @@
 """Unit tests for vessel_planning_dal — classifier, coerce helpers, derivation logic."""
-import pytest
 from unittest.mock import patch
 
 from backend.production_planning.dal import vessel_planning_dal as dal
