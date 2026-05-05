@@ -44,31 +44,31 @@ CQ_ROUTERS = [
 ]
 
 POH_ROUTERS = [
-    (_optional_router("poh_backend.routers.me_router", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.orders", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.order_detail_router", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.pours_router", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.planning_router", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.day_view_router", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.yield_router", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.quality_router", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.downtime_router", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.oee_router", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.adherence_router", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.genie_router", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.vessel_planning_router", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.equipment_insights_router", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.routers.equipment_insights2_router", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.order_execution.router_me", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.order_execution.router_orders", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.order_execution.router_order_detail", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.order_execution.router_pours", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.production_planning.router_planning", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.order_execution.router_day_view", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.manufacturing_analytics.router_yield", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.manufacturing_analytics.router_quality", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.manufacturing_analytics.router_downtime", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.manufacturing_analytics.router_oee", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.manufacturing_analytics.router_adherence", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.genie_assist.router_genie", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.production_planning.router_vessel_planning", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.manufacturing_analytics.router_equipment_insights", "poh_backend"), "/api", None),
+    (_optional_router("poh_backend.manufacturing_analytics.router_equipment_insights2", "poh_backend"), "/api", None),
 ]
 
 W360_ROUTERS = [
-    (_optional_router("w360_backend.routers.process_orders", "w360_backend"), "/api/wh", ["W360-ProcessOrders"]),
-    (_optional_router("w360_backend.routers.deliveries", "w360_backend"), "/api/wh", ["W360-Deliveries"]),
-    (_optional_router("w360_backend.routers.inbound", "w360_backend"), "/api/wh", ["W360-Inbound"]),
-    (_optional_router("w360_backend.routers.inventory", "w360_backend"), "/api/wh", ["W360-Inventory"]),
-    (_optional_router("w360_backend.routers.dispensary", "w360_backend"), "/api/wh", ["W360-Dispensary"]),
-    (_optional_router("w360_backend.routers.kpis", "w360_backend"), "/api/wh", ["W360-KPIs"]),
-    (_optional_router("w360_backend.routers.plants", "w360_backend"), "/api/wh", ["W360-Plants"]),
+    (_optional_router("w360_backend.order_fulfillment.router_process_orders", "w360_backend"), "/api/wh", ["W360-ProcessOrders"]),
+    (_optional_router("w360_backend.order_fulfillment.router_deliveries", "w360_backend"), "/api/wh", ["W360-Deliveries"]),
+    (_optional_router("w360_backend.inventory_management.router_inbound", "w360_backend"), "/api/wh", ["W360-Inbound"]),
+    (_optional_router("w360_backend.inventory_management.router_inventory", "w360_backend"), "/api/wh", ["W360-Inventory"]),
+    (_optional_router("w360_backend.dispensary_ops.router_dispensary", "w360_backend"), "/api/wh", ["W360-Dispensary"]),
+    (_optional_router("w360_backend.operations_control_tower.router_kpis", "w360_backend"), "/api/wh", ["W360-KPIs"]),
+    (_optional_router("w360_backend.inventory_management.router_plants", "w360_backend"), "/api/wh", ["W360-Plants"]),
 ]
 
 _STATIC = Path(__file__).parent.parent / "static"
