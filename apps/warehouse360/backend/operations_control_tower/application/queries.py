@@ -26,7 +26,10 @@ async def list_kpis(token: str, plant_id: Optional[str] = None) -> list[dict]:
     for row in rows:
         value = row.get("kpi_value")
         if value is not None:
-            row["kpi_health"] = classify_kpi_health(float(value), _DEFAULT_THRESHOLD)
+            try:
+                row["kpi_health"] = classify_kpi_health(float(value), _DEFAULT_THRESHOLD)
+            except (ValueError, TypeError):
+                row["kpi_health"] = "HEALTHY"
         else:
             row["kpi_health"] = "HEALTHY"
     return rows

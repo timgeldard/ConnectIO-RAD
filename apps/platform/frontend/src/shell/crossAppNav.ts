@@ -18,7 +18,7 @@ export function buildCrossAppUrl(
   params.set('module', targetModule.moduleId)
   if (targetModule.defaultTab) params.set('tab', targetModule.defaultTab)
   params.set('entity', ctx.entity)
-  params.set('from', fromModuleId)
+  if (fromModuleId) params.set('from', fromModuleId)
   if (ctx.processOrderId) params.set('processOrderId', ctx.processOrderId)
   return `?${params.toString()}`
 }

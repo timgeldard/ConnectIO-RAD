@@ -140,7 +140,20 @@ async def msa_calculate_endpoint(
     body: CalculateMSARequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
-    """Calculate Gauge R&R (Average & Range or ANOVA) from measurement data."""
+    """
+    Calculate Gauge R&R (Average & Range or ANOVA) from measurement data.
+
+    Args:
+        body: Validated MSA calculation request containing measurement data,
+            tolerance, and calculation method.
+        user: Authenticated user identity.
+
+    Returns:
+        Dictionary containing Gauge R&R results (repeatability, reproducibility, etc.).
+
+    Raises:
+        HTTPException: If the calculation fails due to domain logic or data errors.
+    """
     try:
         return msa_calculate(body)
     except Exception as exc:

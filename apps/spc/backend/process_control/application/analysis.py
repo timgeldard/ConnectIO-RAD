@@ -36,6 +36,10 @@ def msa_calculate(body: CalculateMSARequest) -> dict:
 
     Returns:
         Gauge R&R result dict produced by the domain function.
+
+    Raises:
+        ValueError: If measurement data is invalid or insufficient for the chosen method.
+        ZeroDivisionError: If range calculations encounter zero variability.
     """
     if body.method == "anova":
         return compute_grr_anova(body.measurement_data, body.tolerance)

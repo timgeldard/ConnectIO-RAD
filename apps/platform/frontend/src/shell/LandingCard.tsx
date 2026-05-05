@@ -10,6 +10,7 @@ export function moduleHref(mod: ConnectIOModule, activeTabId?: string): string {
 }
 
 interface LandingCardProps {
+  /** The module configuration to display in the card. */
   mod: ConnectIOModule
   /** The tab currently active in the shell SubNav — passed through to the Open link. */
   activeTabId?: string

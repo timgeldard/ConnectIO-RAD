@@ -35,7 +35,7 @@ async def list_process_orders(request: Request,
     )
 
 
-@router.get("/process-orders/{order_id}")
+@router.get("/wh-cockpit/{order_id}")
 async def get_process_order(order_id: str,
     request: Request,
     user: UserIdentity = Depends(require_proxy_user)

@@ -1,3 +1,5 @@
+"""Domain models and logic for operations control tower KPI tracking."""
+
 from backend.operations_control_tower.domain.kpi_health import (
     KpiHealth,
     KpiThreshold,

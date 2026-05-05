@@ -204,7 +204,7 @@ export const MODULES: ConnectIOModule[] = [
 
   // ── Process Operations ────────────────────────────────────────────────────
   {
-    moduleId: 'order-list',
+    moduleId: 'poh-orders',
     displayName: 'Process Orders',
     shortName: 'ORDERS',
     tagline: 'Process order management',
@@ -544,7 +544,7 @@ export const MODULES: ConnectIOModule[] = [
 
   // ── Warehouse & Supply Chain ──────────────────────────────────────────────
   {
-    moduleId: 'process-orders',
+    moduleId: 'wh-cockpit',
     displayName: 'Warehouse Cockpit',
     shortName: 'WH',
     tagline: 'Warehouse operations',

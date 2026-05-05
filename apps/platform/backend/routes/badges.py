@@ -3,35 +3,48 @@
 Collects alarm / attention-signal counts from each integrated sub-backend
 and returns them keyed by moduleId so the platform shell can render red
 badge dots on left-rail icons.
-
-Extend _fetch_counts() when sub-backends expose real alarm-count endpoints.
 """
+import logging
+from typing import Optional
+from fastapi import APIRouter, Depends
 
-from fastapi import APIRouter
+from shared_auth.identity import require_proxy_user, UserIdentity
+from backend.utils import _optional_attr
 
+logger = logging.getLogger("platform.badges")
 router = APIRouter()
+
+# Hoist the optional CQ alarms getter to avoid circular imports and enable tracking.
+_get_cq_alarms = _optional_attr("cq_backend.routers.alarms", "get_alarms", "cq_backend")
 
 
 async def _fetch_cq_counts() -> dict[str, int]:
     """Return alarm counts for CQ modules (trace, envmon, spc).
 
-    Calls the CQ alarms stub; extend once the CQ data layer is wired.
+    Calls the CQ alarms stub; returns mapped counts once the CQ data layer is wired.
     """
+    if _get_cq_alarms is None:
+        return {"spc": 0, "envmon": 0, "trace": 0}
+
     try:
-        from cq_backend.routers.alarms import get_alarms  # type: ignore[import-not-found]
-        result = await get_alarms()
+        result = await _get_cq_alarms()
         open_count: int = result.get("open", 0)
+        # TODO: Wire to per-module counts once available in CQ backend.
+        # For now, we apply the aggregate "open" count to all three as a signal.
         return {
             "spc": open_count,
-            "envmon": 0,
-            "trace": 0,
+            "envmon": open_count,
+            "trace": open_count,
         }
-    except Exception:
+    except Exception as exc:
+        logger.error("Failed to fetch CQ alarm counts: %s", exc, exc_info=True)
         return {"spc": 0, "envmon": 0, "trace": 0}
 
 
 @router.get("/api/badges", tags=["Platform"])
-async def get_badge_counts() -> dict[str, int]:
+async def get_badge_counts(
+    user: UserIdentity = Depends(require_proxy_user),
+) -> dict[str, int]:
     """Return attention-signal counts keyed by moduleId.
 
     Zero-valued modules are omitted from the response; the shell treats

@@ -66,7 +66,7 @@ describe('MODULES manifest', () => {
     expect(lm?.layoutMode).toBe('fullscreen')
   })
 
-  it('modules with appBase have a non-empty backendPrefix', () => {
+  it('modules with routeBase have a non-empty backendPrefix', () => {
     const integrated = MODULES.filter((m) => !m.routeBase.endsWith('/'))
     for (const m of integrated) {
       expect(m.backendPrefix, `backendPrefix missing on integrated module ${m.moduleId}`).toBeTruthy()

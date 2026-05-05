@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 
 const POLL_INTERVAL_MS = 60_000
 
+/**
+ * Fetches current badge counts from the backend API.
+ * @returns A record mapping module IDs to their respective badge counts.
+ */
 async function fetchBadges(): Promise<Record<string, number>> {
   try {
     const res = await fetch('/api/badges')

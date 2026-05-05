@@ -114,6 +114,10 @@
 }
 
 .plat-btn-primary:hover { opacity: 0.88; }
+.plat-btn-primary:focus-visible {
+  outline: 2px solid var(--card-accent, var(--valentia-slate, #005776));
+  outline-offset: 2px;
+}
 
 /* ── Empty / not found ── */
 .plat-empty {

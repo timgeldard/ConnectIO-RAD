@@ -7,6 +7,17 @@ import { useBadgeCounts } from './shell/useBadgeCounts'
 import { ModuleContentPanel } from './shell/ModuleContentPanel'
 import { CrossAppContextBar } from './shell/CrossAppContextBar'
 
+/**
+ * The main entry point for the Platform Shell frontend application.
+ *
+ * This component manages the high-level application state including:
+ * - Active module and tab navigation via `useShellState`.
+ * - User-pinned modules via `usePinnedModules`.
+ * - Real-time badge counts (e.g., alert/notification counts) via `useBadgeCounts`.
+ *
+ * It renders the `PlatformShell` layout component from the shared library,
+ * injecting the necessary configuration and state handlers.
+ */
 export function App() {
   const [state, handlers] = useShellState()
   const [pinnedModules, onModulePinToggle] = usePinnedModules()
