@@ -1,11 +1,11 @@
 """Unit tests for order_fulfillment domain — delivery and process order status."""
 
 
-from backend.order_fulfillment.domain.delivery_status import (
+from warehouse360_backend.order_fulfillment.domain.delivery_status import (
     is_active_delivery,
     normalize_delivery_status,
 )
-from backend.order_fulfillment.domain.order_status import (
+from warehouse360_backend.order_fulfillment.domain.order_status import (
     is_open_order,
     normalize_po_status,
 )

@@ -1,9 +1,9 @@
-"""Smoke tests for ConnectedQuality backend API."""
+"""Smoke tests for ConnectedQuality connectedquality_backend API."""
 
 from fastapi.testclient import TestClient
 
-from backend.main import app
-import backend.main as main_module
+from connectedquality_backend.main import app
+import connectedquality_backend.main as main_module
 
 client = TestClient(app)
 

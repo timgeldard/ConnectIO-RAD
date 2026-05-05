@@ -26,6 +26,14 @@ We support 16 standard languages (en, de, fr, es, ja, pt, id, ms, ga, pl, nl, uk
 - **Validation**: `python3 scripts/validate_i18n.py` is enforced via pre-commit hook.
 - **Drift**: All languages must have the exact same keys and placeholders as the English (`en`) reference.
 
+## 5. DDD Frozen Boundaries Rule (Mandatory)
+The architectural boundaries for core DDD apps are **Frozen** to prevent drift and regressions:
+- **Placement**: All new business logic must be placed in the correct bounded context's `domain/` or `application/` layer.
+- **Isolation**: The `domain/` layer must never depend on infrastructure, transport (fastapi), or sibling contexts' domain layers.
+- **Communication**: Cross-context communication must flow through the target context's `application/` layer only.
+- **Guardrails**: All changes MUST pass the architecture guardrail suite (`uv run pytest scripts/tests/test_ddd_architecture_guardrails.py`). Unauthorized new bounded contexts or boundary violations will result in PR rejection.
+- **Glossary**: New domain terms must be added to `docs/domain-glossary.md` and aligned with the owning context's ubiquitous language.
+
 ---
 
 > **Note**: These mandates are foundational. Failure to follow them will result in the work being rejected by the system maintainer.

@@ -1,5 +1,5 @@
 """Tests for OrderListRequest schema — limit field validator."""
-from backend.schemas.order_schemas import OrderListRequest
+from processorderhistory_backend.schemas.order_schemas import OrderListRequest
 
 
 def test_limit_below_minimum_clamped_to_one():

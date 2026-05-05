@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from backend.utils import schema_contract
+from spc_backend.utils import schema_contract
 
 
 @pytest.fixture(autouse=True)

@@ -2,10 +2,10 @@ from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
-from backend import main
-from backend.main import app
-import backend.process_control.router_charts as spc_charts
-from backend.routers import trace
+from spc_backend import main
+from spc_backend.main import app
+import spc_backend.process_control.router_charts as spc_charts
+from spc_backend.routers import trace
 
 
 client = TestClient(app)

@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone as dt_timezone
 
-from backend.manufacturing_analytics.domain.equipment import (
+from processorderhistory_backend.manufacturing_analytics.domain.equipment import (
     aggregate_by_type,
     build_activity_daily,
     build_state_distribution,

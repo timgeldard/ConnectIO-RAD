@@ -1,9 +1,9 @@
 """Unit tests for vessel_planning_dal — classifier, coerce helpers, derivation logic."""
 from unittest.mock import patch
 
-from backend.production_planning.dal import vessel_planning_dal as dal
-from backend.config import vessel_capacity as vc
-from backend.config.vessel_capacity import check_capacity, get_vessel_capacity
+from processorderhistory_backend.production_planning.dal import vessel_planning_dal as dal
+from processorderhistory_backend.config import vessel_capacity as vc
+from processorderhistory_backend.config.vessel_capacity import check_capacity, get_vessel_capacity
 
 _TEST_CAP_CONFIG = [
     {"instrument_id": "TK-101", "min_vol": 500.0, "max_vol": 2000.0, "uom": "L", "plant_id": "RCN1"},

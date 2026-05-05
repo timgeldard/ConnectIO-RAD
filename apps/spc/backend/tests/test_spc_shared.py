@@ -1,5 +1,5 @@
 import pytest
-from backend.process_control.domain.capability import normal_cdf, cpk_ci, infer_spec_type, compute_normality_result
+from spc_backend.process_control.domain.capability import normal_cdf, cpk_ci, infer_spec_type, compute_normality_result
 
 def test_normal_cdf():
     # z=0 -> 0.5

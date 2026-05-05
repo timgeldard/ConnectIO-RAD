@@ -1,6 +1,6 @@
 import pytest
 from shared_auth import require_proxy_user, UserIdentity
-from backend.main import app
+from processorderhistory_backend.main import app
 
 @pytest.fixture(autouse=True)
 def mock_require_user():

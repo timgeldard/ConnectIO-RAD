@@ -1,7 +1,7 @@
 """Unit tests for quality_analytics_dal — coerce helpers, series builders, fetch."""
 import asyncio
 
-from backend.manufacturing_analytics.dal import quality_analytics_dal as dal
+from processorderhistory_backend.manufacturing_analytics.dal import quality_analytics_dal as dal
 
 
 # ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import pytest
-from backend.process_control.domain.control_charts import compute_imr_limits
+from spc_backend.process_control.domain.control_charts import compute_imr_limits
 
 def test_compute_imr_limits():
     values = [10.0, 10.5, 9.8, 11.2, 10.1]

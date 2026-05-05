@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from backend.utils.security import SameOriginMiddleware
+from spc_backend.utils.security import SameOriginMiddleware
 
 
 def _make_app() -> FastAPI:
@@ -55,7 +55,7 @@ def test_cross_origin_delete_blocked():
 
 
 def test_missing_origin_and_referer_is_allowed_for_non_browser_clients():
-    # Backend-to-backend clients (no browser in the loop) don't send Origin;
+    # Backend-to-spc_backend clients (no browser in the loop) don't send Origin;
     # they authenticate via Bearer token, so CSRF is not the right control.
     app = _make_app()
     client = TestClient(app, base_url="http://testserver")
@@ -77,7 +77,7 @@ def test_env_allowed_origins_override(monkeypatch):
 
 def test_x_forwarded_host_is_trusted_when_origin_matches(monkeypatch):
     """Databricks Apps / ALB / nginx reverse proxies: the browser sees the
-    external hostname (in Origin) while the backend sees an internal Host.
+    external hostname (in Origin) while the spc_backend sees an internal Host.
     The middleware must accept the request when Origin matches X-Forwarded-Host."""
     monkeypatch.setenv("APP_TRUST_X_FORWARDED_HOST", "true")
     app = _make_app()

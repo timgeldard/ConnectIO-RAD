@@ -2,7 +2,7 @@
 
 import pytest
 
-from backend.order_execution.application import queries
+from processorderhistory_backend.order_execution.application import queries
 
 
 @pytest.mark.asyncio

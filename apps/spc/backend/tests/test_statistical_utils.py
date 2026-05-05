@@ -2,7 +2,7 @@ import pytest
 import json
 import os
 from hypothesis import given, strategies as st
-from backend.process_control.domain.control_charts import mean, stddev, compute_imr_limits, detect_nelson_rules
+from spc_backend.process_control.domain.control_charts import mean, stddev, compute_imr_limits, detect_nelson_rules
 
 def load_fixture(name):
     path = os.path.join(os.path.dirname(__file__), "fixtures", name)

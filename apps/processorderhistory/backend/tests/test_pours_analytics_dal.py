@@ -2,7 +2,7 @@
 import asyncio
 
 
-from backend.order_execution.dal import pours_analytics_dal as dal
+from processorderhistory_backend.order_execution.dal import pours_analytics_dal as dal
 
 
 # ---------------------------------------------------------------------------

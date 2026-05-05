@@ -2,7 +2,7 @@
 
 import pytest
 
-from backend.manufacturing_analytics.application import queries
+from processorderhistory_backend.manufacturing_analytics.application import queries
 
 
 @pytest.mark.asyncio

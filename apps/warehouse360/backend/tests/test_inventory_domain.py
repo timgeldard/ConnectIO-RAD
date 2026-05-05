@@ -2,7 +2,7 @@
 
 from shared_domain import ValueObject
 
-from backend.inventory_management.domain.plant_scope import PlantScope
+from warehouse360_backend.inventory_management.domain.plant_scope import PlantScope
 
 
 def test_plant_scope_is_value_object_and_normalizes_text():

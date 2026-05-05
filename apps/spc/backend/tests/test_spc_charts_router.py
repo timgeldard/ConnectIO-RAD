@@ -1,8 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
-from backend.main import app
-import backend.process_control.router_charts as charts_router
-import backend.chart_config.router as chart_config_router
+from spc_backend.main import app
+import spc_backend.process_control.router_charts as charts_router
+import spc_backend.chart_config.router as chart_config_router
 from unittest.mock import AsyncMock
 
 client = TestClient(app)
@@ -24,7 +24,7 @@ def mock_charts_dal(monkeypatch):
 
 @pytest.fixture
 def mock_locked_limits_dal(monkeypatch):
-    import backend.chart_config.application.commands as chart_config_commands
+    import spc_backend.chart_config.application.commands as chart_config_commands
 
     mocks = {
         "get_limits": AsyncMock(return_value=None),

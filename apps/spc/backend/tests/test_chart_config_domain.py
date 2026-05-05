@@ -3,8 +3,8 @@
 import pytest
 
 from shared_domain import BusinessRuleValidationException
-from backend.chart_config.domain.locked_limits import LockedLimits
-from backend.chart_config.domain.exclusion import Exclusion
+from spc_backend.chart_config.domain.locked_limits import LockedLimits
+from spc_backend.chart_config.domain.exclusion import Exclusion
 
 
 class TestLockedLimits:

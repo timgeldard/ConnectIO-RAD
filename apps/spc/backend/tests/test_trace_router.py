@@ -1,8 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 from shared_trace.conformance import assert_core_trace_route_contract, install_core_trace_route_stubs
-from backend.main import app
-import backend.routers.trace as trace_router
+from spc_backend.main import app
+import spc_backend.routers.trace as trace_router
 from unittest.mock import AsyncMock
 
 client = TestClient(app)

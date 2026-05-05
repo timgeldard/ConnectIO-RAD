@@ -1,6 +1,6 @@
 import asyncio
 
-from backend.process_control.dal import metadata as spc_metadata_dal
+from spc_backend.process_control.dal import metadata as spc_metadata_dal
 
 
 def _characteristic_row(**overrides):

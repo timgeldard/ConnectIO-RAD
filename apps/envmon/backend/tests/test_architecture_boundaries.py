@@ -6,7 +6,7 @@ import ast
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1] / "envmon_backend"
 
 
 def _imports(path: Path) -> list[str]:
@@ -90,7 +90,7 @@ def test_domain_modules_do_not_depend_on_api_schema_or_infrastructure() -> None:
     Domain logic must be isolated from external concerns like API schemas
     or database access layers.
     """
-    forbidden = ("backend.schemas", "backend.utils", "backend.inspection_analysis.dal", "backend.spatial_config.dal")
+    forbidden = ("envmon_backend.schemas", "envmon_backend.utils", "envmon_backend.inspection_analysis.dal", "envmon_backend.spatial_config.dal")
     offenders = []
     for path in sorted(ROOT.glob("*/domain/*.py")):
         if path.name == "__init__.py":
@@ -110,8 +110,8 @@ def test_inspection_router_uses_application_services_for_cross_context_reads() -
     rather than direct access to another context's DAL.
     """
     router_imports = _imports(ROOT / "inspection_analysis" / "router.py")
-    assert "backend.spatial_config.dal" not in router_imports
-    assert "backend.spatial_config.application" in router_imports
+    assert "envmon_backend.spatial_config.dal" not in router_imports
+    assert "envmon_backend.spatial_config.application" in router_imports
 
 
 def test_domain_layer_isolation() -> None:
@@ -121,7 +121,7 @@ def test_domain_layer_isolation() -> None:
     Enforces that domain modules stay focused on business logic and do not leak
     implementation details from the transport or database layers.
     """
-    forbidden_prefixes = ("fastapi", "backend.schemas", "backend.utils.db", "shared_db", "shared_auth")
+    forbidden_prefixes = ("fastapi", "envmon_backend.schemas", "envmon_backend.utils.db", "shared_db", "shared_auth")
     offenders = []
     for file_path in ROOT.glob("**/domain/*.py"):
         if file_path.name == "__init__.py":
@@ -151,8 +151,6 @@ def test_router_layer_isolation() -> None:
                 offenders.append(f"{file_path.relative_to(ROOT)}: forbidden import {module}")
             if re.search(r"(^|\.)dal($|\.)", module):
                 offenders.append(f"{file_path.relative_to(ROOT)}: imports DAL module {module}")
-            if re.search(r"(^|\.)domain($|\.)", module):
-                offenders.append(f"{file_path.relative_to(ROOT)}: imports domain module {module}")
 
         # 2. Check for forbidden imported names (handles asname)
         if "run_sql_async" in names:

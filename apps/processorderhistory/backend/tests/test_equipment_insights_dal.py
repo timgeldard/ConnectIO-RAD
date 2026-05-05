@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch
 from datetime import datetime, timezone as dt_timezone
 
-from backend.manufacturing_analytics.dal.equipment_insights_dal import (
+from processorderhistory_backend.manufacturing_analytics.dal.equipment_insights_dal import (
     _aggregate_by_type,
     _derive_equipment_insights,
     _classify_state,
@@ -392,7 +392,7 @@ async def test_fetch_equipment_insights_returns_all_keys():
     state_rows = [_state_row("IN USE"), _state_row("CLEAN")]
 
     mock = _make_sql_mock([sub_type_rows, daily_rows, hourly_rows, state_rows])
-    with patch("backend.manufacturing_analytics.dal.equipment_insights_dal.run_sql_async", mock):
+    with patch("processorderhistory_backend.manufacturing_analytics.dal.equipment_insights_dal.run_sql_async", mock):
         result = await fetch_equipment_insights("token")
 
     assert "total_instrument_count" in result
@@ -405,7 +405,7 @@ async def test_fetch_equipment_insights_returns_all_keys():
 @pytest.mark.asyncio
 async def test_fetch_equipment_insights_daily_length_30():
     mock = _make_sql_mock([[], [], [], []])
-    with patch("backend.manufacturing_analytics.dal.equipment_insights_dal.run_sql_async", mock):
+    with patch("processorderhistory_backend.manufacturing_analytics.dal.equipment_insights_dal.run_sql_async", mock):
         result = await fetch_equipment_insights("token")
     assert len(result["activity_daily30d"]) == 30
 
@@ -413,7 +413,7 @@ async def test_fetch_equipment_insights_daily_length_30():
 @pytest.mark.asyncio
 async def test_fetch_equipment_insights_hourly_length_24():
     mock = _make_sql_mock([[], [], [], []])
-    with patch("backend.manufacturing_analytics.dal.equipment_insights_dal.run_sql_async", mock):
+    with patch("processorderhistory_backend.manufacturing_analytics.dal.equipment_insights_dal.run_sql_async", mock):
         result = await fetch_equipment_insights("token")
     assert len(result["activity_hourly24h"]) == 24
 
@@ -422,7 +422,7 @@ async def test_fetch_equipment_insights_hourly_length_24():
 async def test_fetch_equipment_insights_state_distribution_four_buckets():
     state_rows = [_state_row("IN USE"), _state_row("DIRTY")]
     mock = _make_sql_mock([[], [], [], state_rows])
-    with patch("backend.manufacturing_analytics.dal.equipment_insights_dal.run_sql_async", mock):
+    with patch("processorderhistory_backend.manufacturing_analytics.dal.equipment_insights_dal.run_sql_async", mock):
         result = await fetch_equipment_insights("token")
     states = {r["state"] for r in result["state_distribution"]}
     assert states == {"in_use", "dirty", "available", "unknown"}
@@ -432,6 +432,6 @@ async def test_fetch_equipment_insights_state_distribution_four_buckets():
 async def test_fetch_equipment_insights_total_count_from_sub_types():
     sub_type_rows = [_sub_row("Fixed", 20), _sub_row("Connected Scale", 10)]
     mock = _make_sql_mock([sub_type_rows, [], [], []])
-    with patch("backend.manufacturing_analytics.dal.equipment_insights_dal.run_sql_async", mock):
+    with patch("processorderhistory_backend.manufacturing_analytics.dal.equipment_insights_dal.run_sql_async", mock):
         result = await fetch_equipment_insights("token")
     assert result["total_instrument_count"] == 30

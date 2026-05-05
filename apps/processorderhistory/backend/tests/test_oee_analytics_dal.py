@@ -1,8 +1,8 @@
 """Unit tests for oee_analytics_dal — coerce helpers, series builders, fetch."""
 import asyncio
-from datetime import datetime, timezone as dt_timezone
+from datetime import datetime, timedelta, timezone as dt_timezone
 
-from backend.manufacturing_analytics.dal import oee_analytics_dal as dal
+from processorderhistory_backend.manufacturing_analytics.dal import oee_analytics_dal as dal
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +66,7 @@ def test_build_daily_series_sparse_row_fills_correctly():
     tz = dt_timezone.utc
     now_utc = datetime.fromtimestamp(_NOW_MS / 1000, tz=tz)
     local_today = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
-    target_day_ms = int((local_today - dal.timedelta(days=5)).timestamp() * 1000)
+    target_day_ms = int((local_today - timedelta(days=5)).timestamp() * 1000)
     
     rows = [{"day_ms": target_day_ms, "oee_pct": "82.5", "availability_pct": "88.0"}]
     series = dal._build_daily_series(rows, _NOW_MS)

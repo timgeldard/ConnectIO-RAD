@@ -1,7 +1,7 @@
 """Unit tests for dispensary_ops domain — task status derivation."""
 
 
-from backend.dispensary_ops.domain.task_status import (
+from warehouse360_backend.dispensary_ops.domain.task_status import (
     is_urgent,
     normalize_task_status,
 )

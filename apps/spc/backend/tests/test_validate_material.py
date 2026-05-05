@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-import backend.main as main_module
-import backend.process_control.router_metadata as spc_module
+import spc_backend.main as main_module
+import spc_backend.process_control.router_metadata as spc_module
 
 
 client = TestClient(main_module.app)

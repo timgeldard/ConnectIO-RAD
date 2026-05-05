@@ -77,6 +77,61 @@ All applications follow a **Pragmatic Domain-Driven Design (DDD) / Modular Monol
 - **DAL**: Data access adapters (SQL) scoped specifically to their bounded context.
 - **Routers**: Pure HTTP transport layer using FastAPI.
 
+### 🌐 DDD Context Map (Frozen Boundaries)
+
+This map visualizes the 15 primary bounded contexts and their primary interactions. All cross-context communication flows through the **Application Layer** only.
+
+```mermaid
+graph LR
+    subgraph "Environmental Monitoring (envmon)"
+        EM_IA[inspection_analysis]
+        EM_SC[spatial_config]
+    end
+
+    subgraph "Statistical Process Control (spc)"
+        SPC_CC[chart_config]
+        SPC_PC[process_control]
+    end
+
+    subgraph "Batch Traceability (trace2)"
+        T2_BT[batch_trace]
+        T2_LA[lineage_analysis]
+        T2_QR[quality_record]
+    end
+
+    subgraph "Process Order History (poh)"
+        POH_OE[order_execution]
+        POH_MA[manufacturing_analytics]
+        POH_PP[production_planning]
+        POH_GA[genie_assist]
+    end
+
+    subgraph "Warehouse360 (wh360)"
+        W360_IM[inventory_management]
+        W360_DO[dispensary_ops]
+        W360_OF[order_fulfillment]
+        W360_CT[operations_control_tower]
+    end
+
+    subgraph "Shared Libraries"
+        S_DOM[shared-domain]
+        S_TR[shared-trace]
+    end
+
+    %% Key Interactions
+    EM_IA -- queries --> EM_SC
+    T2_LA -- references --> T2_BT
+    T2_QR -- references --> T2_BT
+    POH_MA -- summarizes --> POH_OE
+    POH_PP -- plans via --> POH_OE
+    POH_GA -- assists --> POH_OE
+
+    %% Shared logic
+    EM_IA -. uses .-> S_DOM
+    SPC_PC -. uses .-> S_DOM
+    T2_BT -. uses .-> S_TR
+```
+
 See [`docs/domain-glossary.md`](./domain-glossary.md) for a full inventory of contexts and domain models.
 
 

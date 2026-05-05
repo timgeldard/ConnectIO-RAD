@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone as dt_timezone
 
-from backend.manufacturing_analytics.domain.series import (
+from processorderhistory_backend.manufacturing_analytics.domain.series import (
     local_day_buckets,
     local_hour_buckets,
     remap_utc_midnight_to_local_day,

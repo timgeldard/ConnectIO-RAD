@@ -1,9 +1,9 @@
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from backend.main import app
-from backend.chart_config.application import commands as chart_config_commands
-import backend.chart_config.router as exclusions
+from spc_backend.main import app
+from spc_backend.chart_config.application import commands as chart_config_commands
+import spc_backend.chart_config.router as exclusions
 from shared_auth import require_proxy_user
 
 

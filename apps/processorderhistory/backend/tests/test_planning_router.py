@@ -3,8 +3,8 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
-from backend.main import app
-import backend.production_planning.router_planning as planning_router
+from processorderhistory_backend.main import app
+import processorderhistory_backend.production_planning.router_planning as planning_router
 
 client = TestClient(app)
 

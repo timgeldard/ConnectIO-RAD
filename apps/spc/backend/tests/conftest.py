@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock
 from shared_auth import require_proxy_user, require_user, UserIdentity
-from backend.main import app
+from spc_backend.main import app
 
 @pytest.fixture(autouse=True)
 def mock_auth_users():

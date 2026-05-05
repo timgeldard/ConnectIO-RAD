@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch
-from backend.main import app
+from envmon_backend.main import app
 from shared_auth import UserIdentity, require_proxy_user
 
 client = TestClient(app)
@@ -38,7 +38,7 @@ async def test_list_plants():
             return [{"n": 3}]
         return []
 
-    with patch("backend.inspection_analysis.dal.plants.run_sql_async", side_effect=mock_sql):
+    with patch("envmon_backend.inspection_analysis.dal.plants.run_sql_async", side_effect=mock_sql):
         response = client.get("/api/em/plants")
 
     assert response.status_code == 200
@@ -72,7 +72,7 @@ async def test_list_plants_keeps_geo_when_gold_plant_query_fails():
             return [{"n": 0}]
         return []
 
-    with patch("backend.inspection_analysis.dal.plants.run_sql_async", side_effect=mock_sql):
+    with patch("envmon_backend.inspection_analysis.dal.plants.run_sql_async", side_effect=mock_sql):
         response = client.get("/api/em/plants")
 
     assert response.status_code == 200
@@ -102,7 +102,7 @@ async def test_list_plants_accepts_lowercase_plant_id_rows():
             return [{"n": 0}]
         return []
 
-    with patch("backend.inspection_analysis.dal.plants.run_sql_async", side_effect=mock_sql):
+    with patch("envmon_backend.inspection_analysis.dal.plants.run_sql_async", side_effect=mock_sql):
         response = client.get("/api/em/plants")
 
     assert response.status_code == 200
@@ -129,7 +129,7 @@ async def test_list_floors():
             return [{"floor_id": "F1", "location_count": 5}]
         return []
 
-    with patch("backend.spatial_config.dal.floors.run_sql_async", side_effect=mock_sql):
+    with patch("envmon_backend.spatial_config.dal.floors.run_sql_async", side_effect=mock_sql):
         response = client.get("/api/em/floors?plant_id=P225")
 
     assert response.status_code == 200
@@ -156,7 +156,7 @@ async def test_get_heatmap():
             }
         ]
 
-    with patch("backend.inspection_analysis.dal.heatmap.run_sql_async", side_effect=mock_sql):
+    with patch("envmon_backend.inspection_analysis.dal.heatmap.run_sql_async", side_effect=mock_sql):
         response = client.get("/api/em/heatmap?plant_id=P225&floor_id=F1")
 
     assert response.status_code == 200, response.json()
@@ -174,7 +174,7 @@ async def test_get_heatmap():
 def test_risk_score_zero_for_pass_results():
     """Passing valuations contribute zero to the risk score."""
     from datetime import date
-    from backend.inspection_analysis.domain.risk import calculate_risk_score
+    from envmon_backend.inspection_analysis.domain.risk import calculate_risk_score
 
     rows = [{"valuation": "A", "mic_name": "ATP", "lot_date": "2024-01-01"}]
     score = calculate_risk_score(rows, date(2024, 1, 10), 0.1)
@@ -184,7 +184,7 @@ def test_risk_score_zero_for_pass_results():
 def test_risk_score_positive_for_fail_results():
     """Failing valuations produce a positive risk score."""
     from datetime import date
-    from backend.inspection_analysis.domain.risk import calculate_risk_score
+    from envmon_backend.inspection_analysis.domain.risk import calculate_risk_score
 
     rows = [{"valuation": "R", "mic_name": "ATP", "lot_date": "2024-01-01"}]
     score = calculate_risk_score(rows, date(2024, 1, 1), 0.1)
@@ -195,7 +195,7 @@ def test_risk_score_uses_mic_specific_decay_rates():
     """MIC-specific decay rates override the default decay lambda."""
     from datetime import date
     import math
-    from backend.inspection_analysis.domain.risk import calculate_risk_score
+    from envmon_backend.inspection_analysis.domain.risk import calculate_risk_score
 
     rows = [{"valuation": "R", "mic_name": "atp", "lot_date": "2024-01-01"}]
     score = calculate_risk_score(rows, date(2024, 1, 2), 0.1, {"ATP": 0.5})
@@ -206,7 +206,7 @@ def test_risk_score_normalizes_decay_rate_keys():
     """Lowercase MIC-specific decay keys match normalized MIC names."""
     from datetime import date
     import math
-    from backend.inspection_analysis.domain.risk import calculate_risk_score
+    from envmon_backend.inspection_analysis.domain.risk import calculate_risk_score
 
     rows = [{"valuation": "R", "mic_name": "ATP", "lot_date": "2024-01-01"}]
     score = calculate_risk_score(rows, date(2024, 1, 2), 0.1, {"atp": 0.5})
@@ -215,7 +215,7 @@ def test_risk_score_normalizes_decay_rate_keys():
 
 def test_spc_no_warning_fewer_than_3_results():
     """Early warning requires at least 3 quantitative results."""
-    from backend.inspection_analysis.domain.spc import detect_early_warning
+    from envmon_backend.inspection_analysis.domain.spc import detect_early_warning
 
     assert detect_early_warning([]) is False
     assert detect_early_warning([{"quantitative_result": "1.0"}]) is False
@@ -224,7 +224,7 @@ def test_spc_no_warning_fewer_than_3_results():
 
 def test_spc_detects_monotonic_increase():
     """Three strictly increasing values trigger an early warning."""
-    from backend.inspection_analysis.domain.spc import detect_early_warning
+    from envmon_backend.inspection_analysis.domain.spc import detect_early_warning
 
     rows = [
         {"quantitative_result": "1.0"},
@@ -236,7 +236,7 @@ def test_spc_detects_monotonic_increase():
 
 def test_spc_no_warning_on_flat_values():
     """Equal values do not trigger an early warning."""
-    from backend.inspection_analysis.domain.spc import detect_early_warning
+    from envmon_backend.inspection_analysis.domain.spc import detect_early_warning
 
     rows = [
         {"quantitative_result": "2.0"},
@@ -248,7 +248,7 @@ def test_spc_no_warning_on_flat_values():
 
 def test_derive_status_deterministic_pass():
     """Deterministic mode: accepting valuation → PASS."""
-    from backend.inspection_analysis.domain.status import derive_location_status
+    from envmon_backend.inspection_analysis.domain.status import derive_location_status
 
     rows = [{"valuation": "A"}]
     assert derive_location_status(rows, risk=0.0, continuous_mode=False, early_warning=False) == "PASS"
@@ -256,7 +256,7 @@ def test_derive_status_deterministic_pass():
 
 def test_derive_status_deterministic_fail():
     """Deterministic mode: rejecting valuation → FAIL."""
-    from backend.inspection_analysis.domain.status import derive_location_status
+    from envmon_backend.inspection_analysis.domain.status import derive_location_status
 
     rows = [{"valuation": "R"}]
     assert derive_location_status(rows, risk=0.0, continuous_mode=False, early_warning=False) == "FAIL"
@@ -264,7 +264,7 @@ def test_derive_status_deterministic_fail():
 
 def test_derive_status_spc_escalates_pass_to_warning():
     """Early warning flag escalates PASS to WARNING in both modes."""
-    from backend.inspection_analysis.domain.status import derive_location_status
+    from envmon_backend.inspection_analysis.domain.status import derive_location_status
 
     rows = [{"valuation": "A"}]
     assert derive_location_status(rows, risk=0.0, continuous_mode=False, early_warning=True) == "WARNING"
@@ -272,7 +272,7 @@ def test_derive_status_spc_escalates_pass_to_warning():
 
 def test_lot_status_pending_when_no_end_date():
     """Lot without an end date is PENDING regardless of valuation."""
-    from backend.inspection_analysis.domain.status import lot_status
+    from envmon_backend.inspection_analysis.domain.status import lot_status
 
     assert lot_status("A", None) == "PENDING"
     assert lot_status("R", None) == "PENDING"
@@ -280,7 +280,7 @@ def test_lot_status_pending_when_no_end_date():
 
 def test_lot_status_pass_and_fail():
     """Lot status maps A → PASS and R → FAIL when end date is present."""
-    from backend.inspection_analysis.domain.status import lot_status
+    from envmon_backend.inspection_analysis.domain.status import lot_status
 
     assert lot_status("A", "2024-01-01") == "PASS"
     assert lot_status("R", "2024-01-01") == "FAIL"
@@ -293,7 +293,7 @@ def test_lot_status_pass_and_fail():
 def test_location_coordinate_valid():
     """Valid coordinate values construct without error."""
     from shared_domain import ValueObject
-    from backend.spatial_config.domain.coordinate import LocationCoordinate
+    from envmon_backend.spatial_config.domain.coordinate import LocationCoordinate
 
     coord = LocationCoordinate(func_loc_id="LOC1", floor_id="F1", x_pct=50.0, y_pct=25.0)
     assert coord.x_pct == 50.0
@@ -303,7 +303,7 @@ def test_location_coordinate_valid():
 def test_location_coordinate_rejects_out_of_bounds():
     """Coordinate percentages outside 0–100 raise ValueError at construction."""
     import pytest
-    from backend.spatial_config.domain.coordinate import LocationCoordinate
+    from envmon_backend.spatial_config.domain.coordinate import LocationCoordinate
 
     with pytest.raises(ValueError, match="x_pct"):
         LocationCoordinate(func_loc_id="LOC1", floor_id="F1", x_pct=101.0, y_pct=50.0)
@@ -313,7 +313,7 @@ def test_location_coordinate_rejects_out_of_bounds():
 
 def test_plant_geo_valid():
     """Valid lat/lon construct PlantGeo without error."""
-    from backend.spatial_config.domain.plant_geo import PlantGeo
+    from envmon_backend.spatial_config.domain.plant_geo import PlantGeo
 
     geo = PlantGeo(plant_id="P225", lat=37.4, lon=-5.9)
     assert geo.lat == 37.4
@@ -322,7 +322,7 @@ def test_plant_geo_valid():
 def test_plant_geo_rejects_invalid_bounds():
     """Latitude outside -90–90 or longitude outside -180–180 raises ValueError."""
     import pytest
-    from backend.spatial_config.domain.plant_geo import PlantGeo
+    from envmon_backend.spatial_config.domain.plant_geo import PlantGeo
 
     with pytest.raises(ValueError, match="lat"):
         PlantGeo(plant_id="P225", lat=91.0, lon=0.0)

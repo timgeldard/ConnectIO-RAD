@@ -4,8 +4,8 @@ from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
 from shared_auth import UserIdentity, require_proxy_user
-from backend.main import app
-import backend.order_execution.router_orders as orders_router
+from processorderhistory_backend.main import app
+import processorderhistory_backend.order_execution.router_orders as orders_router
 
 client = TestClient(app)
 

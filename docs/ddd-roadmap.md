@@ -35,8 +35,20 @@ This document outlines the complete plan to finalize the Domain-Driven Design (D
 - [x] **Dependency Rules**: Enforce rules via linting (Domain cannot depend on infrastructure or application layers).
 
 ## Phase 4: Validation, Documentation & Handover (Completed 2026-05-04)
-- [x] **ADR**: `docs/adr/ddd-migration-architecture.md` updated with Phase 4 validation outcomes, guardrail test results, cross-context import audit, and artifact counts.
-- [x] **Per-App Docs**: DDD layer boundary tables added to `docs/architecture.md` in all five apps (envmon, spc, trace2, warehouse360, processorderhistory).
-- [x] **Regression Suite**: 3 guardrail tests pass; shared-domain (8) and shared-trace (17) pass; spc (294) and processorderhistory (392) pass. Import errors in envmon/trace2/warehouse360 are a workspace packaging gap, not an architecture violation — documented in `docs/ddd-migration-phase4.md`.
-- [x] **Code Review / Pairing**: Written aggregate walkthrough at `docs/ddd-aggregate-walkthrough.md` covering Batch aggregate, LocationCoordinate value object, Entity equality symmetry fix, write-path invariant pattern, and cross-context communication rules.
-- [x] **Success Measurement**: Zero domain-layer violations found. Zero router DAL imports found. All cross-context access verified to go through application layer only. 39 domain files and 34 application service files across 15 bounded contexts in 5 apps.
+- [x] **ADR**: `docs/adr/ddd-migration-architecture.md` updated with Phase 4 validation outcomes.
+- [x] **Per-App Docs**: DDD layer boundary tables added to `docs/architecture.md` in all five apps.
+- [x] **Regression Suite**: 3 guardrail tests pass.
+- [x] **Code Review / Pairing**: Written aggregate walkthrough at `docs/ddd-aggregate-walkthrough.md`.
+- [x] **Success Measurement**: Zero domain-layer violations found.
+
+---
+
+## ❄️ Frozen Boundaries Policy (Effective 2026-05-05)
+
+As of May 2026, the DDD architecture for core applications is considered **Frozen**. This means:
+
+1.  **No New Bounded Contexts**: Adding a new bounded context requires an approved ADR and an update to the Context Map in `docs/monorepo-architecture.md`.
+2.  **Impenetrable Domain Layer**: The `domain/` layer of any context must never import from `application/`, `dal/`, `router/`, or external infrastructure.
+3.  **Cross-Context Isolation**: Sibling contexts at the domain layer must not import each other. All interaction must occur via Application Services.
+4.  **Enforcement**: These rules are enforced via `scripts/tests/test_ddd_architecture_guardrails.py` and are a requirement for all PR approvals.
+5.  **Technical Debt Exception**: `shared-trace` currently contains monolithic read models and giant SQL queries. Decomposing this into proper DDD components is permitted as a "cleanup" task but must not introduce new boundary violations.

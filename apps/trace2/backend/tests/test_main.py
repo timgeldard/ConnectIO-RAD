@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from backend.main import app
-import backend.main as main_module
+from trace2_backend.main import app
+import trace2_backend.main as main_module
 
 
 client = TestClient(app)

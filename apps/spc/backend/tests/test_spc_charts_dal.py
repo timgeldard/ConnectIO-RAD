@@ -1,9 +1,9 @@
 import asyncio
 import pytest
 from unittest.mock import AsyncMock
-from backend.process_control.dal import charts as spc_charts_dal
-from backend.chart_config.dal import locked_limits as locked_limits_dal
-from backend.chart_config.domain.locked_limits import LockedLimits
+from spc_backend.process_control.dal import charts as spc_charts_dal
+from spc_backend.chart_config.dal import locked_limits as locked_limits_dal
+from spc_backend.chart_config.domain.locked_limits import LockedLimits
 
 def test_fetch_chart_data_page_generates_expected_sql(monkeypatch):
     calls = []

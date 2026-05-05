@@ -1,6 +1,6 @@
 """Domain tests for vessel planning heuristics."""
 
-from backend.production_planning.domain.vessels import classify_state, derive_planning_data
+from processorderhistory_backend.production_planning.domain.vessels import classify_state, derive_planning_data
 
 
 def _vessel_row(instrument_id: str, status_to: str, *, order_status: str | None = None) -> dict:

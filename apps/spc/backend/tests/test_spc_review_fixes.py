@@ -4,14 +4,14 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from starlette.requests import Request
 
-from backend.process_control.dal import analysis as spc_analysis_dal
-from backend.process_control.dal import charts as spc_charts_dal
-from backend.process_control.dal import metadata as spc_metadata_dal
-from backend.process_control.domain.capability import infer_spec_type
-import backend.chart_config.router as exclusions
-import backend.chart_config.dal.exclusions as exclusions_dal
+from spc_backend.process_control.dal import analysis as spc_analysis_dal
+from spc_backend.process_control.dal import charts as spc_charts_dal
+from spc_backend.process_control.dal import metadata as spc_metadata_dal
+from spc_backend.process_control.domain.capability import infer_spec_type
+import spc_backend.chart_config.router as exclusions
+import spc_backend.chart_config.dal.exclusions as exclusions_dal
 from shared_db import utils as spc_common
-from backend.schemas.spc_schemas import ProcessFlowRequest
+from spc_backend.schemas.spc_schemas import ProcessFlowRequest
 
 
 def test_fetch_characteristics_applies_plant_filter(monkeypatch):
