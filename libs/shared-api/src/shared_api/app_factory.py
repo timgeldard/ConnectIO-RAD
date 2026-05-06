@@ -20,6 +20,7 @@ from shared_api.errors import safe_global_exception_response
 from shared_api.middleware import LatencyMiddleware, RequestContextMiddleware
 from shared_api.rate_limit import RateLimitExceeded, RateLimitMiddleware, rate_limit_handler
 from shared_api.security import SameOriginMiddleware
+from shared_auth.identity import warn_if_jwks_unconfigured
 
 
 StaticDirGetter = Callable[[], Path]
@@ -70,6 +71,10 @@ def create_api_app(
         redoc_url=redoc_url,
         lifespan=lifespan,
     )
+
+    @app.on_event("startup")
+    async def _check_auth_config() -> None:
+        warn_if_jwks_unconfigured()
 
     # 1. Global Exception Handlers
     @app.exception_handler(Exception)

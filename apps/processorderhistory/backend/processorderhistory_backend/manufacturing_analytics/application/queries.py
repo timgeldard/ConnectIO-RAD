@@ -19,14 +19,14 @@ async def get_adherence_analytics(
     plant_id: Optional[str],
     date_from: Optional[str],
     date_to: Optional[str],
-    request_path: str,
+    timezone: str = "UTC",
 ) -> dict:
     return await adherence_analytics_dal.fetch_adherence_analytics(
         token,
         plant_id=plant_id,
         date_from=date_from,
         date_to=date_to,
-        request_path=request_path,
+        timezone=timezone,
     )
 
 
@@ -36,14 +36,14 @@ async def get_downtime_analytics(
     plant_id: Optional[str],
     date_from: Optional[str],
     date_to: Optional[str],
-    request_path: str,
+    timezone: str = "UTC",
 ) -> dict:
     return await downtime_analytics_dal.fetch_downtime_analytics(
         token,
         plant_id=plant_id,
         date_from=date_from,
         date_to=date_to,
-        request_path=request_path,
+        timezone=timezone,
     )
 
 
@@ -95,10 +95,12 @@ async def get_yield_analytics(
     plant_id: Optional[str],
     date_from: Optional[str],
     date_to: Optional[str],
+    timezone: str = "UTC",
 ) -> dict:
     return await yield_analytics_dal.fetch_yield_analytics(
         token,
         plant_id=plant_id,
         date_from=date_from,
         date_to=date_to,
+        timezone=timezone,
     )

@@ -12,6 +12,7 @@ from shared_auth import UserIdentity, require_proxy_user
 
 from processorderhistory_backend.manufacturing_analytics.application import queries as analytics_queries
 from processorderhistory_backend.db import check_warehouse_config, validate_timezone
+from processorderhistory_backend.utils.rate_limit import limiter
 
 router = APIRouter()
 
@@ -24,6 +25,7 @@ class EquipmentInsights2Request(BaseModel):
 
 
 @router.post("/equipment-insights-v2/summary")
+@limiter.limit("60/minute")
 async def get_equipment_insights2_summary(
     body: EquipmentInsights2Request,
     user: UserIdentity = Depends(require_proxy_user),

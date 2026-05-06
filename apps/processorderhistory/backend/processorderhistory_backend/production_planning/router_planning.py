@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from processorderhistory_backend.production_planning.application import queries as planning_queries
 from processorderhistory_backend.db import check_warehouse_config
+from processorderhistory_backend.utils.rate_limit import limiter
 
 router = APIRouter()
 
@@ -18,6 +19,7 @@ class PlanningScheduleRequest(BaseModel):
 
 
 @router.post("/planning/schedule")
+@limiter.limit("60/minute")
 async def get_planning_schedule(body: PlanningScheduleRequest,
     user: UserIdentity = Depends(require_proxy_user)
 ):

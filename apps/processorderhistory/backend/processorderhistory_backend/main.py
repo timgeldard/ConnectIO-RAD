@@ -8,6 +8,7 @@ from shared_api import (
     register_spa_routes,
 )
 from processorderhistory_backend.db import check_warehouse_config, run_sql_async
+from shared_db.errors import send_operational_alert
 from processorderhistory_backend.order_execution.router_me import router as me_router
 from processorderhistory_backend.order_execution.router_orders import router as orders_router
 from processorderhistory_backend.order_execution.router_order_detail import router as order_detail_router
@@ -26,7 +27,25 @@ from processorderhistory_backend.genie_assist.router_genie import router as geni
 
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 
-app = create_api_app(title="Process Order History API")
+LATENCY_BUDGETS_MS = {
+    "/api/orders": 5_000,
+    "/api/oee/analytics": 8_000,
+    "/api/downtime": 5_000,
+    "/api/adherence": 5_000,
+    "/api/yield": 5_000,
+    "/api/quality/analytics": 5_000,
+    "/api/planning/schedule": 8_000,
+}
+
+app = create_api_app(
+    title="Process Order History API",
+    latency_budgets_ms=LATENCY_BUDGETS_MS,
+    latency_alert_callback=lambda path, dur, bud, status: send_operational_alert(
+        subject="Latency budget exceeded",
+        body=f"Request to {path} completed in {dur} ms (budget {bud} ms, status {status}).",
+        request_path=path,
+    ),
+)
 app.include_router(me_router, prefix="/api")
 app.include_router(orders_router, prefix="/api")
 app.include_router(order_detail_router, prefix="/api")

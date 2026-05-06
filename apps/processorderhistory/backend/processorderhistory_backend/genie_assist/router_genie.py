@@ -16,6 +16,7 @@ from processorderhistory_backend.genie_assist.application.genie_client import (
     resolve_genie_token,
     start_conversation,
 )
+from processorderhistory_backend.utils.rate_limit import limiter
 
 router = APIRouter()
 
@@ -32,6 +33,7 @@ class GenieFollowupRequest(GenieRequest):
 
 
 @router.post("/genie/start")
+@limiter.limit("20/minute")
 async def genie_start(
     body: GenieRequest,
     x_forwarded_access_token: Optional[str] = Header(default=None),
@@ -44,6 +46,7 @@ async def genie_start(
 
 
 @router.post("/genie/followup")
+@limiter.limit("20/minute")
 async def genie_followup(
     body: GenieFollowupRequest,
     x_forwarded_access_token: Optional[str] = Header(default=None),
@@ -56,6 +59,7 @@ async def genie_followup(
 
 
 @router.get("/genie/message")
+@limiter.limit("60/minute")
 async def genie_message(
     conversation_id: str = Query(alias="conversationId"),
     message_id: str = Query(alias="messageId"),
@@ -68,6 +72,7 @@ async def genie_message(
 
 
 @router.get("/genie/query-result")
+@limiter.limit("60/minute")
 async def genie_query_result(
     conversation_id: str = Query(alias="conversationId"),
     message_id: str = Query(alias="messageId"),

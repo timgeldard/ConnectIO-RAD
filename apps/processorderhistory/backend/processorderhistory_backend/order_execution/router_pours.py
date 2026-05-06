@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from processorderhistory_backend.order_execution.application import queries as order_queries
 from processorderhistory_backend.db import check_warehouse_config, validate_timezone
+from processorderhistory_backend.utils.rate_limit import limiter
 
 router = APIRouter()
 
@@ -21,6 +22,7 @@ class PoursAnalyticsRequest(BaseModel):
 
 
 @router.post("/pours/analytics")
+@limiter.limit("60/minute")
 async def get_pours_analytics(body: PoursAnalyticsRequest,
     user: UserIdentity = Depends(require_proxy_user)
 ):

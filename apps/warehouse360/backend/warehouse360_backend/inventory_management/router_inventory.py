@@ -7,6 +7,7 @@ from fastapi import Depends, APIRouter, Request
 
 from warehouse360_backend.inventory_management.application import queries as inventory_queries
 from warehouse360_backend.utils.db import attach_data_freshness, check_warehouse_config
+from warehouse360_backend.utils.rate_limit import limiter
 
 router = APIRouter()
 
@@ -15,6 +16,7 @@ _LINESIDE_FRESHNESS_SOURCES = ["wh360_lineside_stock_v"]
 
 
 @router.get("/inventory/bins")
+@limiter.limit("60/minute")
 async def list_bins(request: Request,
     plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user)
@@ -31,6 +33,7 @@ async def list_bins(request: Request,
 
 
 @router.get("/inventory/lineside")
+@limiter.limit("60/minute")
 async def list_lineside(request: Request,
     plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user)

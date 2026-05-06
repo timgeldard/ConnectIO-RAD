@@ -7,6 +7,7 @@ from fastapi import Depends, APIRouter, HTTPException, Request
 
 from warehouse360_backend.order_fulfillment.application import queries as fulfillment_queries
 from warehouse360_backend.utils.db import attach_data_freshness, check_warehouse_config
+from warehouse360_backend.utils.rate_limit import limiter
 
 router = APIRouter()
 
@@ -20,6 +21,7 @@ _DETAIL_FRESHNESS_SOURCES = [
 
 
 @router.get("/wh-cockpit")
+@limiter.limit("60/minute")
 async def list_process_orders(request: Request,
     plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user)
@@ -36,6 +38,7 @@ async def list_process_orders(request: Request,
 
 
 @router.get("/wh-cockpit/{order_id}")
+@limiter.limit("60/minute")
 async def get_process_order(order_id: str,
     request: Request,
     user: UserIdentity = Depends(require_proxy_user)
