@@ -30,7 +30,7 @@ packages = ["spc_backend"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-q --cov=spc_backend --cov-report=term-missing --cov-fail-under=75"
+addopts = "-q --cov=spc_backend --cov-report=term-missing --cov-report=xml --cov-fail-under=75"
 asyncio_mode = "auto"
 filterwarnings = ["ignore::DeprecationWarning"]
 markers = [

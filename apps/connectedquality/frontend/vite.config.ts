@@ -22,6 +22,7 @@ export default defineConfig({
       reporter: ['text', 'lcov'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/__tests__/**', 'src/main.tsx'],
+      thresholds: { lines: 60, functions: 60 },
     },
   },
   server: {

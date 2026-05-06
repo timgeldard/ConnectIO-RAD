@@ -21,3 +21,14 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["envmon_backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q --cov=envmon_backend --cov-report=term-missing --cov-report=xml --cov-fail-under=75"
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["envmon_backend"]
+omit = ["tests/*", "envmon_backend/__init__.py"]
