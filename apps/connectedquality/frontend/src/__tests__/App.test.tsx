@@ -1,4 +1,5 @@
-﻿import { render, screen, fireEvent, within } from '@testing-library/react'
+﻿import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi } from 'vitest'
 import { App } from '~/App'
 
@@ -33,72 +34,80 @@ describe('App shell', () => {
     expect(document.querySelector('.cq-launcher')).toBeInTheDocument()
   })
 
-  it('switches to Trace module when rail button clicked', () => {
+  it('switches to Trace module when rail button clicked', async () => {
+    const user = userEvent.setup()
     render(<App />)
-    fireEvent.click(screen.getByTitle('Trace'))
+    await user.click(screen.getByTitle('Trace'))
     // Scope to SubNav — 'Overview' also appears in breadcrumb
     const traceSubnav = document.querySelector('.connectio-subnav') as HTMLElement
     expect(within(traceSubnav).getByText('Overview')).toBeInTheDocument()
     expect(within(traceSubnav).getByText('Recall Readiness')).toBeInTheDocument()
   })
 
-  it('switches to EnvMon module and shows env tabs', () => {
+  it('switches to EnvMon module and shows env tabs', async () => {
+    const user = userEvent.setup()
     render(<App />)
-    fireEvent.click(screen.getByTitle('EnvMon'))
+    await user.click(screen.getByTitle('EnvMon'))
     // Scope to SubNav — 'Global Map' also appears in breadcrumb
     const envSubnav = document.querySelector('.connectio-subnav') as HTMLElement
     expect(within(envSubnav).getByText('Global Map')).toBeInTheDocument()
     expect(within(envSubnav).getByText('Floor Plan')).toBeInTheDocument()
   })
 
-  it('switches to SPC module and shows spc tabs', () => {
+  it('switches to SPC module and shows spc tabs', async () => {
+    const user = userEvent.setup()
     render(<App />)
-    fireEvent.click(screen.getByTitle('SPC'))
+    await user.click(screen.getByTitle('SPC'))
     expect(screen.getByText('Control Charts')).toBeInTheDocument()
     expect(screen.getByText('Process Flow')).toBeInTheDocument()
   })
 
-  it('switches to Alarms when bell icon in top bar clicked', () => {
+  it('switches to Alarms when bell icon in top bar clicked', async () => {
+    const user = userEvent.setup()
     render(<App />)
     // Both rail and topbar have title="Alarms" — click the first (rail) to navigate
     const alarmsBtns = screen.getAllByTitle('Alarms')
-    fireEvent.click(alarmsBtns[0])
+    await user.click(alarmsBtns[0])
     expect(screen.getByRole('heading', { name: 'ALARMS' })).toBeInTheDocument()
   })
 
-  it('shows LabBoard without SubNav and applies is-lab class', () => {
+  it('shows LabBoard without SubNav and applies is-lab class', async () => {
+    const user = userEvent.setup()
     render(<App />)
-    fireEvent.click(screen.getByTitle('Lab Board'))
+    await user.click(screen.getByTitle('Lab Board'))
     expect(document.querySelector('.connectio-shell.fullscreen')).toBeInTheDocument()
     // SubNav should not appear for lab module
     expect(document.querySelector('.connectio-subnav')).not.toBeInTheDocument()
   })
 
-  it('shows Admin page when Settings clicked', () => {
+  it('shows Admin page when Settings clicked', async () => {
+    const user = userEvent.setup()
     render(<App />)
     // LeftRail and TopBar both have title="Settings"; use first (LeftRail)
-    fireEvent.click(screen.getAllByTitle('Settings')[0])
+    await user.click(screen.getAllByTitle('Settings')[0])
     expect(screen.getByRole('heading', { name: 'SETTINGS' })).toBeInTheDocument()
   })
 
-  it('has no SubNav on Home, Alarms, or Admin', () => {
+  it('has no SubNav on Home, Alarms, or Admin', async () => {
+    const user = userEvent.setup()
     render(<App />)
     // Default: home — no subnav
     expect(document.querySelector('.connectio-subnav')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getAllByTitle('Alarms')[0])
+    await user.click(screen.getAllByTitle('Alarms')[0])
     expect(document.querySelector('.connectio-subnav')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getAllByTitle('Settings')[0])
+    await user.click(screen.getAllByTitle('Settings')[0])
     expect(document.querySelector('.connectio-subnav')).not.toBeInTheDocument()
   })
 
-  it('navigates trace tabs independently', () => {
+  it('navigates trace tabs independently', async () => {
+    const user = userEvent.setup()
     render(<App />)
-    fireEvent.click(screen.getByTitle('Trace'))
+    await user.click(screen.getByTitle('Trace'))
     // Before clicking, 'Recall Readiness' is unique in SubNav; after clicking it's in SubNav + breadcrumb
     const recallTab = screen.getByText('Recall Readiness')
-    fireEvent.click(recallTab)
+    await user.click(recallTab)
     const navAfter = document.querySelector('.connectio-subnav') as HTMLElement
     expect(within(navAfter).getByText('Recall Readiness')).toBeInTheDocument()
   })
@@ -112,18 +121,20 @@ describe('App shell', () => {
     expect(within(bc).getByText('Home')).toBeInTheDocument()
   })
 
-  it('shows context bar with plant/material/batch', () => {
+  it('shows context bar with plant/material/batch', async () => {
+    const user = userEvent.setup()
     render(<App />)
-    fireEvent.click(screen.getByTitle('Trace'))
+    await user.click(screen.getByTitle('Trace'))
     const ctx = document.querySelector('.connectio-ctx') as HTMLElement
     expect(within(ctx).getByText(/Charleville/)).toBeInTheDocument()
   })
 
-  it('Home module cards navigate to sub-modules on click', () => {
+  it('Home module cards navigate to sub-modules on click', async () => {
+    const user = userEvent.setup()
     render(<App />)
     // Click the mod card by CSS selector — "TRACE" text also appears in inbox rows
     const traceCard = document.querySelector('.cq-mod-card.mod-trace') as HTMLElement
-    fireEvent.click(traceCard)
+    await user.click(traceCard)
     // Should switch to trace module showing tabs
     expect(screen.getByText('Recall Readiness')).toBeInTheDocument()
   })

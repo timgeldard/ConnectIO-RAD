@@ -5,7 +5,6 @@ and returns them keyed by moduleId so the platform shell can render red
 badge dots on left-rail icons.
 """
 import logging
-from typing import Optional
 from fastapi import APIRouter, Depends
 
 from shared_auth.identity import require_proxy_user, UserIdentity
@@ -15,7 +14,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Hoist the optional CQ alarms getter to avoid circular imports and enable tracking.
-_get_cq_alarms = _optional_attr("cq_backend.routers.alarms", "get_alarms", "cq_backend")
+_get_cq_alarms = _optional_attr(
+    "connectedquality_backend.routers.alarms",
+    "get_alarms",
+    "connectedquality_backend",
+)
 
 
 async def _fetch_cq_counts() -> dict[str, int]:

@@ -6,6 +6,7 @@ members = [
   "apps/trace2/backend",
   "apps/warehouse360/backend",
   "apps/processorderhistory/backend",
+  "apps/platform/backend",
   "libs/shared-api",
   "libs/shared-auth",
   "libs/shared-db",
@@ -21,9 +22,15 @@ shared-api  = { workspace = true }
 shared-domain = { workspace = true }
 shared-geo  = { workspace = true }
 shared-trace = { workspace = true }
+connectedquality-backend = { workspace = true }
+processorderhistory-backend = { workspace = true }
+warehouse360-backend = { workspace = true }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = [
+  "integration: tests that exercise integration-style API paths or external-service boundaries",
+]
 
 [tool.uv]
 dev-dependencies = [

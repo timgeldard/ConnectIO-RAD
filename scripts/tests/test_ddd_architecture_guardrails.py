@@ -25,7 +25,7 @@ DOMAIN_FORBIDDEN_PARTS = (
 )
 APPLICATION_FORBIDDEN_PREFIXES = ("fastapi",)
 ROUTER_FORBIDDEN_PARTS = (".dal",)
-ROUTER_FORBIDDEN_NAMES = ("run_sql_async", "tbl", "silver_tbl")
+ROUTER_FORBIDDEN_NAMES = ("run_sql_async", "tbl", "silver_tbl", "sql_param", "instrument_tbl")
 APPLICATION_TRANSPORT_EXCEPTIONS = {
     Path("apps/processorderhistory/backend/processorderhistory_backend/genie_assist/application/genie_client.py"),
 }
@@ -70,7 +70,19 @@ def _application_files() -> list[Path]:
 
 
 def _router_files() -> list[Path]:
-    return sorted(path for app_name, backend in zip(DDD_APP_NAMES, APP_BACKENDS) for path in (backend / f"{app_name}_backend").glob("router*.py"))
+    files: set[Path] = set()
+    for app_name, backend in zip(DDD_APP_NAMES, APP_BACKENDS):
+        inner_backend = backend / f"{app_name}_backend"
+        files.update(inner_backend.glob("**/router*.py"))
+        files.update(inner_backend.glob("**/routers/*.py"))
+    return sorted(files)
+
+
+def test_router_discovery_includes_nested_context_routers() -> None:
+    router_paths = {path.relative_to(REPO_ROOT).as_posix() for path in _router_files()}
+
+    assert "apps/spc/backend/spc_backend/process_control/router_charts.py" in router_paths
+    assert "apps/trace2/backend/trace2_backend/batch_trace/router.py" in router_paths
 
 
 def test_domain_modules_do_not_import_transport_application_or_infrastructure() -> None:

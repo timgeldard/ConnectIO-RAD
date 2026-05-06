@@ -25,8 +25,8 @@ from spc_backend.utils.db import (
 )
 from spc_backend.utils.rate_limit import limiter
 from shared_auth import UserIdentity, require_proxy_user
-from spc_backend.process_control.dal.analysis import fetch_scorecard
-from spc_backend.process_control.dal.charts import (
+from spc_backend.process_control.application.export_queries import (
+    fetch_scorecard,
     fetch_chart_data,
     fetch_count_chart_data,
     fetch_p_chart_data,
