@@ -34,7 +34,14 @@ The architectural boundaries for core DDD apps are **Frozen** to prevent drift a
 - **Guardrails**: All changes MUST pass the architecture guardrail suite (`uv run pytest scripts/tests/test_ddd_architecture_guardrails.py`). Unauthorized new bounded contexts or boundary violations will result in PR rejection.
 - **Glossary**: New domain terms must be added to `docs/domain-glossary.md` and aligned with the owning context's ubiquitous language.
 
-## 6. Branch Protection & Git Workflow
+## 6. Design System & Frontend Standards
+The ConnectIO-RAD monorepo uses the **Kerry Design System** (custom tokens and components in `libs/shared-ui`).
+- **Forbidden**: IBM Carbon Design System (`@carbon/*`) is deprecated and must not be used in new features.
+- **Tokens**: All styling must use Kerry CSS variables (e.g., `var(--brand)`, `var(--surface-1)`). Hardcoded colors or Carbon tokens are prohibited.
+- **Components**: Prefer components from `@connectio/shared-ui`. If a component is missing, build it in `shared-ui` following the Kerry tokens.
+- **Theming**: Support for Light, Dark, and High-Contrast modes is required via the `useTheme()` hook and `data-theme` attribute.
+
+## 7. Branch Protection & Git Workflow
 Direct commits to the `main` or `master` branches are strictly forbidden:
 - **Isolation**: All new features, bug fixes, or documentation updates MUST be performed on a dedicated feature or fix branch.
 - **Review**: Changes must be submitted via Pull Request and pass all automated CI checks (Lint, Test, i18n, DDD Guardrails) before merging.

@@ -13,6 +13,7 @@ const ICON_PATHS: Record<string, string> = {
   'check':           'M20 6L9 17l-5-5',
   'check-circle':    'M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3',
   'x':               'M18 6L6 18M6 6l12 12',
+  'close':           'M18 6L6 18M6 6l12 12',
   'x-circle':        'M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zM15 9l-6 6M9 9l6 6',
   'plus':            'M12 5v14M5 12h14',
   'minus':           'M5 12h14',

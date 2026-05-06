@@ -32,6 +32,10 @@ const checks = [
     match: code => /components\/ui(\/|['"])/.test(code),
   },
   {
+    name: 'Carbon Design System imports',
+    match: code => /@carbon\//.test(code),
+  },
+  {
     name: 'Tailwind utility usage',
     match: code => /className\s*=\s*["'`{][^]*?\b(?:bg-|text-|border-|rounded|shadow|px-|py-|mx-|my-|flex|grid|gap-|justify-|items-|min-h-|h-\[|h-|w-\[|w-|dark:|sm:|md:|lg:|xl:|sticky|top-|left-|right-|bottom-)/m.test(code),
   },

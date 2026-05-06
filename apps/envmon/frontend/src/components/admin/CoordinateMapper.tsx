@@ -9,6 +9,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '@connectio/shared-frontend-i18n';
 import { IconTrash, IconMove, IconPlus, IconX, IconSearch } from '~/components/ui/Icons';
+import { DataTable, type Column, Button } from '@connectio/shared-ui';
 import { useEM } from '~/context/EMContext';
 import {
   usePlants,
@@ -83,10 +84,10 @@ function AddFloorForm({ plantId, onDone }: { plantId: string; onDone: () => void
         <input placeholder={t('envmon.admin.floor.placeholder.svgUrl')} value={svgUrl} onChange={(e) => setSvgUrl(e.target.value)}
           style={{ fontSize: 12, padding: '4px 8px', border: '1px solid var(--stroke)', borderRadius: 4 }} />
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="btn btn-primary btn-sm" type="submit" disabled={isPending || !floorId.trim() || !floorName.trim()}>
+          <Button variant="primary" size="sm" type="submit" disabled={isPending || !floorId.trim() || !floorName.trim()}>
             {isPending ? t('envmon.admin.floor.adding') : t('envmon.admin.floor.add')}
-          </button>
-          <button className="btn btn-ghost btn-sm" type="button" onClick={onDone}>{t('envmon.admin.floor.cancel')}</button>
+          </Button>
+          <Button variant="ghost" size="sm" type="button" onClick={onDone}>{t('envmon.admin.floor.cancel')}</Button>
         </div>
       </div>
     </form>
@@ -134,70 +135,71 @@ function PlantGeoPanel() {
     });
   };
 
+  const columns: Column<any>[] = [
+    {
+      header: t('envmon.admin.geo.col.plant'),
+      render: (p) => (
+        <>
+          <span style={{ fontWeight: 600 }}>{p.plant_code}</span>
+          <span style={{ color: 'var(--text-3)', marginLeft: 6, fontSize: 12 }}>{p.plant_name}</span>
+        </>
+      )
+    },
+    {
+      header: t('envmon.admin.geo.col.lat'),
+      render: (p) => (
+        <input
+          type="number"
+          step="any"
+          placeholder="e.g. 53.3498"
+          value={getField(p.plant_id, 'lat')}
+          onChange={(e) => setField(p.plant_id, 'lat', e.target.value)}
+          style={{ width: 130, padding: '5px 8px', fontSize: 13, border: '1px solid var(--line-2)', borderRadius: 4, background: 'var(--surface-1)', color: 'var(--text-1)' }}
+        />
+      )
+    },
+    {
+      header: t('envmon.admin.geo.col.lon'),
+      render: (p) => (
+        <input
+          type="number"
+          step="any"
+          placeholder="e.g. -6.2603"
+          value={getField(p.plant_id, 'lon')}
+          onChange={(e) => setField(p.plant_id, 'lon', e.target.value)}
+          style={{ width: 130, padding: '5px 8px', fontSize: 13, border: '1px solid var(--line-2)', borderRadius: 4, background: 'var(--surface-1)', color: 'var(--text-1)' }}
+        />
+      )
+    },
+    {
+      header: '',
+      align: 'right',
+      render: (p) => savedFlags[p.plant_id] ? (
+        <span style={{ fontSize: 12, color: 'var(--status-ok)', fontFamily: 'var(--font-mono)' }}>{t('envmon.admin.geo.saved')}</span>
+      ) : (
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={isPending}
+          onClick={() => handleSave(p.plant_id)}
+        >
+          {t('envmon.admin.geo.save')}
+        </Button>
+      )
+    }
+  ];
+
   return (
-    <div style={{ padding: '20px 24px', maxWidth: 720 }}>
+    <div style={{ padding: '20px 24px', maxWidth: 840 }}>
       <div className="eyebrow" style={{ marginBottom: 4 }}>{t('envmon.admin.geo.eyebrow')}</div>
-      <p style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 0, marginBottom: 16 }}>
+      <p style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 0, marginBottom: 16 }}>
         {t('envmon.admin.geo.help')}
       </p>
-      <table className="tbl">
-        <thead>
-          <tr>
-            <th>{t('envmon.admin.geo.col.plant')}</th>
-            <th>{t('envmon.admin.geo.col.lat')}</th>
-            <th>{t('envmon.admin.geo.col.lon')}</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {plants.map((p) => (
-            <tr key={p.plant_id}>
-              <td>
-                <span style={{ fontWeight: 600 }}>{p.plant_code}</span>
-                <span style={{ color: 'var(--fg-muted)', marginLeft: 6, fontSize: 12 }}>{p.plant_name}</span>
-              </td>
-              <td>
-                <input
-                  type="number"
-                  step="any"
-                  placeholder="e.g. 53.3498"
-                  value={getField(p.plant_id, 'lat')}
-                  onChange={(e) => setField(p.plant_id, 'lat', e.target.value)}
-                  style={{ width: 130, padding: '5px 8px', fontSize: 13, border: '1px solid var(--stroke)', borderRadius: 4 }}
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  step="any"
-                  placeholder="e.g. -6.2603"
-                  value={getField(p.plant_id, 'lon')}
-                  onChange={(e) => setField(p.plant_id, 'lon', e.target.value)}
-                  style={{ width: 130, padding: '5px 8px', fontSize: 13, border: '1px solid var(--stroke)', borderRadius: 4 }}
-                />
-              </td>
-              <td>
-                {savedFlags[p.plant_id] ? (
-                  <span style={{ fontSize: 12, color: 'var(--jade)', fontFamily: 'var(--font-mono)' }}>{t('envmon.admin.geo.saved')}</span>
-                ) : (
-                  <button
-                    className="btn btn-primary btn-sm"
-                    disabled={isPending}
-                    onClick={() => handleSave(p.plant_id)}
-                  >
-                    {t('envmon.admin.geo.save')}
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-          {plants.length === 0 && (
-            <tr>
-              <td colSpan={4} style={{ color: 'var(--fg-muted)', fontStyle: 'italic' }}>{t('envmon.admin.geo.noPlants')}</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={plants}
+        rowKey={(p) => p.plant_id}
+      />
     </div>
   );
 }

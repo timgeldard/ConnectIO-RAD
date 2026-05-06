@@ -3,6 +3,7 @@ import { useI18n } from '@connectio/shared-frontend-i18n';
 import { useEM } from '~/context/EMContext';
 import { useMics, useHeatmap } from '~/api/client';
 import { IconDownload, IconPlay, IconPause } from '~/components/ui/Icons';
+import { Slider, Select, Button, Icon } from '@connectio/shared-ui';
 import type { TimeWindow } from '~/types';
 
 function escapeCsv(val: unknown): string {
@@ -99,19 +100,15 @@ export default function FilterBar() {
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 24px', background: 'white', borderBottom: '1px solid var(--stroke-soft)', flexWrap: 'wrap', flexShrink: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 24px', background: 'var(--surface-1)', borderBottom: '1px solid var(--line-1)', flexWrap: 'wrap', flexShrink: 0 }}>
       {/* Time window */}
-      <div>
-        <div className="eyebrow" style={{ marginBottom: 4 }}>{t('envmon.filterBar.timeWindow')}</div>
-        <select
+      <div style={{ width: 140 }}>
+        <Select
+          label={t('envmon.filterBar.timeWindow')}
           value={String(timeWindow)}
-          onChange={(e) => setTimeWindow(Number(e.target.value) as TimeWindow)}
-          style={{ width: 110 }}
-        >
-          {TIME_WINDOW_VALUES.map((value) => (
-            <option key={value} value={String(value)}>{t('envmon.filterBar.days', { n: value })}</option>
-          ))}
-        </select>
+          onChange={(v) => setTimeWindow(Number(v) as TimeWindow)}
+          options={TIME_WINDOW_VALUES.map(v => ({ label: t('envmon.filterBar.days', { n: v }), value: String(v) }))}
+        />
       </div>
 
       {/* MIC filter chips */}
@@ -130,7 +127,7 @@ export default function FilterBar() {
               );
             })}
             {selectedMics.length > 0 && (
-              <button className="chip" style={{ fontSize: 11, padding: '2px 8px', color: 'var(--fg-muted)' }}
+              <button className="chip" style={{ fontSize: 11, padding: '2px 8px', color: 'var(--text-3)' }}
                 onClick={() => setSelectedMics([])}>
                 {t('envmon.filterBar.clearFilter')}
               </button>
@@ -142,12 +139,12 @@ export default function FilterBar() {
       {/* Heatmap mode */}
       <div>
         <div className="eyebrow" style={{ marginBottom: 4 }}>{t('envmon.filterBar.heatmapMode')}</div>
-        <div style={{ display: 'inline-flex', background: 'var(--stone)', borderRadius: 999, padding: 2 }}>
+        <div style={{ display: 'inline-flex', background: 'var(--surface-sunken)', borderRadius: 999, padding: 2 }}>
           {(['deterministic', 'continuous'] as const).map((m) => (
             <button key={m} onClick={() => setHeatmapMode(m)}
               style={{ padding: '4px 12px', fontSize: 12, borderRadius: 999,
-                background: heatmapMode === m ? 'var(--forest)' : 'transparent',
-                color: heatmapMode === m ? 'white' : 'var(--fg-muted)' }}>
+                background: heatmapMode === m ? 'var(--brand)' : 'transparent',
+                color: heatmapMode === m ? 'white' : 'var(--text-3)' }}>
               {m === 'deterministic' ? t('envmon.filterBar.deterministic') : t('envmon.filterBar.continuous')}
             </button>
           ))}
@@ -156,30 +153,34 @@ export default function FilterBar() {
 
       {/* Sensitivity (continuous only) */}
       {heatmapMode === 'continuous' && (
-        <div>
-          <div className="eyebrow" style={{ marginBottom: 4 }}>
-            {t('envmon.filterBar.sensitivity', { n: Math.round(Math.log(2) / decayLambda) })}
-          </div>
-          <input type="range" min="0.02" max="0.5" step="0.01" value={decayLambda}
-            onChange={(e) => setDecayLambda(Number(e.target.value))}
-            style={{ width: 130 }} />
+        <div style={{ width: 140 }}>
+          <Slider
+            label={t('envmon.filterBar.sensitivity', { n: Math.round(Math.log(2) / decayLambda) })}
+            min={0.02} max={0.5} step={0.01} value={decayLambda}
+            onChange={setDecayLambda}
+          />
         </div>
       )}
 
       <div style={{ flex: 1 }} />
 
       {/* Time-travel */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div className="eyebrow" style={{ marginRight: 2 }}>{t('envmon.filterBar.timeTravel')}</div>
-        <button className="btn btn-icon btn-ghost"
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setIsPlaying(!isPlaying)}
-          title={isPlaying ? t('envmon.filterBar.pause') : t('envmon.filterBar.play')}>
-          {isPlaying ? <IconPause size={12} /> : <IconPlay size={12} />}
-        </button>
-        <input type="range" min={0} max={timeWindow} step={1} value={sliderValue}
-          onChange={(e) => handleSliderChange(Number(e.target.value))}
-          style={{ width: 160 }} />
-        <span className="mono" style={{ fontSize: 11, color: 'var(--fg-muted)', minWidth: 56 }}>
+          title={isPlaying ? t('envmon.filterBar.pause') : t('envmon.filterBar.play')}
+          icon={<Icon name={isPlaying ? "pause" : "play"} size={14} />}
+        />
+        <div style={{ width: 180 }}>
+          <Slider
+            label={t('envmon.filterBar.timeTravel')}
+            min={0} max={timeWindow} step={1} value={sliderValue}
+            onChange={handleSliderChange}
+          />
+        </div>
+        <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)', minWidth: 64, marginTop: 18 }}>
           {sliderValue === 0
             ? t('envmon.filterBar.today')
             : t('envmon.filterBar.daysAgo', { n: sliderValue })}
@@ -187,12 +188,16 @@ export default function FilterBar() {
       </div>
 
       {/* Export */}
-      <button className="btn btn-ghost btn-sm"
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={handleExport}
         disabled={!heatmapData?.markers?.length}
-        title={t('envmon.filterBar.exportCsv')}>
-        <IconDownload size={12} /> CSV
-      </button>
+        title={t('envmon.filterBar.exportCsv')}
+        icon={<Icon name="download" size={14} />}
+      >
+        CSV
+      </Button>
     </div>
   );
 }
