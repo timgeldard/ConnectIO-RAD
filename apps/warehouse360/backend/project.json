@@ -11,10 +11,17 @@
         "cwd": "{workspaceRoot}"
       }
     },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "PYTHONPATH=apps/warehouse360/backend uv run --no-sync --package warehouse360-backend uvicorn warehouse360_backend.main:app --reload --port 8004",
+        "cwd": "{workspaceRoot}"
+      }
+    },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run --no-sync --package warehouse360-backend python -m pytest apps/warehouse360/backend/tests",
+        "command": "PYTHONPATH=apps/warehouse360/backend uv run --no-sync --package warehouse360-backend python -m pytest apps/warehouse360/backend/tests",
         "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
@@ -23,7 +30,7 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run --no-sync ruff check apps/warehouse360/backend",
+        "command": "PYTHONPATH=apps/warehouse360/backend uv run --no-sync --package warehouse360-backend ruff check apps/warehouse360/backend",
         "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],

@@ -1,0 +1,46 @@
+{
+  "name": "platform-backend",
+  "projectType": "application",
+  "tags": ["scope:platform", "type:backend"],
+  "implicitDependencies": [
+    "shared-api",
+    "shared-auth",
+    "connectedquality-backend",
+    "processorderhistory-backend",
+    "warehouse360-backend"
+  ],
+  "targets": {
+    "sync": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync --package platform-backend",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "PYTHONPATH=apps/platform uv run --no-sync --package platform-backend uvicorn backend.main:app --reload --port 8006",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "PYTHONPATH=apps/platform uv run --no-sync --package platform-backend python -m pytest apps/platform/backend/tests",
+        "cwd": "{workspaceRoot}"
+      },
+      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "PYTHONPATH=apps/platform uv run --no-sync --package platform-backend ruff check apps/platform/backend",
+        "cwd": "{workspaceRoot}"
+      },
+      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "cache": true
+    }
+  }
+}

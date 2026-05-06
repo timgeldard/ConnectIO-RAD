@@ -9,7 +9,7 @@ from shared_trace.freshness_sources import (
     TRACE_TREE_FRESHNESS_SOURCES,
 )
 
-from spc_backend.dal.trace_dal import (
+from spc_backend.process_control.application.trace_compat import (
     MAX_TRACE_LEVELS,
     _build_tree,
     fetch_batch_compare,

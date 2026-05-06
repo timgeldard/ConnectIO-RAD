@@ -6,6 +6,7 @@ Warehouse360 (at /warehouse360) from a single Databricks App process.
 Backend bundles are produced by scripts/build.py. The module is still importable
 before that build step so health/readiness can report a clear degraded state.
 """
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,7 @@ from shared_api import create_api_app, health_payload, databricks_sql_ready
 from backend.routes.badges import router as badges_router
 from backend.utils import _optional_attr, get_missing_artifacts
 
+logger = logging.getLogger(__name__)
 _missing_build_artifacts = get_missing_artifacts()
 
 
@@ -23,44 +25,137 @@ def _optional_router(module_name: str, artifact: str) -> Any | None:
     return _optional_attr(module_name, "router", artifact)
 
 
-check_warehouse_config = _optional_attr("poh_backend.db", "check_warehouse_config", "poh_backend")
-run_sql_async = _optional_attr("poh_backend.db", "run_sql_async", "poh_backend")
+check_warehouse_config = _optional_attr(
+    "processorderhistory_backend.db",
+    "check_warehouse_config",
+    "processorderhistory_backend",
+)
+run_sql_async = _optional_attr("processorderhistory_backend.db", "run_sql_async", "processorderhistory_backend")
 
 CQ_ROUTERS = [
-    (_optional_router("cq_backend.routers.trace", "cq_backend"), "/api/cq", ["CQ-Trace"]),
-    (_optional_router("cq_backend.routers.envmon", "cq_backend"), "/api/cq", ["CQ-EnvMon"]),
-    (_optional_router("cq_backend.routers.spc", "cq_backend"), "/api/cq", ["CQ-SPC"]),
-    (_optional_router("cq_backend.routers.lab", "cq_backend"), "/api/cq", ["CQ-Lab"]),
-    (_optional_router("cq_backend.routers.me_router", "cq_backend"), "/api/cq", ["CQ-Me"]),
-    (_optional_router("cq_backend.routers.alarms", "cq_backend"), "/api/cq", ["CQ-Alarms"]),
+    (_optional_router("connectedquality_backend.routers.trace", "connectedquality_backend"), "/api/cq", ["CQ-Trace"]),
+    (_optional_router("connectedquality_backend.routers.envmon", "connectedquality_backend"), "/api/cq", ["CQ-EnvMon"]),
+    (_optional_router("connectedquality_backend.routers.spc", "connectedquality_backend"), "/api/cq", ["CQ-SPC"]),
+    (_optional_router("connectedquality_backend.routers.lab", "connectedquality_backend"), "/api/cq", ["CQ-Lab"]),
+    (
+        _optional_router("connectedquality_backend.user_preferences.router_me", "connectedquality_backend"),
+        "/api/cq",
+        ["CQ-Me"],
+    ),
+    (_optional_router("connectedquality_backend.routers.alarms", "connectedquality_backend"), "/api/cq", ["CQ-Alarms"]),
 ]
 
 POH_ROUTERS = [
-    (_optional_router("poh_backend.order_execution.router_me", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.order_execution.router_orders", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.order_execution.router_order_detail", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.order_execution.router_pours", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.production_planning.router_planning", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.order_execution.router_day_view", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.manufacturing_analytics.router_yield", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.manufacturing_analytics.router_quality", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.manufacturing_analytics.router_downtime", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.manufacturing_analytics.router_oee", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.manufacturing_analytics.router_adherence", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.genie_assist.router_genie", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.production_planning.router_vessel_planning", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.manufacturing_analytics.router_equipment_insights", "poh_backend"), "/api", None),
-    (_optional_router("poh_backend.manufacturing_analytics.router_equipment_insights2", "poh_backend"), "/api", None),
+    (_optional_router("processorderhistory_backend.order_execution.router_me", "processorderhistory_backend"), "/api", None),
+    (_optional_router("processorderhistory_backend.order_execution.router_orders", "processorderhistory_backend"), "/api", None),
+    (
+        _optional_router("processorderhistory_backend.order_execution.router_order_detail", "processorderhistory_backend"),
+        "/api",
+        None,
+    ),
+    (_optional_router("processorderhistory_backend.order_execution.router_pours", "processorderhistory_backend"), "/api", None),
+    (
+        _optional_router("processorderhistory_backend.production_planning.router_planning", "processorderhistory_backend"),
+        "/api",
+        None,
+    ),
+    (
+        _optional_router("processorderhistory_backend.order_execution.router_day_view", "processorderhistory_backend"),
+        "/api",
+        None,
+    ),
+    (
+        _optional_router("processorderhistory_backend.manufacturing_analytics.router_yield", "processorderhistory_backend"),
+        "/api",
+        None,
+    ),
+    (
+        _optional_router("processorderhistory_backend.manufacturing_analytics.router_quality", "processorderhistory_backend"),
+        "/api",
+        None,
+    ),
+    (
+        _optional_router("processorderhistory_backend.manufacturing_analytics.router_downtime", "processorderhistory_backend"),
+        "/api",
+        None,
+    ),
+    (
+        _optional_router("processorderhistory_backend.manufacturing_analytics.router_oee", "processorderhistory_backend"),
+        "/api",
+        None,
+    ),
+    (
+        _optional_router("processorderhistory_backend.manufacturing_analytics.router_adherence", "processorderhistory_backend"),
+        "/api",
+        None,
+    ),
+    (
+        _optional_router("processorderhistory_backend.genie_assist.router_genie", "processorderhistory_backend"),
+        "/api",
+        None,
+    ),
+    (
+        _optional_router(
+            "processorderhistory_backend.production_planning.router_vessel_planning",
+            "processorderhistory_backend",
+        ),
+        "/api",
+        None,
+    ),
+    (
+        _optional_router(
+            "processorderhistory_backend.manufacturing_analytics.router_equipment_insights",
+            "processorderhistory_backend",
+        ),
+        "/api",
+        None,
+    ),
+    (
+        _optional_router(
+            "processorderhistory_backend.manufacturing_analytics.router_equipment_insights2",
+            "processorderhistory_backend",
+        ),
+        "/api",
+        None,
+    ),
 ]
 
 W360_ROUTERS = [
-    (_optional_router("w360_backend.order_fulfillment.router_process_orders", "w360_backend"), "/api/wh", ["W360-ProcessOrders"]),
-    (_optional_router("w360_backend.order_fulfillment.router_deliveries", "w360_backend"), "/api/wh", ["W360-Deliveries"]),
-    (_optional_router("w360_backend.inventory_management.router_inbound", "w360_backend"), "/api/wh", ["W360-Inbound"]),
-    (_optional_router("w360_backend.inventory_management.router_inventory", "w360_backend"), "/api/wh", ["W360-Inventory"]),
-    (_optional_router("w360_backend.dispensary_ops.router_dispensary", "w360_backend"), "/api/wh", ["W360-Dispensary"]),
-    (_optional_router("w360_backend.operations_control_tower.router_kpis", "w360_backend"), "/api/wh", ["W360-KPIs"]),
-    (_optional_router("w360_backend.inventory_management.router_plants", "w360_backend"), "/api/wh", ["W360-Plants"]),
+    (
+        _optional_router("warehouse360_backend.order_fulfillment.router_process_orders", "warehouse360_backend"),
+        "/api/wh",
+        ["W360-ProcessOrders"],
+    ),
+    (
+        _optional_router("warehouse360_backend.order_fulfillment.router_deliveries", "warehouse360_backend"),
+        "/api/wh",
+        ["W360-Deliveries"],
+    ),
+    (
+        _optional_router("warehouse360_backend.inventory_management.router_inbound", "warehouse360_backend"),
+        "/api/wh",
+        ["W360-Inbound"],
+    ),
+    (
+        _optional_router("warehouse360_backend.inventory_management.router_inventory", "warehouse360_backend"),
+        "/api/wh",
+        ["W360-Inventory"],
+    ),
+    (
+        _optional_router("warehouse360_backend.dispensary_ops.router_dispensary", "warehouse360_backend"),
+        "/api/wh",
+        ["W360-Dispensary"],
+    ),
+    (
+        _optional_router("warehouse360_backend.operations_control_tower.router_kpis", "warehouse360_backend"),
+        "/api/wh",
+        ["W360-KPIs"],
+    ),
+    (
+        _optional_router("warehouse360_backend.inventory_management.router_plants", "warehouse360_backend"),
+        "/api/wh",
+        ["W360-Plants"],
+    ),
 ]
 
 _STATIC = Path(__file__).parent.parent / "static"
@@ -121,7 +216,7 @@ async def ready():
     if check_warehouse_config is None or run_sql_async is None:
         raise HTTPException(
             status_code=503,
-            detail={"status": "not_ready", "reason": "poh_backend_unavailable"},
+            detail={"status": "not_ready", "reason": "processorderhistory_backend_unavailable"},
         )
     return await databricks_sql_ready(
         check_warehouse_config=check_warehouse_config,

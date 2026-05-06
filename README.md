@@ -15,11 +15,13 @@ Comprehensive documentation is available in the `/docs` directory:
 
 Every application in this monorepo provides an auto-generated, interactive Swagger UI for API exploration and testing. When running locally, these are accessible at:
 
-- **envmon**: `http://localhost:8000/api/docs`
-- **spc**: `http://localhost:8001/api/docs`
+- **spc**: `http://localhost:8000/api/docs`
+- **envmon**: `http://localhost:8001/api/docs`
 - **trace2**: `http://localhost:8002/api/docs`
-- **warehouse360**: `http://localhost:8003/api/docs`
-- **processorderhistory**: `http://localhost:8004/api/docs`
+- **processorderhistory**: `http://localhost:8003/api/docs`
+- **warehouse360**: `http://localhost:8004/api/docs`
+- **connectedquality**: `http://localhost:8005/api/docs`
+- **platform**: `http://localhost:8006/api/docs`
 
 ---
 

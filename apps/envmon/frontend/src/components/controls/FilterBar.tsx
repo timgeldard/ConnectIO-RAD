@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@connectio/shared-frontend-i18n';
 import { useEM } from '~/context/EMContext';
 import { useMics, useHeatmap } from '~/api/client';
-import { IconDownload, IconPlay, IconPause } from '~/components/ui/Icons';
 import { Slider, Select, Button, Icon } from '@connectio/shared-ui';
 import type { TimeWindow } from '~/types';
 

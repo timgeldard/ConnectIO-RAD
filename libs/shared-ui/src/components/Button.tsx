@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import type { CSSProperties } from 'react'
 
 /**
@@ -25,6 +25,10 @@ export interface ButtonProps {
   className?: string
   /** Optional inline styles. */
   style?: CSSProperties
+  /** Native button type. Defaults to 'button'. */
+  type?: ButtonHTMLAttributes<HTMLButtonElement>['type']
+  /** Native title tooltip text. */
+  title?: string
 }
 
 /**
@@ -41,7 +45,9 @@ export function Button({
   disabled,
   loading,
   className,
-  style
+  style,
+  type = 'button',
+  title
 }: ButtonProps) {
   const [hover, setHover] = useState(false)
 
@@ -86,6 +92,8 @@ export function Button({
 
   return (
     <button
+      type={type}
+      title={title}
       onClick={disabled || loading ? undefined : onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
