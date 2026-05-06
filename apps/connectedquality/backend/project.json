@@ -14,14 +14,14 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/connectedquality:libs/shared-db/src:libs/shared-api/src uv run --no-sync --package connectedquality-backend uvicorn backend.main:app --reload --port 8002",
+        "command": "uv run --no-sync --package connectedquality-backend uvicorn connectedquality_backend.main:app --reload --port 8002",
         "cwd": "{workspaceRoot}"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/connectedquality:libs/shared-db/src:libs/shared-api/src uv run --no-sync --package connectedquality-backend python -m pytest apps/connectedquality/backend/tests",
+        "command": "uv run --no-sync --package connectedquality-backend python -m pytest apps/connectedquality/backend/tests",
         "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],

@@ -14,14 +14,14 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/envmon:libs/shared-db/src:libs/shared-api/src:libs/shared-geo/src uv run --no-sync --package envmon-backend uvicorn backend.main:app --reload --port 8001",
+        "command": "uv run --no-sync --package envmon-backend uvicorn envmon_backend.main:app --reload --port 8001",
         "cwd": "{workspaceRoot}"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/envmon:libs/shared-db/src:libs/shared-api/src:libs/shared-geo/src uv run --no-sync --package envmon-backend python -m pytest apps/envmon/backend/tests",
+        "command": "uv run --no-sync --package envmon-backend python -m pytest apps/envmon/backend/tests",
         "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],

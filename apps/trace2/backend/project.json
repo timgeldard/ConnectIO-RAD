@@ -14,14 +14,14 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/trace2:libs/shared-db/src:libs/shared-api/src:libs/shared-geo/src:libs/shared-trace/src uv run --no-sync --package trace2-backend uvicorn backend.main:app --reload --port 8002",
+        "command": "uv run --no-sync --package trace2-backend uvicorn trace2_backend.main:app --reload --port 8002",
         "cwd": "{workspaceRoot}"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/trace2:libs/shared-db/src:libs/shared-api/src:libs/shared-geo/src:libs/shared-trace/src uv run --no-sync --package trace2-backend python -m pytest apps/trace2/backend/tests",
+        "command": "uv run --no-sync --package trace2-backend python -m pytest apps/trace2/backend/tests",
         "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],

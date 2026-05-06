@@ -14,14 +14,14 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/spc:libs/shared-db/src:libs/shared-api/src:libs/shared-geo/src:libs/shared-trace/src uv run --no-sync --package spc-backend uvicorn backend.main:app --reload --port 8000",
+        "command": "uv run --no-sync --package spc-backend uvicorn spc_backend.main:app --reload --port 8000",
         "cwd": "{workspaceRoot}"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/spc:libs/shared-db/src:libs/shared-api/src:libs/shared-geo/src:libs/shared-trace/src uv run --no-sync --package spc-backend python -m pytest apps/spc/backend/tests",
+        "command": "uv run --no-sync --package spc-backend python -m pytest apps/spc/backend/tests",
         "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
