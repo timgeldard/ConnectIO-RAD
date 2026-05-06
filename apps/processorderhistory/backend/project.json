@@ -14,14 +14,14 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/processorderhistory:libs/shared-api/src:libs/shared-db/src uv run --no-sync --package processorderhistory-backend uvicorn backend.main:app --reload --port 8003",
+        "command": "uv run --no-sync --package processorderhistory-backend uvicorn processorderhistory_backend.main:app --reload --port 8003",
         "cwd": "{workspaceRoot}"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/processorderhistory:libs/shared-api/src:libs/shared-db/src uv run --no-sync --package processorderhistory-backend python -m pytest apps/processorderhistory/backend/tests",
+        "command": "uv run --no-sync --package processorderhistory-backend python -m pytest apps/processorderhistory/backend/tests",
         "cwd": "{workspaceRoot}"
       },
       "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],

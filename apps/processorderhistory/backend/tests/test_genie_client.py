@@ -5,7 +5,7 @@ from urllib.error import HTTPError, URLError
 import pytest
 from fastapi import HTTPException
 
-from backend.genie_assist.application import genie_client
+from processorderhistory_backend.genie_assist.application import genie_client
 
 
 class _FakeResponse:

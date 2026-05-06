@@ -2,7 +2,7 @@
 
 import pytest
 
-from backend.inventory_management.application import queries
+from warehouse360_backend.inventory_management.application import queries
 
 
 @pytest.mark.asyncio

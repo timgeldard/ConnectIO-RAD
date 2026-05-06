@@ -2,7 +2,7 @@
 import asyncio
 
 
-from backend.production_planning.dal import planning_dal as dal
+from processorderhistory_backend.production_planning.dal import planning_dal as dal
 
 _NOW_MS = 1_700_000_000_000
 _MS_PER_HOUR = 3_600_000

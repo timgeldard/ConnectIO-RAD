@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
-from backend.main import app
-import backend.genie_assist.router_genie as genie_router
+from processorderhistory_backend.main import app
+import processorderhistory_backend.genie_assist.router_genie as genie_router
 
 
 client = TestClient(app)

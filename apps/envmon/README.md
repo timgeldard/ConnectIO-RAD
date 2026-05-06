@@ -49,8 +49,8 @@ make deploy PROFILE=prod
 ## 🛠 Tech Stack
 
 -   **Backend**: Python (FastAPI), Uvicorn, Databricks SQL SDK.
--   **Frontend**: React (TypeScript), Vite, IBM Carbon Design System v11, TanStack Query (React Query).
--   **Styling**: SCSS with Carbon Design Tokens.
+-   **Frontend**: React (TypeScript), Vite, Kerry Design System (shared-ui), TanStack Query (React Query).
+-   **Styling**: SCSS with Kerry Design Tokens.
 -   **Infrastructure**: Databricks Apps, Databricks SQL Warehouse.
 
 ---
@@ -99,7 +99,7 @@ A dedicated tool for mapping SAP Functional Locations to X/Y floor plan coordina
 │   │   ├── api/            # React Query hooks
 │   │   ├── components/     # UI Shell, FloorPlan, SidePanel, Admin tools
 │   │   ├── context/        # Global state (Theme, Filters, Date)
-│   │   └── index.scss      # Global styles & Carbon token overrides
+│   │   └── index.scss      # Global styles & Kerry design tokens
 ├── scripts/
 │   └── migrations/         # DDL scripts for Databricks SQL
 ├── Makefile                # Unified build/deploy/dev commands
@@ -128,7 +128,7 @@ The app is fully configurable via environment variables:
 ---
 
 ## 🎨 Design & Accessibility
--   **IBM Carbon Design System**: Zero tolerance for hardcoded literals; full tokenisation.
--   **Dark Mode**: Supports a high-contrast `g100` theme for control room environments.
+-   **Kerry Design System**: Zero tolerance for hardcoded literals; full tokenisation via shared-ui.
+-   **Dark Mode**: Supports a high-contrast dark theme for control room environments.
 -   **Responsive & Mobile-Ready**: Collapsible side panels and wrapping filter bars ensure usability on tablets and mobile devices.
 -   **Stability**: Global Error Boundaries prevent UI crashes and provide graceful recovery.

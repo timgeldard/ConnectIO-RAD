@@ -1,6 +1,6 @@
 import pytest
 
-from backend.spatial_config.application import queries
+from envmon_backend.spatial_config.application import queries
 
 
 @pytest.mark.asyncio

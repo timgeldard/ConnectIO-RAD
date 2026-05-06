@@ -1,5 +1,5 @@
 from unittest.mock import AsyncMock
-import backend.dal.trace_dal as trace_dal
+import spc_backend.dal.trace_dal as trace_dal
 
 def test_build_tree_breaks_cycles():
     rows = [

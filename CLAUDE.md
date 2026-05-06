@@ -2,15 +2,17 @@
 
 ## Repo Structure
 
-This is an Nx monorepo containing three Databricks Apps:
+This is an Nx monorepo containing core Databricks Apps:
 
 | App | Path | Purpose |
 |---|---|---|
 | `envmon` | `apps/envmon/` | Environmental monitoring — MIC inspection heatmaps |
 | `spc` | `apps/spc/` | Statistical process control — control charts and alarms |
 | `trace2` | `apps/trace2/` | Batch traceability — forward/reverse trace and mass balance |
+| `warehouse360`| `apps/warehouse360/`| Warehouse cockpit — stock, dispensary, and control tower |
+| `poh` | `apps/processorderhistory/`| Order history — OEE, downtime, and production planning |
 
-Shared libraries live in `libs/`. Each app has `frontend/` (React/TypeScript/Vite) and `backend/` (FastAPI/Python) directories.
+Shared libraries live in `libs/`. Each app has `frontend/` and `backend/`.
 
 ## Core Mandates (Definition of Done)
 
@@ -18,6 +20,8 @@ Every task is only "Done" when:
 1. **10/10 Inline Docs**: PEP 257 for Python, JSDoc for TypeScript. All new/modified logic is self-documenting.
 2. **Docs Updated**: External `/docs` and `apps/*/docs` are updated to match code changes.
 3. **100% Test Coverage**: Every new or changed line of code is covered by unit tests.
+4. **DDD Frozen Boundaries**: All logic follows the 4-layer context boundaries and passes `scripts/tests/test_ddd_architecture_guardrails.py`.
+5. **Branch Protection**: No direct commits to `main`. All work must be on a branch.
 
 ---
 

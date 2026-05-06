@@ -2,11 +2,19 @@
 
 ## Status
 
-Accepted. Phase 4 validation completed 2026-05-04.
+Frozen (Completed 2026-05-05). All architectural boundaries are finalized and enforced by guardrails.
 
 ## Context
 
-Trace2, SPC, and EnvMon are moving from route/DAL organization toward bounded contexts. The apps are read-heavy Databricks applications, so the target is a pragmatic modular monolith with CQRS-style read models where they simplify delivery, not pure tactical DDD everywhere.
+Trace2, SPC, and EnvMon have moved from route/DAL organization toward bounded contexts. The migration is formally complete. All 15 bounded contexts follow the pragmatic 4-layer boundary.
+
+## Technical Debt & "Fuzzy" Areas
+
+While the migration is frozen, the following areas remain as documented technical debt for future refinement:
+
+- **`shared-trace`**: Still acts as a monolithic read-model engine with complex SQL. It should be refactored into context-specific repositories in future cleanup phases.
+- **`warehouse360`**: Bounded contexts are currently "thin" because they interact with mock data. These will deepen as live SAP data is integrated, but the *boundaries* must remain unchanged.
+- **Event Dispatch**: Currently synchronous and in-memory. Durable infrastructure for events is out of scope for the migration freeze.
 
 ## Decision
 

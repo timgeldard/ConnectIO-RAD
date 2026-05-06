@@ -2,7 +2,7 @@
 import asyncio
 
 
-from backend.manufacturing_analytics.dal import yield_analytics_dal as dal
+from processorderhistory_backend.manufacturing_analytics.dal import yield_analytics_dal as dal
 
 # ---------------------------------------------------------------------------
 # _coerce_order

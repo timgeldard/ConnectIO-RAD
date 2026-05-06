@@ -1,8 +1,8 @@
 import json
 from fastapi.testclient import TestClient
 
-import backend.main as main_module
-import backend.routers.export as export_module
+import spc_backend.main as main_module
+import spc_backend.routers.export as export_module
 
 
 client = TestClient(main_module.app)
@@ -287,7 +287,7 @@ def test_export_signals_requires_valid_json():
 
 
 def test_export_sanitize_spreadsheet_value():
-    from backend.routers.export import sanitize_spreadsheet_value
+    from spc_backend.routers.export import sanitize_spreadsheet_value
     assert sanitize_spreadsheet_value("=SUM(A1:A2)") == "'=SUM(A1:A2)"
     assert sanitize_spreadsheet_value("+10") == "'+10"
     assert sanitize_spreadsheet_value("-10") == "'-10"

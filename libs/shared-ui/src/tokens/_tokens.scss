@@ -1,0 +1,139 @@
+/* ==========================================================================
+   Kerry Design System — tokens
+   Source: Kerry Brand Guidelines 2024 FINAL (v1, July 2024)
+   ========================================================================== */
+
+// Foundation colors
+$valentia-slate: #005776;
+$forest:         #143700;
+$stone:          #F1F1E5;
+$white:          #FFFFFF;
+$black:          #000000;
+
+$sunrise:        #F9C20A;
+$sunset:         #F24A00;
+$amaranth:       #FFC2B3;
+$sage:           #289BA2;
+$jade:           #44CF93;
+$innovation:     #DFFF11;
+
+:root {
+  --valentia-slate: #{$valentia-slate};
+  --forest:         #{$forest};
+  --stone:          #{$stone};
+  --white:          #{$white};
+  --black:          #{$black};
+
+  --sunrise:        #{$sunrise};
+  --sunset:         #{$sunset};
+  --amaranth:       #{$amaranth};
+  --sage:           #{$sage};
+  --jade:           #{$jade};
+  --innovation:     #{$innovation};
+
+  // Semantic Kerry tokens
+  --brand:          var(--valentia-slate);
+  --brand-deep:     var(--forest);
+  --bg-paper:       var(--stone);
+  --bg-page:        #FFFFFF;
+  --fg:             var(--forest);
+  --fg-muted:       color-mix(in srgb, var(--forest) 60%, white);
+  --fg-on-brand:    #FFFFFF;
+  --accent-warm:    var(--sunrise);
+  --accent-hot:     var(--sunset);
+  --accent-cool:    var(--sage);
+  --accent-energy:  var(--innovation);
+
+  --stroke:         color-mix(in srgb, var(--forest) 18%, transparent);
+  --stroke-soft:    color-mix(in srgb, var(--forest) 10%, transparent);
+
+  // Carbon v11 Mirroring Tokens (Aliases)
+  --cds-background: var(--bg-page);
+  --cds-layer-01:   var(--bg-paper);
+  --cds-layer-02:   #FFFFFF;
+  --cds-text-primary:   var(--fg);
+  --cds-text-secondary: var(--fg-muted);
+  --cds-link-primary:   var(--brand);
+  --cds-button-primary: var(--brand);
+  --cds-interactive:    var(--brand);
+  --cds-spacing-01: 0.125rem;
+  --cds-spacing-02: 0.25rem;
+  --cds-spacing-03: 0.5rem;
+  --cds-spacing-04: 0.75rem;
+  --cds-spacing-05: 1rem;
+  --cds-spacing-06: 1.5rem;
+  --cds-spacing-07: 2rem;
+
+  // Typography
+  --font-sans:    "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-impact:  "Noto Sans", ui-sans-serif, sans-serif;
+  --font-serif:   "Noto Serif", ui-serif, Georgia, serif;
+  --font-mono:    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  
+  --fs-12:  0.75rem;
+  --fs-14:  0.875rem;
+  --fs-16:  1rem;
+  --fs-18:  1.125rem;
+  --fs-20:  1.25rem;
+  --fs-24:  1.5rem;
+  --fs-32:  2rem;
+
+  --shadow-sm: 0 1px 2px rgba(20,55,0,0.06), 0 2px 8px rgba(20,55,0,0.04);
+  --shadow-md: 0 2px 6px rgba(20,55,0,0.08), 0 10px 24px rgba(20,55,0,0.06);
+  --shadow-lg: 0 4px 12px rgba(20,55,0,0.10), 0 20px 48px rgba(20,55,0,0.10);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 180ms;
+  --dur-mid:  320ms;
+}
+
+/* Utility classes */
+.t-impact  { font-family: var(--font-impact); font-weight: var(--fw-extrabold); text-transform: uppercase; line-height: var(--lh-tight); letter-spacing: var(--ls-impact); color: var(--forest); }
+.t-display { font-family: var(--font-sans); font-weight: var(--fw-medium); line-height: var(--lh-snug); letter-spacing: var(--ls-display); color: var(--forest); }
+.t-serif   { font-family: var(--font-serif); font-weight: var(--fw-regular); line-height: var(--lh-head); color: var(--forest); }
+.t-mono    { font-family: var(--font-mono); font-weight: var(--fw-regular); letter-spacing: var(--ls-mono); color: var(--forest); }
+.t-eyebrow { font-family: var(--font-mono); font-size: var(--fs-12); letter-spacing: var(--ls-upper); text-transform: uppercase; color: var(--valentia-slate); font-weight: var(--fw-medium); }
+
+html { font-family: var(--font-sans); color: var(--fg); background: var(--bg-page); }
+body { font-family: var(--font-sans); font-weight: var(--fw-regular); line-height: var(--lh-body); color: var(--fg); }
+
+/* Back-compat aliases */
+:root {
+  --kerry-green-900: #0B1F00;
+  --kerry-green-800: var(--forest);
+  --kerry-green-700: color-mix(in srgb, var(--forest) 85%, white);
+  --kerry-green-600: color-mix(in srgb, var(--forest) 70%, white);
+  --kerry-green-500: color-mix(in srgb, var(--forest) 55%, white);
+  --kerry-green-200: color-mix(in srgb, var(--forest) 18%, white);
+  --kerry-green-100: color-mix(in srgb, var(--forest) 10%, white);
+
+  --cream:     var(--stone);
+  --cream-50:  #FAF9F1;
+  --cream-100: var(--stone);
+
+  --stone-100: #EDEDE2;
+  --stone-200: #D9D9CB;
+  --stone-300: #C2C2B2;
+  --stone-400: #A5A595;
+
+  --amber-500: var(--sunrise);
+  --amber-600: color-mix(in srgb, var(--sunrise) 80%, var(--sunset));
+  --amber-700: var(--sunset);
+
+  --ink-900: var(--forest);
+  --ink-800: color-mix(in srgb, var(--forest) 85%, white);
+  --ink-700: color-mix(in srgb, var(--forest) 70%, white);
+  --ink-500: var(--fg-muted);
+  --ink-400: color-mix(in srgb, var(--forest) 45%, white);
+  --ink-300: color-mix(in srgb, var(--forest) 30%, white);
+
+  --success: var(--jade);
+  --warning: var(--sunrise);
+  --danger:  var(--sunset);
+  --info:    var(--sage);
+
+  --border:      var(--stroke);
+  --border-soft: var(--stroke-soft);
+  --fg-brand:    var(--valentia-slate);
+  --fg-link:     var(--valentia-slate);
+}

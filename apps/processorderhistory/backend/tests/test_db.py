@@ -1,7 +1,7 @@
 import asyncio
 from unittest.mock import MagicMock
 
-import backend.db as db
+import processorderhistory_backend.db as db
 
 
 def test_validate_timezone_accepts_valid_zone():

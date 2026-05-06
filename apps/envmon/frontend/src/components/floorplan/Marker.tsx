@@ -11,7 +11,7 @@ interface MarkerProps {
   onMouseLeave: () => void;
 }
 
-/** Map status to CSS class using Carbon support tokens (defined in index.css) */
+/** Map status to CSS class using Kerry status tokens (defined in index.scss) */
 const STATUS_CLASS: Record<string, string> = {
   PASS:    'em-marker--pass',
   FAIL:    'em-marker--fail',

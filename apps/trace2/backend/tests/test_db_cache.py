@@ -1,6 +1,6 @@
 import asyncio
 
-import backend.utils.db as db_module
+import trace2_backend.utils.db as db_module
 
 
 def _clear_cache() -> None:

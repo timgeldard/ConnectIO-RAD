@@ -5,8 +5,8 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from backend.main import app
-import backend.routers.genie as genie
+from spc_backend.main import app
+import spc_backend.routers.genie as genie
 from shared_auth import require_proxy_user
 
 

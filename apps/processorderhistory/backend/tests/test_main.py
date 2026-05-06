@@ -2,7 +2,7 @@
 
 from fastapi.testclient import TestClient
 
-from backend.main import app
+from processorderhistory_backend.main import app
 
 client = TestClient(app)
 
@@ -21,7 +21,7 @@ def test_ready(monkeypatch) -> None:
     async def _mock_ready(**_kwargs):
         return ready_payload
 
-    monkeypatch.setattr("backend.main.databricks_sql_ready", _mock_ready)
+    monkeypatch.setattr("processorderhistory_backend.main.databricks_sql_ready", _mock_ready)
     response = client.get("/api/ready")
     assert response.status_code == 200
     assert response.json() == ready_payload

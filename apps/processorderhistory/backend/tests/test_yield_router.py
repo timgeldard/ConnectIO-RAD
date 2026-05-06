@@ -3,8 +3,8 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
-from backend.main import app
-import backend.manufacturing_analytics.router_yield as yield_router
+from processorderhistory_backend.main import app
+import processorderhistory_backend.manufacturing_analytics.router_yield as yield_router
 
 client = TestClient(app)
 

@@ -1,7 +1,7 @@
 import pytest
 import json
 import os
-from backend.process_control.domain.capability import compute_normality_result
+from spc_backend.process_control.domain.capability import compute_normality_result
 
 def load_fixture(name):
     path = os.path.join(os.path.dirname(__file__), "fixtures", name)

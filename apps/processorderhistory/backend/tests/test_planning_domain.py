@@ -1,6 +1,6 @@
 """Domain tests for production planning projections."""
 
-from backend.production_planning.domain.planning import build_kpis, coerce_backlog, coerce_block
+from processorderhistory_backend.production_planning.domain.planning import build_kpis, coerce_backlog, coerce_block
 
 NOW_MS = 1_700_000_000_000
 MS_PER_DAY = 86_400_000

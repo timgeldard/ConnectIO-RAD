@@ -3,7 +3,7 @@ import asyncio
 from datetime import timezone, datetime
 
 
-from backend.order_execution.dal import day_view_dal as dal
+from processorderhistory_backend.order_execution.dal import day_view_dal as dal
 
 _MS_PER_DAY = 86_400_000
 _MS_PER_SEC = 1_000

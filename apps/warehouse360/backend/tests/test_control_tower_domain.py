@@ -2,7 +2,7 @@
 
 import pytest
 
-from backend.operations_control_tower.domain.kpi_health import (
+from warehouse360_backend.operations_control_tower.domain.kpi_health import (
     KpiThreshold,
     classify_kpi_health,
 )

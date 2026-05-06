@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from backend.main import app
-import backend.main as main_module
+from envmon_backend.main import app
+import envmon_backend.main as main_module
 
 
 client = TestClient(app)

@@ -27,7 +27,15 @@ APPLICATION_FORBIDDEN_PREFIXES = ("fastapi",)
 ROUTER_FORBIDDEN_PARTS = (".dal",)
 ROUTER_FORBIDDEN_NAMES = ("run_sql_async", "tbl", "silver_tbl")
 APPLICATION_TRANSPORT_EXCEPTIONS = {
-    Path("apps/processorderhistory/backend/genie_assist/application/genie_client.py"),
+    Path("apps/processorderhistory/backend/processorderhistory_backend/genie_assist/application/genie_client.py"),
+}
+
+ALLOWED_CONTEXTS = {
+    "envmon": {"inspection_analysis", "spatial_config"},
+    "processorderhistory": {"order_execution", "manufacturing_analytics", "production_planning", "genie_assist"},
+    "spc": {"chart_config", "process_control"},
+    "trace2": {"batch_trace", "lineage_analysis", "quality_record"},
+    "warehouse360": {"inventory_management", "dispensary_ops", "order_fulfillment", "operations_control_tower"},
 }
 
 
@@ -54,15 +62,15 @@ def _imported_names(path: Path) -> list[str]:
 
 
 def _domain_files() -> list[Path]:
-    return sorted(path for backend in APP_BACKENDS for path in backend.glob("**/domain/*.py"))
+    return sorted(path for app_name, backend in zip(DDD_APP_NAMES, APP_BACKENDS) for path in (backend / f"{app_name}_backend").glob("**/domain/*.py"))
 
 
 def _application_files() -> list[Path]:
-    return sorted(path for backend in APP_BACKENDS for path in backend.glob("**/application/*.py"))
+    return sorted(path for app_name, backend in zip(DDD_APP_NAMES, APP_BACKENDS) for path in (backend / f"{app_name}_backend").glob("**/application/*.py"))
 
 
 def _router_files() -> list[Path]:
-    return sorted(path for backend in APP_BACKENDS for path in backend.glob("**/router*.py"))
+    return sorted(path for app_name, backend in zip(DDD_APP_NAMES, APP_BACKENDS) for path in (backend / f"{app_name}_backend").glob("router*.py"))
 
 
 def test_domain_modules_do_not_import_transport_application_or_infrastructure() -> None:
@@ -70,11 +78,47 @@ def test_domain_modules_do_not_import_transport_application_or_infrastructure() 
     for path in _domain_files():
         if path.name == "__init__.py":
             continue
+        
+        # Determine the current context of this domain file
+        # Path: apps/<app>/backend/<app_backend>/<context>/domain/<file>.py
+        parts = path.relative_to(REPO_ROOT).parts
+        current_app = parts[1]
+        current_context = parts[4]
+
         for module in _imports(path):
             if module.startswith(DOMAIN_FORBIDDEN_PREFIXES) or any(part in module for part in DOMAIN_FORBIDDEN_PARTS):
                 offenders.append(f"{path.relative_to(REPO_ROOT)} imports {module}")
+            
+            # Sibling domain import rule
+            if ".domain" in module:
+                module_parts = module.split(".")
+                if len(module_parts) >= 2:
+                    target_context = module_parts[1]
+                    if target_context != current_context and target_context in ALLOWED_CONTEXTS.get(current_app, {}):
+                        offenders.append(f"{path.relative_to(REPO_ROOT)} imports sibling domain {module}")
 
     assert offenders == []
+
+
+def test_no_unauthorized_bounded_contexts() -> None:
+    """Verify that no new bounded contexts have been added without approval."""
+    unauthorized: list[str] = []
+    for app_name, backend_path in zip(DDD_APP_NAMES, APP_BACKENDS):
+        inner_backend = backend_path / f"{app_name}_backend"
+        
+        # Contexts are directories inside the inner backend that have a domain/ or application/ folder
+        actual_contexts = set()
+        if inner_backend.exists():
+            for d in inner_backend.iterdir():
+                if d.is_dir() and ((d / "domain").exists() or (d / "application").exists()):
+                    actual_contexts.add(d.name)
+        
+        allowed = ALLOWED_CONTEXTS.get(app_name, set())
+        for context in actual_contexts:
+            if context not in allowed:
+                unauthorized.append(f"App '{app_name}' has unauthorized context '{context}'")
+                
+    assert unauthorized == []
 
 
 def test_application_services_remain_transport_agnostic() -> None:

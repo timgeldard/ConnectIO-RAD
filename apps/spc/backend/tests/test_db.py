@@ -1,5 +1,5 @@
 """
-Unit tests for backend/utils/db.py helper functions.
+Unit tests for spc_backend/utils/db.py helper functions.
 
 These tests cover the pure helper functions only (sql_param, tbl, hostname,
 resolve_token). They do not exercise run_sql or check_warehouse_config because
@@ -12,7 +12,7 @@ import pytest
 from unittest.mock import patch, AsyncMock
 
 from fastapi import HTTPException
-import backend.utils.db as db_module
+import spc_backend.utils.db as db_module
 import shared_db.executors as _executors
 
 
@@ -22,7 +22,7 @@ os.environ.setdefault("DATABRICKS_WAREHOUSE_HTTP_PATH", "/sql/1.0/warehouses/abc
 os.environ.setdefault("TRACE_CATALOG", "test_catalog")
 os.environ.setdefault("TRACE_SCHEMA", "test_schema")
 
-from backend.utils.db import (
+from spc_backend.utils.db import (
     check_warehouse_config,
     get_data_freshness,
     hostname,
@@ -53,12 +53,12 @@ class TestSqlParam:
 
 class TestTbl:
     def test_returns_backtick_qualified_name(self):
-        with patch("backend.utils.db.TRACE_CATALOG", "test_catalog"), patch("backend.utils.db.TRACE_SCHEMA", "test_schema"):
+        with patch("spc_backend.utils.db.TRACE_CATALOG", "test_catalog"), patch("spc_backend.utils.db.TRACE_SCHEMA", "test_schema"):
             result = tbl("my_table")
             assert result == "`test_catalog`.`test_schema`.`my_table`"
 
     def test_includes_all_three_parts(self):
-        with patch("backend.utils.db.TRACE_CATALOG", "test_catalog"), patch("backend.utils.db.TRACE_SCHEMA", "test_schema"):
+        with patch("spc_backend.utils.db.TRACE_CATALOG", "test_catalog"), patch("spc_backend.utils.db.TRACE_SCHEMA", "test_schema"):
             result = tbl("gold_batch_quality_result_v")
             assert "test_catalog" in result
             assert "test_schema" in result
@@ -75,7 +75,7 @@ class TestHostname:
         assert not result.endswith("/")
 
     def test_returns_bare_hostname(self):
-        with patch("backend.utils.db.DATABRICKS_HOST", "https://adb-test.azuredatabricks.net/"):
+        with patch("spc_backend.utils.db.DATABRICKS_HOST", "https://adb-test.azuredatabricks.net/"):
             result = hostname()
             assert result == "adb-test.azuredatabricks.net"
 
@@ -106,12 +106,12 @@ class TestResolveToken:
 
 class TestCheckWarehouseConfig:
     def test_returns_http_path_when_set(self):
-        with patch("backend.utils.db.WAREHOUSE_HTTP_PATH", "/sql/1.0/warehouses/abc123"):
+        with patch("spc_backend.utils.db.WAREHOUSE_HTTP_PATH", "/sql/1.0/warehouses/abc123"):
             result = check_warehouse_config()
             assert result == "/sql/1.0/warehouses/abc123"
 
     def test_raises_500_when_not_set(self):
-        with patch("backend.utils.db.WAREHOUSE_HTTP_PATH", ""):
+        with patch("spc_backend.utils.db.WAREHOUSE_HTTP_PATH", ""):
             with pytest.raises(HTTPException) as exc_info:
                 check_warehouse_config()
             assert exc_info.value.status_code == 500
@@ -124,7 +124,7 @@ class TestGetDataFreshness:
 
     def test_queries_information_schema_for_safe_views(self):
         mock_rows = [{"source_view": "gold_batch_quality_result_v", "last_altered_utc": "2026-01-01"}]
-        with patch("backend.utils.db.run_sql", return_value=mock_rows) as mocked_run_sql:
+        with patch("spc_backend.utils.db.run_sql", return_value=mock_rows) as mocked_run_sql:
             result = get_data_freshness("token", ["gold_batch_quality_result_v"])
             assert result["sources"] == mock_rows
             mocked_run_sql.assert_called_once()
@@ -152,7 +152,7 @@ class TestSqlCacheBehavior:
         with db_module._chart_cache_lock:
             db_module._chart_cache[cache_key] = [{"cached": "chart"}]
 
-        with patch("backend.utils.db.run_sql", return_value=[]) as mocked_run_sql:
+        with patch("spc_backend.utils.db.run_sql", return_value=[]) as mocked_run_sql:
             asyncio.run(db_module.run_sql_async("token", "INSERT INTO t VALUES (1)", audit=False))
 
         mocked_run_sql.assert_called_once()
@@ -177,8 +177,8 @@ class TestSqlCacheBehavior:
 
         async def exercise():
             db_module._clear_sql_cache()
-            with patch("backend.utils.db.run_sql", return_value=[{"ok": 1}]), patch(
-                "backend.utils.db.insert_spc_query_audit",
+            with patch("spc_backend.utils.db.run_sql", return_value=[{"ok": 1}]), patch(
+                "spc_backend.utils.db.insert_spc_query_audit",
                 fake_insert_query_audit,
             ):
                 rows = await db_module.run_sql_async(
@@ -204,8 +204,8 @@ class TestSqlCacheBehavior:
             captured.append("called")
 
         async def exercise():
-            with patch("backend.utils.db.run_sql", return_value=[]), patch(
-                "backend.utils.db.insert_spc_query_audit",
+            with patch("spc_backend.utils.db.run_sql", return_value=[]), patch(
+                "spc_backend.utils.db.insert_spc_query_audit",
                 fake_insert_query_audit,
             ):
                 await db_module.run_sql_async(
@@ -249,7 +249,7 @@ class TestSqlExecutorSelection:
         assert isinstance(executor, _executors._RestStatementExecutor)
 
     def test_get_sql_executor_falls_back_to_rest_when_connector_missing(self):
-        with patch.dict("os.environ", {"SPC_SQL_EXECUTOR": "connector"}, clear=False), patch("backend.utils.db.databricks_sql", None):
+        with patch.dict("os.environ", {"SPC_SQL_EXECUTOR": "connector"}, clear=False), patch("spc_backend.utils.db.databricks_sql", None):
             executor = db_module._get_sql_executor()
         assert isinstance(executor, _executors._RestStatementExecutor)
 
@@ -289,7 +289,7 @@ async def test_attach_data_freshness_success():
     views = ["v1"]
     mock_freshness = {"sources": [{"source_view": "v1", "last_altered_utc": "2026"}]}
     
-    with patch("backend.utils.db.get_data_freshness", return_value=mock_freshness):
+    with patch("spc_backend.utils.db.get_data_freshness", return_value=mock_freshness):
         res = await db_module.attach_data_freshness(payload, token, views)
         assert res["data_freshness"] == mock_freshness
 

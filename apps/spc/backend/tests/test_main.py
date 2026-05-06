@@ -3,8 +3,8 @@ from starlette.requests import Request
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-import backend.main as main_module
-from backend.main import app
+import spc_backend.main as main_module
+from spc_backend.main import app
 
 
 client = TestClient(app)

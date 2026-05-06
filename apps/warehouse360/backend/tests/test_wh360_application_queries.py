@@ -2,9 +2,9 @@
 
 import pytest
 
-from backend.dispensary_ops.application import queries as dispensary_queries
-from backend.operations_control_tower.application import queries as control_tower_queries
-from backend.order_fulfillment.application import queries as fulfillment_queries
+from warehouse360_backend.dispensary_ops.application import queries as dispensary_queries
+from warehouse360_backend.operations_control_tower.application import queries as control_tower_queries
+from warehouse360_backend.order_fulfillment.application import queries as fulfillment_queries
 
 
 @pytest.mark.asyncio

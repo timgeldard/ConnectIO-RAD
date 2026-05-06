@@ -12,7 +12,7 @@ compile errors. **This document is the contract between the two teams.**
 
 ## The frozen contract
 
-The machine-readable version lives in [`backend/schema/gold_views.v1.json`](../backend/schema/gold_views.v1.json).
+The machine-readable version lives in [`backend/schemas/gold_views.v1.json`](../backend/schemas/gold_views.v1.json).
 It is the source of truth enforced at runtime.
 
 Every column the app reads is listed, with its expected type and nullability.
@@ -108,7 +108,7 @@ When the upstream team plans a change to any of these views, the flow is:
      the old name through the cutover.
    - Removals: only safe if the SPC app has already stopped reading the
      column. Otherwise block the removal.
-3. **SPC team updates** `backend/schema/gold_views.v1.json`, bumps the
+3. **SPC team updates** `backend/schemas/gold_views.v1.json`, bumps the
    `version` field, and lands the change in the same PR as the DAL edits
    that use the new shape.
 4. **Deploy order**: SPC app first (new contract is tolerant of the old shape)

@@ -1,8 +1,8 @@
 import pytest
 
-from backend.order_fulfillment.dal import deliveries, process_orders
-from backend.inventory_management.dal import inbound, inventory
-from backend.operations_control_tower.dal import kpis
+from warehouse360_backend.order_fulfillment.dal import deliveries, process_orders
+from warehouse360_backend.inventory_management.dal import inbound, inventory
+from warehouse360_backend.operations_control_tower.dal import kpis
 
 
 @pytest.mark.asyncio

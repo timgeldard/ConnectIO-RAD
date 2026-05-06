@@ -1,7 +1,7 @@
 import pytest
 from fastapi import HTTPException
 import numpy as np
-from backend.utils.db import handle_sql_error, handle_analysis_error, handle_locked_limits_error, attach_payload_freshness
+from spc_backend.utils.db import handle_sql_error, handle_analysis_error, handle_locked_limits_error, attach_payload_freshness
 from unittest.mock import AsyncMock
 
 def test_handle_sql_error():

@@ -1,6 +1,6 @@
 from fastapi import Request
 
-from backend.utils.rate_limit import _extract_client_identity
+from spc_backend.utils.rate_limit import _extract_client_identity
 
 
 def _request(headers: dict[str, str], client_host: str = "127.0.0.1") -> Request:
@@ -30,7 +30,7 @@ def test_extract_client_identity_uses_leftmost_forwarded_ip():
 
 
 def test_limiter_evicts_oldest_bucket_when_capacity_reached():
-    from backend.utils.rate_limit import _Limiter
+    from spc_backend.utils.rate_limit import _Limiter
 
     limiter = _Limiter(default_limit="1/minute", max_buckets=2)
     limiter.check("/a", "client-1", None)

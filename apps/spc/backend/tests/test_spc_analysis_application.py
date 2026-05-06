@@ -15,8 +15,8 @@ def _stub_infrastructure() -> None:
     """Inject stub modules for infrastructure deps that are unavailable in the
     test environment (shared_trace.schema, databricks sql connector, etc.).
 
-    Called once before importing any backend module that chains through
-    backend.utils.db.
+    Called once before importing any spc_backend module that chains through
+    spc_backend.utils.db.
     """
     stubs = [
         "shared_trace.schema",
@@ -30,9 +30,9 @@ def _stub_infrastructure() -> None:
 
 _stub_infrastructure()
 
-from backend.process_control.application import analysis as analysis_module  # noqa: E402
-from backend.process_control.application.analysis import msa_calculate  # noqa: E402
-from backend.schemas.spc_schemas import CalculateMSARequest  # noqa: E402
+from spc_backend.process_control.application import analysis as analysis_module  # noqa: E402
+from spc_backend.process_control.application.analysis import msa_calculate  # noqa: E402
+from spc_backend.schemas.spc_schemas import CalculateMSARequest  # noqa: E402
 
 _SAMPLE_DATA = [
     [[10.5, 10.2, 10.8], [10.6, 10.3, 10.9]],

@@ -4,7 +4,7 @@ import pytest
 
 from shared_domain import BusinessRuleValidationException, Entity
 
-from backend.inspection_analysis.domain.inspection import InspectionLot
+from envmon_backend.inspection_analysis.domain.inspection import InspectionLot
 
 
 def test_inspection_lot_is_entity_and_derives_status():

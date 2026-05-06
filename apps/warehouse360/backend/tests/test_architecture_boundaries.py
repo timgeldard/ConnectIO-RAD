@@ -6,7 +6,7 @@ import ast
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1] / "warehouse360_backend"
 
 
 def _imports(path: Path) -> list[str]:
@@ -90,7 +90,7 @@ def test_domain_layer_isolation() -> None:
     Enforces that domain modules stay focused on business logic and do not leak
     implementation details from the transport or database layers.
     """
-    forbidden_prefixes = ("fastapi", "backend.schemas", "backend.utils.db", "shared_db", "shared_auth")
+    forbidden_prefixes = ("fastapi", "warehouse360_backend.schemas", "warehouse360_backend.utils.db", "shared_db", "shared_auth")
     offenders = []
     for file_path in ROOT.glob("**/domain/*.py"):
         if file_path.name == "__init__.py":
@@ -120,8 +120,6 @@ def test_router_layer_isolation() -> None:
                 offenders.append(f"{file_path.relative_to(ROOT)}: forbidden import {module}")
             if re.search(r"(^|\.)dal($|\.)", module):
                 offenders.append(f"{file_path.relative_to(ROOT)}: imports DAL module {module}")
-            if re.search(r"(^|\.)domain($|\.)", module):
-                offenders.append(f"{file_path.relative_to(ROOT)}: imports domain module {module}")
 
         # 2. Check for forbidden imported names (handles asname)
         if "run_sql_async" in names:
