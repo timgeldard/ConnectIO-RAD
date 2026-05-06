@@ -12,7 +12,10 @@ except Exception:  # pragma: no cover
 
 MeasurementCube = list[list[list[float | None]]]
 
-K1_TABLE: dict[int, float] = {2: 0.8862, 3: 0.5908, 4: 0.4857, 5: 0.4299}
+K1_TABLE: dict[int, float] = {
+    2: 0.8862, 3: 0.5908, 4: 0.4857, 5: 0.4299,
+    6: 0.3946, 7: 0.3698,
+}
 K2_TABLE: dict[int, float] = {2: 0.7071, 3: 0.5231, 4: 0.4467, 5: 0.4030}
 K3_TABLE: dict[int, float] = {
     2: 0.7071, 3: 0.5231, 4: 0.4467, 5: 0.4030,
@@ -85,13 +88,13 @@ def compute_grr(data: MeasurementCube, tolerance: float) -> dict[str, Any]:
     n_replicates = len(data[0][0]) if data and data[0] else 0
 
     if n_operators < 2 or n_parts < 2 or n_replicates < 2:
-        return {"error": "Minimum: 2 operators, 2 parts, 2 replicates"}
+        raise ValueError("Minimum study dimensions: 2 operators, 2 parts, 2 replicates")
 
     k1 = K1_TABLE.get(n_replicates)
     k2 = K2_TABLE.get(n_operators)
     k3 = K3_TABLE.get(n_parts)
     if not k1 or not k2 or not k3:
-        return {"error": f"Unsupported dimensions: {n_operators} ops × {n_parts} parts × {n_replicates} reps"}
+        raise ValueError(f"Unsupported study dimensions: {n_operators} ops × {n_parts} parts × {n_replicates} reps")
 
     operator_ranges = []
     for op_data in data:
@@ -103,6 +106,8 @@ def compute_grr(data: MeasurementCube, tolerance: float) -> dict[str, Any]:
         operator_ranges.append(ranges)
 
     r_bars_by_op = [sum(ranges) / len(ranges) for ranges in operator_ranges if ranges]
+    if not r_bars_by_op:
+        raise ValueError("No valid measurements across operators to compute ranges.")
     r_bar_bar = sum(r_bars_by_op) / len(r_bars_by_op)
     ev = r_bar_bar * k1
 
@@ -154,7 +159,7 @@ def compute_grr_anova(data: MeasurementCube, tolerance: float) -> dict[str, Any]
     n_replicates = len(data[0][0]) if data and data[0] else 0
 
     if n_operators < 2 or n_parts < 2 or n_replicates < 2:
-        return {"error": "Minimum: 2 operators, 2 parts, 2 replicates"}
+        raise ValueError("Minimum study dimensions: 2 operators, 2 parts, 2 replicates")
 
     triples: list[tuple[int, int, int, float]] = []
     for oi, op_data in enumerate(data):
@@ -166,7 +171,7 @@ def compute_grr_anova(data: MeasurementCube, tolerance: float) -> dict[str, Any]
     values = [value for _, _, _, value in triples]
     grand_mean = _mean(values)
     if grand_mean is None:
-        return {"error": "No numeric measurements found."}
+        raise ValueError("No numeric measurements found in the dataset.")
 
     op_means = {
         oi: _mean([value for op_idx, _, _, value in triples if op_idx == oi]) or 0.0

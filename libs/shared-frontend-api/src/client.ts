@@ -1,3 +1,5 @@
+export * from './types';
+
 /**
  * Custom error class for API response errors.
  */
@@ -40,7 +42,14 @@ function errorDetail(body: unknown, status: number): unknown {
  * @throws {ApiError} on non-200 responses
  */
 export async function fetchJson<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
-  const response = await fetch(input, init);
+  const headers = new Headers(init?.headers);
+  
+  // Traceability: generate or propagate x-request-id
+  if (!headers.has('x-request-id')) {
+    headers.set('x-request-id', crypto.randomUUID());
+  }
+
+  const response = await fetch(input, { ...init, headers });
   if (response.status === 204) {
     return undefined as T;
   }

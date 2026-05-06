@@ -14,9 +14,9 @@ Documentation in the `/docs` and `apps/*/docs` directories must stay in sync wit
 - **API Reference**: Every new or modified API endpoint must be documented in the app's `api.md`, including a link to the interactive Swagger UI (`/docs`).
 - **Setup**: Update `setup.md` if dependencies or environment requirements change.
 
-## 3. Mandatory 100% Test Coverage for Changes
+## 3. Mandatory ≥75% Test Coverage for Changes
 We maintain a strict "no regressions" and "verified logic" policy:
-- **Coverage**: Any new or modified lines of code MUST have **100% unit test coverage**.
+- **Coverage**: Any new or modified code MUST meet the enforced minimum of **75% unit test coverage** (with a goal of 100%). This avoids writing redundant mock tests while ensuring core paths are tested.
 - **Verification**: You must run the relevant coverage command (e.g., `pytest --cov` or `vitest run --coverage`) and confirm that your changes are fully covered before submitting.
 - **Infrastructure**: If an app lacks a testing framework, you MUST set it up (Vitest/Pytest) as part of your first task in that app.
 

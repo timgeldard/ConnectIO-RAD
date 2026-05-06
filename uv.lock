@@ -274,10 +274,14 @@ dependencies = [
     { name = "cachetools" },
     { name = "databricks-sdk" },
     { name = "databricks-sql-connector" },
+    { name = "envmon-backend" },
     { name = "fastapi" },
     { name = "shared-api" },
+    { name = "shared-auth" },
     { name = "shared-db" },
     { name = "slowapi" },
+    { name = "spc-backend" },
+    { name = "trace2-backend" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -286,10 +290,14 @@ requires-dist = [
     { name = "cachetools", specifier = ">=5.3" },
     { name = "databricks-sdk", specifier = ">=0.25" },
     { name = "databricks-sql-connector", specifier = ">=3.3" },
+    { name = "envmon-backend", editable = "apps/envmon/backend" },
     { name = "fastapi", specifier = ">=0.111" },
     { name = "shared-api", editable = "libs/shared-api" },
+    { name = "shared-auth", editable = "libs/shared-auth" },
     { name = "shared-db", editable = "libs/shared-db" },
     { name = "slowapi", specifier = ">=0.1.9" },
+    { name = "spc-backend", editable = "apps/spc/backend" },
+    { name = "trace2-backend", editable = "apps/trace2/backend" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.29" },
 ]
 

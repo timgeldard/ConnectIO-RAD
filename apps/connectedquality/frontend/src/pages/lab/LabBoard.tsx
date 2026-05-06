@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Icon } from '~/components/Icon'
+import { useQuery } from '@tanstack/react-query'
+import { fetchJson } from '@connectio/shared-frontend-api'
 
 interface FailSpec {
   mat: string
@@ -16,26 +18,22 @@ interface FailSpec {
   sev: 'fail' | 'warn'
 }
 
-const FAILS: FailSpec[] = [
-  { mat: 'LIME OIL EXP TAHITI LHC LLE 10KG', matNo: '20616727', lot: '040005198449 [1]', batch: '0011874817', line: 'P806 - NPD - DISTILLATION', char: 'E_SPECG1', text: 'Specific Gravity 25C', res: 0.8821, lo: 0.8870, hi: 0.8930, units: 'g/cc', sev: 'fail' },
-  { mat: 'LIME OIL EXP TAHITI LHC LLE 10KG', matNo: '20616727', lot: '040005198449 [1]', batch: '0011874817', line: 'P806 - NPD - DISTILLATION', char: 'E_REFRAC', text: 'Refractive Index 20C', res: 1.4801, lo: 1.4820, hi: 1.4870, units: 'n', sev: 'fail' },
-  { mat: 'N&A PUMPKIN SPICE TYPE FL 22.68KG', matNo: '20704112', lot: '040005198512 [1]', batch: '0011874901', line: 'P802 - BLENDING - LINE 2', char: 'E_MOIST', text: 'Moisture %', res: 4.82, lo: 0.00, hi: 4.50, units: '%', sev: 'fail' },
-  { mat: 'N&A PUMPKIN SPICE TYPE FL 22.68KG', matNo: '20704112', lot: '040005198512 [1]', batch: '0011874901', line: 'P802 - BLENDING - LINE 2', char: 'E_PARTD50', text: 'Particle D50', res: 102, lo: 80, hi: 100, units: 'µm', sev: 'warn' },
-  { mat: 'WPC-80 INSTANT 1KG POUCH', matNo: '20582002', lot: '040005198601 [2]', batch: '0008898869', line: 'P404 - DRYER - LINE 4', char: 'E_BULKD', text: 'Bulk Density', res: 0.36, lo: 0.38, hi: 0.46, units: 'g/cc', sev: 'fail' },
-  { mat: 'WPC-80 INSTANT 1KG POUCH', matNo: '20582002', lot: '040005198601 [2]', batch: '0008898869', line: 'P404 - DRYER - LINE 4', char: 'E_OUTTMP', text: 'Outlet Temp', res: 92.4, lo: 78.0, hi: 88.0, units: '°C', sev: 'fail' },
-  { mat: 'ORANGE OIL VALENCIA COLD PRESS', matNo: '20619841', lot: '040005198688 [1]', batch: '0011875204', line: 'P806 - NPD - DISTILLATION', char: 'E_ALDEHY', text: 'Aldehydes %', res: 1.42, lo: 1.20, hi: 2.50, units: '%', sev: 'warn' },
-  { mat: 'VANILLA EXTRACT NAT 1X (FOLD)', matNo: '20617025', lot: '040005198741 [1]', batch: '0011875310', line: 'P802 - BLENDING - LINE 2', char: 'E_VANILLIN', text: 'Vanillin Conc.', res: 11.8, lo: 13.0, hi: 14.5, units: 'g/L', sev: 'fail' },
-]
-
 const PAGE_SIZE = 6
 
 /** Lab Board — full-screen wallboard for quality lab. Auto-rotates inspection lot failures. */
 export function LabBoard() {
   const [tick, setTick] = useState(24)
   const [page, setPage] = useState(0)
-  const pages = Math.max(1, Math.ceil(FAILS.length / PAGE_SIZE))
-  const visible = FAILS.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
   const stamp = new Date().toLocaleString('en-GB', { hour12: false }).replace(',', ' ·')
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['cq', 'lab', 'fails'],
+    queryFn: () => fetchJson<{ fails: FailSpec[], data_available?: boolean, reason?: string }>('/api/cq/lab/fails'),
+  })
+
+  const fails = data?.fails || []
+  const pages = Math.max(1, Math.ceil(fails.length / PAGE_SIZE))
+  const visible = fails.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -52,6 +50,20 @@ export function LabBoard() {
 
   const goPrev = () => { setPage((p) => (p - 1 + pages) % pages); setTick(30) }
   const goNext = () => { setPage((p) => (p + 1) % pages); setTick(30) }
+
+  if (isLoading) {
+    return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)' }}>Loading lab data…</div>
+  }
+
+  if (data?.data_available === false) {
+    return (
+      <div className="lab-board" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name="clock" size={48} style={{ display: 'block', margin: '0 auto 24px', opacity: 0.5 }} />
+        <h2 style={{ fontSize: 24, fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', marginBottom: 12 }}>Feature coming soon</h2>
+        <p style={{ color: 'var(--text-3)', fontSize: 16 }}>This data relies on gold views that are pending promotion to Unity Catalogue.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="lab-board">
@@ -72,7 +84,7 @@ export function LabBoard() {
         <div className="lab-ctx-field"><span className="lbl">Severity</span><span className="val">Fail · Warn</span></div>
         <div className="lab-ctx-field grow"><span className="lbl">Next refresh in</span><span className="val refresh">{tick} <span className="u">s</span></span></div>
         <div className="lab-ctx-field"><span className="lbl">Page</span><span className="val">{page + 1} / {pages}</span></div>
-        <div className="lab-ctx-field"><span className="lbl">Open fails</span><span className="val crit">{FAILS.filter(f => f.sev === 'fail').length}</span></div>
+        <div className="lab-ctx-field"><span className="lbl">Open fails</span><span className="val crit">{fails.filter(f => f.sev === 'fail').length}</span></div>
         <button className="lab-iconbtn small"><Icon name="settings" size={14} /></button>
       </div>
 

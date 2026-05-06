@@ -48,6 +48,16 @@ jobs:
       - name: Test affected
         run: npx nx affected -t test --base=$NX_BASE --head=$NX_HEAD --parallel=4
 
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-reports
+          path: |
+            apps/*/backend/coverage.xml
+            apps/*/frontend/coverage/
+          retention-days: 14
+
       - name: Build affected frontends
         run: npx nx affected -t build --base=$NX_BASE --head=$NX_HEAD --parallel=4
 

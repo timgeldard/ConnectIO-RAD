@@ -84,6 +84,10 @@ export interface EquipmentInsights2Summary {
   cal_register: EquipmentItem[]
   /** Equipment with detected anomalies. */
   anomalies: EquipmentItem[]
+  /** Indicates if real gold data is available. If false, the frontend should render an empty state. */
+  data_available?: boolean
+  /** The reason data is not available, e.g., 'gold_views_pending'. */
+  reason?: string
 }
 
 /**

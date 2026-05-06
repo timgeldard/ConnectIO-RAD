@@ -4,6 +4,7 @@ Error classification and operational observability stubs for Databricks backends
 
 import json
 import logging
+import time
 from typing import Optional
 
 from fastapi import HTTPException
@@ -40,11 +41,14 @@ def increment_observability_counter(
     tags: Optional[dict[str, str]] = None,
 ) -> None:
     """Emit a structured counter event (logging stub — wire a metrics sink here)."""
-    logger.info(
-        "metric.increment name=%s value=1 tags=%s",
-        name,
-        json.dumps(tags or {}, sort_keys=True, separators=(",", ":")),
-    )
+    # Structured JSON log for log aggregators
+    event = {
+        "event": "metric.increment",
+        "metric_name": name,
+        "value": 1,
+        "tags": tags or {},
+    }
+    logger.info(json.dumps(event))
 
 
 def send_operational_alert(
@@ -54,11 +58,15 @@ def send_operational_alert(
     error_id: Optional[str] = None,
     request_path: Optional[str] = None,
 ) -> None:
-    """Emit a structured operational alert log event (logging stub)."""
-    logger.warning(
-        "operational_alert.pending subject=%s error_id=%s request_path=%s body=%s",
-        subject,
-        error_id or "unknown",
-        request_path or "unknown",
-        body,
-    )
+    """Emit a structured operational alert log event."""
+    # Structured JSON log for observability platforms (e.g. Databricks Log Analytics, PagerDuty webhook)
+    alert = {
+        "event": "operational_alert",
+        "severity": "critical",
+        "subject": subject,
+        "body": body,
+        "error_id": error_id or "unknown",
+        "request_path": request_path or "unknown",
+        "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    logger.error(json.dumps(alert))

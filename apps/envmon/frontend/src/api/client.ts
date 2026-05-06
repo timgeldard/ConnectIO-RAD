@@ -68,7 +68,7 @@ export function useLocations(plantId: string | null, floorId?: string, mappedOnl
 
 export function useHeatmap(
   plantId: string | null,
-  floorId: string,
+  floorId: string | null,
   mode: HeatmapMode,
   timeWindowDays: number,
   asOfDate?: string | null,
@@ -77,7 +77,7 @@ export function useHeatmap(
 ) {
   const params = new URLSearchParams({
     plant_id: plantId ?? '',
-    floor_id: floorId,
+    floor_id: floorId ?? '',
     mode,
     time_window_days: String(timeWindowDays),
   });

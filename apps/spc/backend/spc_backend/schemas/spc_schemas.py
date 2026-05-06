@@ -1,4 +1,5 @@
 import re
+import json
 from typing import Literal, Optional
 
 from pydantic import BaseModel, ValidationInfo, field_validator, model_validator
@@ -11,7 +12,7 @@ _CHART_TYPES = {"imr", "xbar_r", "xbar_s", "ewma", "cusum", "p_chart", "np_chart
 _STRATIFY_KEYS = {"plant_id", "inspection_lot_id", "operation_id"}
 _DEFAULT_UPSTREAM_DEPTH = 4
 _DEFAULT_DOWNSTREAM_DEPTH = 3
-_MAX_LINEAGE_DEPTH = 12
+_MAX_LINEAGE_DEPTH = 10
 
 
 def _validate_date(v: Optional[str], field_name: str) -> Optional[str]:
@@ -372,6 +373,12 @@ class SaveMSARequest(BaseModel):
     def check_results_json(cls, v: str) -> str:
         if len(v) > 65_535:
             raise ValueError("results_json too large (max 65535 chars)")
+        
+        try:
+            json.loads(v)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"results_json must be valid JSON: {exc}") from exc
+            
         return v
 
 

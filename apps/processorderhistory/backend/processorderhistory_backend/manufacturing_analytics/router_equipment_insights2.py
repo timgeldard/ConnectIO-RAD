@@ -7,20 +7,13 @@ See ``equipment_insights2_dal.py`` for the full TODO list.
 from typing import Optional
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
 from shared_auth import UserIdentity, require_proxy_user
 
 from processorderhistory_backend.manufacturing_analytics.application import queries as analytics_queries
 from processorderhistory_backend.db import check_warehouse_config, validate_timezone
+from processorderhistory_backend.schemas.order_schemas import EquipmentInsights2Request
 
 router = APIRouter()
-
-
-class EquipmentInsights2Request(BaseModel):
-    """Request body for the equipment insights v2 summary endpoint."""
-
-    plant_id: Optional[str] = None
-    timezone: str = "UTC"
 
 
 @router.post("/equipment-insights-v2/summary")

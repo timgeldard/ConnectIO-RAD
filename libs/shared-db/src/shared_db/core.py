@@ -120,6 +120,8 @@ def run_sql(
     token: str,
     statement: str,
     params: Optional[list[dict]] = None,
+    *,
+    endpoint_hint: Optional[str] = None,
 ) -> list[dict]:
     """
     Execute a SQL statement synchronously via the REST executor.
@@ -128,11 +130,14 @@ def run_sql(
         token: Databricks access token.
         statement: The SQL query to execute.
         params: Optional list of parameter dicts for the query.
+        endpoint_hint: Optional logic name of the calling endpoint for logging.
         
     Returns:
         List of dictionaries representing the query result rows.
     """
     from .executors import _REST_EXECUTOR
+    if endpoint_hint:
+        logger.info("sql.execute hint=%s", endpoint_hint)
     return _REST_EXECUTOR.execute(token, statement, params)
 
 
@@ -140,6 +145,8 @@ async def run_sql_async(
     token: str,
     statement: str,
     params: Optional[list[dict]] = None,
+    *,
+    endpoint_hint: Optional[str] = None,
 ) -> list[dict]:
     """
     Execute a SQL statement asynchronously with a single TTL cache.
@@ -151,6 +158,7 @@ async def run_sql_async(
         token: Databricks access token.
         statement: The SQL query to execute.
         params: Optional list of parameter dicts for the query.
+        endpoint_hint: Optional logic name of the calling endpoint for logging.
         
     Returns:
         List of dictionaries representing the query result rows.
@@ -166,7 +174,10 @@ async def run_sql_async(
     if cached is not None:
         return cached
 
-    rows = await asyncio.get_event_loop().run_in_executor(
+    if endpoint_hint:
+        logger.info("sql.execute_async hint=%s", endpoint_hint)
+
+    rows = await asyncio.get_running_loop().run_in_executor(
         _sql_executor,
         lambda: _REST_EXECUTOR.execute(token, statement, params),
     )

@@ -1002,6 +1002,20 @@ export function EquipmentInsights2Page() {
     )
   }
 
+  if (data.data_available === false) {
+    return (
+      <div className="app-shell-full">
+        <TopBar breadcrumbs={[{ label: t.operations }, { label: 'Insights' }, { label: 'Equipment insights 2' }]} />
+        <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)' }}>
+          <Icon name="clock" size={24} style={{ display: 'block', margin: '0 auto 12px', opacity: 0.5 }} />
+          <h2 style={{ fontSize: 16, fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', marginBottom: 8 }}>Feature coming soon</h2>
+          <p>This data relies on gold views that are pending promotion to Unity Catalogue.</p>
+          {data.reason && <p style={{ fontSize: 12, opacity: 0.6, marginTop: 8 }}>Reason: {data.reason}</p>}
+        </div>
+      </div>
+    )
+  }
+
   const TABS: { id: EqTab; label: string }[] = [
     { id: 'overview',    label: 'Overview' },
     { id: 'cleaning',    label: 'Cleaning' },
