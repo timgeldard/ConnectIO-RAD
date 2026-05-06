@@ -1,9 +1,16 @@
 """Smoke tests for ConnectedQuality connectedquality_backend API."""
 
 from fastapi.testclient import TestClient
+from unittest.mock import patch
 
 from connectedquality_backend.main import app
 import connectedquality_backend.main as main_module
+from shared_auth.identity import UserIdentity, require_proxy_user
+
+def override_require_proxy_user():
+    return UserIdentity(user_id="test_user", raw_token="test_token")
+
+app.dependency_overrides[require_proxy_user] = override_require_proxy_user
 
 client = TestClient(app)
 
@@ -35,7 +42,9 @@ def test_cross_origin_mutation_blocked():
     assert response.json()["detail"] == "Cross-origin mutation blocked"
 
 
-def test_trace_recall_returns_batch():
+@patch("connectedquality_backend.routers.trace.fetch_recall_readiness")
+def test_trace_recall_returns_batch(mock_fetch):
+    mock_fetch.return_value = {"batch": "0008898869", "customers_affected": 11}
     response = client.get("/api/cq/trace/recall")
 
     assert response.status_code == 200
@@ -44,7 +53,13 @@ def test_trace_recall_returns_batch():
     assert "customers_affected" in data
 
 
-def test_envmon_plants_returns_list():
+@patch("connectedquality_backend.routers.envmon.fetch_active_plant_ids")
+@patch("connectedquality_backend.routers.envmon.fetch_plant_metadata")
+@patch("connectedquality_backend.routers.envmon.fetch_plant_kpis")
+def test_envmon_plants_returns_list(mock_fetch_kpis, mock_fetch_meta, mock_fetch_ids):
+    mock_fetch_ids.return_value = ["CHV"]
+    mock_fetch_meta.return_value = [{"PLANT_ID": "CHV", "PLANT_NAME": "Charleville"}]
+    mock_fetch_kpis.return_value = [{"active_fails": 0, "warnings": 0}]
     response = client.get("/api/cq/envmon/plants")
 
     assert response.status_code == 200

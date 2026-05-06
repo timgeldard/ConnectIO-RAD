@@ -11,6 +11,10 @@ dependencies = [
   "databricks-sql-connector>=3.3",
   "shared-db",
   "shared-api",
+  "shared-auth",
+  "envmon-backend",
+  "spc-backend",
+  "trace2-backend",
 ]
 
 [build-system]

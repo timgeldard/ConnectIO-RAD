@@ -1,7 +1,29 @@
+import { useQuery } from '@tanstack/react-query'
 import { GenericOverview } from '~/components/GenericOverview'
+import { fetchJson } from '@connectio/shared-frontend-api'
+import { Icon } from '~/components/Icon'
 
 /** EnvMon Time-Lapse tab — animated heatmap playback. Full implementation pending. */
 export function EnvHistory() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['cq', 'envmon', 'history'],
+    queryFn: () => fetchJson<{ data_available?: boolean, reason?: string }>('/api/cq/envmon/history?plant_id=CHV&floor=F2&days=90'),
+  })
+
+  if (isLoading) {
+    return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)' }}>Loading time-lapse data…</div>
+  }
+
+  if (data?.data_available === false) {
+    return (
+      <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <Icon name="clock" size={48} style={{ display: 'block', margin: '0 auto 24px', opacity: 0.5 }} />
+        <h2 style={{ fontSize: 24, fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', marginBottom: 12 }}>Feature coming soon</h2>
+        <p style={{ color: 'var(--text-3)', fontSize: 16 }}>This data relies on gold views that are pending promotion to Unity Catalogue.</p>
+      </div>
+    )
+  }
+
   return (
     <GenericOverview
       eyebrow="ENVMON · MODULE 02 · PAGE 04"

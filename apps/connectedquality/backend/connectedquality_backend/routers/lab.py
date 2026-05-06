@@ -15,4 +15,6 @@ async def lab_fails(plant_id: str = "P806", lot_type: str = "04"):
         "plant_id": plant_id,
         "lot_type": lot_type,
         "fails": [],
+        "data_available": False,
+        "reason": "gold_views_pending",
     }

@@ -574,6 +574,49 @@ entities:
       - "Zero-production rows (TOTAL_QTY = 0) should be excluded from all yield calculations"
       - "CONDITIONAL inspection result means the batch was released with deviations — count as GOOD for yield but flag for reporting"
 
+  # ---------------------------------------------------------------------------
+  # MISSING GOLD VIEWS (Equipment Insights v2)
+  # ---------------------------------------------------------------------------
+  - name: vw_gold_equipment_estate
+    business_name: Equipment Estate (Pending)
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: false
+    business_purpose: >
+      Pending view for equipment TTC, FTR, utilisation, and MTBC per vessel/mixer/reactor.
+    grain: One row per equipment
+    primary_keys: []
+
+  - name: vw_gold_equipment_cleaning
+    business_name: Equipment Cleaning (Pending)
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: false
+    business_purpose: >
+      Pending view for equipment cleaning backlog (dirty duration per vessel, CIP history).
+    grain: One row per equipment
+    primary_keys: []
+
+  - name: vw_gold_equipment_calibration
+    business_name: Equipment Calibration (Pending)
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: false
+    business_purpose: >
+      Pending view for calibration due dates per instrument.
+    grain: One row per instrument
+    primary_keys: []
+
+  - name: vw_gold_equipment_anomaly
+    business_name: Equipment Anomaly (Pending)
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: false
+    business_purpose: >
+      Pending view for statistical drift detection (TTC / pour error / cycle time).
+    grain: One row per anomaly
+    primary_keys: []
+
   # ===========================================================================
   # ENVMON APP
   # ===========================================================================

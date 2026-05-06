@@ -104,7 +104,7 @@ async def _q_blocks(token: str, day: str, plant_id: Optional[str]) -> list[dict]
         FROM day_conf dc
         JOIN {tbl('vw_gold_process_order')} gpo
             ON gpo.PROCESS_ORDER_ID = dc.PROCESS_ORDER_ID
-        LEFT JOIN {silver_tbl('silver_process_order')} spo
+        LEFT JOIN {tbl('vw_gold_process_order_plan')} spo
             ON spo.PROCESS_ORDER_ID = dc.PROCESS_ORDER_ID
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = gpo.MATERIAL_ID

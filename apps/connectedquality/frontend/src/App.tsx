@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { PlatformShell, ContextBar, type CtxState } from '@connectio/shared-ui'
 import { CQ_MODULES, CQ_COMPOSITION } from '~/manifest'
 import { fetchPreferences, savePreferences } from '~/api/preferences'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const queryClient = new QueryClient()
 
 // Pages
 import { Home } from '~/pages/Home'
@@ -121,22 +124,24 @@ export function App() {
   const contextBar = activeModDef?.contextBarSlot ? <ContextBar ctx={DEFAULT_CTX} /> : undefined
 
   return (
-    <PlatformShell
-      composition={CQ_COMPOSITION}
-      modules={CQ_MODULES}
-      activeModule={activeModule}
-      tabState={tabState}
-      onModuleChange={setActiveModule}
-      onTabChange={handleTabChange}
-      contextBar={contextBar}
-      userInitials="SK"
-      userName="Sarah Keane"
-      userRole="QA — Charleville"
-      badgeMap={{ alarms: 7 }}
-      pinnedModules={pinnedModules}
-      onModulePinToggle={handleModulePinToggle}
-    >
-      <ActivePage mod={activeModule} tabState={tabState} onOpen={setActiveModule} />
-    </PlatformShell>
+    <QueryClientProvider client={queryClient}>
+      <PlatformShell
+        composition={CQ_COMPOSITION}
+        modules={CQ_MODULES}
+        activeModule={activeModule}
+        tabState={tabState}
+        onModuleChange={setActiveModule}
+        onTabChange={handleTabChange}
+        contextBar={contextBar}
+        userInitials="SK"
+        userName="Sarah Keane"
+        userRole="QA — Charleville"
+        badgeMap={{ alarms: 7 }}
+        pinnedModules={pinnedModules}
+        onModulePinToggle={handleModulePinToggle}
+      >
+        <ActivePage mod={activeModule} tabState={tabState} onOpen={setActiveModule} />
+      </PlatformShell>
+    </QueryClientProvider>
   )
 }

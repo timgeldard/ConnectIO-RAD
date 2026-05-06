@@ -27,7 +27,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Optional
 
-from processorderhistory_backend.db import run_sql_async, silver_tbl, sql_param, tbl
+from processorderhistory_backend.db import run_sql_async, sql_param, tbl
 from processorderhistory_backend.production_planning.domain.planning import (
     DEFAULT_BLOCK_HRS,
     MS_PER_DAY,
@@ -60,7 +60,7 @@ async def _q_blocks(token: str, plant_id: Optional[str]) -> list[dict]:
             po.MATERIAL_ID                                                      AS material_id,
             COALESCE(m.MATERIAL_NAME, po.MATERIAL_DESCRIPTION, spo.PROCESS_ORDER_ID)
                                                                                 AS material_name
-        FROM {silver_tbl('silver_process_order')} spo
+        FROM {tbl('vw_gold_process_order_plan')} spo
         LEFT JOIN {tbl('vw_gold_process_order')} po
             ON po.PROCESS_ORDER_ID = spo.PROCESS_ORDER_ID
         LEFT JOIN {tbl('vw_gold_material')} m

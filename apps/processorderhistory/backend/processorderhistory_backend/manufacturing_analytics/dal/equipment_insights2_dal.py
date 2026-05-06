@@ -60,4 +60,6 @@ async def fetch_equipment_insights2(
         "cleaning_backlog": [],
         "cal_register": [],
         "anomalies": [],
+        "data_available": False,
+        "reason": "gold_views_pending",
     }

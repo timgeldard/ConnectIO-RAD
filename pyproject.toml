@@ -25,6 +25,9 @@ shared-trace = { workspace = true }
 connectedquality-backend = { workspace = true }
 processorderhistory-backend = { workspace = true }
 warehouse360-backend = { workspace = true }
+envmon-backend = { workspace = true }
+spc-backend = { workspace = true }
+trace2-backend = { workspace = true }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
