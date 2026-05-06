@@ -18,7 +18,7 @@ def derive_location_status(
     risk: float,
     continuous_mode: bool,
     early_warning: bool,
-) -> DerivedLocationStatus:
+) -> LocationStatus:
     """Derive a marker status from result rows, risk score, mode, and SPC flag.
 
     In deterministic mode, the status is based solely on the latest valuation.
@@ -36,16 +36,18 @@ def derive_location_status(
             Control) logic has triggered an early warning.
 
     Returns:
-        The derived status as a string: 'PASS', 'FAIL', or 'WARNING'.
-
-    Raises:
-        ValueError: If an invalid status is somehow derived.
+        The derived status: 'PASS', 'FAIL', 'WARNING', or 'NO_DATA'.
     """
-    latest = loc_rows[-1] if loc_rows else {}
+    # If no inspection results exist, we return 'NO_DATA' rather than 'PASS'
+    # to avoid statistically misleading visuals on the heatmap.
+    if not loc_rows:
+        return "NO_DATA"
+
+    latest = loc_rows[-1]
     l_val = normalize_valuation(latest.get("valuation"))
 
     if not continuous_mode:
-        status: DerivedLocationStatus = "FAIL" if l_val in REJECT_VALUATIONS else "PASS"
+        status: LocationStatus = "FAIL" if l_val in REJECT_VALUATIONS else "PASS"
     else:
         status = "PASS"
         if risk > 1.0:

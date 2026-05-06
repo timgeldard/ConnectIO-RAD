@@ -144,7 +144,7 @@ export default function FilterBar() {
             <button key={m} onClick={() => setHeatmapMode(m)}
               style={{ padding: '4px 12px', fontSize: 12, borderRadius: 999,
                 background: heatmapMode === m ? 'var(--brand)' : 'transparent',
-                color: heatmapMode === m ? 'white' : 'var(--text-3)' }}>
+                color: heatmapMode === m ? 'var(--white)' : 'var(--text-3)' }}>
               {m === 'deterministic' ? t('envmon.filterBar.deterministic') : t('envmon.filterBar.continuous')}
             </button>
           ))}

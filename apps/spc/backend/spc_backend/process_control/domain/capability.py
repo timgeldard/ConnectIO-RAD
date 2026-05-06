@@ -203,17 +203,32 @@ def compute_non_parametric_capability(
     lsl: Optional[float] = None,
 ) -> dict:
     """
-    ISO 22514-2 (Percentile Method).
+    Compute non-parametric process capability using ISO 22514-2 (Percentile Method).
 
-    Requires a minimum sample size of 125 to provide stable Ppk estimates.
-    Returns an empty dict with a warning if n < 125.
+    This method uses the 0.135th, 50th (median), and 99.865th percentiles to
+    estimate Ppk without assuming a normal distribution.
+
+    Args:
+        values: List of numeric observation values.
+        usl: Upper Specification Limit.
+        lsl: Lower Specification Limit.
+
+    Returns:
+        A dictionary containing "ppk_non_parametric" and optional "warning".
+        If n < 125, indices are returned as None with a descriptive warning.
     """
     if not values:
         return {}
 
     n = len(values)
+    # ISO 22514-2 recommends a minimum of 125 samples for non-parametric methods
+    # to ensure that the extreme percentiles (0.135% and 99.865%) are based on
+    # enough data points to be statistically stable.
     if n < 125:
-        return {"warning": f"Non-parametric Ppk requires n >= 125 (received n={n})."}
+        return {
+            "ppk_non_parametric": None,
+            "warning": f"Non-parametric Ppk requires n >= 125 (received n={n})."
+        }
 
     sorted_vals = sorted(values)
 
@@ -229,7 +244,7 @@ def compute_non_parametric_capability(
     p50 = get_percentile(0.5)
     p99865 = get_percentile(0.99865)
 
-    results = {}
+    results = {"ppk_non_parametric": None}
     if usl is not None or lsl is not None:
         ppk_u = (usl - p50) / (p99865 - p50) if usl is not None and p99865 > p50 else float("inf")
         ppk_l = (p50 - lsl) / (p50 - p00135) if lsl is not None and p50 > p00135 else float("inf")

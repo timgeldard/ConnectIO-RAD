@@ -17,3 +17,12 @@ def test_non_parametric_capability():
 
 def test_non_parametric_with_empty_data():
     assert compute_non_parametric_capability([], usl=10, lsl=0) == {}
+
+
+def test_non_parametric_with_low_sample_size():
+    # n=100 < 125
+    values = list(range(100))
+    res = compute_non_parametric_capability(values, usl=110, lsl=-10)
+    assert res["ppk_non_parametric"] is None
+    assert "warning" in res
+    assert "requires n >= 125" in res["warning"]
