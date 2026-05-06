@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from processorderhistory_backend.manufacturing_analytics.application import queries as analytics_queries
 from processorderhistory_backend.db import check_warehouse_config, validate_timezone
+from processorderhistory_backend.utils.rate_limit import limiter
 
 router = APIRouter()
 
@@ -21,6 +22,7 @@ class OEEAnalyticsRequest(BaseModel):
 
 
 @router.post("/oee/analytics")
+@limiter.limit("60/minute")
 async def get_oee_analytics(body: OEEAnalyticsRequest,
     user: UserIdentity = Depends(require_proxy_user)
 ):

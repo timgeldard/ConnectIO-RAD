@@ -5,12 +5,14 @@ from fastapi import APIRouter, Depends
 from processorderhistory_backend.order_execution.application import queries as order_queries
 from processorderhistory_backend.db import check_warehouse_config
 from processorderhistory_backend.schemas.order_schemas import OrderListRequest
+from processorderhistory_backend.utils.rate_limit import limiter
 from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
 
 
 @router.post("/orders")
+@limiter.limit("60/minute")
 async def list_orders(
     body: OrderListRequest,
     user: UserIdentity = Depends(require_proxy_user),

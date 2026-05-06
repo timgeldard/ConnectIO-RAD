@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from processorderhistory_backend.manufacturing_analytics.application import queries as analytics_queries
 from processorderhistory_backend.db import check_warehouse_config, validate_timezone
+from processorderhistory_backend.utils.rate_limit import limiter
 
 router = APIRouter()
 
@@ -21,6 +22,7 @@ class QualityAnalyticsRequest(BaseModel):
 
 
 @router.post("/quality/analytics")
+@limiter.limit("60/minute")
 async def get_quality_analytics(body: QualityAnalyticsRequest,
     user: UserIdentity = Depends(require_proxy_user)
 ):

@@ -1,7 +1,12 @@
 """Pydantic request/response schemas for the orders endpoints."""
+import re
+import zoneinfo
 from typing import Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
+
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_VALID_TIMEZONES = zoneinfo.available_timezones()
 
 
 class OrderListRequest(BaseModel):
@@ -23,6 +28,38 @@ class AnalyticsRequest(BaseModel):
     plant_id: Optional[str] = None
     date_from: Optional[str] = None
     date_to: Optional[str] = None
+    timezone: Optional[str] = None
+
+    @field_validator("date_from")
+    @classmethod
+    def check_date_from(cls, v: Optional[str]) -> Optional[str]:
+        """Reject non-ISO date strings before they reach the DAL."""
+        if v is not None and not _DATE_RE.match(v):
+            raise ValueError("date_from must be in YYYY-MM-DD format")
+        return v
+
+    @field_validator("date_to")
+    @classmethod
+    def check_date_to(cls, v: Optional[str]) -> Optional[str]:
+        """Reject non-ISO date strings before they reach the DAL."""
+        if v is not None and not _DATE_RE.match(v):
+            raise ValueError("date_to must be in YYYY-MM-DD format")
+        return v
+
+    @field_validator("timezone")
+    @classmethod
+    def check_timezone(cls, v: Optional[str]) -> Optional[str]:
+        """Reject timezone strings not present in the IANA timezone database."""
+        if v is not None and v not in _VALID_TIMEZONES:
+            raise ValueError(f"timezone '{v}' is not a valid IANA timezone identifier")
+        return v
+
+    @model_validator(mode="after")
+    def check_date_range(self) -> "AnalyticsRequest":
+        """Ensure date_from is not after date_to when both are supplied."""
+        if self.date_from and self.date_to and self.date_from > self.date_to:
+            raise ValueError("date_from must not be after date_to")
+        return self
 
 
 class EquipmentInsights2Request(BaseModel):

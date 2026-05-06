@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from processorderhistory_backend.production_planning.application import queries as planning_queries
 from processorderhistory_backend.db import check_warehouse_config, validate_timezone
+from processorderhistory_backend.utils.rate_limit import limiter
 
 router = APIRouter()
 
@@ -21,6 +22,7 @@ class VesselPlanningRequest(BaseModel):
 
 
 @router.post("/vessel-planning/analytics")
+@limiter.limit("60/minute")
 async def get_vessel_planning_analytics(body: VesselPlanningRequest,
     user: UserIdentity = Depends(require_proxy_user)
 ):

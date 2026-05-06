@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Request
 
 from warehouse360_backend.inventory_management.application import queries as inventory_queries
 from warehouse360_backend.utils.db import attach_data_freshness, check_warehouse_config
+from warehouse360_backend.utils.rate_limit import limiter
 from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
@@ -19,10 +20,12 @@ _FRESHNESS_SOURCES = [
 
 
 @router.get("/plants")
+@limiter.limit("60/minute")
 async def list_plants(
     request: Request,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Return all plants visible to the user, with data freshness metadata."""
     token = user.raw_token
     check_warehouse_config()
     rows = await inventory_queries.list_plants(token)

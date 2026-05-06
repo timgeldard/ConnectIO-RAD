@@ -2,17 +2,13 @@
 Shared DAL utilities for Trace2.
 """
 
+from functools import lru_cache
+
 from shared_trace.dal import TraceCoreDal
 from trace2_backend.utils.db import run_sql_async, sql_param, tbl
 
-_instance = None
 
+@lru_cache(maxsize=1)
 def get_trace_core_dal() -> TraceCoreDal:
-    """
-    Returns an instance of TraceCoreDal configured for Trace2.
-    Uses a singleton pattern to ensure all contexts share the same instance.
-    """
-    global _instance
-    if _instance is None:
-        _instance = TraceCoreDal(run_sql_async=run_sql_async, tbl=tbl, sql_param=sql_param)
-    return _instance
+    """Returns a module-level TraceCoreDal singleton, constructed once and cached."""
+    return TraceCoreDal(run_sql_async=run_sql_async, tbl=tbl, sql_param=sql_param)

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Request
 
 from warehouse360_backend.operations_control_tower.application import queries as control_tower_queries
 from warehouse360_backend.utils.db import attach_data_freshness, check_warehouse_config
+from warehouse360_backend.utils.rate_limit import limiter
 from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
@@ -19,6 +20,7 @@ _FRESHNESS_SOURCES = [
 
 
 @router.get("/kpis")
+@limiter.limit("60/minute")
 async def get_kpis(
     request: Request,
     plant_id: Optional[str] = None,

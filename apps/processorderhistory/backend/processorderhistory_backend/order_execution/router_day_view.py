@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from processorderhistory_backend.order_execution.application import queries as order_queries
 from processorderhistory_backend.db import check_warehouse_config
+from processorderhistory_backend.utils.rate_limit import limiter
 
 router = APIRouter()
 
@@ -19,6 +20,7 @@ class DayViewRequest(BaseModel):
 
 
 @router.post("/dayview")
+@limiter.limit("60/minute")
 async def get_day_view(body: DayViewRequest,
     user: UserIdentity = Depends(require_proxy_user)
 ):

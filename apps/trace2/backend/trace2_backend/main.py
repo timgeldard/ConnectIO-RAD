@@ -38,6 +38,7 @@ app.include_router(quality_router, prefix="/api", tags=["Quality Record"])
 
 @app.get("/api/health")
 async def health():
+    """Liveness probe — always returns 200 while the process is up."""
     return health_payload()
 
 
@@ -101,6 +102,7 @@ async def health_debug(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """Return detailed runtime config; only available when debug endpoints are enabled."""
     if not ENABLE_DEBUG_ENDPOINTS:
         raise HTTPException(status_code=404, detail="Not found")
     resolve_token(x_forwarded_access_token, authorization)

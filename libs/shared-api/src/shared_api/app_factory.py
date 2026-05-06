@@ -7,7 +7,8 @@ standardized middleware, exception handling, and security defaults.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,7 @@ from shared_api.errors import safe_global_exception_response
 from shared_api.middleware import LatencyMiddleware, RequestContextMiddleware
 from shared_api.rate_limit import RateLimitExceeded, RateLimitMiddleware, rate_limit_handler
 from shared_api.security import SameOriginMiddleware
+from shared_auth.identity import warn_if_jwks_unconfigured
 
 
 StaticDirGetter = Callable[[], Path]
@@ -63,12 +65,22 @@ def create_api_app(
     Returns:
         A pre-configured FastAPI application instance.
     """
+    @asynccontextmanager
+    async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+        """Run JWKS check then delegate to any caller-supplied lifespan."""
+        warn_if_jwks_unconfigured()
+        if lifespan is not None:
+            async with lifespan(app):
+                yield
+        else:
+            yield
+
     app = FastAPI(
         title=title,
         version=version,
         docs_url=docs_url,
         redoc_url=redoc_url,
-        lifespan=lifespan,
+        lifespan=_lifespan,
     )
 
     # 1. Global Exception Handlers

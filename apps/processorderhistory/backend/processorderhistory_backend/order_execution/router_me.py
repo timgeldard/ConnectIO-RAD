@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from processorderhistory_backend.db import check_warehouse_config
 from processorderhistory_backend.prefs_store import get_pinned, set_pinned
 from processorderhistory_backend.order_execution.application.user_queries import get_user_email
+from processorderhistory_backend.utils.rate_limit import limiter
 
 router = APIRouter()
 
@@ -21,6 +22,7 @@ def _name_from_email(email: str) -> tuple[str, str]:
 
 
 @router.get("/me")
+@limiter.limit("60/minute")
 async def get_me(
     user: UserIdentity = Depends(require_proxy_user)
 ):
@@ -40,6 +42,7 @@ class PreferencesPayload(BaseModel):
 
 
 @router.get("/me/preferences")
+@limiter.limit("60/minute")
 async def get_preferences(
     app_id: str,
     user: UserIdentity = Depends(require_proxy_user),
@@ -54,6 +57,7 @@ async def get_preferences(
 
 
 @router.post("/me/preferences")
+@limiter.limit("60/minute")
 async def save_preferences(
     payload: PreferencesPayload,
     user: UserIdentity = Depends(require_proxy_user),

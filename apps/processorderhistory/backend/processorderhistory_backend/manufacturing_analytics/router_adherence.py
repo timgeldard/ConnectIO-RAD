@@ -1,16 +1,17 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 
 from processorderhistory_backend.manufacturing_analytics.application import queries as analytics_queries
 from processorderhistory_backend.db import check_warehouse_config
 from processorderhistory_backend.schemas.order_schemas import AnalyticsRequest
+from processorderhistory_backend.utils.rate_limit import limiter
 from shared_auth import UserIdentity, require_proxy_user
 
 router = APIRouter()
 
 
 @router.post("/adherence")
+@limiter.limit("60/minute")
 async def fetch_adherence(
-    request: Request,
     body: AnalyticsRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
@@ -22,8 +23,7 @@ async def fetch_adherence(
     production plan.
 
     Args:
-        request: The incoming FastAPI request object.
-        body: Analytic parameters including date range (ISO YYYY-MM-DD) and plant.
+        body: Analytic parameters including date range (ISO YYYY-MM-DD), plant, and timezone.
         user: Authenticated user identity from the shared auth dependency.
 
     Returns:
@@ -41,5 +41,5 @@ async def fetch_adherence(
         plant_id=body.plant_id,
         date_from=body.date_from,
         date_to=body.date_to,
-        request_path=request.url.path,
+        timezone=body.timezone or "UTC",
     )

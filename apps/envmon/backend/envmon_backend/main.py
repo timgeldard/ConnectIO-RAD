@@ -31,11 +31,13 @@ app.include_router(spatial_router, prefix="/api/em", tags=["Spatial Config"])
 
 @app.get("/api/health")
 async def health():
+    """Liveness probe — always returns 200 while the process is up."""
     return health_payload()
 
 
 @app.get("/api/ready")
 async def ready():
+    """Readiness probe — confirms Databricks SQL warehouse is reachable."""
     return await databricks_sql_ready(check_warehouse_config=check_warehouse_config, run_sql=run_sql)
 
 

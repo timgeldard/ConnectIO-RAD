@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from connectedquality_backend.db import check_warehouse_config, run_sql_async
 from connectedquality_backend.routers.alarms import router as alarms_router
 from connectedquality_backend.routers.envmon import router as envmon_router
 from connectedquality_backend.routers.lab import router as lab_router
@@ -36,7 +37,11 @@ async def health():
 @app.get("/api/ready")
 async def ready():
     """Readiness probe — confirms Databricks SQL warehouse is reachable."""
-    return await databricks_sql_ready()
+    return await databricks_sql_ready(
+        check_warehouse_config=check_warehouse_config,
+        run_sql=run_sql_async,
+        endpoint_hint="cq.ready",
+    )
 
 
 register_spa_routes(app, static_dir_getter=lambda: STATIC_DIR)

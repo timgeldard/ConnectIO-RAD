@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from functools import lru_cache
 from dataclasses import dataclass, field
@@ -8,6 +9,8 @@ from typing import Any, Optional
 import jwt
 from jwt import PyJWKClient
 from fastapi import Header, HTTPException, Request
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -51,6 +54,20 @@ def resolve_token(
         raise HTTPException(status_code=401, detail=msg)
         
     return token
+
+
+def warn_if_jwks_unconfigured() -> None:
+    """Emit a startup warning when AUTH_JWKS_URL is absent outside dev/test environments.
+
+    Call this from each app's lifespan or startup handler so operators are
+    alerted before the first real request arrives rather than mid-flight.
+    """
+    jwks_url = os.environ.get("AUTH_JWKS_URL", "").strip()
+    if not jwks_url and not _is_dev_mode():
+        logger.warning(
+            "AUTH_JWKS_URL is not set. JWT signatures will not be verified. "
+            "Set AUTH_JWKS_URL to a JWKS endpoint before deploying to production."
+        )
 
 
 def _is_dev_mode() -> bool:
