@@ -1,5 +1,5 @@
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
-import { LandingCard } from './LandingCard'
+import { LandingCard, moduleHref } from './LandingCard'
 
 interface ModuleContentPanelProps {
   /** The ID of the module currently selected in the shell. */
@@ -10,7 +10,7 @@ interface ModuleContentPanelProps {
   activeTabId?: string
 }
 
-/** Renders the content panel for the active module. Phase 2: landing card + tab-aware open link. */
+/** Renders the content panel for the active module using the module's real route when available. */
 export function ModuleContentPanel({ moduleId, modules, activeTabId }: ModuleContentPanelProps) {
   const mod = modules.find((m) => m.moduleId === moduleId)
   if (!mod) {
@@ -20,6 +20,25 @@ export function ModuleContentPanel({ moduleId, modules, activeTabId }: ModuleCon
       </div>
     )
   }
+
+  if (mod.routeBase) {
+    const href = moduleHref(mod, activeTabId)
+    return (
+      <div className="plat-embedded-module">
+        <div className="plat-embedded-toolbar">
+          <span>{mod.displayName}</span>
+          <a href={href}>Open full view</a>
+        </div>
+        <iframe
+          title={`${mod.displayName} module`}
+          src={href}
+          className="plat-embedded-frame"
+          loading="lazy"
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="plat-panel">
       <LandingCard mod={mod} activeTabId={activeTabId} />

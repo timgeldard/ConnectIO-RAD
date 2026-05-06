@@ -13,7 +13,15 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_APPS = ("envmon", "spc", "trace2", "warehouse360", "processorderhistory")
+DEFAULT_APPS = (
+    "connectedquality",
+    "envmon",
+    "platform",
+    "processorderhistory",
+    "spc",
+    "trace2",
+    "warehouse360",
+)
 
 
 def load_manifest(app_dir: Path) -> dict[str, Any]:

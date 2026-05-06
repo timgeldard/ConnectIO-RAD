@@ -1,7 +1,17 @@
 import { GenericOverview } from '~/components/GenericOverview'
 
+const readTraceContext = () => {
+  const params = new URLSearchParams(window.location.search)
+  return {
+    plant: params.get('plant') ?? params.get('plant_id') ?? 'Not selected',
+    material: params.get('material') ?? params.get('material_id') ?? 'Not selected',
+    batch: params.get('batch') ?? params.get('batch_id') ?? 'Not selected',
+  }
+}
+
 /** Trace module overview — batch health summary. */
 export function TraceOverview() {
+  const ctx = readTraceContext()
   return (
     <GenericOverview
       eyebrow="TRACE · MODULE 01 · PAGE 01"
@@ -17,7 +27,7 @@ export function TraceOverview() {
       ]}
       panels={[
         { num: 'A', title: "What's in this module", meta: '11 PAGES', body: 'Recall readiness · Lineage (forward/backward) · Mass balance · Quality records · CoAs · Supplier risk · Batch-level audit trail. The 03–04 pages are most-used during recall investigation; the rest support release decisions.' },
-        { num: 'B', title: 'Active context', meta: 'GLOBAL', body: 'Plant Charleville · IE. Material WPC-80 / 1kg pouch · 20582002. Batch 0008898869. Window 90 days. Switching context above will cascade into every page in the module.' },
+        { num: 'B', title: 'Active context', meta: 'DEEP LINK', body: `Plant ${ctx.plant}. Material ${ctx.material}. Batch ${ctx.batch}. Switching context above will cascade into every page in the module.` },
       ]}
     />
   )

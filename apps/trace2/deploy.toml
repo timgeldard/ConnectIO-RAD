@@ -23,6 +23,6 @@ TRACE_CATALOG = "connected_plant_uat"
 TRACE_SCHEMA = "gold"
 
 [profiles.prod.env]
-DATABRICKS_WAREHOUSE_HTTP_PATH = ""
-TRACE_CATALOG = ""
+DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/161e0117e7a3507f"
+TRACE_CATALOG = "connected_plant_prod"
 TRACE_SCHEMA = "gold"

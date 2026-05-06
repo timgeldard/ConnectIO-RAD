@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
-import WM from '../data/mockData'
-import { Icon, Pill, SparkBars, Hbar } from './Primitives'
+import { useApi } from '../hooks/useApi'
+import { Icon, Pill, Hbar } from './Primitives'
 import { FilterBar, Card, KPI } from './Shared'
 
 /* Exceptions Command Centre + Performance Analytics */
@@ -22,9 +22,43 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery: _onOpenDelivery, onOpenReceip
   const [severity, setSeverity] = React.useState('all');
   const [domain, setDomain] = React.useState('all');
   const [acknowledged, setAcknowledged] = React.useState('open');
+  const { data: kpiResp, loading, error } = useApi<any>('/api/kpis')
+
+  const liveRows = React.useMemo(() => {
+    const kpis = kpiResp?.kpis ?? {}
+    const rows: any[] = []
+    if ((kpis.orders_red ?? 0) > 0) {
+      rows.push({
+        id: 'orders-red',
+        type: { severity: 'critical', domain: 'Production', title: 'Production orders at risk' },
+        detail: `${kpis.orders_red} live production orders need staging attention.`,
+        ageMin: null,
+        acknowledged: false,
+      })
+    }
+    if ((kpis.deliveries_at_risk ?? 0) > 0) {
+      rows.push({
+        id: 'deliveries-risk',
+        type: { severity: 'high', domain: 'Outbound', title: 'Deliveries at risk' },
+        detail: `${kpis.deliveries_at_risk} live deliveries are at cut-off risk.`,
+        ageMin: null,
+        acknowledged: false,
+      })
+    }
+    if ((kpis.bins_blocked ?? 0) > 0) {
+      rows.push({
+        id: 'bins-blocked',
+        type: { severity: 'medium', domain: 'Inventory', title: 'Blocked inventory bins' },
+        detail: `${kpis.bins_blocked} bins are blocked or restricted in the selected plant.`,
+        ageMin: null,
+        acknowledged: false,
+      })
+    }
+    return rows
+  }, [kpiResp])
 
   const rows = React.useMemo(() => {
-    let r = WM.EXCEPTIONS;
+    let r = liveRows;
     if (severity !== 'all') r = r.filter((e: any) => e.type.severity === severity);
     if (domain !== 'all') r = r.filter((e: any) => e.type.domain === domain);
     if (acknowledged === 'open') r = r.filter((e: any) => !e.acknowledged);
@@ -34,16 +68,16 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery: _onOpenDelivery, onOpenReceip
       if (sev[a.type.severity] !== sev[b.type.severity]) return sev[a.type.severity] - sev[b.type.severity];
       return b.ageMin - a.ageMin;
     });
-  }, [severity, domain, acknowledged]);
+  }, [liveRows, severity, domain, acknowledged]);
 
   const counts = {
-    critical: WM.EXCEPTIONS.filter((e: any) => e.type.severity === 'critical' && !e.acknowledged).length,
-    high: WM.EXCEPTIONS.filter((e: any) => e.type.severity === 'high' && !e.acknowledged).length,
-    medium: WM.EXCEPTIONS.filter((e: any) => e.type.severity === 'medium' && !e.acknowledged).length,
-    total: WM.EXCEPTIONS.length,
+    critical: liveRows.filter((e: any) => e.type.severity === 'critical' && !e.acknowledged).length,
+    high: liveRows.filter((e: any) => e.type.severity === 'high' && !e.acknowledged).length,
+    medium: liveRows.filter((e: any) => e.type.severity === 'medium' && !e.acknowledged).length,
+    total: liveRows.length,
   };
 
-  const domains = ['all', ...new Set(WM.EXCEPTIONS.map((e: any) => e.type.domain))];
+  const domains = ['all', ...new Set(liveRows.map((e: any) => e.type.domain))];
 
   return (
     <div className="page">
@@ -63,16 +97,16 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery: _onOpenDelivery, onOpenReceip
         <KPI label={t('warehouse.exceptions.kpi.criticalOpen')} value={counts.critical} tone="critical"/>
         <KPI label={t('warehouse.exceptions.kpi.highOpen')} value={counts.high} tone="warn"/>
         <KPI label={t('warehouse.exceptions.kpi.mediumOpen')} value={counts.medium} tone="ok"/>
-        <KPI label={t('warehouse.exceptions.kpi.acknowledged')} value={WM.EXCEPTIONS.filter((e: any) => e.acknowledged).length} tone="ok"/>
-        <KPI label={t('warehouse.exceptions.kpi.mtta')} value="11" unit=" min" tone="ok" trend={-3} trendLabel="m vs yest"/>
-        <KPI label={t('warehouse.exceptions.kpi.oldestOpen')} value={Math.max(...WM.EXCEPTIONS.filter((e: any) => !e.acknowledged).map((e: any) => e.ageMin))} unit=" min" tone="warn"/>
+        <KPI label={t('warehouse.exceptions.kpi.acknowledged')} value="—" tone="ok"/>
+        <KPI label={t('warehouse.exceptions.kpi.mtta')} value="—" unit=" min" tone="ok"/>
+        <KPI label={t('warehouse.exceptions.kpi.oldestOpen')} value="—" unit=" min" tone="warn"/>
       </div>
 
       <div className="grid-asym" style={{ marginBottom: 16 }}>
         <Card title={t('warehouse.exceptions.card.severityBreakdown')} subtitle="By domain · last 8 hours" eyebrow="Breakdown">
           <div className="stack-8">
             {domains.filter((d: any) => d !== 'all').map((d: any) => {
-              const byDomain = WM.EXCEPTIONS.filter((e: any) => e.type.domain === d);
+              const byDomain = liveRows.filter((e: any) => e.type.domain === d);
               const c = byDomain.filter((e: any) => e.type.severity === 'critical').length;
               const h = byDomain.filter((e: any) => e.type.severity === 'high').length;
               const m = byDomain.filter((e: any) => e.type.severity === 'medium').length;
@@ -158,13 +192,18 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery: _onOpenDelivery, onOpenReceip
                   {e.line && <div className="muted small">{e.line.name}</div>}
                 </td>
                 <td style={{ fontSize: 12 }}>{e.detail}</td>
-                <td className="num"><span className={e.ageMin > 120 ? 'red bold' : ''}>{e.ageMin}m</span></td>
+                <td className="num"><span className={e.ageMin > 120 ? 'red bold' : ''}>{e.ageMin == null ? '—' : e.ageMin + 'm'}</span></td>
                 <td className="small">{e.owner || <span className="muted">{t('warehouse.common.unassigned')}</span>}</td>
                 <td>
                   {e.acknowledged ? <Pill tone="green" noDot>{t('warehouse.exceptions.tab.acknowledged')}</Pill> : <button className="btn btn-xs btn-primary">{t('warehouse.common.btn.acknowledge')}</button>}
                 </td>
               </tr>
             ))}
+            {loading && <tr><td colSpan={8} className="muted small">Loading live exceptions…</td></tr>}
+            {!loading && rows.length === 0 && !error && (
+              <tr><td colSpan={8} className="muted small">No live exception signals for this plant.</td></tr>
+            )}
+            {error && <tr><td colSpan={8} className="red small">Unable to load live exception signals: {error}</td></tr>}
           </tbody>
         </table>
       </Card>
@@ -174,10 +213,8 @@ const Exceptions = ({ onOpenOrder, onOpenDelivery: _onOpenDelivery, onOpenReceip
 
 const Performance = () => {
   const { t } = useI18n();
-  const bars = [
-    // last 14 days, normalised
-    72, 78, 85, 82, 88, 92, 91, 94, 89, 87, 92, 90, 93, 92,
-  ];
+  const { data: kpiResp, loading, error } = useApi<any>('/api/kpis')
+  const kpis = kpiResp?.kpis ?? {}
 
   const kpiLabels = {
     stagingSLA: t('warehouse.perf.kpi.stagingSLA'),
@@ -215,24 +252,20 @@ const Performance = () => {
 
       <div className="grid-4" style={{ marginBottom: 16 }}>
         <Card title={t('warehouse.perf.card.stagingSLA')} subtitle="Orders staged on time" eyebrow="Target 95%">
-          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{WM.KPIs.stagingSLA.value}<span style={{ fontSize: 16, color: 'var(--fg-muted)', fontFamily: 'var(--font-sans)' }}>%</span></div>
-          <SparkBars data={bars} tone="slate"/>
-          <div className="small muted" style={{ marginTop: 6 }}>14-day trend · <span className="red">−1.2pp</span> vs prior</div>
+          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{loading ? '…' : (kpis.staging_sla_pct ?? '—')}<span style={{ fontSize: 16, color: 'var(--fg-muted)', fontFamily: 'var(--font-sans)' }}>%</span></div>
+          <div className="small muted" style={{ marginTop: 6 }}>Live trend endpoint not available yet.</div>
         </Card>
         <Card title={t('warehouse.perf.card.inboundAdherence')} subtitle="Receipts on scheduled day" eyebrow="Target 90%">
-          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{WM.KPIs.inboundAdherence.value}<span style={{ fontSize: 16, color: 'var(--fg-muted)', fontFamily: 'var(--font-sans)' }}>%</span></div>
-          <SparkBars data={[70, 72, 75, 78, 80, 84, 82, 86, 83, 85, 82, 84, 81, 84]} tone="sunset"/>
-          <div className="small red" style={{ marginTop: 6 }}>Below target — vendor 0010142 slipping</div>
+          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{loading ? '…' : (kpis.inbound_adherence_pct ?? '—')}<span style={{ fontSize: 16, color: 'var(--fg-muted)', fontFamily: 'var(--font-sans)' }}>%</span></div>
+          <div className="small muted" style={{ marginTop: 6 }}>Live trend endpoint not available yet.</div>
         </Card>
         <Card title={t('warehouse.perf.card.outboundReady')} subtitle="Deliveries ready by cut-off" eyebrow="Target 98%">
-          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{WM.KPIs.outboundReady.value}<span style={{ fontSize: 16, color: 'var(--fg-muted)', fontFamily: 'var(--font-sans)' }}>%</span></div>
-          <SparkBars data={[92, 93, 94, 94, 95, 95, 96, 96, 97, 96, 96, 97, 97, 96]} tone="jade"/>
-          <div className="small green" style={{ marginTop: 6 }}>+0.8pp vs prior</div>
+          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{loading ? '…' : (kpis.outbound_ready_pct ?? '—')}<span style={{ fontSize: 16, color: 'var(--fg-muted)', fontFamily: 'var(--font-sans)' }}>%</span></div>
+          <div className="small muted" style={{ marginTop: 6 }}>Live trend endpoint not available yet.</div>
         </Card>
         <Card title={t('warehouse.perf.card.pickProd')} subtitle="Lines per picker-hour" eyebrow="Target 130">
-          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{WM.KPIs.pickProd.value}</div>
-          <SparkBars data={[120, 125, 128, 130, 132, 135, 138, 140, 139, 141, 140, 142, 141, 142]} tone="slate"/>
-          <div className="small green" style={{ marginTop: 6 }}>+6 ln/h vs prior</div>
+          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, fontSize: 44, color: 'var(--forest)', lineHeight: 1 }}>{loading ? '…' : (kpis.pick_productivity ?? '—')}</div>
+          <div className="small muted" style={{ marginTop: 6 }}>Live trend endpoint not available yet.</div>
         </Card>
       </div>
 
@@ -241,45 +274,33 @@ const Performance = () => {
           <table className="tbl">
             <thead><tr><th>{t('warehouse.perf.col.kpi')}</th><th className="num">{t('warehouse.perf.col.value')}</th><th className="num">{t('warehouse.perf.col.target')}</th><th>Δ</th></tr></thead>
             <tbody>
-              {Object.entries(WM.KPIs).map(([k, v]) => {
-                const meetsTarget = typeof v.target === 'number' ? (k.includes('put') || k === 'toAgeing' || k === 'leftoverReturn' || k === 'stockoutRate' ? v.value <= v.target : v.value >= v.target) : true;
+              {Object.entries(kpis).map(([k, value]) => {
                 return (
                   <tr key={k}>
                     <td style={{ fontSize: 12 }}>{kpiLabels[k] ?? k}</td>
-                    <td className="num bold">{v.value}{v.unit}</td>
-                    <td className="num muted">{v.target}{v.unit}</td>
-                    <td><Pill tone={meetsTarget ? 'green' : 'red'} noDot>{v.trend > 0 ? '+' : ''}{v.trend}</Pill></td>
+                    <td className="num bold">{String(value)}</td>
+                    <td className="num muted">—</td>
+                    <td><Pill tone="grey" noDot>live</Pill></td>
                   </tr>
                 );
               })}
+              {!loading && Object.keys(kpis).length === 0 && !error && (
+                <tr><td colSpan={4} className="muted small">No live performance KPIs are available for this plant.</td></tr>
+              )}
+              {error && <tr><td colSpan={4} className="red small">Unable to load live performance KPIs: {error}</td></tr>}
             </tbody>
           </table>
         </Card>
 
         <Card title={t('warehouse.perf.card.workloadHeatmap')} subtitle="Task-completion density by hour" eyebrow="Rhythm">
-          <div className="heatgrid" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
-            {Array.from({ length: 14 * 24 }).map((_: any, i: number) => {
-              const hour = i % 24;
-              const busyness = (Math.sin((hour - 4) * 0.26) + 1) / 2;
-              const noise = ((i * 13) % 11) / 20;
-              const val = Math.max(0, Math.min(1, busyness + noise));
-              const cls = val < 0.15 ? 'h1' : val < 0.35 ? 'h2' : val < 0.55 ? 'h3' : val < 0.8 ? 'h4' : 'h5';
-              return <div key={i} className={`heatcell ${cls}`}/>;
-            })}
-          </div>
-          <div className="flex between muted small" style={{ marginTop: 8 }}><span>14 days ago</span><span>Today</span></div>
+          <div className="muted small">No live workload heatmap endpoint is available for this plant.</div>
         </Card>
       </div>
 
       <Card title={t('warehouse.perf.card.leftovers')} subtitle="Bulk drops and consolidated staging remain the biggest sources of waste" eyebrow="Loss">
         <div className="stack-8">
-          <Hbar label="Bulk drop" value={4.2} max={6} tone="red"/>
-          <Hbar label="Consolidated" value={3.1} max={6} tone="amber"/>
-          <Hbar label="Standard" value={1.8} max={6}/>
-          <Hbar label="Dispensary" value={0.4} max={6} tone="jade"/>
-          <Hbar label="Campaign" value={2.0} max={6} tone="amber"/>
-          <Hbar label="SSCC pallet" value={0.6} max={6} tone="jade"/>
-          <Hbar label="Fast-mover" value={1.2} max={6}/>
+          <Hbar label="Live leftover loss" value={0} max={1}/>
+          <div className="muted small">No live leftover-loss endpoint is available for this plant.</div>
         </div>
       </Card>
     </div>

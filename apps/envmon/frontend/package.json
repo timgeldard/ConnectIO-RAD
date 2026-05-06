@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ci": "vitest run --coverage",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
+    "lint": "npm run typecheck"
   },
   "dependencies": {
 "@connectio/shared-frontend-api": "file:../../../libs/shared-frontend-api",

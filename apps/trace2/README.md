@@ -103,7 +103,7 @@ default is `20582002 / 0008898869`.
 bash scripts/dev.sh
 ```
 
-Starts uvicorn on `:8000` and Vite on `:5173`. Vite proxies `/api` to uvicorn.
+Starts uvicorn on `:8002` and Vite on `:5173`. Vite proxies `/api` to uvicorn.
 For local auth, either (a) run behind `databricks apps proxy`, or (b) set
 `Authorization: Bearer <PAT>` on requests.
 

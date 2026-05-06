@@ -25,10 +25,14 @@ export function LabBoard() {
   const [tick, setTick] = useState(24)
   const [page, setPage] = useState(0)
   const stamp = new Date().toLocaleString('en-GB', { hour12: false }).replace(',', ' ·')
+  const params = new URLSearchParams(window.location.search)
+  const plantId = params.get('plant_id') ?? params.get('plant')
+  const lotType = params.get('lot_type')
 
   const { data, isLoading } = useQuery({
-    queryKey: ['cq', 'lab', 'fails'],
-    queryFn: () => fetchJson<{ fails: FailSpec[], data_available?: boolean, reason?: string }>('/api/cq/lab/fails'),
+    queryKey: ['cq', 'lab', 'fails', plantId, lotType],
+    enabled: Boolean(plantId),
+    queryFn: () => fetchJson<{ fails: FailSpec[], data_available?: boolean, reason?: string }>(`/api/cq/lab/fails?plant_id=${encodeURIComponent(plantId as string)}${lotType ? `&lot_type=${encodeURIComponent(lotType)}` : ''}`),
   })
 
   const fails = data?.fails || []
@@ -51,6 +55,10 @@ export function LabBoard() {
   const goPrev = () => { setPage((p) => (p - 1 + pages) % pages); setTick(30) }
   const goNext = () => { setPage((p) => (p + 1) % pages); setTick(30) }
 
+  if (!plantId) {
+    return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)' }}>Select a plant or open Lab Board with a plant deep link to view lab failures.</div>
+  }
+
   if (isLoading) {
     return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)' }}>Loading lab data…</div>
   }
@@ -59,8 +67,8 @@ export function LabBoard() {
     return (
       <div className="lab-board" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <Icon name="clock" size={48} style={{ display: 'block', margin: '0 auto 24px', opacity: 0.5 }} />
-        <h2 style={{ fontSize: 24, fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', marginBottom: 12 }}>Feature coming soon</h2>
-        <p style={{ color: 'var(--text-3)', fontSize: 16 }}>This data relies on gold views that are pending promotion to Unity Catalogue.</p>
+        <h2 style={{ fontSize: 24, fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', marginBottom: 12 }}>No lab failures available</h2>
+        <p style={{ color: 'var(--text-3)', fontSize: 16 }}>{data.reason ?? 'The selected plant has no published lab failure dataset yet.'}</p>
       </div>
     )
   }
@@ -78,9 +86,9 @@ export function LabBoard() {
       </header>
 
       <div className="lab-ctx">
-        <div className="lab-ctx-field"><span className="lbl">Plant</span><span className="val">P806 · Clark North</span></div>
+        <div className="lab-ctx-field"><span className="lbl">Plant</span><span className="val">{plantId}</span></div>
         <div className="lab-ctx-field"><span className="lbl">Work centers</span><span className="val">All</span></div>
-        <div className="lab-ctx-field"><span className="lbl">Inspection lot type</span><span className="val">04</span></div>
+        <div className="lab-ctx-field"><span className="lbl">Inspection lot type</span><span className="val">{lotType ?? 'All'}</span></div>
         <div className="lab-ctx-field"><span className="lbl">Severity</span><span className="val">Fail · Warn</span></div>
         <div className="lab-ctx-field grow"><span className="lbl">Next refresh in</span><span className="val refresh">{tick} <span className="u">s</span></span></div>
         <div className="lab-ctx-field"><span className="lbl">Page</span><span className="val">{page + 1} / {pages}</span></div>

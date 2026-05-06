@@ -1,23 +1,27 @@
 """Alarms / cross-module signal inbox router.
 
-Returns a combined feed of real signals from envmon and spc DALs.
+Returns a combined feed of real signals from EnvMon and SPC application services.
 """
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from shared_auth.identity import require_proxy_user, UserIdentity
-from envmon_backend.inspection_analysis.dal.plants import fetch_active_plant_ids, fetch_plant_kpis
-from spc_backend.process_control.dal.analysis import fetch_scorecard
-
-import os
+from connectedquality_backend.application.alarms import fetch_active_plant_ids, fetch_plant_kpis, fetch_scorecard
 
 router = APIRouter()
 
-_DEFAULT_MATERIAL = os.environ.get("CQ_DEFAULT_MATERIAL", "20582002")
 
 @router.get("/alarms")
-async def get_alarms(status: Optional[str] = None, source: Optional[str] = None, user: UserIdentity = Depends(require_proxy_user)):
+async def get_alarms(
+    status: Optional[str] = None,
+    source: Optional[str] = None,
+    material: Optional[str] = Query(
+        default=None,
+        description="Optional material context used to include SPC scorecard signals.",
+    ),
+    user: UserIdentity = Depends(require_proxy_user),
+):
     """
     Retrieve a cross-module alarm stream aggregating signals from multiple apps.
 
@@ -37,22 +41,25 @@ async def get_alarms(status: Optional[str] = None, source: Optional[str] = None,
     open_count = 0
     token = user.raw_token
 
-    # 1. Fetch SPC Scorecard OOC flags for a configured material
-    # In a real setup, we would query a global alerts view, but for now we aggregate
-    try:
-        spc_rows = await fetch_scorecard(token, material_id=_DEFAULT_MATERIAL, plant_id=None, date_from=None, date_to=None)
-        for row in spc_rows:
-            if not row.get("is_stable", True):
-                open_count += 1
-                alarms.append({
-                    "id": f"spc-{row.get('mic_id', 'unknown')}",
-                    "source": "spc",
-                    "title": f"OOC detected for {row.get('mic_name', 'Unknown')}",
-                    "severity": "warn",
-                    "status": "open",
-                })
-    except Exception:
-        pass # Ignore SPC dal errors for demo robustness
+    if material:
+        try:
+            spc_rows = await fetch_scorecard(token, material_id=material, plant_id=None, date_from=None, date_to=None)
+            for row in spc_rows:
+                if not row.get("is_stable", True):
+                    open_count += 1
+                    alarms.append({
+                        "id": f"spc-{material}-{row.get('mic_id', 'unknown')}",
+                        "source": "spc",
+                        "title": f"OOC detected for {row.get('mic_name', row.get('mic_id', 'Unknown characteristic'))}",
+                        "severity": "warn",
+                        "status": "open",
+                        "context": {
+                            "material_id": material,
+                            "mic_id": row.get("mic_id"),
+                        },
+                    })
+        except Exception:
+            pass
 
     # 2. Fetch Envmon KPIs for active plants
     try:
@@ -67,6 +74,7 @@ async def get_alarms(status: Optional[str] = None, source: Optional[str] = None,
                     "title": f"Active fails in {plant_id}",
                     "severity": "bad",
                     "status": "open",
+                    "context": {"plant_id": plant_id},
                 })
     except Exception:
         pass

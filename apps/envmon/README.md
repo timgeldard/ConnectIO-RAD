@@ -30,8 +30,8 @@ The app can be run locally without a Databricks connection for UI/UX development
     make dev
     ```
     - Frontend: [http://localhost:5173](http://localhost:5173)
-    - Backend API: [http://localhost:8000](http://localhost:8000)
-    - Swagger Docs: [http://localhost:8000/api/docs](http://localhost:8000/api/docs)
+    - Backend API: [http://localhost:8001](http://localhost:8001)
+    - Swagger Docs: [http://localhost:8001/api/docs](http://localhost:8001/api/docs)
 
 ### Deployment
 Use the `Makefile` to ensure a consistent build and migration process.

@@ -1,20 +1,20 @@
 {
-  "name": "spc-frontend",
+  "name": "platform-frontend",
   "projectType": "application",
-  "tags": ["scope:spc", "type:frontend"],
+  "tags": ["scope:platform", "type:frontend"],
   "targets": {
     "dev": {
       "executor": "nx:run-commands",
       "options": {
         "command": "vite",
-        "cwd": "apps/spc/frontend"
+        "cwd": "apps/platform/frontend"
       }
     },
     "build": {
       "executor": "nx:run-commands",
       "options": {
         "command": "npm run build",
-        "cwd": "apps/spc/frontend"
+        "cwd": "apps/platform/frontend"
       },
       "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
       "outputs": ["{projectRoot}/dist"],
@@ -24,14 +24,14 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "npm run typecheck",
-        "cwd": "apps/spc/frontend"
+        "cwd": "apps/platform/frontend"
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
         "command": "npm run lint",
-        "cwd": "apps/spc/frontend"
+        "cwd": "apps/platform/frontend"
       },
       "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
       "cache": true
@@ -40,7 +40,7 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "npm run test:ci",
-        "cwd": "apps/spc/frontend"
+        "cwd": "apps/platform/frontend"
       },
       "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
       "outputs": ["{projectRoot}/coverage"],

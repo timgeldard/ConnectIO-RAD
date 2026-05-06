@@ -40,6 +40,8 @@ const DELIVERIES = [
 
 /** Trace Recall Readiness — forward exposure across customers, countries, and deliveries. */
 export function TraceRecall() {
+  const params = new URLSearchParams(window.location.search)
+  const plantLabel = params.get('plant') ?? params.get('plant_id') ?? 'No plant selected'
   return (
     <div className="cq-page">
       <PageHead
@@ -65,7 +67,7 @@ export function TraceRecall() {
           return url
             ? <a href={url} style={{ textDecoration: 'none', color: 'inherit' }}><span className="mono" style={{ fontSize: 16, borderBottom: '1px dashed var(--cq-fg-2)', cursor: 'pointer' }}>17402114</span></a>
             : <span className="mono" style={{ fontSize: 16 }}>17402114</span>
-        })()} sub="Charleville · IE" />
+        })()} sub={plantLabel} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10, marginBottom: 22 }}>
         <KPI label="Customers affected" value="11" />

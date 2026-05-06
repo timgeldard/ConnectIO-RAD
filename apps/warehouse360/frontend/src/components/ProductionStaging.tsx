@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
-import WM from '../data/mockData'
 import { useApi } from '../hooks/useApi'
 import { Icon, Pill, Progress, RiskDot } from './Primitives'
 import { FilterBar, Card, KPI } from './Shared'
+import { fmtTime, minutesFromNow, now } from '~/utils/time'
 
 /* Production Staging — primary screen.
    Tabs per staging method. Filters. Dense table. Detail drawer drill-down.
@@ -21,8 +21,18 @@ const STAGING_TABS = [
   { id: 'disp', label: 'warehouse.staging.tab.disp' },
 ];
 
+const STAGING_METHODS = [
+  { id: 'std', label: 'Standard staging' },
+  { id: 'cons', label: 'Consolidated staging' },
+  { id: 'bulk', label: 'Bulk drop' },
+  { id: 'camp', label: 'Campaign' },
+  { id: 'fast', label: 'Fast-mover replen' },
+  { id: 'sscc', label: 'SSCC pallet' },
+  { id: 'disp', label: 'Dispensary' },
+];
+
 const StagingMethodChip = ({ id }) => {
-  const m = WM.STAGING_METHODS.find((m: any) => m.id === id);
+  const m = STAGING_METHODS.find((m: any) => m.id === id);
   if (!m) return null;
   return <span className="tag tag-slate">{m.label}</span>;
 };
@@ -99,11 +109,11 @@ const ProductionStaging = ({ onOpenOrder }: ProductionStagingProps) => {
     if (filters.line !== 'all') r = r.filter((o: any) => o.line.id === filters.line);
     if (filters.window === 'today') r = r.filter((o: any) => {
       if (!o.start) return false;
-      const today = new Date(WM.NOW); today.setHours(0, 0, 0, 0);
+      const today = now(); today.setHours(0, 0, 0, 0);
       const end = new Date(today); end.setDate(end.getDate() + 1);
       return o.start >= today && o.start < end;
     });
-    if (filters.window === '8h') r = r.filter((o: any) => o.start && WM.minutesFromNow(o.start) >= -60 && WM.minutesFromNow(o.start) <= 8 * 60);
+    if (filters.window === '8h') r = r.filter((o: any) => o.start && minutesFromNow(o.start) >= -60 && minutesFromNow(o.start) <= 8 * 60);
     r = [...r].sort((a: any, b: any) => {
       const mul = sort.dir === 'asc' ? 1 : -1;
       if (sort.key === 'start') {
@@ -124,7 +134,7 @@ const ProductionStaging = ({ onOpenOrder }: ProductionStagingProps) => {
 
   const counts = React.useMemo(() => {
     const c = { all: allOrders.length };
-    for (const m of WM.STAGING_METHODS) {
+    for (const m of STAGING_METHODS) {
       c[m.id] = allOrders.filter((o: any) => o.method.id === m.id).length;
     }
     return c;
@@ -250,7 +260,7 @@ const ProductionStaging = ({ onOpenOrder }: ProductionStagingProps) => {
 };
 
 const StagingRow = ({ o, onClick }) => {
-  const minsToStart = o.start ? WM.minutesFromNow(o.start) : null;
+  const minsToStart = o.start ? minutesFromNow(o.start) : null;
   return (
     <tr className={`is-risk-${o.risk}`} onClick={onClick}>
       <td><RiskDot risk={o.risk}/></td>
@@ -270,7 +280,7 @@ const StagingRow = ({ o, onClick }) => {
         </div>
       </td>
       <td>
-        <div className="mono bold" style={{ fontSize: 12 }}>{o.start ? WM.fmtTime(o.start) : '—'}</div>
+        <div className="mono bold" style={{ fontSize: 12 }}>{o.start ? fmtTime(o.start) : '—'}</div>
         <div className="muted" style={{ fontSize: 11 }}>{minsToStart === null ? '—' : minsToStart < 0 ? Math.abs(minsToStart) + 'm ago' : minsToStart < 60 ? 'in ' + minsToStart + 'm' : 'in ' + (minsToStart / 60).toFixed(1) + 'h'}</div>
       </td>
       <td className="num" style={{ minWidth: 140 }}>
@@ -295,7 +305,7 @@ const StagingRow = ({ o, onClick }) => {
 const StagingTimeline = ({ orders = [] as any[], onOpen }: { orders?: any[]; onOpen?: (o: any) => void }) => {
   const hours = 24;
   const startHour = 6; // starts at 06:00 today
-  const dayStart = (() => { const d = new Date(WM.NOW); d.setHours(startHour, 0, 0, 0); return d; })();
+  const dayStart = (() => { const d = now(); d.setHours(startHour, 0, 0, 0); return d; })();
   const dayEnd = new Date(dayStart.getTime() + hours * 3600000);
 
   const timelineOrders = orders.filter((o: any) => o.start && o.end && o.start < dayEnd && o.end > dayStart);
@@ -316,7 +326,7 @@ const StagingTimeline = ({ orders = [] as any[], onOpen }: { orders?: any[]; onO
     return pct * 100;
   };
 
-  const nowX = xFromTime(WM.NOW);
+  const nowX = xFromTime(now());
 
   return (
     <div style={{ minWidth: 900 }}>
@@ -354,7 +364,7 @@ const StagingTimeline = ({ orders = [] as any[], onOpen }: { orders?: any[]; onO
                     onClick={() => onOpen?.(o)}
                     title={`${o.id} · ${o.product}`}>
                     <div className="timeline-event-title">{o.product.split(' · ')[0]}</div>
-                    <div className="timeline-event-meta">{WM.fmtTime(o.start)}–{WM.fmtTime(o.end)} · {o.stagingPct}%</div>
+                    <div className="timeline-event-meta">{fmtTime(o.start)}–{fmtTime(o.end)} · {o.stagingPct}%</div>
                   </button>
                 );
               })}

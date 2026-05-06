@@ -7,7 +7,7 @@ import { usePlantSelection } from '~/context/PlantContext'
  */
 export function PlantContextBar() {
   const { t } = useI18n()
-  const { plants, selectedPlantId, setSelectedPlantId, loading } = usePlantSelection()
+  const { plants, selectedPlantId, setSelectedPlantId, loading, error } = usePlantSelection()
 
   return (
     <div
@@ -33,7 +33,7 @@ export function PlantContextBar() {
         <select
           aria-label={t('warehouse.plant.selector')}
           value={selectedPlantId}
-          disabled={loading || plants.length < 2}
+          disabled={loading || plants.length === 0}
           onChange={(e) => setSelectedPlantId(e.target.value)}
           style={{
             background: 'transparent',
@@ -41,9 +41,14 @@ export function PlantContextBar() {
             color: 'var(--fg)',
             fontFamily: 'var(--font-mono)',
             fontSize: 12,
-            cursor: loading || plants.length < 2 ? 'default' : 'pointer',
+            cursor: loading || plants.length === 0 ? 'default' : 'pointer',
           }}
         >
+          {plants.length === 0 && (
+            <option value="">
+              {loading ? 'Loading plants' : 'No plants available'}
+            </option>
+          )}
           {plants.map((plant) => (
             <option key={plant.plant_id} value={plant.plant_id}>
               {plant.plant_name && plant.plant_name !== plant.plant_id
@@ -53,6 +58,7 @@ export function PlantContextBar() {
           ))}
         </select>
       </label>
+      {error && <span style={{ color: 'var(--status-risk)', fontSize: 11 }}>Plant context unavailable</span>}
     </div>
   )
 }

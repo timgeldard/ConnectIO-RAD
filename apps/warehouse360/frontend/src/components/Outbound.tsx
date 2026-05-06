@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
-import WM from '../data/mockData'
 import { useApi } from '../hooks/useApi'
 import { Icon, Pill, Progress, RiskDot } from './Primitives'
 import { FilterBar, Card, KPI } from './Shared'
 import { DockSchedule } from './Inbound'
+import { fmtTime } from '~/utils/time'
 
 /* Outbound — deliveries, picking, staging, loading, dock view */
 
@@ -175,7 +175,7 @@ const DeliveryDetail = ({ delivery }: DeliveryDetailProps) => {
   const id        = delivery.delivery_id   ?? delivery.id;
   const custName  = delivery.customer_name ?? delivery.customer?.name ?? '—';
   const carrier   = delivery.carrier       ?? '—';
-  const giDate    = delivery.planned_gi_date ?? (delivery.cutoff ? WM.fmtTime(delivery.cutoff) : '—');
+  const giDate    = delivery.planned_gi_date ?? (delivery.cutoff ? fmtTime(delivery.cutoff) : '—');
   const pickPct   = Math.round(delivery.pick_pct ?? delivery.pickPct ?? 0);
   const stagePct  = delivery.stagePct ?? null;
   const loadPct   = delivery.loadPct  ?? null;

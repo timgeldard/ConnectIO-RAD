@@ -27,25 +27,8 @@ export function ContextBar({ ctx }: ContextBarProps) {
         <span className="val alt mono">{ctx.batch}</span>
         <Icon name="chevron-right" size={11} />
       </div>
-      <div className="connectio-ctx-field">
-        <span className="lbl">Status</span>
-        <span className="connectio-pill warn"><span className="dot" /> QI · IN HOLD</span>
-      </div>
-      <div className="connectio-ctx-field">
-        <span className="lbl">Mfg</span>
-        <span className="val mono">2026-04-12</span>
-      </div>
-      <div className="connectio-ctx-field">
-        <span className="lbl">Exp</span>
-        <span className="val mono">2027-04-12</span>
-      </div>
-      <div className="connectio-ctx-field">
-        <span className="lbl">Window</span>
-        <span className="val mono">90D · 2026-02-01 → 05-01</span>
-      </div>
       <div className="connectio-ctx-spacer" />
       <div className="connectio-ctx-end">
-        <div className="ts"><span className="dim">Synced</span>2 s ago · 14:08:21Z</div>
         <button className="connectio-ctx-action"><Icon name="refresh" size={12} /> Refresh</button>
         <button className="connectio-ctx-action primary">
           <Icon name="flag" size={12} /> Open in workbench

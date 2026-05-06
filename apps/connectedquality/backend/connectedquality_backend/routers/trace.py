@@ -1,26 +1,36 @@
-"""Trace module routers — returns real data from trace2_backend DALs.
+"""Trace module routers."""
 
-Replace mock returns with DAL queries once the CQ data layer is wired.
-"""
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 import asyncio
 
 from shared_auth.identity import require_proxy_user, UserIdentity
-from trace2_backend.dal.trace_dal import fetch_recall_readiness, fetch_mass_balance, fetch_bottom_up, fetch_top_down
+from connectedquality_backend.application.trace import (
+    fetch_bottom_up,
+    fetch_mass_balance,
+    fetch_recall_readiness,
+    fetch_top_down,
+)
 
 router = APIRouter()
 
 
 @router.get("/trace/recall")
-async def trace_recall(material: str = "20582002", batch: str = "0008898869", user: UserIdentity = Depends(require_proxy_user)):
+async def trace_recall(
+    material: str = Query(..., description="Material selected by the user/session/deep link."),
+    batch: str = Query(..., description="Batch selected by the user/session/deep link."),
+    user: UserIdentity = Depends(require_proxy_user),
+):
     """Recall readiness snapshot for the active batch."""
     token = user.raw_token
     return await fetch_recall_readiness(token, material_id=material, batch_id=batch)
 
 
 @router.get("/trace/lineage")
-async def trace_lineage(material: str = "20582002", batch: str = "0008898869", user: UserIdentity = Depends(require_proxy_user)):
+async def trace_lineage(
+    material: str = Query(..., description="Material selected by the user/session/deep link."),
+    batch: str = Query(..., description="Batch selected by the user/session/deep link."),
+    user: UserIdentity = Depends(require_proxy_user),
+):
     """Upstream and downstream lineage graph for the active batch."""
     token = user.raw_token
     bottom_up, top_down = await asyncio.gather(
@@ -42,7 +52,11 @@ async def trace_lineage(material: str = "20582002", batch: str = "0008898869", u
 
 
 @router.get("/trace/mass-balance")
-async def trace_mass_balance(material: str = "20582002", batch: str = "0008898869", user: UserIdentity = Depends(require_proxy_user)):
+async def trace_mass_balance(
+    material: str = Query(..., description="Material selected by the user/session/deep link."),
+    batch: str = Query(..., description="Batch selected by the user/session/deep link."),
+    user: UserIdentity = Depends(require_proxy_user),
+):
     """Mass balance summary for the active batch."""
     token = user.raw_token
     return await fetch_mass_balance(token, material_id=material, batch_id=batch)

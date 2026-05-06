@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-import WM from '../data/mockData'
 import { Icon } from './Primitives'
+import { minutesFromNow } from '~/utils/time'
 
 /* Shared filter bar + drawer + small cards */
 
@@ -138,7 +137,7 @@ const Card = ({ title, subtitle, actions, children, style, tight, footer, eyebro
 
 /** Formats a Date as a relative time string (e.g. "in 23m", "2h ago"). */
 const formatETA = (d: Date) => {
-  const mins = WM.minutesFromNow(d);
+  const mins = minutesFromNow(d);
   if (Math.abs(mins) < 60) return (mins < 0 ? mins + 'm ago' : 'in ' + mins + 'm');
   const hours = Math.round(mins / 60 * 10) / 10;
   return (hours < 0 ? Math.abs(hours) + 'h ago' : 'in ' + hours + 'h');

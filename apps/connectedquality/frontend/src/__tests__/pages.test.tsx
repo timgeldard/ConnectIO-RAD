@@ -108,7 +108,7 @@ describe('EnvMon pages', () => {
 
   it('EnvHistory renders without crashing', () => {
     const { container } = renderWithQuery(<EnvHistory />)
-    expect(container.querySelector('.cq-page') || container.textContent?.includes('Loading time-lapse data')).toBeTruthy()
+    expect(container.querySelector('.cq-page') || container.textContent?.includes('Select a plant')).toBeTruthy()
   })
 })
 
@@ -147,29 +147,29 @@ describe('SPC pages', () => {
 describe('LabBoard', () => {
   it('renders the lab board wallboard loading state', () => {
     renderWithQuery(<LabBoard />)
-    expect(screen.getByText(/Loading lab data/)).toBeInTheDocument()
+    expect(screen.getByText(/Select a plant/)).toBeInTheDocument()
   })
 
-  it('renders fail cards for the visible page loading state', () => {
+  it('renders fail cards for the visible page empty context state', () => {
     const { container } = renderWithQuery(<LabBoard />)
-    expect(container.textContent?.includes('Loading lab data')).toBeTruthy()
+    expect(container.textContent?.includes('Select a plant')).toBeTruthy()
   })
 
-  it('shows the open fails count loading state', () => {
+  it('shows the open fails count empty context state', () => {
     renderWithQuery(<LabBoard />)
-    expect(screen.getByText(/Loading lab data/)).toBeInTheDocument()
+    expect(screen.getByText(/Select a plant/)).toBeInTheDocument()
   })
 })
 
 describe('Alarms', () => {
   it('renders the alarms signal table', () => {
-    render(<Alarms />)
+    renderWithQuery(<Alarms />)
     expect(screen.getByText('ALARMS')).toBeInTheDocument()
     expect(screen.getByText('Signal stream')).toBeInTheDocument()
   })
 
   it('renders KPI row with open/ack/closed counts', () => {
-    render(<Alarms />)
+    renderWithQuery(<Alarms />)
     expect(screen.getByText('Open')).toBeInTheDocument()
     expect(screen.getByText('Acknowledged')).toBeInTheDocument()
   })

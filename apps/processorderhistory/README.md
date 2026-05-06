@@ -53,7 +53,7 @@ make install
 make dev
 ```
 
-Starts uvicorn on `:8000` and Vite on `:5173`. Vite proxies `/api` to uvicorn.
+Starts uvicorn on `:8003` and Vite on `:5173`. Vite proxies `/api` to uvicorn.
 
 ## Deploy
 

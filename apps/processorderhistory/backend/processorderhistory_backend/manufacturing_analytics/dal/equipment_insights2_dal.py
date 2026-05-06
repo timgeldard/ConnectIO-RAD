@@ -61,5 +61,5 @@ async def fetch_equipment_insights2(
         "cal_register": [],
         "anomalies": [],
         "data_available": False,
-        "reason": "gold_views_pending",
+        "reason": "equipment_gold_views_pending",
     }

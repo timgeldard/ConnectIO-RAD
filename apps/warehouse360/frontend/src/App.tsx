@@ -16,8 +16,7 @@ import { Dispensary } from '~/components/Dispensary'
 import { Exceptions, Performance } from '~/components/ExceptionsPerf'
 import { DocsPage } from '~/components/Docs'
 import resources from '~/i18n/resources.json'
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-import WM from '~/data/mockData'
+import { fmtTime } from '~/utils/time'
 
 /** Discriminated union for the slide-in drawer state. */
 type DrawerState =
@@ -115,7 +114,7 @@ function WarehouseApp() {
     const o = drawer.entity
     drawerContent = <OrderStagingDetail order={o}/>
     drawerTitle = o.id + ' · ' + o.product.split(' · ')[0]
-    drawerSubtitle = (o.line?.name ?? '—') + ' · ' + (o.method?.label ?? '—') + ' · starts ' + (o.start ? WM.fmtTime(o.start) : '—')
+    drawerSubtitle = (o.line?.name ?? '—') + ' · ' + (o.method?.label ?? '—') + ' · starts ' + (o.start ? fmtTime(o.start) : '—')
     drawerActions = (
       <Pill tone={o.risk === 'red' ? 'red' : o.risk === 'amber' ? 'amber' : 'green'}>
         {o.risk === 'red' ? 'Critical' : o.risk === 'amber' ? 'At risk' : 'On track'}
@@ -127,14 +126,14 @@ function WarehouseApp() {
     drawerTitle = (d.delivery_id ?? d.id) + ' · ' + (d.customer_name ?? d.customer?.name ?? '')
     drawerSubtitle = d.delivery_id
       ? 'GI date ' + (d.planned_gi_date ?? '—') + ' · ' + (d.carrier ?? '—')
-      : 'Cut-off ' + WM.fmtTime(d.cutoff) + ' · Dock ' + d.dock.id + ' · ' + d.carrier
+      : 'Cut-off ' + fmtTime(d.cutoff) + ' · Dock ' + d.dock.id + ' · ' + d.carrier
   } else if (drawer?.type === 'receipt') {
     const r = drawer.entity
     drawerContent = <ReceiptDetail receipt={r}/>
     drawerTitle = (r.po_id ?? r.id) + ' · ' + (r.vendor_name ?? r.vendor?.name ?? '')
     drawerSubtitle = r.po_id
       ? 'PO · Due ' + (r.delivery_date ?? '—')
-      : r.type + ' · ETA ' + WM.fmtTime(r.eta) + ' · Dock ' + r.dock.id
+      : r.type + ' · ETA ' + fmtTime(r.eta) + ' · Dock ' + r.dock.id
   }
 
   return (
@@ -147,9 +146,6 @@ function WarehouseApp() {
         onModuleChange={handleModuleChange}
         onTabChange={() => {}}
         contextBar={<PlantContextBar />}
-        userInitials="NM"
-        userName="Niamh Murphy"
-        userRole="Warehouse Manager"
       >
         {page}
       </PlatformShell>
