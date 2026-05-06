@@ -1,5 +1,6 @@
 import asyncio
 import math
+import os
 import uuid
 from typing import Optional, TypedDict
 
@@ -8,6 +9,12 @@ from spc_backend.process_control.domain.multivariate import compute_hotelling_t2
 from spc_backend.utils.db import run_sql_async, sql_param, tbl
 
 _MULTIVARIATE_MAX_SOURCE_ROWS = 50000
+
+# Per AIAG SPC §V, stability must be demonstrated before capability is valid.
+# In the absence of full WECO/Nelson detection in SQL, we use OOC rate as a proxy.
+# Default 0.01 (1%) allows for occasional outliers in large datasets while
+# suppressing indices for truly drifting/erratic processes.
+_STABILITY_THRESHOLD = float(os.environ.get("SPC_STABILITY_THRESHOLD", "0.01"))
 
 
 class _HealthRow(TypedDict, total=False):
@@ -347,13 +354,14 @@ async def fetch_scorecard(
         typed_row["ooc_rate"] = round(typed_row["ooc_rate"], 4) if typed_row["ooc_rate"] is not None else None
 
         # Stability-before-capability guard. The metric view does not run full
-        # WECO/Nelson in SQL, so we use ooc_batches > 0 (i.e. at least one
-        # point beyond limits — WECO rule 1) as a conservative proxy for
+        # WECO/Nelson in SQL, so we use OOC rate as a conservative proxy for
         # "not in statistical control". Per AIAG SPC §V, capability indices
         # on an unstable process are unreliable; callers should render "—"
         # rather than the numeric value when is_stable is false.
-        typed_row["is_stable"] = typed_row.get("ooc_batches", 0) == 0
-        typed_row["stability_basis"] = "ooc_batches_rule1_proxy"
+        typed_row["is_stable"] = (typed_row.get("ooc_rate") or 0.0) < _STABILITY_THRESHOLD
+        typed_row["stability_basis"] = "ooc_rate_proxy"
+        typed_row["stability_threshold"] = _STABILITY_THRESHOLD
+        typed_row["stability_method"] = "weco_rule_1_threshold"
 
     rows.sort(key=lambda row: (row.get("ppk") is None, row.get("ppk") or 0))
     return rows

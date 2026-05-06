@@ -153,8 +153,9 @@ async def msa_calculate_endpoint(
     Raises:
         HTTPException: If the calculation fails due to domain logic or data errors.
     """
+    import asyncio
     try:
-        return msa_calculate(body)
+        return await asyncio.get_running_loop().run_in_executor(None, lambda: msa_calculate(body))
     except Exception as exc:
         handle_analysis_error(exc)
 

@@ -166,19 +166,20 @@ def test_fetch_scorecard_marks_stable_when_no_ooc_batches(monkeypatch):
     rows = asyncio.run(spc_analysis_dal.fetch_scorecard("token", "MAT-1", None, None, None))
 
     assert rows[0]["is_stable"] is True
-    assert rows[0]["stability_basis"] == "ooc_batches_rule1_proxy"
+    assert rows[0]["stability_basis"] == "ooc_rate_proxy"
 
 
 def test_fetch_scorecard_marks_unstable_when_any_ooc_batch(monkeypatch):
     async def fake_run_sql_async(_token, _query, _params=None, **_kwargs):
+        # With default 0.01 threshold, 1/10 = 0.1 is unstable.
         return [_stable_row(ooc_batches=1)]
 
     monkeypatch.setattr(spc_analysis_dal, "run_sql_async", fake_run_sql_async)
     rows = asyncio.run(spc_analysis_dal.fetch_scorecard("token", "MAT-1", None, None, None))
 
-    # One OOC batch is a WECO rule-1 violation — capability should be flagged.
+    # One OOC batch out of 10 exceeds the 1% threshold (0.1 > 0.01).
     assert rows[0]["is_stable"] is False
-    assert rows[0]["stability_basis"] == "ooc_batches_rule1_proxy"
+    assert rows[0]["stability_basis"] == "ooc_rate_proxy"
 
 
 async def test_fetch_process_flow(monkeypatch):

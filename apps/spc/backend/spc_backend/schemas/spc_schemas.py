@@ -372,6 +372,13 @@ class SaveMSARequest(BaseModel):
     def check_results_json(cls, v: str) -> str:
         if len(v) > 65_535:
             raise ValueError("results_json too large (max 65535 chars)")
+        
+        import json
+        try:
+            json.loads(v)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"results_json must be valid JSON: {exc}") from exc
+            
         return v
 
 
