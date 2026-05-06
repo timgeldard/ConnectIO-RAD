@@ -9,6 +9,7 @@ import { useEM } from '~/context/EMContext';
 import { useHeatmap, useFloors } from '~/api/client';
 import Marker from './Marker';
 import Tooltip from './Tooltip';
+import { IconMap } from '~/components/ui/Icons';
 import type { MarkerData, PersonaId } from '~/types';
 
 const DEFAULT_WIDTH = 1000;
@@ -54,6 +55,15 @@ export default function FloorPlan({ personaId }: Props) {
   const failMarkers = data?.markers.filter((m) => m.status === 'FAIL') ?? [];
   const showBlastRadius = personaId === 'sanitation';
   const blastR = Math.min(viewWidth, viewHeight) * 0.06;
+
+  if (!activeFloor && floors.length > 0) {
+    return (
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--stone)', color: 'var(--fg-muted)' }}>
+        <IconMap size={48} style={{ opacity: 0.2, marginBottom: 16 }} />
+        <div style={{ fontSize: 16, fontWeight: 500 }}>Please select a floor to view the heatmap</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'var(--stone)' }}>
@@ -139,12 +149,12 @@ export default function FloorPlan({ personaId }: Props) {
       {/* Legend */}
       <div style={{ position: 'absolute', bottom: 12, right: 12, background: 'white', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--stroke)', boxShadow: 'var(--shadow-sm)' }}>
         <div className="legend">
-          <span className="item"><span className="sw" style={{ background: '#F24A00' }} />FAIL</span>
-          <span className="item"><span className="sw" style={{ background: '#F9C20A' }} />WARN</span>
-          <span className="item"><span className="sw" style={{ background: '#B7B7A8' }} />PEND</span>
-          <span className="item"><span className="sw" style={{ background: '#44CF93' }} />PASS</span>
+          <span className="item"><span className="sw" style={{ background: '#F24A00' }} />{t('envmon.floorPlan.legend.fail')}</span>
+          <span className="item"><span className="sw" style={{ background: '#F9C20A' }} />{t('envmon.floorPlan.legend.warn')}</span>
+          <span className="item"><span className="sw" style={{ background: '#B7B7A8' }} />{t('envmon.floorPlan.legend.pend')}</span>
+          <span className="item"><span className="sw" style={{ background: '#44CF93' }} />{t('envmon.floorPlan.legend.pass')}</span>
           {heatmapMode === 'continuous' && (
-            <span className="item"><span className="sw" style={{ background: '#D9D9CB' }} />N/A</span>
+            <span className="item"><span className="sw" style={{ background: '#D9D9CB' }} />{t('envmon.floorPlan.legend.na')}</span>
           )}
         </div>
       </div>

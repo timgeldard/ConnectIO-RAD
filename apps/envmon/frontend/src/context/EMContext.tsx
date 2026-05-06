@@ -18,7 +18,7 @@ interface EMState {
   view: ViewState;
   personaId: PersonaId;
   // Floor-level filters
-  activeFloor: string;
+  activeFloor: string | null;
   timeWindow: TimeWindow;
   heatmapMode: HeatmapMode;
   selectedLocId: string | null;
@@ -32,7 +32,7 @@ interface EMState {
 interface EMActions {
   setView: (v: ViewState) => void;
   setPersonaId: (id: PersonaId) => void;
-  setActiveFloor: (floor: string) => void;
+  setActiveFloor: (floor: string | null) => void;
   setTimeWindow: (tw: TimeWindow) => void;
   setHeatmapMode: (mode: HeatmapMode) => void;
   setSelectedLocId: (id: string | null) => void;
@@ -69,8 +69,8 @@ export function EMProvider({ children }: { children: React.ReactNode }) {
     readLocalStorage<PersonaId>('em_persona', 'regional'),
   );
 
-  const [activeFloor, setActiveFloorRaw] = useState<string>(
-    () => new URLSearchParams(window.location.search).get('floor') ?? view.floorId ?? 'F1',
+  const [activeFloor, setActiveFloorRaw] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get('floor') ?? view.floorId ?? null,
   );
   const [timeWindow, setTimeWindowRaw] = useState<TimeWindow>(
     () => {
@@ -114,10 +114,16 @@ export function EMProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setActiveFloor = useCallback(
-    (floor: string) => {
+    (floor: string | null) => {
       setActiveFloorRaw(floor);
       setSelectedLocId(null);
-      pushParam('floor', floor);
+      if (floor) {
+        pushParam('floor', floor);
+      } else {
+        const sp = new URLSearchParams(window.location.search);
+        sp.delete('floor');
+        window.history.replaceState(null, '', `?${sp}`);
+      }
       setViewRaw((prev) => ({ ...prev, floorId: floor }));
     },
     [pushParam],
