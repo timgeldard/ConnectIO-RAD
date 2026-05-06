@@ -106,6 +106,8 @@ def compute_grr(data: MeasurementCube, tolerance: float) -> dict[str, Any]:
         operator_ranges.append(ranges)
 
     r_bars_by_op = [sum(ranges) / len(ranges) for ranges in operator_ranges if ranges]
+    if not r_bars_by_op:
+        raise ValueError("No valid measurements across operators to compute ranges.")
     r_bar_bar = sum(r_bars_by_op) / len(r_bars_by_op)
     ev = r_bar_bar * k1
 

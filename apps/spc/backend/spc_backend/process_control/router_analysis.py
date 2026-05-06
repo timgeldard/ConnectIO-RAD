@@ -52,8 +52,8 @@ async def spc_process_flow(
             body.material_id,
             body.date_from,
             body.date_to,
-            body.upstream_depth,
-            body.downstream_depth,
+            min(body.upstream_depth, 10),
+            min(body.downstream_depth, 10),
         )
     except Exception as exc:
         handle_analysis_error(exc)

@@ -12,7 +12,7 @@ router = APIRouter()
 
 
 @router.get("/spc/charts")
-async def spc_charts(material: str = "20582002", line: str = "L4", char: str = "moisture"):
+async def spc_charts(material: str = "20582002", line: str = "L4", char: str = "moisture", user: UserIdentity = Depends(require_proxy_user)):
     """Individual value series and control limits for the selected characteristic."""
     return {
         "material": material,
@@ -49,4 +49,6 @@ async def spc_flow(material: str = "20582002", user: UserIdentity = Depends(requ
         "material": material,
         "stages": flow_data.get("nodes", []),
         "edges": flow_data.get("edges", []),
+    }
+edges", []),
     }

@@ -2,6 +2,7 @@
 
 from fastapi.testclient import TestClient
 from unittest.mock import patch
+import pytest
 
 from connectedquality_backend.main import app
 import connectedquality_backend.main as main_module
@@ -10,7 +11,15 @@ from shared_auth.identity import UserIdentity, require_proxy_user
 def override_require_proxy_user():
     return UserIdentity(user_id="test_user", raw_token="test_token")
 
-app.dependency_overrides[require_proxy_user] = override_require_proxy_user
+@pytest.fixture(autouse=True)
+def override_proxy_user_fixture():
+    original = app.dependency_overrides.get(require_proxy_user)
+    app.dependency_overrides[require_proxy_user] = override_require_proxy_user
+    yield
+    if original is not None:
+        app.dependency_overrides[require_proxy_user] = original
+    else:
+        del app.dependency_overrides[require_proxy_user]
 
 client = TestClient(app)
 

@@ -10,21 +10,37 @@ from shared_auth.identity import require_proxy_user, UserIdentity
 from envmon_backend.inspection_analysis.dal.plants import fetch_active_plant_ids, fetch_plant_kpis
 from spc_backend.process_control.dal.analysis import fetch_scorecard
 
+import os
+
 router = APIRouter()
 
+_DEFAULT_MATERIAL = os.environ.get("CQ_DEFAULT_MATERIAL", "20582002")
 
 @router.get("/alarms")
 async def get_alarms(status: Optional[str] = None, source: Optional[str] = None, user: UserIdentity = Depends(require_proxy_user)):
-    """Cross-module alarm stream, optionally filtered by status or source module."""
+    """
+    Retrieve a cross-module alarm stream aggregating signals from multiple apps.
+
+    Args:
+        status: Optional filter by status (e.g., 'open', 'acknowledged').
+        source: Optional filter by source module (e.g., 'spc', 'envmon').
+        user: Authenticated user identity.
+
+    Returns:
+        A dictionary containing the aggregated alarm count and a list of alarm objects.
+
+    Raises:
+        HTTPException: If upstream source requests fail unexpectedly or validation errors occur.
+    """
     
     alarms = []
     open_count = 0
     token = user.raw_token
 
-    # 1. Fetch SPC Scorecard OOC flags for a default material
+    # 1. Fetch SPC Scorecard OOC flags for a configured material
     # In a real setup, we would query a global alerts view, but for now we aggregate
     try:
-        spc_rows = await fetch_scorecard(token, material_id="20582002", plant_id=None, date_from=None, date_to=None)
+        spc_rows = await fetch_scorecard(token, material_id=_DEFAULT_MATERIAL, plant_id=None, date_from=None, date_to=None)
         for row in spc_rows:
             if not row.get("is_stable", True):
                 open_count += 1

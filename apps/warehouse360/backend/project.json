@@ -39,7 +39,7 @@
     "deploy": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "make deploy PROFILE=prod",
+        "command": "make deploy PROFILE=uat",
         "cwd": "apps/warehouse360"
       },
       "configurations": {

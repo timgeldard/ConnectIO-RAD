@@ -154,7 +154,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "fr": {
     "shared.language.label": "Langue",
@@ -311,7 +312,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "es": {
     "shared.language.label": "Idioma",
@@ -468,7 +470,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "de": {
     "shared.language.label": "Sprache",
@@ -625,7 +628,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "ja": {
     "shared.language.label": "言語",
@@ -782,7 +786,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "zh-Hans": {
     "shared.language.label": "语言",
@@ -939,7 +944,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "zh-Hant": {
     "shared.language.label": "語言",
@@ -1096,7 +1102,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "pt": {
     "shared.language.label": "Idioma",
@@ -1253,7 +1260,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "id": {
     "shared.language.label": "Bahasa",
@@ -1410,7 +1418,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "ms": {
     "shared.language.label": "Bahasa",
@@ -1567,7 +1576,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "ga": {
     "shared.language.label": "Teanga",
@@ -1724,7 +1734,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "pl": {
     "shared.language.label": "Język",
@@ -1881,7 +1892,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "nl": {
     "shared.language.label": "Taal",
@@ -2038,7 +2050,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "uk": {
     "shared.language.label": "Мова",
@@ -2195,7 +2208,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "da": {
     "shared.language.label": "Sprog",
@@ -2352,7 +2366,8 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "vi": {
     "shared.language.label": "Ngôn ngữ",
@@ -2509,6 +2524,7 @@
     "envmon.floorPlan.legend.warn": "WARN",
     "envmon.floorPlan.legend.pend": "PEND",
     "envmon.floorPlan.legend.pass": "PASS",
-    "envmon.floorPlan.legend.na": "N/A"
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   }
 }

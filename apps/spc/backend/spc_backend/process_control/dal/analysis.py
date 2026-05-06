@@ -15,7 +15,15 @@ _MULTIVARIATE_MAX_SOURCE_ROWS = 50000
 # In the absence of full WECO/Nelson detection in SQL, we use OOC rate as a proxy.
 # Default 0.01 (1%) allows for occasional outliers in large datasets while
 # suppressing indices for truly drifting/erratic processes.
-_STABILITY_THRESHOLD = float(os.environ.get("SPC_STABILITY_THRESHOLD", "0.01"))
+_raw_threshold = os.environ.get("SPC_STABILITY_THRESHOLD", "0.01")
+try:
+    _STABILITY_THRESHOLD = float(_raw_threshold)
+    if not (0.0 <= _STABILITY_THRESHOLD <= 1.0):
+        raise ValueError("Must be between 0.0 and 1.0")
+except (ValueError, TypeError):
+    _STABILITY_THRESHOLD = 0.01
+    import logging
+    logging.getLogger(__name__).warning("Invalid SPC_STABILITY_THRESHOLD '%s'; defaulting to 0.01", _raw_threshold)
 
 
 class _HealthRow(TypedDict, total=False):
@@ -88,6 +96,29 @@ async def fetch_process_flow(
     upstream_depth: int = 4,
     downstream_depth: int = 3,
 ) -> dict:
+    """
+    Retrieve material lineage graph and process health for a given material.
+
+    Traverses the process flow up to `upstream_depth` and `downstream_depth`
+    to build a directed acyclic graph (DAG) of materials. It then fetches the
+    process health (aggregated Cpk/Ppk metrics) for each material in the DAG.
+
+    Args:
+        token: Authenticated user's access token for Databricks.
+        material_id: The root material ID to center the graph around.
+        date_from: Optional start date filter for the health metrics (YYYY-MM-DD).
+        date_to: Optional end date filter for the health metrics (YYYY-MM-DD).
+        upstream_depth: Maximum number of upstream hops to traverse.
+        downstream_depth: Maximum number of downstream hops to traverse.
+
+    Returns:
+        A dictionary containing the graph structure with keys:
+            - nodes: List of material dictionaries with health indicators.
+            - edges: List of dictionaries with 'source' and 'target' material IDs.
+
+    Raises:
+        Exception: Upstream SQL or database connectivity errors.
+    """
     edges_query = f"""
         WITH RECURSIVE
         upstream AS (
@@ -259,6 +290,27 @@ async def fetch_scorecard(
     date_from: Optional[str],
     date_to: Optional[str],
 ) -> list[dict]:
+    """
+    Fetch comprehensive statistical capability (Cpk/Ppk) scorecard for a material.
+
+    Queries the `spc_quality_metrics` materialized view to retrieve aggregated
+    quality metrics (mean, stddev, capabilities, specifications) for all
+    Master Inspection Characteristics (MICs) measured against the material.
+
+    Args:
+        token: Authenticated user's access token for Databricks.
+        material_id: The material ID to fetch the scorecard for.
+        plant_id: Optional plant ID filter.
+        date_from: Optional start date filter (YYYY-MM-DD).
+        date_to: Optional end date filter (YYYY-MM-DD).
+
+    Returns:
+        A list of dictionaries, where each dictionary represents the capability
+        and stability metrics for a single MIC.
+
+    Raises:
+        Exception: Upstream SQL or database connectivity errors.
+    """
     params = [sql_param("material_id", material_id)]
     filters = ["material_id = :material_id"]
     if date_from:
@@ -310,8 +362,14 @@ async def fetch_scorecard(
     for row in rows:
         typed_row: _ScorecardRow = row
         
-        # OOC tracking
-        if typed_row.get("ooc_batches", 0) > 0:
+        # OOC tracking with safe type coercion
+        raw_ooc = typed_row.get("ooc_batches", 0)
+        try:
+            ooc_count = int(raw_ooc)
+        except (ValueError, TypeError):
+            ooc_count = 0
+
+        if ooc_count > 0:
             increment_observability_counter("spc.ooc_detected", tags={"mic_id": typed_row.get("mic_id", "unknown")})
 
         for int_field in ("batch_count", "sample_count", "ooc_batches", "accepted_batches", "distinct_spec_count"):
@@ -334,6 +392,20 @@ async def fetch_scorecard(
             "dpmo",
         ):
             typed_row[float_field] = _coerce_float(typed_row.get(float_field))  # type: ignore[literal-required]
+
+        ooc_raw = typed_row.get("ooc_rate")
+        # Stability-before-capability guard. The metric view does not run full
+        # WECO/Nelson in SQL, so we use OOC rate as a conservative proxy for
+        # "not in statistical control". Per AIAG SPC §V, capability indices
+        # on an unstable process are unreliable; callers should render "—"
+        # rather than the numeric value when is_stable is false.
+        typed_row["is_stable"] = (ooc_raw or 0.0) < _STABILITY_THRESHOLD
+        typed_row["stability_basis"] = "ooc_rate_proxy"
+        typed_row["stability_threshold"] = _STABILITY_THRESHOLD
+        typed_row["stability_method"] = "weco_rule_1_threshold"
+
+        if ooc_raw is not None:
+            typed_row["ooc_rate"] = round(ooc_raw, 4)
 
         nominal = typed_row.get("nominal_target")
         usl = typed_row.get("usl")

@@ -60,7 +60,7 @@ export default function FloorPlan({ personaId }: Props) {
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--stone)', color: 'var(--fg-muted)' }}>
         <IconMap size={48} style={{ opacity: 0.2, marginBottom: 16 }} />
-        <div style={{ fontSize: 16, fontWeight: 500 }}>Please select a floor to view the heatmap</div>
+        <div style={{ fontSize: 16, fontWeight: 500 }}>{t('envmon.floorPlan.emptyState')}</div>
       </div>
     );
   }

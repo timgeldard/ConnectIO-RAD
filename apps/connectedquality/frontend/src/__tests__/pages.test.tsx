@@ -145,17 +145,17 @@ describe('SPC pages', () => {
 })
 
 describe('LabBoard', () => {
-  it('renders the lab board wallboard', () => {
+  it('renders the lab board wallboard loading state', () => {
     renderWithQuery(<LabBoard />)
     expect(screen.getByText(/Loading lab data/)).toBeInTheDocument()
   })
 
-  it('renders fail cards for the visible page', () => {
+  it('renders fail cards for the visible page loading state', () => {
     const { container } = renderWithQuery(<LabBoard />)
     expect(container.textContent?.includes('Loading lab data')).toBeTruthy()
   })
 
-  it('shows the open fails count', () => {
+  it('shows the open fails count loading state', () => {
     renderWithQuery(<LabBoard />)
     expect(screen.getByText(/Loading lab data/)).toBeInTheDocument()
   })

@@ -1010,6 +1010,7 @@ export function EquipmentInsights2Page() {
           <Icon name="clock" size={24} style={{ display: 'block', margin: '0 auto 12px', opacity: 0.5 }} />
           <h2 style={{ fontSize: 16, fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', marginBottom: 8 }}>Feature coming soon</h2>
           <p>This data relies on gold views that are pending promotion to Unity Catalogue.</p>
+          {data.reason && <p style={{ fontSize: 12, opacity: 0.6, marginTop: 8 }}>Reason: {data.reason}</p>}
         </div>
       </div>
     )

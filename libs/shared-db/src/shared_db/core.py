@@ -166,7 +166,7 @@ async def run_sql_async(
     from .executors import _sql_executor, _REST_EXECUTOR
     import hashlib
     cache_key = hashlib.sha256(
-        f"{token}:{statement}:{params!r}:{endpoint_hint or ''}".encode()
+        f"{token}:{statement}:{params!r}".encode()
     ).hexdigest()
 
     with _sql_cache_lock:

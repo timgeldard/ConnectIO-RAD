@@ -26,6 +26,9 @@ python_files = ["test_*.py"]
 addopts = "-q --cov=warehouse360_backend --cov-report=term-missing --cov-report=xml --cov-fail-under=75"
 asyncio_mode = "auto"
 filterwarnings = ["ignore::DeprecationWarning"]
+markers = [
+  "integration: tests that exercise integration-style API paths or external-service boundaries",
+]
 
 [tool.coverage.run]
 source = ["warehouse360_backend"]
