@@ -102,6 +102,7 @@ async def fetch_process_flow(
             FROM {tbl('spc_lineage_graph_mv')} bl
             JOIN upstream u ON bl.target = u.material_id
             WHERE u.depth < :upstream_depth
+              AND u.depth < 10 -- hard limit to prevent infinite recursion
         ),
         downstream AS (
             SELECT DISTINCT
@@ -116,6 +117,7 @@ async def fetch_process_flow(
             FROM {tbl('spc_lineage_graph_mv')} bl
             JOIN downstream d ON bl.source = d.material_id
             WHERE d.depth < :downstream_depth
+              AND d.depth < 10 -- hard limit to prevent infinite recursion
         ),
         all_materials AS (
             SELECT material_id FROM upstream

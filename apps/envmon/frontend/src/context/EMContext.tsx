@@ -73,9 +73,10 @@ export function EMProvider({ children }: { children: React.ReactNode }) {
     () => new URLSearchParams(window.location.search).get('floor') ?? view.floorId ?? 'F1',
   );
   const [timeWindow, setTimeWindowRaw] = useState<TimeWindow>(
-    () =>
-      (readSearchParam<string>('tw', '365', ['30', '60', '90', '180', '365', '730']) as unknown as TimeWindow)
-      ?? 365,
+    () => {
+      const raw = readSearchParam('tw', '365', ['30', '60', '90', '180', '365', '730']);
+      return (parseInt(raw, 10) as TimeWindow) || 365;
+    }
   );
   const [heatmapMode, setHeatmapModeRaw] = useState<HeatmapMode>(
     () => readSearchParam<HeatmapMode>('mode', 'deterministic', ['deterministic', 'continuous']),
@@ -164,7 +165,7 @@ export function EMProvider({ children }: { children: React.ReactNode }) {
       historicalDate, decayLambda, selectedMics,
       setView, setPersonaId,
       setActiveFloor, setTimeWindow, setHeatmapMode,
-      setSelectedLocId, setSidePanelExpanded,
+      setSelectedLocId, setAdminMode, setSidePanelExpanded,
       setHistoricalDate, setDecayLambda, setSelectedMics,
     ],
   );

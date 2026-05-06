@@ -1660,6 +1660,49 @@ entities:
       - "Used for time-series x-axis in SPC control charts"
 
   # ---------------------------------------------------------------------------
+  # VIEW: spc_correlation_source_mv
+  # ---------------------------------------------------------------------------
+  - name: spc_correlation_source_mv
+    business_name: SPC Correlation Source (Materialized)
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      Pre-aggregated MIC pair stats (count, covariance, avg_a, avg_b) used for 
+      calculating Pearson correlation coefficients in the SPC module.
+    grain: One row per material_id × plant_id × mic_a_id × mic_b_id
+    primary_keys: [material_id, plant_id, mic_a_id, mic_b_id]
+
+  # ---------------------------------------------------------------------------
+  # VIEW: spc_correlation_source_v
+  # ---------------------------------------------------------------------------
+  - name: spc_correlation_source_v
+    business_name: SPC Correlation Source (Real-time)
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      Real-time view of MIC correlation data. Identical grain to the materialized 
+      version but preferred for queries where data freshness over the last hour 
+      is critical (e.g. multivariate T² anomaly detection).
+    grain: One row per material_id × plant_id × mic_a_id × mic_b_id
+    primary_keys: [material_id, plant_id, mic_a_id, mic_b_id]
+
+  # ---------------------------------------------------------------------------
+  # VIEW: spc_lineage_graph_mv
+  # ---------------------------------------------------------------------------
+  - name: spc_lineage_graph_mv
+    business_name: SPC Lineage Graph
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      Material-to-material lineage edges (source/target) used to build the
+      process flow DAG.
+    grain: One row per source_material × target_material
+    primary_keys: [source, target]
+
+  # ---------------------------------------------------------------------------
   # APP TABLE: spc_mic_chart_config
   # ---------------------------------------------------------------------------
   - name: spc_mic_chart_config

@@ -23,3 +23,10 @@ class AnalyticsRequest(BaseModel):
     plant_id: Optional[str] = None
     date_from: Optional[str] = None
     date_to: Optional[str] = None
+
+
+class EquipmentInsights2Request(BaseModel):
+    """Request body for the equipment insights v2 summary endpoint."""
+
+    plant_id: Optional[str] = None
+    timezone: str = "UTC"
