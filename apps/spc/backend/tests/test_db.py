@@ -274,14 +274,15 @@ class TestObservability:
     def test_increment_observability_counter(self, caplog):
         with caplog.at_level("INFO"):
             db_module.increment_observability_counter("test.counter", tags={"t1": "v1"})
-            assert "metric.increment name=test.counter" in caplog.text
-            assert '"t1":"v1"' in caplog.text
+            assert '"event": "metric.increment"' in caplog.text
+            assert '"metric_name": "test.counter"' in caplog.text
+            assert '"t1": "v1"' in caplog.text
 
     def test_send_operational_alert(self, caplog):
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("ERROR"):
             db_module.send_operational_alert(subject="Sub", body="Body")
-            assert "operational_alert.pending" in caplog.text
-            assert "subject=Sub" in caplog.text
+            assert '"event": "operational_alert"' in caplog.text
+            assert '"subject": "Sub"' in caplog.text
 
 async def test_attach_data_freshness_success():
     payload = {"data": 1}

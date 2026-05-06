@@ -7,6 +7,7 @@ from typing import Optional, TypedDict
 from spc_backend.process_control.domain.capability import CPK_CAPABLE, CPK_HIGHLY_CAPABLE, CPK_MARGINAL, infer_spec_type
 from spc_backend.process_control.domain.multivariate import compute_hotelling_t2
 from spc_backend.utils.db import run_sql_async, sql_param, tbl
+from shared_db.errors import increment_observability_counter
 
 _MULTIVARIATE_MAX_SOURCE_ROWS = 50000
 
@@ -304,9 +305,15 @@ async def fetch_scorecard(
         ORDER BY mic_name
     """
     rows = await run_sql_async(token, query, params, endpoint_hint="spc.analysis.scorecard")
+    increment_observability_counter("spc.scorecard.requested", tags={"material_id": material_id})
 
     for row in rows:
         typed_row: _ScorecardRow = row
+        
+        # OOC tracking
+        if typed_row.get("ooc_batches", 0) > 0:
+            increment_observability_counter("spc.ooc_detected", tags={"mic_id": typed_row.get("mic_id", "unknown")})
+
         for int_field in ("batch_count", "sample_count", "ooc_batches", "accepted_batches", "distinct_spec_count"):
             typed_row[int_field] = _coerce_int(typed_row.get(int_field))  # type: ignore[literal-required]
         for float_field in (
