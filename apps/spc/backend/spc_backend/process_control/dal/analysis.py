@@ -732,7 +732,7 @@ async def fetch_multivariate(
             mic_selection_key AS mic_id,
             mic_display_name AS mic_name,
             avg_result
-        FROM {tbl('spc_correlation_source_v')}
+        FROM {tbl('spc_correlation_source_mv')}
         {where_sql}
         ORDER BY batch_date, batch_id, mic_name
         LIMIT {_MULTIVARIATE_MAX_SOURCE_ROWS + 1}

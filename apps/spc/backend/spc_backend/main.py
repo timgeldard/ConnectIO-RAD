@@ -46,7 +46,7 @@ def _latency_budget_ms_for_path(path: str) -> int:
 
 
 app = create_api_app(
-    title="TraceApp API",
+    title="SPC API",
     latency_budgets_ms=LATENCY_BUDGETS_MS,
     latency_alert_callback=lambda path, dur, bud, status: send_operational_alert(
         subject="Latency budget exceeded",

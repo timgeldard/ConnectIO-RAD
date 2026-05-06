@@ -166,7 +166,7 @@ async def run_sql_async(
     if cached is not None:
         return cached
 
-    rows = await asyncio.get_event_loop().run_in_executor(
+    rows = await asyncio.get_running_loop().run_in_executor(
         _sql_executor,
         lambda: _REST_EXECUTOR.execute(token, statement, params),
     )

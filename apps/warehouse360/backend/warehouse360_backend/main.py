@@ -1,13 +1,12 @@
 from pathlib import Path
 
-from starlette.requests import Request as StarletteRequest
-
 from shared_api import (
     create_api_app,
+    databricks_sql_ready,
     health_payload,
     register_spa_routes,
-    safe_global_exception_response,
 )
+from warehouse360_backend.utils.db import check_warehouse_config, run_sql_async
 
 from warehouse360_backend.order_fulfillment.router_process_orders import router as process_orders_router
 from warehouse360_backend.order_fulfillment.router_deliveries import router as deliveries_router
@@ -22,19 +21,20 @@ STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 app = create_api_app(title="Warehouse 360 API")
 
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: StarletteRequest, exc: Exception):
-    return await safe_global_exception_response(request, exc, logger_name=__name__)
-
-
 @app.get("/api/health")
 async def health():
+    """Liveness probe — always returns 200 while the process is up."""
     return health_payload()
 
 
 @app.get("/api/ready")
 async def ready():
-    return {"status": "ok"}
+    """Readiness probe — verifies warehouse config and SQL connectivity."""
+    return await databricks_sql_ready(
+        check_warehouse_config=check_warehouse_config,
+        run_sql=run_sql_async,
+        endpoint_hint="wh360.ready",
+    )
 
 
 app.include_router(process_orders_router, prefix="/api")
