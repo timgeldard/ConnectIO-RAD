@@ -41,13 +41,6 @@ const CARDS = [
   },
 ]
 
-const PINNED = [
-  { mod: 'trace', txt: 'Recall · 0008898869', sub: 'QI · Charleville · WPC-80', icon: 'flag' as const },
-  { mod: 'spc', txt: 'Hotelling T² · Spray dryer', sub: 'Limit 0.99 · breaching', icon: 'spc' as const },
-  { mod: 'envmon', txt: 'Floor 2 · RTE-3 heatmap', sub: 'Listeria · 90D', icon: 'map' as const },
-  { mod: 'trace', txt: 'Bottom-up · WPC-80 lineage', sub: 'Depth 4 · 12 ancestors', icon: 'trace' as const },
-]
-
 /** Home launcher — module cards, cross-module inbox, plant health, pinned views. */
 export function Home({ onOpen }: HomeProps) {
   const ts = new Date().toLocaleString('en-GB', { hour12: false })
@@ -175,18 +168,18 @@ export function Home({ onOpen }: HomeProps) {
           </div>
         </Card>
 
-        <Card title="Pinned views" num="PIN" meta="QUICK ACCESS">
+        <Card title="Module routes" num="LINK" meta="LIVE NAV">
           <div style={{ display: 'grid', gap: 8 }}>
-            {PINNED.map((p, i) => (
-              <button key={i} className={'mod-' + p.mod} style={{
+            {CARDS.map((card) => (
+              <button key={card.id} className={'mod-' + card.id} onClick={() => onOpen(card.id)} style={{
                 display: 'grid', gridTemplateColumns: '26px 1fr 14px', gap: 10, alignItems: 'center',
                 padding: '8px 10px', border: '1px solid var(--cq-line)', borderLeft: '3px solid var(--mod-color)',
                 background: 'var(--cq-surface)', textAlign: 'left', borderRadius: 2,
               }}>
-                <span style={{ color: 'var(--mod-color)' }}><Icon name={p.icon} size={16} /></span>
+                <span style={{ color: 'var(--mod-color)' }}><Icon name={card.id === 'envmon' ? 'map' : card.id === 'spc' ? 'spc' : 'trace'} size={16} /></span>
                 <span>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--cq-fg)' }}>{p.txt}</div>
-                  <div style={{ fontSize: 10.5, color: 'var(--cq-fg-3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', marginTop: 2 }}>{p.sub}</div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--cq-fg)' }}>{card.name}</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--cq-fg-3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', marginTop: 2 }}>{card.tag}</div>
                 </span>
                 <Icon name="arrow" size={12} />
               </button>

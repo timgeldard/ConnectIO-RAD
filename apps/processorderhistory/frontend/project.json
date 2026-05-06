@@ -27,6 +27,15 @@
         "cwd": "apps/processorderhistory/frontend"
       }
     },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run lint",
+        "cwd": "apps/processorderhistory/frontend"
+      },
+      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "cache": true
+    },
     "test": {
       "executor": "nx:run-commands",
       "options": {

@@ -20,6 +20,22 @@
       "outputs": ["{projectRoot}/dist"],
       "cache": true
     },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run typecheck",
+        "cwd": "apps/warehouse360/frontend"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run lint",
+        "cwd": "apps/warehouse360/frontend"
+      },
+      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "cache": true
+    },
     "test": {
       "executor": "nx:run-commands",
       "options": {

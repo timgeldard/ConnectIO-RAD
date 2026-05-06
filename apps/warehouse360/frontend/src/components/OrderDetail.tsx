@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import WM from '../data/mockData'
 import { Icon, Pill, Progress } from './Primitives'
 import { Card } from './Shared'
+import { fmtTime, minutesFromNow } from '~/utils/time'
 
 /* Production Order staging detail — drawer contents */
 
@@ -13,20 +13,18 @@ interface OrderStagingDetailProps {
 
 const OrderStagingDetail = ({ order }: OrderStagingDetailProps) => {
   if (!order) return null;
-  const isApi = !!order._source;
-  const tr = isApi ? [] : WM.TRs.filter((t: any) => t.po === order.id).slice(0, 10);
-  const to = isApi ? [] : WM.TOs.slice(0, 8);
-  const huIdx = order.id.length > 5 ? order.id.charCodeAt(5) % 10 : 0;
-  const hu = isApi ? [] : WM.HUs.slice(huIdx, 5 + huIdx);
-  const disp = isApi ? [] : WM.DISP_TASKS.filter((d: any) => d.po === order.id).slice(0, 6);
+  const tr: any[] = [];
+  const to: any[] = [];
+  const hu: any[] = [];
+  const disp: any[] = [];
 
-  const minsToStart = order.start ? WM.minutesFromNow(order.start) : null;
+  const minsToStart = order.start ? minutesFromNow(order.start) : null;
   return (
     <>
       <div className="grid-2" style={{ marginBottom: 16 }}>
         <div className="scale-card">
           <div className="t-eyebrow">Start</div>
-          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, textTransform: 'uppercase', fontSize: 28, color: 'var(--forest)', lineHeight: 1, marginTop: 4 }}>{order.start ? WM.fmtTime(order.start) : '—'}</div>
+          <div style={{ fontFamily: 'var(--font-impact)', fontWeight: 800, textTransform: 'uppercase', fontSize: 28, color: 'var(--forest)', lineHeight: 1, marginTop: 4 }}>{order.start ? fmtTime(order.start) : '—'}</div>
           <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
             {minsToStart === null ? '—' : minsToStart < 0 ? Math.abs(minsToStart) + ' min in production' : 'starts in ' + minsToStart + ' min'}
           </div>
@@ -138,7 +136,7 @@ const OrderStagingDetail = ({ order }: OrderStagingDetailProps) => {
                   <td className="num">{h.qty} {h.uom}</td>
                   <td className="mono" style={{ fontSize: 11 }}>{h.bin}</td>
                   <td><Pill tone={h.status === 'Active' ? 'slate' : h.status === 'On Line' ? 'sage' : 'grey'}>{h.status}</Pill></td>
-                  <td className="muted small">{WM.fmtTime(h.lastScan)}</td>
+                  <td className="muted small">{fmtTime(h.lastScan)}</td>
                 </tr>
               ))}
               {hu.length === 0 && (
@@ -182,7 +180,7 @@ const OrderStagingDetail = ({ order }: OrderStagingDetailProps) => {
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, lineHeight: 1.4, color: 'var(--forest)', marginTop: 6, maxWidth: 560 }}>
                 {order.risk === 'red'
                   ? 'Escalate to the shift supervisor and confirm staging recovery actions against live warehouse tasks.'
-                  : order.start ? 'Confirm required staging activity before ' + WM.fmtTime(new Date(order.start.getTime() - 30 * 60000)) + ' to stay on track.' : 'Confirm required staging activity is on schedule.'}
+                  : order.start ? 'Confirm required staging activity before ' + fmtTime(new Date(order.start.getTime() - 30 * 60000)) + ' to stay on track.' : 'Confirm required staging activity is on schedule.'}
               </div>
               <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
                 <button className="btn btn-primary btn-sm"><Icon name="check" size={12}/> Acknowledge</button>

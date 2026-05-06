@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
-import WM from '../data/mockData'
 import { useApi } from '../hooks/useApi'
 import { Icon, Pill, Progress } from './Primitives'
 import { FilterBar, Card, KPI } from './Shared'
+import { fmtTime } from '~/utils/time'
 
 /* Inbound — PO + STO receipts, dock schedule, putaway backlog */
 
@@ -218,7 +218,7 @@ const ReceiptDetail = ({ receipt }: ReceiptDetailProps) => {
   const orderedQ = receipt.ordered_qty   ?? receipt.expectedQty ?? 0;
   const receivedQ= receipt.gr_qty        ?? receipt.receivedQty ?? 0;
   const uom      = receipt.uom ?? '';
-  const dueDate  = receipt.delivery_date ?? (receipt.eta ? WM.fmtTime(receipt.eta) : '—');
+  const dueDate  = receipt.delivery_date ?? (receipt.eta ? fmtTime(receipt.eta) : '—');
   const qaStatus = receipt.qa_status
     ? (receipt.qa_status === 'inspection' ? 'Inspection' : receipt.qa_status === 'released' ? 'Released' : 'No lot')
     : (receipt.qa ?? '—');

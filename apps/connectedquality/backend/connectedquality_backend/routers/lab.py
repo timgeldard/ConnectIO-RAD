@@ -1,20 +1,20 @@
-"""Lab Board stub router — returns mock inspection lot failures.
+"""Lab Board router."""
 
-Replace mock returns with DAL queries once the CQ data layer is wired.
-"""
-
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 router = APIRouter()
 
 
 @router.get("/lab/fails")
-async def lab_fails(plant_id: str = "P806", lot_type: str = "04"):
+async def lab_fails(
+    plant_id: str = Query(..., description="Plant selected by the user/session/deep link."),
+    lot_type: str | None = Query(default=None, description="Optional SAP inspection lot type."),
+):
     """Inspection lot characteristics that have failed or are out-of-warning."""
     return {
         "plant_id": plant_id,
         "lot_type": lot_type,
         "fails": [],
         "data_available": False,
-        "reason": "gold_views_pending",
+        "reason": "lab_failures_api_pending",
     }

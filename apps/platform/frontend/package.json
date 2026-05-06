@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ci": "vitest run --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "npm run typecheck"
   },
   "dependencies": {
     "react": "^18.3.1",

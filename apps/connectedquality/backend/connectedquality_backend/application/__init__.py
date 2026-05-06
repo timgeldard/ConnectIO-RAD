@@ -1,0 +1,1 @@
+"""ConnectedQuality application service adapters."""

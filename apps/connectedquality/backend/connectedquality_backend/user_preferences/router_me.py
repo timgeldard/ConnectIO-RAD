@@ -3,7 +3,7 @@ from shared_auth import UserIdentity, require_proxy_user
 from fastapi import Depends, APIRouter
 from pydantic import BaseModel
 
-from connectedquality_backend.user_preferences.dal.prefs_store import get_pinned, set_pinned
+from connectedquality_backend.user_preferences.application.preferences import get_pinned, set_pinned
 
 router = APIRouter()
 
@@ -20,7 +20,7 @@ def _name_from_email(email: str) -> tuple[str, str]:
 @router.get("/me")
 async def get_me(user: UserIdentity = Depends(require_proxy_user)):
     """Return the name and initials of the authenticated user."""
-    name, initials = _name_from_email(user.email if hasattr(user, 'email') else user.user_id)
+    name, initials = _name_from_email(user.email or user.user_id)
     return {"name": name, "initials": initials}
 
 

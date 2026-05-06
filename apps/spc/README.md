@@ -89,7 +89,7 @@ cp .env.example .env
 ### 2 — Backend
 
 ```bash
-uv run --package apps/spc uvicorn backend.main:app --reload --port 8000
+uv run --no-sync --package spc-backend uvicorn spc_backend.main:app --reload --port 8000
 ```
 
 To exercise the readiness probe locally, set a dedicated Databricks token:

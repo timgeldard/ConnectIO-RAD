@@ -7,9 +7,9 @@ vi.mock('../../hooks/useApi', () => ({
 }))
 
 describe('ControlTower', () => {
-  it('renders greeting and title', () => {
+  it('renders title and risk cards', () => {
     render(<ControlTower />)
-    expect(screen.getByText(/Good morning, Niamh/i)).toBeInTheDocument()
+    expect(screen.getByText(/Warehouse control tower/i)).toBeInTheDocument()
     expect(screen.getAllByText(/Orders at risk/i).length).toBeGreaterThan(0)
   })
 })

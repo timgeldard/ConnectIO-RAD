@@ -54,7 +54,7 @@ def test_cross_origin_mutation_blocked():
 @patch("connectedquality_backend.routers.trace.fetch_recall_readiness")
 def test_trace_recall_returns_batch(mock_fetch):
     mock_fetch.return_value = {"batch": "0008898869", "customers_affected": 11}
-    response = client.get("/api/cq/trace/recall")
+    response = client.get("/api/cq/trace/recall?material=MAT1&batch=B1")
 
     assert response.status_code == 200
     data = response.json()
@@ -75,18 +75,93 @@ def test_envmon_plants_returns_list(mock_fetch_kpis, mock_fetch_meta, mock_fetch
     assert "plants" in response.json()
 
 
+@patch("connectedquality_backend.routers.envmon.fetch_active_plant_ids")
+def test_envmon_plants_returns_empty_list(mock_fetch_ids):
+    mock_fetch_ids.return_value = []
+
+    response = client.get("/api/cq/envmon/plants")
+
+    assert response.status_code == 200
+    assert response.json() == {"plants": []}
+
+
+def test_envmon_history_reports_pending_gold_views():
+    response = client.get("/api/cq/envmon/history?plant_id=CHV&floor=F2")
+
+    assert response.status_code == 200
+    assert response.json()["data_available"] is False
+
+
 def test_spc_charts_endpoint():
-    response = client.get("/api/cq/spc/charts")
+    response = client.get("/api/cq/spc/charts?material=MAT1&char=MIC1")
 
     assert response.status_code == 200
     assert "data" in response.json()
 
 
+@patch("connectedquality_backend.routers.spc.fetch_scorecard")
+def test_spc_scorecard_returns_rows(mock_fetch_scorecard):
+    mock_fetch_scorecard.return_value = [{"mic_id": "M1", "is_stable": True}]
+
+    response = client.get("/api/cq/spc/scorecard?material=MAT1")
+
+    assert response.status_code == 200
+    assert response.json()["rows"] == [{"mic_id": "M1", "is_stable": True}]
+
+
+@patch("connectedquality_backend.routers.spc.fetch_process_flow")
+def test_spc_flow_returns_nodes_and_edges(mock_fetch_process_flow):
+    mock_fetch_process_flow.return_value = {
+        "nodes": [{"id": "mix"}],
+        "edges": [{"id": "mix-pack"}],
+    }
+
+    response = client.get("/api/cq/spc/flow?material=MAT1")
+
+    assert response.status_code == 200
+    assert response.json()["stages"] == [{"id": "mix"}]
+    assert response.json()["edges"] == [{"id": "mix-pack"}]
+
+
 def test_lab_fails_endpoint():
-    response = client.get("/api/cq/lab/fails")
+    response = client.get("/api/cq/lab/fails?plant_id=CHV")
 
     assert response.status_code == 200
     assert "fails" in response.json()
+
+
+@patch("connectedquality_backend.routers.trace.fetch_top_down")
+@patch("connectedquality_backend.routers.trace.fetch_bottom_up")
+def test_trace_lineage_merges_upstream_and_downstream(mock_bottom_up, mock_top_down):
+    mock_bottom_up.return_value = {
+        "max_depth": 2,
+        "nodes": [{"id": "raw"}, {"id": "fg"}],
+        "edges": [{"id": "raw-fg"}],
+    }
+    mock_top_down.return_value = {
+        "max_depth": 3,
+        "nodes": [{"id": "fg"}, {"id": "ship"}],
+        "edges": [{"id": "fg-ship"}],
+    }
+
+    response = client.get("/api/cq/trace/lineage?material=MAT1&batch=B1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["upstream_depth"] == 2
+    assert data["downstream_depth"] == 3
+    assert {node["id"] for node in data["nodes"]} == {"raw", "fg", "ship"}
+    assert {edge["id"] for edge in data["edges"]} == {"raw-fg", "fg-ship"}
+
+
+@patch("connectedquality_backend.routers.trace.fetch_mass_balance")
+def test_trace_mass_balance_returns_payload(mock_fetch_mass_balance):
+    mock_fetch_mass_balance.return_value = {"variance_qty": 0}
+
+    response = client.get("/api/cq/trace/mass-balance?material=MAT1&batch=B1")
+
+    assert response.status_code == 200
+    assert response.json() == {"variance_qty": 0}
 
 
 def test_alarms_endpoint():
@@ -94,3 +169,32 @@ def test_alarms_endpoint():
 
     assert response.status_code == 200
     assert "alarms" in response.json()
+
+
+def test_me_returns_display_name():
+    response = client.get("/api/cq/me")
+
+    assert response.status_code == 200
+    assert response.json() == {"name": "Test_user", "initials": "T"}
+
+
+@patch("connectedquality_backend.user_preferences.router_me.get_pinned")
+def test_get_preferences_returns_pinned_modules(mock_get_pinned):
+    mock_get_pinned.return_value = ["trace", "spc"]
+
+    response = client.get("/api/cq/me/preferences?app_id=connectedquality")
+
+    assert response.status_code == 200
+    assert response.json() == {"pinned_modules": ["trace", "spc"]}
+
+
+@patch("connectedquality_backend.user_preferences.router_me.set_pinned")
+def test_save_preferences_persists_pinned_modules(mock_set_pinned):
+    response = client.post(
+        "/api/cq/me/preferences",
+        json={"app_id": "connectedquality", "pinned_modules": ["trace"]},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+    mock_set_pinned.assert_called_once_with("test_user", "connectedquality", ["trace"])

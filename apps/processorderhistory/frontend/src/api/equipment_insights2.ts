@@ -86,7 +86,7 @@ export interface EquipmentInsights2Summary {
   anomalies: EquipmentItem[]
   /** Indicates if real gold data is available. If false, the frontend should render an empty state. */
   data_available?: boolean
-  /** The reason data is not available, e.g., 'gold_views_pending'. */
+  /** The reason data is not available, e.g., 'equipment_gold_views_pending'. */
   reason?: string
 }
 

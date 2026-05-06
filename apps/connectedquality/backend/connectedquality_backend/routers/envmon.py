@@ -1,10 +1,16 @@
 """EnvMon module routers — returns real data from envmon_backend DALs."""
 
 from fastapi import APIRouter, Depends
+from fastapi import Query
 
 from shared_auth.identity import require_proxy_user, UserIdentity
-from envmon_backend.inspection_analysis.dal.plants import fetch_active_plant_ids, fetch_plant_kpis, fetch_plant_metadata
-from envmon_backend.spatial_config.dal.floors import fetch_floors, fetch_floor_location_counts
+from connectedquality_backend.application.envmon import (
+    fetch_active_plant_ids,
+    fetch_floor_location_counts,
+    fetch_floors,
+    fetch_plant_kpis,
+    fetch_plant_metadata,
+)
 
 router = APIRouter()
 
@@ -42,7 +48,11 @@ async def envmon_plants(user: UserIdentity = Depends(require_proxy_user)):
 
 
 @router.get("/envmon/floor")
-async def envmon_floor(plant_id: str = "CHV", floor: str = "F2", user: UserIdentity = Depends(require_proxy_user)):
+async def envmon_floor(
+    plant_id: str = Query(..., description="Plant selected by the user/session/deep link."),
+    floor: str | None = Query(default=None, description="Optional floor selected by the user."),
+    user: UserIdentity = Depends(require_proxy_user),
+):
     """Per-floor location markers with risk status."""
     # To keep this fast for CQ Overview, we will just return floor list and mapped location counts
     # rather than full marker details. The real app handles the map rendering.
@@ -65,7 +75,11 @@ async def envmon_floor(plant_id: str = "CHV", floor: str = "F2", user: UserIdent
 
 
 @router.get("/envmon/history")
-async def envmon_history(plant_id: str = "CHV", floor: str = "F2", days: int = 90):
+async def envmon_history(
+    plant_id: str = Query(..., description="Plant selected by the user/session/deep link."),
+    floor: str | None = Query(default=None, description="Optional floor selected by the user."),
+    days: int = 90,
+):
     """Time-series swab history for time-lapse playback."""
     # Not immediately wired as it's complex and not strictly needed for Home overview, 
     # but we leave the stub signature for future expansion.
@@ -75,5 +89,5 @@ async def envmon_history(plant_id: str = "CHV", floor: str = "F2", days: int = 9
         "days": days,
         "frames": [],
         "data_available": False,
-        "reason": "gold_views_pending",
+        "reason": "envmon_time_lapse_api_pending",
     }

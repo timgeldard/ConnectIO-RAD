@@ -4,7 +4,7 @@ export type ModuleId = 'home' | 'trace' | 'envmon' | 'spc' | 'lab' | 'alarms' | 
 export type IconName =
   | 'home' | 'trace' | 'env' | 'spc' | 'bell' | 'settings'
   | 'search' | 'plus' | 'chev' | 'dl' | 'refresh' | 'play' | 'pause'
-  | 'flag' | 'alert' | 'check' | 'pin' | 'layers' | 'map' | 'target'
+  | 'flag' | 'alert' | 'check' | 'close' | 'clock' | 'pin' | 'layers' | 'map' | 'target'
   | 'grid' | 'list' | 'user' | 'help' | 'arrow' | 'arrowDown' | 'arrowUp'
   | 'eye' | 'flow' | 'expand'
 

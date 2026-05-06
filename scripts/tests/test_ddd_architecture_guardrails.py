@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DDD_APP_NAMES = ("envmon", "processorderhistory", "spc", "trace2", "warehouse360")
+DDD_APP_NAMES = ("connectedquality", "envmon", "processorderhistory", "spc", "trace2", "warehouse360")
 APP_BACKENDS = [REPO_ROOT / "apps" / app_name / "backend" for app_name in DDD_APP_NAMES]
 
 DOMAIN_FORBIDDEN_PREFIXES = (
@@ -31,6 +31,7 @@ APPLICATION_TRANSPORT_EXCEPTIONS = {
 }
 
 ALLOWED_CONTEXTS = {
+    "connectedquality": {"user_preferences"},
     "envmon": {"inspection_analysis", "spatial_config"},
     "processorderhistory": {"order_execution", "manufacturing_analytics", "production_planning", "genie_assist"},
     "spc": {"chart_config", "process_control"},
@@ -59,6 +60,13 @@ def _imported_names(path: Path) -> list[str]:
         elif isinstance(node, ast.ImportFrom):
             names.extend(alias.asname or alias.name for alias in node.names)
     return names
+
+
+def _display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return path.as_posix()
 
 
 def _domain_files() -> list[Path]:
@@ -145,16 +153,37 @@ def test_application_services_remain_transport_agnostic() -> None:
     assert offenders == []
 
 
-def test_routers_do_not_reach_into_dal_or_sql_runtime() -> None:
+def _router_layer_offenses(files: list[Path]) -> list[str]:
     offenders: list[str] = []
-    for path in _router_files():
+    for path in files:
         imports = _imports(path)
         imported_names = _imported_names(path)
         for module in imports:
             if any(part in module for part in ROUTER_FORBIDDEN_PARTS):
-                offenders.append(f"{path.relative_to(REPO_ROOT)} imports {module}")
+                offenders.append(f"{_display_path(path)} imports {module}")
         for name in ROUTER_FORBIDDEN_NAMES:
             if name in imported_names:
-                offenders.append(f"{path.relative_to(REPO_ROOT)} imports {name}")
+                offenders.append(f"{_display_path(path)} imports {name}")
+    return offenders
+
+
+def test_router_guardrail_detects_nested_router_dal_import(tmp_path: Path) -> None:
+    nested_router = tmp_path / "apps" / "spc" / "backend" / "spc_backend" / "process_control" / "router_bad.py"
+    nested_router.parent.mkdir(parents=True)
+    nested_router.write_text(
+        "from spc_backend.process_control.dal.analysis import fetch_scorecard\n"
+        "from spc_backend.utils.db import run_sql_async\n"
+    )
+
+    offenders = _router_layer_offenses([nested_router])
+
+    assert offenders == [
+        f"{nested_router.as_posix()} imports spc_backend.process_control.dal.analysis",
+        f"{nested_router.as_posix()} imports run_sql_async",
+    ]
+
+
+def test_routers_do_not_reach_into_dal_or_sql_runtime() -> None:
+    offenders = _router_layer_offenses(_router_files())
 
     assert offenders == []

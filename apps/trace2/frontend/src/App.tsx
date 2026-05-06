@@ -154,8 +154,15 @@ function TraceApp() {
   const pageDef = PAGES.find((p) => p.id === page) ?? PAGES[0];
   const PageComp = pageDef.component;
 
-  const [liveMaterialId, setLiveMaterialId] = useState("20582002");
-  const [liveBatchId, setLiveBatchId] = useState("0008898869");
+  const initialContext = (() => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      material: params.get("material") ?? params.get("material_id") ?? "",
+      batch: params.get("batch") ?? params.get("batch_id") ?? "",
+    };
+  })();
+  const [liveMaterialId, setLiveMaterialId] = useState(initialContext.material);
+  const [liveBatchId, setLiveBatchId] = useState(initialContext.batch);
   const [materialDraft, setMaterialDraft] = useState(liveMaterialId);
   const [batchDraft, setBatchDraft] = useState(liveBatchId);
   const [liveBatch, setLiveBatch] = useState<Batch | null>(null);

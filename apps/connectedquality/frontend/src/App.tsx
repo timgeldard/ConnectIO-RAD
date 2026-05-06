@@ -38,10 +38,12 @@ import { Alarms } from '~/pages/Alarms'
 import { Admin } from '~/pages/Admin'
 import { GenericOverview } from '~/components/GenericOverview'
 
-const DEFAULT_CTX: CtxState = {
-  plant: 'Charleville � IE',
-  material: '20582002 � WPC-80',
-  batch: '0008898869',
+function readContext(): CtxState | null {
+  const params = new URLSearchParams(window.location.search)
+  const plant = params.get('plant') ?? params.get('plant_id')
+  const material = params.get('material') ?? params.get('material_id')
+  const batch = params.get('batch') ?? params.get('batch_id')
+  return plant && material && batch ? { plant, material, batch } : null
 }
 
 /** Resolves the correct page component for the active module and tab. */
@@ -105,6 +107,7 @@ export function App() {
   })
   const [tabState, setTabState] = useState<Record<string, string>>({})
   const [pinnedModules, setPinnedModules] = useState<string[] | null>(null)
+  const [ctxState] = useState<CtxState | null>(() => readContext())
 
   useEffect(() => {
     fetchPreferences(CQ_COMPOSITION.appId)
@@ -131,7 +134,7 @@ export function App() {
   }
 
   const activeModDef = CQ_MODULES.find((m) => m.moduleId === activeModule)
-  const contextBar = activeModDef?.contextBarSlot ? <ContextBar ctx={DEFAULT_CTX} /> : undefined
+  const contextBar = activeModDef?.contextBarSlot && ctxState ? <ContextBar ctx={ctxState} /> : undefined
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -143,10 +146,6 @@ export function App() {
         onModuleChange={setActiveModule}
         onTabChange={handleTabChange}
         contextBar={contextBar}
-        userInitials="SK"
-        userName="Sarah Keane"
-        userRole="QA — Charleville"
-        badgeMap={{ alarms: 7 }}
         pinnedModules={pinnedModules}
         onModulePinToggle={handleModulePinToggle}
       >

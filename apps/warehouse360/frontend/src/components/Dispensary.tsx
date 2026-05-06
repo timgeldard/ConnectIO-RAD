@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-import WM from '../data/mockData'
 import { useApi } from '../hooks/useApi'
 import { Icon, Pill, Progress } from './Primitives'
 import { FilterBar, Card, KPI } from './Shared'
+import { fmtTime, minutesFromNow } from '~/utils/time'
 
 /* Dispensary Workbench */
 
@@ -64,7 +63,7 @@ const Dispensary = () => {
         <KPI label={t('warehouse.dispensary.kpi.tasksToday')} value={tasksLoading ? '...' : allTasks.length} tone="ok"/>
         <KPI label={t('warehouse.dispensary.kpi.weighed')} value={allTasks.filter((task: any) => task.status === 'Weighed').length} tone="ok" barPct={allTasks.length > 0 ? allTasks.filter((task: any) => task.status === 'Weighed').length / allTasks.length * 100 : 0}/>
         <KPI label={t('warehouse.dispensary.kpi.inProgress')} value={allTasks.filter((task: any) => task.status === 'Weighing').length} tone="ok"/>
-        <KPI label={t('warehouse.dispensary.kpi.todoCritical')} value={allTasks.filter((task: any) => task.status === 'To Do' && task.requiredBy && WM.minutesFromNow(task.requiredBy) < 60).length} tone="critical"/>
+        <KPI label={t('warehouse.dispensary.kpi.todoCritical')} value={allTasks.filter((task: any) => task.status === 'To Do' && task.requiredBy && minutesFromNow(task.requiredBy) < 60).length} tone="critical"/>
         <KPI label={t('warehouse.dispensary.kpi.readinessVsPlan')} value={allTasks.length > 0 ? Math.round(allTasks.filter((task: any) => task.status === 'Weighed').length / allTasks.length * 100) : 0} unit="%" target="95%" tone="warn" barPct={allTasks.length > 0 ? allTasks.filter((task: any) => task.status === 'Weighed').length / allTasks.length * 100 : 0} barTone="amber"/>
         <KPI label={t('warehouse.dispensary.kpi.toleranceBreaches')} value="—" tone="ok"/>
       </div>
@@ -138,7 +137,7 @@ const Dispensary = () => {
             <tbody>
               {rows.map((task: any) => {
                 const delta = task.weighedQty > 0 ? ((task.weighedQty - task.qty) / task.qty * 100) : null;
-                const mins = task.requiredBy ? WM.minutesFromNow(task.requiredBy) : null;
+                const mins = task.requiredBy ? minutesFromNow(task.requiredBy) : null;
                 return (
                   <tr key={task.id} className={task.status === 'To Do' && mins != null && mins < 60 ? 'is-risk-red' : ''}>
                     <td className="code">{task.id}</td>
@@ -150,7 +149,7 @@ const Dispensary = () => {
                     <td className="num">{delta !== null ? <span className={Math.abs(delta) > 0.5 ? 'red bold' : 'green'}>{delta >= 0 ? '+' : ''}{delta.toFixed(2)}%</span> : <span className="muted">—</span>}</td>
                     <td className="mono small">{task.scale}</td>
                     <td className="small">{task.operator || <span className="muted">{t('warehouse.common.unassigned')}</span>}</td>
-                    <td className="mono small">{task.requiredBy ? WM.fmtTime(task.requiredBy) : '—'}<div className={mins != null && mins < 60 ? 'red small bold' : 'muted small'}>{mins == null ? '—' : mins > 0 ? 'in ' + mins + 'm' : Math.abs(mins) + 'm ago'}</div></td>
+                    <td className="mono small">{task.requiredBy ? fmtTime(task.requiredBy) : '—'}<div className={mins != null && mins < 60 ? 'red small bold' : 'muted small'}>{mins == null ? '—' : mins > 0 ? 'in ' + mins + 'm' : Math.abs(mins) + 'm ago'}</div></td>
                     <td><Pill tone={task.status === 'Weighed' ? 'green' : task.status === 'Weighing' ? 'slate' : task.status === 'Check' ? 'amber' : 'grey'}>{task.status}</Pill></td>
                   </tr>
                 );

@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-import WM from '../data/mockData'
 import { useApi } from '../hooks/useApi';
 import { usePlantSelection } from '../context/PlantContext';
 import { Icon, Pill, Progress, RiskDot, Hbar } from './Primitives';
 import { KPI, Card } from './Shared';
 import { StagingTimeline, normalizeOrder } from './ProductionStaging';
+import { fmtTime } from '~/utils/time'
 
 /* Control Tower — warehouse manager's landing page */
 
@@ -65,8 +64,10 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
     <div className="page">
       <div className="page-header">
         <div>
-          <div className="page-eyebrow">{selectedPlant.plant_name || selectedPlant.plant_id} · {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-          <h1 className="page-title">Good morning, Niamh</h1>
+          <div className="page-eyebrow">
+            {selectedPlant ? (selectedPlant.plant_name || selectedPlant.plant_id) : 'Select a plant'} · {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+          <h1 className="page-title">Warehouse control tower</h1>
           <div className="page-desc">Live plant workload, order risk, inbound receipts, outbound deliveries and storage constraints for the selected plant.</div>
         </div>
         <div className="page-actions">
@@ -150,7 +151,7 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
                   <td><RiskDot risk={o.risk}/></td>
                   <td><span className="code">{o.id}</span><div className="muted" style={{ fontSize: 11 }}>{o.product.split(' · ')[0]}</div></td>
                   <td style={{ fontSize: 12 }}>{o.line.id}</td>
-                  <td className="mono small">{WM.fmtTime(o.start)}</td>
+                  <td className="mono small">{o.start ? fmtTime(o.start) : '—'}</td>
                   <td className="num" style={{ width: 120 }}>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
                       <span className="mono" style={{ fontSize: 11 }}>{o.stagingPct}%</span>

@@ -39,8 +39,8 @@ const SidebarContent = ({ current, onNav, shift }: SidebarProps) => {
       </div>
       <div className="sidebar-site">
         <div>
-          <div className="sidebar-site-name nav-label">{selectedPlant.plant_name || t('warehouse.site.name')}</div>
-          <div className="sidebar-site-meta nav-label">{selectedPlant.plant_id} · WH NS01 · {shift?.id}</div>
+          <div className="sidebar-site-name nav-label">{selectedPlant?.plant_name || t('warehouse.site.name')}</div>
+          <div className="sidebar-site-meta nav-label">{selectedPlant?.plant_id ?? 'No plant'} · WH NS01 · {shift?.id ?? '—'}</div>
         </div>
       </div>
       <nav className="sidebar-nav">
@@ -60,10 +60,10 @@ const SidebarContent = ({ current, onNav, shift }: SidebarProps) => {
         })}
       </nav>
       <div className="sidebar-footer">
-        <div className="avatar">NM</div>
+        <div className="avatar">WH</div>
         <div className="nav-label" style={{ lineHeight: 1.2 }}>
-          <div className="sidebar-user-name">{t('warehouse.user.name')}</div>
-          <div className="sidebar-user-role">{t('warehouse.user.role')}</div>
+          <div className="sidebar-user-name">Warehouse user</div>
+          <div className="sidebar-user-role">Session context</div>
         </div>
       </div>
     </aside>

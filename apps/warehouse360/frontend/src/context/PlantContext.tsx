@@ -12,18 +12,16 @@ export interface Plant {
 interface PlantContextValue {
   plants: Plant[]
   selectedPlantId: string
-  selectedPlant: Plant
+  selectedPlant: Plant | null
   setSelectedPlantId: (plantId: string) => void
   loading: boolean
   error: string | null
 }
 
-const FALLBACK_PLANTS: Plant[] = [{ plant_id: 'C061', plant_name: 'Kerry Naas' }]
-
 const PlantContext = React.createContext<PlantContextValue>({
-  plants: FALLBACK_PLANTS,
-  selectedPlantId: FALLBACK_PLANTS[0].plant_id,
-  selectedPlant: FALLBACK_PLANTS[0],
+  plants: [],
+  selectedPlantId: '',
+  selectedPlant: null,
   setSelectedPlantId: () => {},
   loading: false,
   error: null,
@@ -60,9 +58,9 @@ const storePlant = (plantId: string): void => {
 
 /** Provides plant list, selection state, and setter to the component tree. */
 export const PlantProvider = ({ children }: { children: React.ReactNode }) => {
-  const [plants, setPlants] = React.useState<Plant[]>(FALLBACK_PLANTS)
+  const [plants, setPlants] = React.useState<Plant[]>([])
   const [selectedPlantId, setSelectedPlantIdRaw] = React.useState<string>(
-    () => readStoredPlant() ?? FALLBACK_PLANTS[0].plant_id,
+    () => readStoredPlant() ?? '',
   )
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
@@ -80,19 +78,18 @@ export const PlantProvider = ({ children }: { children: React.ReactNode }) => {
       .then((json) => {
         if (cancelled) return
         const nextPlants = normalisePlants(json?.plants)
-        const availablePlants = nextPlants.length > 0 ? nextPlants : FALLBACK_PLANTS
-        setPlants(availablePlants)
+        setPlants(nextPlants)
         setSelectedPlantIdRaw((current) =>
-          availablePlants.some((plant) => plant.plant_id === current)
+          nextPlants.some((plant) => plant.plant_id === current)
             ? current
-            : availablePlants[0].plant_id,
+            : nextPlants[0]?.plant_id ?? '',
         )
         setLoading(false)
       })
       .catch((err: Error) => {
         if (cancelled) return
-        setPlants(FALLBACK_PLANTS)
-        setSelectedPlantIdRaw((current) => current || FALLBACK_PLANTS[0].plant_id)
+        setPlants([])
+        setSelectedPlantIdRaw('')
         setError(err.message)
         setLoading(false)
       })
@@ -106,13 +103,13 @@ export const PlantProvider = ({ children }: { children: React.ReactNode }) => {
   }, [])
 
   const selectedPlant = React.useMemo(
-    () => plants.find((plant) => plant.plant_id === selectedPlantId) ?? plants[0] ?? FALLBACK_PLANTS[0],
+    () => plants.find((plant) => plant.plant_id === selectedPlantId) ?? plants[0] ?? null,
     [plants, selectedPlantId],
   )
 
   const value = React.useMemo<PlantContextValue>(() => ({
     plants,
-    selectedPlantId: selectedPlant.plant_id,
+    selectedPlantId: selectedPlant?.plant_id ?? '',
     selectedPlant,
     setSelectedPlantId,
     loading,

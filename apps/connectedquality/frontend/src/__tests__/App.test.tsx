@@ -123,10 +123,14 @@ describe('App shell', () => {
 
   it('shows context bar with plant/material/batch', async () => {
     const user = userEvent.setup()
+    window.history.replaceState({}, '', '/?plant=CHV&material=MAT1&batch=BAT1')
     render(<App />)
     await user.click(screen.getByTitle('Trace'))
     const ctx = document.querySelector('.connectio-ctx') as HTMLElement
-    expect(within(ctx).getByText(/Charleville/)).toBeInTheDocument()
+    expect(within(ctx).getByText(/CHV/)).toBeInTheDocument()
+    expect(within(ctx).getByText(/MAT1/)).toBeInTheDocument()
+    expect(within(ctx).getByText(/BAT1/)).toBeInTheDocument()
+    window.history.replaceState({}, '', '/')
   })
 
   it('Home module cards navigate to sub-modules on click', async () => {
