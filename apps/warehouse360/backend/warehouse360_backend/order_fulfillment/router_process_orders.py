@@ -26,6 +26,7 @@ async def list_process_orders(request: Request,
     plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user)
 ):
+    """Return process order headers for a plant (warehouse cockpit view), with data freshness metadata."""
     token = user.raw_token
     check_warehouse_config()
     rows = await fulfillment_queries.list_process_orders(token, plant_id=plant_id)
@@ -43,6 +44,7 @@ async def get_process_order(order_id: str,
     request: Request,
     user: UserIdentity = Depends(require_proxy_user)
 ):
+    """Return full detail for a single process order; raises 404 if not found."""
     token = user.raw_token
     check_warehouse_config()
     detail = await fulfillment_queries.get_process_order_detail(token, order_id)

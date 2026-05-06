@@ -25,6 +25,7 @@ async def list_plants(
     request: Request,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Return all plants visible to the user, with data freshness metadata."""
     token = user.raw_token
     check_warehouse_config()
     rows = await inventory_queries.list_plants(token)

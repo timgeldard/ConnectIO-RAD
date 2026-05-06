@@ -23,6 +23,7 @@ async def list_inbound(request: Request,
     plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user)
 ):
+    """Return inbound purchase order receipts for a plant, with data freshness metadata."""
     token = user.raw_token
     check_warehouse_config()
     rows = await inventory_queries.list_inbound_receipts(token, plant_id=plant_id)
@@ -40,6 +41,7 @@ async def get_receipt(po_id: str,
     request: Request,
     user: UserIdentity = Depends(require_proxy_user)
 ):
+    """Return detail for a single inbound receipt; raises 404 if not found."""
     token = user.raw_token
     check_warehouse_config()
     detail = await inventory_queries.get_receipt_detail(token, po_id)

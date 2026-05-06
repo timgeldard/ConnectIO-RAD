@@ -22,6 +22,7 @@ _missing_build_artifacts = get_missing_artifacts()
 
 
 def _optional_router(module_name: str, artifact: str) -> Any | None:
+    """Return a router from an optional app module, or None if the artifact is unavailable."""
     return _optional_attr(module_name, "router", artifact)
 
 
@@ -176,6 +177,7 @@ app = create_api_app(title="ConnectIO Platform API")
 
 
 def _include_available_routers() -> None:
+    """Mount all available app routers onto the platform FastAPI app, skipping absent ones."""
     for router, prefix, tags in [*CQ_ROUTERS, *POH_ROUTERS, *W360_ROUTERS]:
         if router is None:
             continue

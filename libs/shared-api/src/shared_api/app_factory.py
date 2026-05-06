@@ -7,7 +7,8 @@ standardized middleware, exception handling, and security defaults.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -64,17 +65,23 @@ def create_api_app(
     Returns:
         A pre-configured FastAPI application instance.
     """
+    @asynccontextmanager
+    async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+        """Run JWKS check then delegate to any caller-supplied lifespan."""
+        warn_if_jwks_unconfigured()
+        if lifespan is not None:
+            async with lifespan(app):
+                yield
+        else:
+            yield
+
     app = FastAPI(
         title=title,
         version=version,
         docs_url=docs_url,
         redoc_url=redoc_url,
-        lifespan=lifespan,
+        lifespan=_lifespan,
     )
-
-    @app.on_event("startup")
-    async def _check_auth_config() -> None:
-        warn_if_jwks_unconfigured()
 
     # 1. Global Exception Handlers
     @app.exception_handler(Exception)

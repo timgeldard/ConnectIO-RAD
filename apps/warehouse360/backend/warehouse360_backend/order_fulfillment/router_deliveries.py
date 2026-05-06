@@ -25,6 +25,7 @@ async def list_deliveries(request: Request,
     plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user)
 ):
+    """Return outbound delivery headers for a plant, with data freshness metadata."""
     token = user.raw_token
     check_warehouse_config()
     rows = await fulfillment_queries.list_deliveries(token, plant_id=plant_id)
@@ -42,6 +43,7 @@ async def get_delivery(delivery_id: str,
     request: Request,
     user: UserIdentity = Depends(require_proxy_user)
 ):
+    """Return detail for a single delivery including transfer orders; raises 404 if not found."""
     token = user.raw_token
     check_warehouse_config()
     detail = await fulfillment_queries.get_delivery_detail(token, delivery_id)

@@ -23,8 +23,7 @@ async def fetch_downtime(
     for trend analysis.
 
     Args:
-        request: The incoming FastAPI request object.
-        body: Analytic parameters including date range (ISO YYYY-MM-DD) and plant.
+        body: Analytic parameters including date range (ISO YYYY-MM-DD), plant, and timezone.
         user: Authenticated user identity from the shared auth dependency.
 
     Returns:

@@ -21,6 +21,7 @@ async def list_bins(request: Request,
     plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user)
 ):
+    """Return bin stock levels for a plant, with data freshness metadata."""
     token = user.raw_token
     check_warehouse_config()
     rows = await inventory_queries.list_bin_stock(token, plant_id=plant_id)
@@ -38,6 +39,7 @@ async def list_lineside(request: Request,
     plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user)
 ):
+    """Return line-side stock levels for a plant, with data freshness metadata."""
     token = user.raw_token
     check_warehouse_config()
     rows = await inventory_queries.list_lineside_stock(token, plant_id=plant_id)

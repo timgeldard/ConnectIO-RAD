@@ -42,6 +42,7 @@ LATENCY_BUDGETS_MS = {
 
 
 def _latency_budget_ms_for_path(path: str) -> int:
+    """Return the latency budget in milliseconds for a given API path, defaulting to 10 s."""
     return LATENCY_BUDGETS_MS.get(path, 10_000)
 
 
@@ -66,11 +67,13 @@ app.include_router(genie_router, prefix="/api/spc", tags=["Genie"])
 
 @app.get("/api/health")
 async def health():
+    """Liveness probe — always returns 200 while the process is up."""
     return health_payload()
 
 
 @app.get("/api/ready")
 async def ready():
+    """Readiness probe — verifies warehouse config, SQL connectivity, and gold view schema."""
     # We still need a custom ready for SPC because it also checks gold_view_schema drift
     
     # Specific check for missing readiness token (needed for test expectations)
@@ -135,6 +138,7 @@ async def ready():
 async def health_debug(
     user: UserIdentity = Depends(require_user),
 ):
+    """Return detailed runtime config; only available when debug endpoints are enabled."""
     if not ENABLE_DEBUG_ENDPOINTS:
         raise HTTPException(status_code=404, detail="Not found")
     
@@ -153,6 +157,7 @@ async def health_debug(
 async def test_query(
     user: UserIdentity = Depends(require_user),
 ):
+    """Execute a lightweight test query against the warehouse; debug only."""
     if not ENABLE_DEBUG_ENDPOINTS:
         raise HTTPException(status_code=404, detail="Not found")
     

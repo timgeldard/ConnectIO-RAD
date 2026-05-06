@@ -1,10 +1,12 @@
 """Pydantic request/response schemas for the orders endpoints."""
 import re
+import zoneinfo
 from typing import Optional
 
 from pydantic import BaseModel, field_validator, model_validator
 
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_VALID_TIMEZONES = zoneinfo.available_timezones()
 
 
 class OrderListRequest(BaseModel):
@@ -42,6 +44,14 @@ class AnalyticsRequest(BaseModel):
         """Reject non-ISO date strings before they reach the DAL."""
         if v is not None and not _DATE_RE.match(v):
             raise ValueError("date_to must be in YYYY-MM-DD format")
+        return v
+
+    @field_validator("timezone")
+    @classmethod
+    def check_timezone(cls, v: Optional[str]) -> Optional[str]:
+        """Reject timezone strings not present in the IANA timezone database."""
+        if v is not None and v not in _VALID_TIMEZONES:
+            raise ValueError(f"timezone '{v}' is not a valid IANA timezone identifier")
         return v
 
     @model_validator(mode="after")

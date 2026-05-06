@@ -12,10 +12,10 @@ from shared_db.core import (  # noqa: F401 — re-exported
     check_warehouse_config,
     resolve_token,
     run_sql,
+    run_sql_async as _shared_run_sql_async,
     sql_param,
     tbl,
 )
-from shared_db.executors import _sql_executor, _REST_EXECUTOR
 
 CQ_CATALOG: str = os.environ.get("CQ_CATALOG", os.environ.get("TRACE_CATALOG", "connected_plant_uat"))
 CQ_SCHEMA: str = os.environ.get("CQ_SCHEMA", os.environ.get("TRACE_SCHEMA", "gold"))
@@ -28,12 +28,19 @@ async def run_sql_async(
     token: str,
     statement: str,
     params: Optional[list[dict]] = None,
-    *,
-    endpoint_hint: str = "cq.unknown",
 ) -> list[dict]:
-    """Execute a SQL statement asynchronously, with concurrency limiting."""
+    """Execute a SQL statement asynchronously with concurrency limiting.
+
+    Wraps the shared run_sql_async with a semaphore to cap the number of
+    in-flight Databricks SQL requests from this app.
+
+    Args:
+        token: Databricks access token forwarded from the request.
+        statement: Parameterised SQL to execute.
+        params: Optional positional parameter list for the statement.
+
+    Returns:
+        List of row dicts returned by the warehouse.
+    """
     async with _SQL_SEMAPHORE:
-        return await asyncio.get_running_loop().run_in_executor(
-            _sql_executor,
-            lambda: _REST_EXECUTOR.execute(token, statement, params),
-        )
+        return await _shared_run_sql_async(token, statement, params)

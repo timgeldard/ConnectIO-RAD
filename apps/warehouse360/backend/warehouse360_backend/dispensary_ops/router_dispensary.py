@@ -20,6 +20,7 @@ async def list_dispensary_tasks(request: Request,
     plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user)
 ):
+    """Return open dispensary weighing tasks for a plant, with data freshness metadata."""
     token = user.raw_token
     check_warehouse_config()
     rows = await dispensary_queries.list_dispensary_tasks(token, plant_id=plant_id)

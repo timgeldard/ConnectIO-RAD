@@ -39,6 +39,7 @@ async def genie_start(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """Start a new Genie conversation and return the initial message status."""
     token = resolve_genie_token(x_forwarded_access_token, authorization)
     content = compose_genie_content(body.prompt, body.page_context)
     response = await run_sync(start_conversation, token, content)
@@ -52,6 +53,7 @@ async def genie_followup(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """Post a follow-up prompt to an existing Genie conversation."""
     token = resolve_genie_token(x_forwarded_access_token, authorization)
     content = compose_genie_content(body.prompt, body.page_context)
     response = await run_sync(create_followup, token, body.conversation_id, content)
@@ -66,6 +68,7 @@ async def genie_message(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """Poll for the status and content of a Genie message."""
     token = resolve_genie_token(x_forwarded_access_token, authorization)
     response = await run_sync(get_message, token, conversation_id, message_id)
     return normalize_message(response)
@@ -80,6 +83,7 @@ async def genie_query_result(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ):
+    """Fetch tabular query results attached to a Genie message."""
     token = resolve_genie_token(x_forwarded_access_token, authorization)
     result = await run_sync(get_query_result, token, conversation_id, message_id, attachment_id)
     return normalize_query_result(result)
