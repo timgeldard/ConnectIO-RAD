@@ -52,8 +52,8 @@ async def spc_process_flow(
             body.material_id,
             body.date_from,
             body.date_to,
-            body.upstream_depth,
-            body.downstream_depth,
+            min(body.upstream_depth, 10),
+            min(body.downstream_depth, 10),
         )
     except Exception as exc:
         handle_analysis_error(exc)
@@ -153,8 +153,9 @@ async def msa_calculate_endpoint(
     Raises:
         HTTPException: If the calculation fails due to domain logic or data errors.
     """
+    import asyncio
     try:
-        return msa_calculate(body)
+        return await asyncio.get_running_loop().run_in_executor(None, lambda: msa_calculate(body))
     except Exception as exc:
         handle_analysis_error(exc)
 

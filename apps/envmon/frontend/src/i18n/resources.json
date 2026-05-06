@@ -149,7 +149,13 @@
     "envmon.floorPlan.loading": "Loading…",
     "envmon.floorPlan.error": "Failed to load heatmap:",
     "envmon.floorPlan.alt": "Floor plan for {{floor}}",
-    "envmon.floorPlan.markersAria": "Heatmap markers for floor {{floor}}"
+    "envmon.floorPlan.markersAria": "Heatmap markers for floor {{floor}}",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "fr": {
     "shared.language.label": "Langue",
@@ -301,7 +307,13 @@
     "envmon.floorPlan.loading": "Chargement…",
     "envmon.floorPlan.error": "Échec du chargement de la heatmap :",
     "envmon.floorPlan.alt": "Plan d'étage pour {{floor}}",
-    "envmon.floorPlan.markersAria": "Marqueurs de heatmap pour l'étage {{floor}}"
+    "envmon.floorPlan.markersAria": "Marqueurs de heatmap pour l'étage {{floor}}",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "es": {
     "shared.language.label": "Idioma",
@@ -453,7 +465,13 @@
     "envmon.floorPlan.loading": "Cargando…",
     "envmon.floorPlan.error": "Error al cargar el mapa de calor:",
     "envmon.floorPlan.alt": "Plano de planta para {{floor}}",
-    "envmon.floorPlan.markersAria": "Marcadores de mapa de calor para la planta {{floor}}"
+    "envmon.floorPlan.markersAria": "Marcadores de mapa de calor para la planta {{floor}}",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "de": {
     "shared.language.label": "Sprache",
@@ -605,7 +623,13 @@
     "envmon.floorPlan.loading": "Laden…",
     "envmon.floorPlan.error": "Heatmap konnte nicht geladen werden:",
     "envmon.floorPlan.alt": "Etagenplan für {{floor}}",
-    "envmon.floorPlan.markersAria": "Heatmap-Markierungen für Etage {{floor}}"
+    "envmon.floorPlan.markersAria": "Heatmap-Markierungen für Etage {{floor}}",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "ja": {
     "shared.language.label": "言語",
@@ -757,7 +781,13 @@
     "envmon.floorPlan.loading": "読み込み中...",
     "envmon.floorPlan.error": "ヒートマップの読み込みに失敗しました:",
     "envmon.floorPlan.alt": "{{floor}} のフロアプラン",
-    "envmon.floorPlan.markersAria": "フロア {{floor}} のヒートマップマーカー"
+    "envmon.floorPlan.markersAria": "フロア {{floor}} のヒートマップマーカー",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "zh-Hans": {
     "shared.language.label": "语言",
@@ -909,7 +939,13 @@
     "envmon.floorPlan.loading": "正在加载...",
     "envmon.floorPlan.error": "加载热图失败:",
     "envmon.floorPlan.alt": "{{floor}} 的楼层平面图",
-    "envmon.floorPlan.markersAria": "楼层 {{floor}} 的热图标记"
+    "envmon.floorPlan.markersAria": "楼层 {{floor}} 的热图标记",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "zh-Hant": {
     "shared.language.label": "語言",
@@ -1061,7 +1097,13 @@
     "envmon.floorPlan.loading": "正在載入...",
     "envmon.floorPlan.error": "載入熱圖失敗:",
     "envmon.floorPlan.alt": "{{floor}} 的樓層平面圖",
-    "envmon.floorPlan.markersAria": "樓層 {{floor}} 的熱圖標記"
+    "envmon.floorPlan.markersAria": "樓層 {{floor}} 的熱圖標記",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "pt": {
     "shared.language.label": "Idioma",
@@ -1213,7 +1255,13 @@
     "envmon.floorPlan.loading": "Carregando…",
     "envmon.floorPlan.error": "Falha ao carregar o mapa de calor:",
     "envmon.floorPlan.alt": "Planta baixa para {{floor}}",
-    "envmon.floorPlan.markersAria": "Marcadores de mapa de calor para o andar {{floor}}"
+    "envmon.floorPlan.markersAria": "Marcadores de mapa de calor para o andar {{floor}}",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "id": {
     "shared.language.label": "Bahasa",
@@ -1365,7 +1413,13 @@
     "envmon.floorPlan.loading": "Memuat…",
     "envmon.floorPlan.error": "Gagal memuat peta panas:",
     "envmon.floorPlan.alt": "Denah lantai untuk {{floor}}",
-    "envmon.floorPlan.markersAria": "Penanda peta panas untuk lantai {{floor}}"
+    "envmon.floorPlan.markersAria": "Penanda peta panas untuk lantai {{floor}}",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "ms": {
     "shared.language.label": "Bahasa",
@@ -1517,7 +1571,13 @@
     "envmon.floorPlan.loading": "Memuatkan…",
     "envmon.floorPlan.error": "Gagal memuatkan peta haba:",
     "envmon.floorPlan.alt": "Pelan aras untuk {{floor}}",
-    "envmon.floorPlan.markersAria": "Penanda peta haba untuk aras {{floor}}"
+    "envmon.floorPlan.markersAria": "Penanda peta haba untuk aras {{floor}}",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "ga": {
     "shared.language.label": "Teanga",
@@ -1669,7 +1729,13 @@
     "envmon.floorPlan.loading": "Ag lódáil…",
     "envmon.floorPlan.error": "Theip ar lódáil na léarscáile teasa:",
     "envmon.floorPlan.alt": "Plean urláir do {{floor}}",
-    "envmon.floorPlan.markersAria": "Marcóirí léarscáile teasa don urlár {{floor}}"
+    "envmon.floorPlan.markersAria": "Marcóirí léarscáile teasa don urlár {{floor}}",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "pl": {
     "shared.language.label": "Język",
@@ -1821,7 +1887,13 @@
     "envmon.floorPlan.loading": "Wczytywanie...",
     "envmon.floorPlan.error": "Błąd wczytywania mapy cieplnej:",
     "envmon.floorPlan.alt": "Plan piętra dla {{floor}}",
-    "envmon.floorPlan.markersAria": "Znaczniki mapy cieplnej dla piętra {{floor}}"
+    "envmon.floorPlan.markersAria": "Znaczniki mapy cieplnej dla piętra {{floor}}",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "nl": {
     "shared.language.label": "Taal",
@@ -1973,7 +2045,13 @@
     "envmon.floorPlan.loading": "Laden...",
     "envmon.floorPlan.error": "Laden heatmap mislukt:",
     "envmon.floorPlan.alt": "Plattegrond voor {{floor}}",
-    "envmon.floorPlan.markersAria": "Heatmap markers voor verdieping {{floor}}"
+    "envmon.floorPlan.markersAria": "Heatmap markers voor verdieping {{floor}}",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "uk": {
     "shared.language.label": "Мова",
@@ -2125,7 +2203,13 @@
     "envmon.floorPlan.loading": "Завантаження…",
     "envmon.floorPlan.error": "Не вдалося завантажити теплову карту:",
     "envmon.floorPlan.alt": "План поверху для {{floor}}",
-    "envmon.floorPlan.markersAria": "Маркери теплової карти для поверху {{floor}}"
+    "envmon.floorPlan.markersAria": "Маркери теплової карти для поверху {{floor}}",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "da": {
     "shared.language.label": "Sprog",
@@ -2277,7 +2361,13 @@
     "envmon.floorPlan.loading": "Indlæser…",
     "envmon.floorPlan.error": "Kunne ikke indlæse heatmap:",
     "envmon.floorPlan.alt": "Etageplan for {{floor}}",
-    "envmon.floorPlan.markersAria": "Heatmap-markører for etage {{floor}}"
+    "envmon.floorPlan.markersAria": "Heatmap-markører for etage {{floor}}",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   },
   "vi": {
     "shared.language.label": "Ngôn ngữ",
@@ -2429,6 +2519,12 @@
     "envmon.floorPlan.loading": "Đang tải…",
     "envmon.floorPlan.error": "Không thể tải bản đồ nhiệt:",
     "envmon.floorPlan.alt": "Sơ đồ tầng cho {{floor}}",
-    "envmon.floorPlan.markersAria": "Các điểm đánh dấu bản đồ nhiệt cho tầng {{floor}}"
+    "envmon.floorPlan.markersAria": "Các điểm đánh dấu bản đồ nhiệt cho tầng {{floor}}",
+    "envmon.floorPlan.legend.fail": "FAIL",
+    "envmon.floorPlan.legend.warn": "WARN",
+    "envmon.floorPlan.legend.pend": "PEND",
+    "envmon.floorPlan.legend.pass": "PASS",
+    "envmon.floorPlan.legend.na": "N/A",
+    "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
   }
 }

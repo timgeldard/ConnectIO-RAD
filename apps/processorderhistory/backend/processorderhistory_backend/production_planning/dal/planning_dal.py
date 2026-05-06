@@ -1,18 +1,17 @@
 """DAL for production planning board — scheduled order Gantt data.
 
 Runs 2 Databricks queries in parallel (asyncio.gather):
-  1. blocks  — silver process orders with SCHEDULED_START in the ±7-day window,
+  1. blocks  — scheduled process orders with SCHEDULED_START in the ±7-day window,
                enriched with gold order status and material name
   2. backlog — released/unstarted process orders from the gold view (up to 30),
                representing work not yet appearing on the Gantt
 
-Block start times come from ``silver_process_order.SCHEDULED_START``.
+Block start times come from ``vw_gold_process_order_plan.SCHEDULED_START``.
 
 .. note::
-   For now, silver lookups on PROCESS_LINE and SCHEDULED_START are to stay as 
-   these columns have not yet been promoted to the gold-layer view for this 
-   application.
-   TODO: Move to gold-layer view once schema promotion is confirmed stable.
+   Silver lookups have been migrated to vw_gold_process_order_plan.
+   [TRACKED ISSUE: DDE-892] vw_gold_process_order_plan must provide PROCESS_LINE and SCHEDULED_START.
+   Owner: Data Engineering Team.
 Block end times default to start + 8 h — no PLANNED_DURATION_HRS column has
 been confirmed available in ``vw_gold_process_order`` for this app; update
 ``_DEFAULT_BLOCK_HRS`` (or add a query column) once confirmed queryable.
@@ -27,7 +26,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Optional
 
-from processorderhistory_backend.db import run_sql_async, silver_tbl, sql_param, tbl
+from processorderhistory_backend.db import run_sql_async, sql_param, tbl
 from processorderhistory_backend.production_planning.domain.planning import (
     DEFAULT_BLOCK_HRS,
     MS_PER_DAY,
@@ -60,7 +59,7 @@ async def _q_blocks(token: str, plant_id: Optional[str]) -> list[dict]:
             po.MATERIAL_ID                                                      AS material_id,
             COALESCE(m.MATERIAL_NAME, po.MATERIAL_DESCRIPTION, spo.PROCESS_ORDER_ID)
                                                                                 AS material_name
-        FROM {silver_tbl('silver_process_order')} spo
+        FROM {tbl('vw_gold_process_order_plan')} spo
         LEFT JOIN {tbl('vw_gold_process_order')} po
             ON po.PROCESS_ORDER_ID = spo.PROCESS_ORDER_ID
         LEFT JOIN {tbl('vw_gold_material')} m

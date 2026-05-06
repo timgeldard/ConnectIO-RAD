@@ -11,6 +11,7 @@ from spc_backend.process_control.dal.analysis import (
 )
 from spc_backend.process_control.domain.msa import compute_grr, compute_grr_anova
 from spc_backend.schemas.spc_schemas import CalculateMSARequest
+from shared_db.errors import increment_observability_counter
 
 __all__ = [
     "fetch_compare_scorecard",
@@ -41,6 +42,7 @@ def msa_calculate(body: CalculateMSARequest) -> dict:
         ValueError: If measurement data is invalid or insufficient for the chosen method.
         ZeroDivisionError: If range calculations encounter zero variability.
     """
+    increment_observability_counter("spc.msa.calculated", tags={"method": body.method})
     if body.method == "anova":
         return compute_grr_anova(body.measurement_data, body.tolerance)
     return compute_grr(body.measurement_data, body.tolerance)

@@ -60,6 +60,8 @@ export default memo(function Marker({
       onClick={() => onClick(marker)}
       onMouseEnter={(e) => onMouseEnter(marker, e)}
       onMouseLeave={onMouseLeave}
+      onFocus={(e) => onMouseEnter(marker, e as unknown as React.MouseEvent)}
+      onBlur={onMouseLeave}
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}

@@ -60,3 +60,10 @@ class AnalyticsRequest(BaseModel):
         if self.date_from and self.date_to and self.date_from > self.date_to:
             raise ValueError("date_from must not be after date_to")
         return self
+
+
+class EquipmentInsights2Request(BaseModel):
+    """Request body for the equipment insights v2 summary endpoint."""
+
+    plant_id: Optional[str] = None
+    timezone: str = "UTC"

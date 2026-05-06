@@ -212,7 +212,7 @@ def test_process_flow_request_rejects_out_of_range_lineage_depth():
     try:
         ProcessFlowRequest(material_id="MAT-1", upstream_depth=0)
     except ValidationError as exc:
-        assert "lineage depth must be between 1 and 12" in str(exc)
+        assert "lineage depth must be between 1 and 10" in str(exc)
     else:  # pragma: no cover
         raise AssertionError("Expected ValidationError")
 

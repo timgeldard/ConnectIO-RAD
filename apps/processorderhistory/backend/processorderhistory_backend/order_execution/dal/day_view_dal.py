@@ -10,13 +10,13 @@ Runs 2 Databricks queries in parallel (asyncio.gather):
   2. downtime — downtime records whose START_TIME falls on the selected day,
                 joined to process orders for line attribution.
 
-Both queries join to ``silver.silver_process_order`` to retrieve the 
+Both queries join to ``vw_gold_process_order_plan`` to retrieve the 
 ``PROCESS_LINE`` column.
 
 .. note::
-   For now, silver lookups on PROCESS_LINE are to stay as this column has not 
-   yet been promoted to the gold-layer view for this application.
-   TODO: Move to gold-layer PRODUCTION_LINE once schema promotion is confirmed stable.
+   Silver lookups on PROCESS_LINE have been migrated to vw_gold_process_order_plan.
+   [TRACKED ISSUE: DDE-892] vw_gold_process_order_plan must provide PROCESS_LINE for downtime query parity.
+   Owner: Data Engineering Team.
 
 CREATED, RELEASED, CANCELLED, and DELETED orders are excluded to satisfy the
 "no planned orders, no zero-activity orders" requirement.
@@ -104,7 +104,7 @@ async def _q_blocks(token: str, day: str, plant_id: Optional[str]) -> list[dict]
         FROM day_conf dc
         JOIN {tbl('vw_gold_process_order')} gpo
             ON gpo.PROCESS_ORDER_ID = dc.PROCESS_ORDER_ID
-        LEFT JOIN {silver_tbl('silver_process_order')} spo
+        LEFT JOIN {tbl('vw_gold_process_order_plan')} spo
             ON spo.PROCESS_ORDER_ID = dc.PROCESS_ORDER_ID
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = gpo.MATERIAL_ID

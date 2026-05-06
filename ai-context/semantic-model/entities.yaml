@@ -574,6 +574,49 @@ entities:
       - "Zero-production rows (TOTAL_QTY = 0) should be excluded from all yield calculations"
       - "CONDITIONAL inspection result means the batch was released with deviations — count as GOOD for yield but flag for reporting"
 
+  # ---------------------------------------------------------------------------
+  # MISSING GOLD VIEWS (Equipment Insights v2)
+  # ---------------------------------------------------------------------------
+  - name: vw_gold_equipment_estate
+    business_name: Equipment Estate (Pending)
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: false
+    business_purpose: >
+      Pending view for equipment TTC, FTR, utilisation, and MTBC per vessel/mixer/reactor.
+    grain: One row per equipment
+    primary_keys: []
+
+  - name: vw_gold_equipment_cleaning
+    business_name: Equipment Cleaning (Pending)
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: false
+    business_purpose: >
+      Pending view for equipment cleaning backlog (dirty duration per vessel, CIP history).
+    grain: One row per equipment
+    primary_keys: []
+
+  - name: vw_gold_equipment_calibration
+    business_name: Equipment Calibration (Pending)
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: false
+    business_purpose: >
+      Pending view for calibration due dates per instrument.
+    grain: One row per instrument
+    primary_keys: []
+
+  - name: vw_gold_equipment_anomaly
+    business_name: Equipment Anomaly (Pending)
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: false
+    business_purpose: >
+      Pending view for statistical drift detection (TTC / pour error / cycle time).
+    grain: One row per anomaly
+    primary_keys: []
+
   # ===========================================================================
   # ENVMON APP
   # ===========================================================================
@@ -1615,6 +1658,49 @@ entities:
       - "batch_week and batch_month are TIMESTAMP not DATE — cast if needed"
     notes:
       - "Used for time-series x-axis in SPC control charts"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: spc_correlation_source_mv
+  # ---------------------------------------------------------------------------
+  - name: spc_correlation_source_mv
+    business_name: SPC Correlation Source (Materialized)
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      Pre-aggregated MIC pair stats (count, covariance, avg_a, avg_b) used for 
+      calculating Pearson correlation coefficients in the SPC module.
+    grain: One row per material_id × plant_id × mic_a_id × mic_b_id
+    primary_keys: [material_id, plant_id, mic_a_id, mic_b_id]
+
+  # ---------------------------------------------------------------------------
+  # VIEW: spc_correlation_source_v
+  # ---------------------------------------------------------------------------
+  - name: spc_correlation_source_v
+    business_name: SPC Correlation Source (Real-time)
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      Real-time view of MIC correlation data. Identical grain to the materialized 
+      version but preferred for queries where data freshness over the last hour 
+      is critical (e.g. multivariate T² anomaly detection).
+    grain: One row per material_id × plant_id × mic_a_id × mic_b_id
+    primary_keys: [material_id, plant_id, mic_a_id, mic_b_id]
+
+  # ---------------------------------------------------------------------------
+  # VIEW: spc_lineage_graph_mv
+  # ---------------------------------------------------------------------------
+  - name: spc_lineage_graph_mv
+    business_name: SPC Lineage Graph
+    type: view
+    tier: RESTRICTED
+    approved_for_agent_use: true
+    business_purpose: >
+      Material-to-material lineage edges (source/target) used to build the
+      process flow DAG.
+    grain: One row per source_material × target_material
+    primary_keys: [source, target]
 
   # ---------------------------------------------------------------------------
   # APP TABLE: spc_mic_chart_config

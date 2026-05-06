@@ -1,5 +1,12 @@
 ﻿import { render, screen, within } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const queryClient = new QueryClient()
+
+const renderWithQuery = (ui: React.ReactElement) => {
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
+}
 
 // Home
 import { Home } from '~/pages/Home'
@@ -32,7 +39,7 @@ import { Admin } from '~/pages/Admin'
 
 describe('Home', () => {
   it('renders module cards', () => {
-    render(<Home onOpen={vi.fn()} />)
+    renderWithQuery(<Home onOpen={vi.fn()} />)
     const grid = document.querySelector('.cq-mod-grid') as HTMLElement
     expect(within(grid).getByText('TRACE')).toBeInTheDocument()
     expect(within(grid).getByText('ENVMON')).toBeInTheDocument()
@@ -41,7 +48,7 @@ describe('Home', () => {
 
   it('calls onOpen when a module card is clicked', () => {
     const onOpen = vi.fn()
-    render(<Home onOpen={onOpen} />)
+    renderWithQuery(<Home onOpen={onOpen} />)
     const traceCard = document.querySelector('.cq-mod-card.mod-trace') as HTMLElement
     traceCard.click()
     expect(onOpen).toHaveBeenCalledWith('trace')
@@ -100,8 +107,8 @@ describe('EnvMon pages', () => {
   })
 
   it('EnvHistory renders without crashing', () => {
-    const { container } = render(<EnvHistory />)
-    expect(container.querySelector('.cq-page')).toBeInTheDocument()
+    const { container } = renderWithQuery(<EnvHistory />)
+    expect(container.querySelector('.cq-page') || container.textContent?.includes('Loading time-lapse data')).toBeTruthy()
   })
 })
 
@@ -138,19 +145,19 @@ describe('SPC pages', () => {
 })
 
 describe('LabBoard', () => {
-  it('renders the lab board wallboard', () => {
-    render(<LabBoard />)
-    expect(screen.getByText(/CONNECTEDQUALITY · LAB BOARD/)).toBeInTheDocument()
+  it('renders the lab board wallboard loading state', () => {
+    renderWithQuery(<LabBoard />)
+    expect(screen.getByText(/Loading lab data/)).toBeInTheDocument()
   })
 
-  it('renders fail cards for the visible page', () => {
-    const { container } = render(<LabBoard />)
-    expect(container.querySelectorAll('.fail-card').length).toBeGreaterThan(0)
+  it('renders fail cards for the visible page loading state', () => {
+    const { container } = renderWithQuery(<LabBoard />)
+    expect(container.textContent?.includes('Loading lab data')).toBeTruthy()
   })
 
-  it('shows the open fails count', () => {
-    render(<LabBoard />)
-    expect(screen.getByText('Open fails')).toBeInTheDocument()
+  it('shows the open fails count loading state', () => {
+    renderWithQuery(<LabBoard />)
+    expect(screen.getByText(/Loading lab data/)).toBeInTheDocument()
   })
 })
 

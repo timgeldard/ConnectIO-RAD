@@ -35,6 +35,21 @@
       },
       "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
       "cache": true
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "make deploy PROFILE=uat",
+        "cwd": "apps/warehouse360"
+      },
+      "configurations": {
+        "uat": {
+          "command": "make deploy PROFILE=uat"
+        },
+        "prod": {
+          "command": "make deploy PROFILE=prod"
+        }
+      }
     }
   }
 }
