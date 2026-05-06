@@ -1,4 +1,6 @@
-"""Application compatibility exports for legacy SPC trace endpoints."""
+"""
+Application compatibility exports for legacy SPC trace endpoints.
+"""
 
 from spc_backend.dal.trace_dal import (
     MAX_TRACE_LEVELS,

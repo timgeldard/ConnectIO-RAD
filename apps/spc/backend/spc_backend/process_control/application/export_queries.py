@@ -1,4 +1,6 @@
-"""Application data fetchers for SPC export endpoints."""
+"""
+Application data fetchers for SPC export endpoints.
+"""
 
 from spc_backend.process_control.dal.analysis import fetch_scorecard
 from spc_backend.process_control.dal.charts import (

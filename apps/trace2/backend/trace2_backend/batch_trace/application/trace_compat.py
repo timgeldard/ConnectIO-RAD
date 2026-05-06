@@ -1,4 +1,6 @@
-"""Application compatibility exports for legacy Trace2 trace router imports."""
+"""
+Application compatibility exports for legacy Trace2 trace router imports.
+"""
 
 from trace2_backend.dal.trace_dal import (
     _build_tree,
