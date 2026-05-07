@@ -64,8 +64,73 @@ jobs:
       - name: Build affected frontends
         run: npx nx affected -t build --base=$NX_BASE --head=$NX_HEAD --parallel=4
 
+  security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      # ----- Python: known-CVE scan via pip-audit ---------------------------
+      # `uv sync` resolves and installs the workspace into a single venv that
+      # covers every backend and shared lib. `uv run pip-audit` then walks
+      # the live environment, so we audit the actually-resolved dependency
+      # tree rather than the loose pyproject pins.
+      - name: pip-audit (Python dependencies)
+        run: |
+          uv sync --all-extras
+          uv tool install pip-audit
+          uv tool run pip-audit --strict
+
+      # ----- JavaScript: known-CVE scan via npm audit ----------------------
+      # Workspace-aware; --workspaces flag would also work but the root audit
+      # already walks the npm workspaces declared in package.json.
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: npm audit (JavaScript dependencies)
+        run: npm audit --audit-level=high
+
+      # ----- Secret scanning via gitleaks ----------------------------------
+      # Catches accidentally-committed credentials. Runs against the full
+      # history on push to main (so a sneaky commit is found post-merge too)
+      # and against the diff on PRs (faster, scoped to what changed).
+      - name: gitleaks (secret scanning)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ----- SAST: GitHub CodeQL ------------------------------------------
+      # Two languages — python for the FastAPI/uvicorn backends and the build
+      # scripts; javascript covers all the frontend SPAs.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python, javascript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Run CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:python,javascript"
+
   deploy:
-    needs: ci
+    needs: [ci, security]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
