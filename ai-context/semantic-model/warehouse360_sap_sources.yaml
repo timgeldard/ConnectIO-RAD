@@ -60,6 +60,11 @@ tables:
     status:     available
     catalog:    sap
     full_name:  connected_plant_uat.sap.transferorderobjects_ltak
+    key_cols:   [LGNUM, TANUM, BDATU, KQUIT]
+    note: >
+      No STAT or ERDAT columns. Created date is BDATU.
+      KQUIT is the confirmation flag: '' or NULL = open, 'X' = fully confirmed.
+      Open TO filter: KQUIT = '' OR KQUIT IS NULL.
 
   - sap_table:  LTAP
     module:     WM
@@ -67,6 +72,10 @@ tables:
     status:     available
     catalog:    sap
     full_name:  connected_plant_uat.sap.transferorderobjects_ltap
+    key_cols:   [LGNUM, TANUM, TAPOS, MATNR, WERKS, CHARG, NSOLM, NLTYP, NLPLA, VLTYP, VLPLA, PQUIT]
+    note: >
+      Planned quantity is NSOLM (not ANFME). Actual quantity is NISTM.
+      PQUIT = item-level confirmation flag (matches KQUIT semantics).
 
   - sap_table:  LTBK
     module:     WM
@@ -88,6 +97,27 @@ tables:
     status:     available
     catalog:    sap
     full_name:  connected_plant_uat.sap.quant_lqua
+    key_cols:   [LGNUM, LGTYP, LGPLA, MATNR, WERKS, CHARG, GESME, MEINS, BESTQ, BDATU, VFDAT]
+    note: >
+      Total quantity is GESME (not MENGE — MENGE is the movement qty in MSEG).
+      BESTQ = stock category indicator. BDATU = GR/posting date.
+      VFDAT = expiry date (STRING, format yyyy-MM-dd; guard against '0001-01-01').
+      No LVORM column — filter on WERKS IS NOT NULL to exclude invalid rows.
+      Interim/handover bins: LGTYP IN ('0921','0922','0930').
+      WERKS is present in this extraction (no join to T320 needed).
+
+  - sap_table:  T320
+    module:     WM
+    desc:       Warehouse-to-plant/storage-location assignment
+    status:     available
+    catalog:    central
+    full_name:  published_uat.central_services.warehouseforplant_t320
+    key_cols:   [WERKS, LGORT, LGNUM]
+    note: >
+      Maps warehouse number (LGNUM) to plant (WERKS) and storage location (LGORT).
+      Useful if a future extraction of LQUA lacks WERKS.
+      The current quant_lqua extraction already includes WERKS, so T320 is not
+      required for existing views.
 
   - sap_table:  LINV
     module:     WM
@@ -155,18 +185,43 @@ tables:
 
   - sap_table:  MSEG
     module:     MM
-    desc:       Material document item (GR / GI movements)
+    desc:       Material document item (GR / GI movements; MKPF denormalized)
     status:     available
     catalog:    sap
     full_name:  connected_plant_uat.sap.inventorymovement_mseg
+    key_cols:   [MBLNR, ZEILE, BWART, MATNR, WERKS, LGORT, CHARG, MENGE, MEINS, BUDAT_MKPF, CPUTM_MKPF, USNAM_MKPF]
+    note: >
+      MKPF (material document header) fields are denormalized into this table:
+      BUDAT_MKPF (posting date), CPUDT_MKPF (created date), CPUTM_MKPF (posting time),
+      USNAM_MKPF (username), XBLNR_MKPF, TCODE2_MKPF. No JOIN to MKPF needed.
+      gold_inventory_movement provides a cleaner interface with POSTING_DATE as DATE
+      and MOVEMENT_TYPE_GROUP/DESCRIPTION added.
 
   # ── Material master ───────────────────────────────────────────────────────
   - sap_table:  MARA
     module:     Material
-    desc:       Material master — general data
+    desc:       Material master — general data (type and UOM only; no pricing)
     status:     available
     catalog:    sap
     full_name:  connected_plant_uat.sap.materialmaster_mara
+    key_cols:   [MATNR, MTART, MEINS]
+    note: >
+      MARA does NOT contain pricing fields (STPRS, VPRSV, VERPR).
+      Pricing lives in MBEW (materialvaluation_mbew). Join MARD.WERKS = MBEW.BWKEY
+      AND MBEW.BWTAR = '' for standard valuation.
+
+  - sap_table:  MBEW
+    module:     Material
+    desc:       Material valuation — standard and moving average prices per plant
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.materialvaluation_mbew
+    key_cols:   [MATNR, BWKEY, BWTAR, VPRSV, STPRS, VERPR, PEINH]
+    note: >
+      BWKEY = valuation area = plant (confirmed via gold_plant.VALUATION_AREA).
+      Filter BWTAR = '' for standard (non-split) valuation.
+      VPRSV: S = standard price (use STPRS); V = moving average (use VERPR).
+      Divide by PEINH (price unit, usually 1) when calculating inventory value.
 
   - sap_table:  MARC
     module:     Material
@@ -177,18 +232,54 @@ tables:
 
   - sap_table:  MARD
     module:     Material
-    desc:       Storage location stock
+    desc:       Storage location stock (IM book stock per plant/sloc)
     status:     available
     catalog:    sap
     full_name:  connected_plant_uat.sap.storagelocationmaterial_mard
+    key_cols:   [MATNR, WERKS, LGORT, LABST, INSME, SPEME, EINME, UMLME, LVORM, LFGJA, LFMON]
+    note: >
+      Transit/in-transfer stock column is UMLME (not TRAME — TRAME does not exist here).
+      LABST=unrestricted, INSME=QI, SPEME=blocked, EINME=restricted, UMLME=in-transfer.
+
+  - sap_table:  T001L
+    module:     Material
+    desc:       Storage location text (description)
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.storagelocation_t001l
+    key_cols:   [WERKS, LGORT, LGOBE]
+    note: >
+      gold_storage (connected_plant_{env}.gold.gold_storage) provides the same data
+      with cleaner column names (PLANT_ID, STORAGE_ID, STORAGE_NAME) and is preferred
+      for new views.
 
   # ── Batch management ──────────────────────────────────────────────────────
   - sap_table:  MCHA
     module:     Batch
-    desc:       Batch master data
+    desc:       Batch master data (cross-plant; expiry and creation dates)
     status:     available
     catalog:    central
     full_name:  published_uat.central_services.batches_mcha
+    key_cols:   [MATNR, WERKS, CHARG, VFDAT, HSDAT, ERSDA, LVORM]
+    note: >
+      MCHA is NOT in connected_plant_{env}.sap — it is in published_uat.central_services.
+      Required for expiry-date exception rules and batch aging analytics.
+      HSDAT = manufacture/production date (Herstelldatum) — use for inventory aging.
+      ERSDA = batch record creation date (not the same as manufacture date).
+      VFDAT = shelf-life expiry date.
+      No HERDAT column in this extraction.
+
+  - sap_table:  MCHB
+    module:     Batch
+    desc:       Batch stock (batch-level quantities per plant/sloc)
+    status:     available
+    catalog:    sap
+    full_name:  connected_plant_uat.sap.batchstock_mchb
+    key_cols:   [MATNR, WERKS, LGORT, CHARG, CLABS, CINSM, CSPEM, CEINM, LVORM, LFGJA, LFMON]
+    note: >
+      CLABS=unrestricted, CINSM=QI, CSPEM=blocked, CEINM=restricted batch stock.
+      gold_stock (connected_plant_{env}.gold.gold_stock) provides the same data
+      with cleaner column names and is preferred for new views.
 
   - sap_table:  MCH1
     module:     Batch

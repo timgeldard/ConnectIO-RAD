@@ -8,7 +8,7 @@ export const COMPOSITION: AppComposition = {
   databricksAppName: 'connectio-platform',
   enabledModules: MODULES.map((m) => m.moduleId),
   mandatoryModules: [],
-  defaultModule: 'trace',
+  defaultModule: 'home',
   sidebarBranding: {
     appTag: 'Platform',
   },

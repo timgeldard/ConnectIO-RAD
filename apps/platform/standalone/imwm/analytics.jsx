@@ -1,8 +1,9 @@
 // analytics.jsx — Inventory Analytics & Insights
 const { Icon, Sparkline, Kpi, K, Money, Bar } = window.UI;
 
-function Analytics() {
+function Analytics({ agingBuckets: agingBucketsProp }) {
   const D = window.__INV_DATA__;
+  const agingBuckets = agingBucketsProp ?? D.AGING_BUCKETS;
   const [tab, setTab] = React.useState("aging");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -31,8 +32,8 @@ function Analytics() {
             <div className="card-h"><span className="eyebrow">Composition</span><span className="title">Inventory value by age bucket (€M)</span></div>
             <div style={{ padding: 24 }}>
               <div style={{ display: "flex", alignItems: "flex-end", gap: 14, height: 240 }}>
-                {D.AGING_BUCKETS.map(b => {
-                  const max = Math.max(...D.AGING_BUCKETS.map(x=>x.value));
+                {agingBuckets.map(b => {
+                  const max = Math.max(...agingBuckets.map(x=>x.value));
                   const h = (b.value/max)*200;
                   return (
                     <div key={b.label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
