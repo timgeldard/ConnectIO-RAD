@@ -2,15 +2,31 @@
 import asyncio
 import json
 import os
+import re
 from typing import Any, Optional
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from fastapi import HTTPException
 
 
 TERMINAL_STATUSES = {"COMPLETED", "FAILED", "CANCELLED"}
+
+# Hostnames the Genie client is permitted to call. The Databricks Apps proxy
+# always sets DATABRICKS_HOST to the workspace URL, so a strict allowlist here
+# defends against env-injection or deploy misconfiguration that could redirect
+# the client (and the bearer token it carries) to an attacker-controlled host.
+#
+# Override at deploy time via GENIE_HOST_ALLOWLIST (comma-separated suffixes)
+# if a workspace lives on a non-default domain pattern. Empty values are
+# treated as no override.
+_DEFAULT_HOST_SUFFIX_ALLOWLIST: tuple[str, ...] = (
+    ".azuredatabricks.net",
+    ".cloud.databricks.com",
+    ".gcp.databricks.com",
+)
+_HOSTNAME_RE = re.compile(r"^[a-zA-Z0-9.-]+$")
 
 
 def compose_genie_content(prompt: str, page_context: Optional[dict[str, Any]]) -> str:
@@ -45,22 +61,89 @@ def compose_genie_content(prompt: str, page_context: Optional[dict[str, Any]]) -
     return "\n".join(lines)
 
 
+def _allowed_host_suffixes() -> tuple[str, ...]:
+    """Return the active host-suffix allowlist (env override or default)."""
+    raw = os.environ.get("GENIE_HOST_ALLOWLIST", "").strip()
+    if not raw:
+        return _DEFAULT_HOST_SUFFIX_ALLOWLIST
+    return tuple(s.strip() for s in raw.split(",") if s.strip())
+
+
+def _validate_host(host: str) -> str:
+    """Validate the workspace host before any outbound call.
+
+    The Genie client carries the user's Databricks token; sending it to a
+    host not in the workspace allowlist would constitute an SSRF /
+    token-exfiltration vector.
+
+    Args:
+        host: Hostname or full URL read from DATABRICKS_HOST/DATABRICKS_HOSTNAME.
+
+    Returns:
+        The same host normalised to ``https://<host>`` form, with no trailing
+        slash, when it passes the allowlist.
+
+    Raises:
+        HTTPException: 500 if the host is empty, malformed, or matches no
+            allowlisted suffix.
+    """
+    raw = (host or "").rstrip("/")
+    if not raw:
+        raise HTTPException(
+            status_code=500,
+            detail="DATABRICKS_HOST environment variable is not set.",
+        )
+    if not raw.startswith(("http://", "https://")):
+        raw = f"https://{raw}"
+
+    parsed = urlparse(raw)
+    hostname = (parsed.hostname or "").lower()
+    if not hostname or not _HOSTNAME_RE.match(hostname):
+        raise HTTPException(
+            status_code=500,
+            detail=f"DATABRICKS_HOST is not a valid hostname: {host!r}",
+        )
+
+    # `urlparse` defers port validation until `parsed.port` is accessed; an
+    # invalid port (non-numeric or out-of-range) raises ValueError at that
+    # point, bypassing our HTTPException contract. Catch and re-raise as the
+    # same 500 we use for all other host-validation failures.
+    try:
+        _ = parsed.port
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"DATABRICKS_HOST has an invalid port: {host!r}",
+        ) from exc
+
+    suffixes = _allowed_host_suffixes()
+    if not any(hostname.endswith(suffix) for suffix in suffixes):
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "DATABRICKS_HOST is not in the Genie client allowlist. "
+                "Refusing to send a Databricks bearer token to an unrecognised host."
+            ),
+        )
+
+    # Drop the port component entirely — workspace traffic always goes to the
+    # default https port and a non-default port on an allowlisted hostname is
+    # an unexpected redirect that we should not forward a bearer token to.
+    return f"https://{hostname}"
+
+
 def _host() -> str:
-    """Return the configured Databricks workspace host.
+    """Return the configured (and allowlist-validated) Databricks workspace host.
 
     Returns:
         Workspace URL with an explicit scheme and without a trailing slash.
 
     Raises:
-        HTTPException: If no Databricks host environment variable is configured.
+        HTTPException: If the host is missing, malformed, or not in the
+            Genie host allowlist.
     """
-    host = os.environ.get("DATABRICKS_HOST") or os.environ.get("DATABRICKS_HOSTNAME") or ""
-    host = host.rstrip("/")
-    if not host:
-        raise HTTPException(status_code=500, detail="DATABRICKS_HOST environment variable is not set.")
-    if not host.startswith(("http://", "https://")):
-        host = f"https://{host}"
-    return host
+    raw = os.environ.get("DATABRICKS_HOST") or os.environ.get("DATABRICKS_HOSTNAME") or ""
+    return _validate_host(raw)
 
 
 def _space_id() -> str:

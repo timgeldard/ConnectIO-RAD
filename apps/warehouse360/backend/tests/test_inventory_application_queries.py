@@ -78,3 +78,70 @@ async def test_list_plants_delegates_to_dal(monkeypatch):
     monkeypatch.setattr(queries.plants_dal, "fetch_plants", fake_fetch_plants)
 
     assert await queries.list_plants("token") == [{"plant_id": "IE01"}]
+
+
+# --- IMWM application-layer tests --------------------------------------------
+# Mirrors the bin/lineside/inbound pattern above: confirm each handler
+# (a) delegates to the matching DAL function and (b) normalises plant_id
+# through PlantScope before doing so.
+
+
+@pytest.mark.asyncio
+async def test_list_imwm_stock_normalizes_plant_scope(monkeypatch):
+    calls = []
+
+    async def fake_fetch_imwm_stock(token, plant_id=None):
+        calls.append((token, plant_id))
+        return [{"plant_id": "IE01"}]
+
+    monkeypatch.setattr(queries.imwm_dal, "fetch_imwm_stock", fake_fetch_imwm_stock)
+
+    rows = await queries.list_imwm_stock("token", plant_id=" IE01 ")
+
+    assert rows == [{"plant_id": "IE01"}]
+    assert calls == [("token", "IE01")]
+
+
+@pytest.mark.asyncio
+async def test_list_imwm_movements_blank_scope_fetches_all(monkeypatch):
+    calls = []
+
+    async def fake_fetch_imwm_movements(token, plant_id=None):
+        calls.append((token, plant_id))
+        return []
+
+    monkeypatch.setattr(queries.imwm_dal, "fetch_imwm_movements", fake_fetch_imwm_movements)
+
+    rows = await queries.list_imwm_movements("token", plant_id=" ")
+
+    assert rows == []
+    assert calls == [("token", None)]
+
+
+@pytest.mark.asyncio
+async def test_list_imwm_exceptions_normalizes_plant_scope(monkeypatch):
+    calls = []
+
+    async def fake_fetch_imwm_exceptions(token, plant_id=None):
+        calls.append((token, plant_id))
+        return [{"exception_type": "NEGATIVE_WM_QUANT"}]
+
+    monkeypatch.setattr(queries.imwm_dal, "fetch_imwm_exceptions", fake_fetch_imwm_exceptions)
+
+    rows = await queries.list_imwm_exceptions("token", plant_id="DE01")
+
+    assert rows == [{"exception_type": "NEGATIVE_WM_QUANT"}]
+    assert calls == [("token", "DE01")]
+
+
+@pytest.mark.asyncio
+async def test_list_imwm_aging_delegates_to_dal(monkeypatch):
+    async def fake_fetch_imwm_aging(token, plant_id=None):
+        assert token == "token"
+        return [{"plant_id": "IE01", "age_bucket": "0-30d"}]
+
+    monkeypatch.setattr(queries.imwm_dal, "fetch_imwm_aging", fake_fetch_imwm_aging)
+
+    rows = await queries.list_imwm_aging("token")
+
+    assert rows == [{"plant_id": "IE01", "age_bucket": "0-30d"}]

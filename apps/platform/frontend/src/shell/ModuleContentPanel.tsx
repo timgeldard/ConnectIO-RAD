@@ -1,5 +1,5 @@
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
-import { LandingCard, moduleHref } from './LandingCard'
+import { LandingCard } from './LandingCard'
 import { HomePanel } from './HomePanel'
 
 interface ModuleContentPanelProps {
@@ -23,24 +23,6 @@ export function ModuleContentPanel({ moduleId, modules, activeTabId, onModuleCha
     return (
       <div className="plat-empty">
         <p>Module not found: {moduleId}</p>
-      </div>
-    )
-  }
-
-  if (mod.routeBase) {
-    const href = moduleHref(mod, activeTabId)
-    return (
-      <div className="plat-embedded-module">
-        <div className="plat-embedded-toolbar">
-          <span>{mod.displayName}</span>
-          <a href={href}>Open full view</a>
-        </div>
-        <iframe
-          title={`${mod.displayName} module`}
-          src={href}
-          className="plat-embedded-frame"
-          loading="lazy"
-        />
       </div>
     )
   }

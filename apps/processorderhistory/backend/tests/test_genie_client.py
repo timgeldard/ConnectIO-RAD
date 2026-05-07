@@ -117,7 +117,7 @@ def test_resolve_genie_token_keeps_token_server_side(monkeypatch):
 def test_request_json_builds_databricks_request(monkeypatch):
     captured = {}
 
-    monkeypatch.setenv("DATABRICKS_HOST", "dbc.example.com")
+    monkeypatch.setenv("DATABRICKS_HOST", "adb-test.azuredatabricks.net")
 
     def fake_urlopen(request, timeout):
         captured["url"] = request.full_url
@@ -137,14 +137,14 @@ def test_request_json_builds_databricks_request(monkeypatch):
     )
 
     assert result == {"ok": True}
-    assert captured["url"] == "https://dbc.example.com/api/test?a=b"
+    assert captured["url"] == "https://adb-test.azuredatabricks.net/api/test?a=b"
     assert captured["headers"]["Authorization"] == "Bearer token-1"
     assert captured["body"] == {"content": "hello"}
     assert captured["timeout"] == 60
 
 
 def test_request_json_surfaces_http_errors(monkeypatch):
-    monkeypatch.setenv("DATABRICKS_HOST", "https://dbc.example.com")
+    monkeypatch.setenv("DATABRICKS_HOST", "https://adb-test.azuredatabricks.net")
 
     def fake_urlopen(request, timeout):
         raise HTTPError(
@@ -165,7 +165,7 @@ def test_request_json_surfaces_http_errors(monkeypatch):
 
 
 def test_request_json_surfaces_url_errors(monkeypatch):
-    monkeypatch.setenv("DATABRICKS_HOST", "https://dbc.example.com")
+    monkeypatch.setenv("DATABRICKS_HOST", "https://adb-test.azuredatabricks.net")
     monkeypatch.setattr(genie_client, "urlopen", lambda request, timeout: (_ for _ in ()).throw(URLError("offline")))
 
     with pytest.raises(HTTPException) as exc:
@@ -173,6 +173,65 @@ def test_request_json_surfaces_url_errors(monkeypatch):
 
     assert exc.value.status_code == 502
     assert "Unable to reach Databricks Genie API" in exc.value.detail
+
+
+def test_host_rejected_when_unset(monkeypatch):
+    """Empty DATABRICKS_HOST raises 500 — the client refuses to send a token to nowhere."""
+    monkeypatch.delenv("DATABRICKS_HOST", raising=False)
+    monkeypatch.delenv("DATABRICKS_HOSTNAME", raising=False)
+    with pytest.raises(HTTPException) as exc:
+        genie_client._host()
+    assert exc.value.status_code == 500
+    assert "DATABRICKS_HOST" in exc.value.detail
+
+
+def test_host_rejected_when_outside_allowlist(monkeypatch):
+    """Hosts not matching the workspace suffix allowlist are blocked, with no
+    outbound HTTP call made — defends against env-injection / SSRF redirecting
+    the user's bearer token to an attacker host."""
+    monkeypatch.setenv("DATABRICKS_HOST", "attacker.com")
+    monkeypatch.delenv("GENIE_HOST_ALLOWLIST", raising=False)
+    with pytest.raises(HTTPException) as exc:
+        genie_client._host()
+    assert exc.value.status_code == 500
+    assert "allowlist" in exc.value.detail.lower()
+
+
+def test_host_rejected_when_invalid_characters(monkeypatch):
+    """Malformed hostnames are rejected before any URL parsing trickery can apply."""
+    monkeypatch.setenv("DATABRICKS_HOST", "https://attacker.com#.azuredatabricks.net")
+    with pytest.raises(HTTPException) as exc:
+        genie_client._host()
+    assert exc.value.status_code == 500
+
+
+def test_host_accepts_default_workspace_pattern(monkeypatch):
+    """A real Azure Databricks workspace hostname passes the default allowlist."""
+    monkeypatch.setenv("DATABRICKS_HOST", "adb-1234567890123456.7.azuredatabricks.net")
+    assert genie_client._host() == "https://adb-1234567890123456.7.azuredatabricks.net"
+
+
+def test_host_accepts_aws_workspace_pattern(monkeypatch):
+    """AWS Databricks workspaces (`*.cloud.databricks.com`) also pass the default."""
+    monkeypatch.setenv("DATABRICKS_HOST", "https://example.cloud.databricks.com")
+    assert genie_client._host() == "https://example.cloud.databricks.com"
+
+
+def test_host_allowlist_override_via_env(monkeypatch):
+    """GENIE_HOST_ALLOWLIST env var replaces the default suffix list, allowing
+    deploys against unusual workspace domains without code changes."""
+    monkeypatch.setenv("DATABRICKS_HOST", "internal.example.corp")
+    monkeypatch.setenv("GENIE_HOST_ALLOWLIST", ".example.corp")
+    assert genie_client._host() == "https://internal.example.corp"
+
+
+def test_host_allowlist_override_still_blocks_other_hosts(monkeypatch):
+    """An explicit allowlist override doesn't widen — non-matching hosts still rejected."""
+    monkeypatch.setenv("DATABRICKS_HOST", "attacker.example.com")
+    monkeypatch.setenv("GENIE_HOST_ALLOWLIST", ".example.corp")
+    with pytest.raises(HTTPException) as exc:
+        genie_client._host()
+    assert exc.value.status_code == 500
 
 
 def test_conversation_helpers_use_expected_paths(monkeypatch):

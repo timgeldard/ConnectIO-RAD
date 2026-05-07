@@ -45,8 +45,10 @@ Thumbs.db
 *.swp
 *.swo
 
-# Claude Code — local settings are personal, not team-shared
+# Claude Code — local settings, plugin caches, and worktrees are personal
 .claude/settings.local.json
+.claude/worktrees/
+apps/*/.claude/
 .coverage
 **/coverage.xml
 .pytest_cache

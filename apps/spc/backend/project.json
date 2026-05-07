@@ -21,8 +21,8 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run --no-sync --package spc-backend python -m pytest apps/spc/backend/tests",
-        "cwd": "{workspaceRoot}"
+        "command": "uv run --no-sync --package spc-backend python -m pytest",
+        "cwd": "apps/spc/backend"
       },
       "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
       "cache": true

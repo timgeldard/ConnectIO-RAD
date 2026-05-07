@@ -9,16 +9,15 @@ repos:
         pass_filenames: false
       - id: ddd-guardrails
         name: DDD Architecture Guardrails
-        entry: python -m pytest
-        args:
-          - apps/envmon/backend/tests/test_architecture_boundaries.py
-          - apps/spc/backend/tests/test_architecture_boundaries.py
-          - apps/trace2/backend/tests/test_architecture_boundaries.py
-          - apps/warehouse360/backend/tests/test_architecture_boundaries.py
-          - apps/processorderhistory/backend/tests/test_architecture_boundaries.py
-          - -v
-          - --tb=short
+        # Runs the central guardrail at scripts/tests/, which AST-walks every
+        # domain/, application/, and router*.py file across all apps and
+        # enforces the four-layer DDD rules plus the bounded-context allowlist.
+        # This is broader than the per-app tests AND avoids the conftest.py
+        # name-collision that running multiple apps' test trees in one pytest
+        # invocation triggers; per-app tests still run under `nx affected -t
+        # test` in CI.
+        entry: python -m pytest --tb=short -v scripts/tests/test_ddd_architecture_guardrails.py
         language: system
         pass_filenames: false
-        files: ^(apps|libs)/.*\.py$
+        files: ^(apps|libs|scripts/tests)/.*\.py$
         stages: [pre-commit]

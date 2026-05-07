@@ -1,0 +1,6 @@
+# Code Ownership — ConnectIO-RAD
+#
+# Single-maintainer baseline; split per-app once the team grows.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @timgeldard

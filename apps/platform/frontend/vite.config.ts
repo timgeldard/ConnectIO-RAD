@@ -29,5 +29,14 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: [],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/__tests__/**', 'src/main.tsx'],
+      // Ratchet baseline 2026-05-07. Current actuals are below the 75% mandate;
+      // raise both numbers each sprint until they reach 75/75/75/75. See TODO.md.
+      thresholds: { lines: 60, functions: 65, branches: 75, statements: 60 },
+    },
   },
 })

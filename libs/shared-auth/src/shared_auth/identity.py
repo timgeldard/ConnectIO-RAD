@@ -31,43 +31,110 @@ class UserIdentity:
 
 def resolve_token(
     x_forwarded_access_token: Optional[str],
-    authorization: Optional[str],
-    strict: bool = False,
+    authorization: Optional[str] = None,
+    strict: bool = True,
 ) -> str:
-    """
-    Resolve the access token from request headers (priority order).
-    
+    """Resolve the access token from request headers.
+
+    The Databricks Apps proxy sets ``x-forwarded-access-token`` on every
+    legitimate request. The ``Authorization: Bearer`` header is an *alternate*
+    auth path that bypasses the proxy entirely; allowing it in production
+    means the proxy is no longer the only source of identity.
+
+    From 2026-05-07 onwards, ``strict=True`` is the default and the Bearer
+    fallback is honoured *only* when the caller explicitly opts in
+    (``strict=False``) AND ``APP_ENV`` is ``development``, ``local``, or
+    ``test``. In any other environment the fallback is ignored and a
+    structured warning is logged once per request so operators can see
+    callers that still expect the old behaviour.
+
     Args:
-        x_forwarded_access_token: Token from Databricks Apps proxy.
-        authorization: Standard Bearer token header.
-        strict: If True, only x-forwarded-access-token is accepted.
+        x_forwarded_access_token: Token forwarded by the Databricks Apps
+            proxy. The canonical, always-trusted source in production.
+        authorization: Optional ``Authorization`` header value. Only used
+            in dev mode and only when ``strict=False`` is explicitly passed.
+        strict: When True (default), only the proxy header is accepted.
+            Passing False is an explicit dev-mode opt-in; production
+            continues to enforce strict mode regardless.
+
+    Returns:
+        The resolved access token.
+
+    Raises:
+        HTTPException: 401 if no token is present in the accepted headers.
     """
     token = x_forwarded_access_token
-    
-    if not strict and token is None and authorization and authorization.startswith("Bearer "):
+
+    bearer_allowed = (not strict) and _is_dev_mode()
+    if (
+        bearer_allowed
+        and token is None
+        and authorization
+        and authorization.startswith("Bearer ")
+    ):
         token = authorization[len("Bearer "):]
-        
+    elif not strict and not _is_dev_mode():
+        # Caller asked for non-strict but we're in production — refuse the
+        # fallback. Log so operators can find the caller and migrate it.
+        logger.warning(
+            "resolve_token called with strict=False outside dev mode; "
+            "Bearer fallback ignored. APP_ENV=%s",
+            os.environ.get("APP_ENV", "<unset>"),
+        )
+
     if not token:
-        msg = "No access token present. Expected x-forwarded-access-token header."
-        if not strict:
-            msg += " Fallback to Authorization: Bearer is also supported."
-        raise HTTPException(status_code=401, detail=msg)
-        
+        raise HTTPException(
+            status_code=401,
+            detail="No access token present. Expected x-forwarded-access-token header.",
+        )
+
     return token
 
 
 def warn_if_jwks_unconfigured() -> None:
-    """Emit a startup warning when AUTH_JWKS_URL is absent outside dev/test environments.
+    """Refuse to start a non-dev process with JWT verification disabled.
 
-    Call this from each app's lifespan or startup handler so operators are
-    alerted before the first real request arrives rather than mid-flight.
+    JWT verification is *defence-in-depth*. The Databricks Apps proxy validates
+    tokens upstream, but the app must verify signatures itself so a bypass of
+    the proxy alone cannot mint acceptable tokens.
+
+    Behaviour:
+        * In dev/test mode (``APP_ENV`` in {development, local, test}) — emit a
+          warning if JWKS is absent so a developer iterating locally is not
+          forced to wire JWKS for every test run.
+        * Outside dev/test mode — raise ``RuntimeError`` if both
+          ``AUTH_JWKS_URL`` is empty and ``AUTH_ALLOW_UNVERIFIED_JWT`` is not
+          enabled. This guards against deploying with neither verification
+          configured nor an explicit ack of unsafe behaviour.
+
+    Raises:
+        RuntimeError: If running in a non-dev environment with no JWKS URL
+            configured and unverified tokens not explicitly allowed.
     """
     jwks_url = os.environ.get("AUTH_JWKS_URL", "").strip()
-    if not jwks_url and not _is_dev_mode():
+    if jwks_url:
+        return
+
+    if _is_dev_mode():
         logger.warning(
             "AUTH_JWKS_URL is not set. JWT signatures will not be verified. "
-            "Set AUTH_JWKS_URL to a JWKS endpoint before deploying to production."
+            "This is acceptable in dev (APP_ENV=%s).",
+            os.environ.get("APP_ENV", "<unset>"),
         )
+        return
+
+    if _allow_unverified_tokens():
+        logger.error(
+            "AUTH_JWKS_URL is empty AND AUTH_ALLOW_UNVERIFIED_JWT is set. "
+            "Running in production without signature verification — fix this."
+        )
+        return
+
+    raise RuntimeError(
+        "AUTH_JWKS_URL is not configured and AUTH_ALLOW_UNVERIFIED_JWT is not set. "
+        "Configure AUTH_JWKS_URL to your workspace OIDC jwks_uri or, for a "
+        "deliberately-unsafe deploy, set AUTH_ALLOW_UNVERIFIED_JWT=true."
+    )
 
 
 def _is_dev_mode() -> bool:
@@ -96,10 +163,15 @@ async def require_user(
     x_forwarded_access_token: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
 ) -> UserIdentity:
-    """
-    FastAPI dependency to require a valid user identity.
-    
-    Supports both proxy headers and local Bearer tokens.
+    """FastAPI dependency that accepts either proxy or Bearer auth in dev.
+
+    In production this is *equivalent to* :func:`require_proxy_user` — the
+    Bearer-token fallback is dev-mode only (see :func:`resolve_token`). New
+    routes should prefer :func:`require_proxy_user` directly so the strict
+    contract is visible at the call site; this function exists so the
+    handful of debug-only endpoints that genuinely benefit from a Bearer
+    fallback during local iteration can keep working without spelling out
+    the conditional themselves.
     """
     token = resolve_token(x_forwarded_access_token, authorization, strict=False)
     return _extract_identity(token)

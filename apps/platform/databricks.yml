@@ -5,13 +5,23 @@ bundle:
 sync:
   include:
     - app.yaml
+    - requirements.txt
     - backend/**
     - static/**
-    - poh_backend/**
-    - cq_backend/**
-    - shared_db/**
-    - shared_api/**
-    - shared_auth/**
+    - wheels/**
+  exclude:
+    - "**/__pycache__/**"
+    - "**/*.pyc"
+    - "**/.pytest_cache/**"
+    - "**/.mypy_cache/**"
+    - "**/.ruff_cache/**"
+    - "**/node_modules/**"
+    - scripts/**
+    - deploy.toml
+    - Makefile
+    - app.template.yaml
+    - frontend/**
+    - standalone/**
 
 variables:
   app_name:

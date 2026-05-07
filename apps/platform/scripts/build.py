@@ -1,17 +1,23 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Platform build script.
 
 Steps:
-  1. Copy shared Python libs (shared_db, shared_api, shared_auth) into app root.
-  2. Copy backend packages using their real package names so local, test, and
-     Databricks imports all resolve the same modules.
-  5. Build CQ frontend with VITE_BASE_PATH=/cq/ and copy dist to static/cq/.
-  6. Build POH frontend with VITE_BASE_PATH=/poh/ and copy dist to static/poh/.
-  7. Build W360 frontend with VITE_BASE_PATH=/warehouse360/ and copy dist to static/warehouse360/.
-  8. Build Platform frontend (base=/) and copy dist to static/home/.
-  9. Copy standalone app sources from standalone/<slug>/ to static/<slug>/.
+  1. Build wheels for all platform-required Python packages (shared libs +
+     app backends). Output to apps/platform/wheels/.
+  2. Build CQ frontend with VITE_BASE_PATH=/cq/ and copy dist to static/cq/.
+  3. Build POH frontend with VITE_BASE_PATH=/poh/ and copy dist to static/poh/.
+  4. Build W360 frontend with VITE_BASE_PATH=/warehouse360/ and copy dist to
+     static/warehouse360/.
+  5. Build Platform frontend (base=/) and copy dist to static/home/.
+  6. Copy standalone app sources from standalone/<slug>/ to static/<slug>/.
 
-Run via `make deploy` or `python3 scripts/build.py` from the app root.
+Run via `make deploy` or `python3 scripts/build.py` from the app root
+(apps/platform/).
+
+Wheels replace the older file-copy approach. They are installed at runtime via
+`pip install --find-links ./wheels -r requirements.txt`. Source duplication
+under apps/platform/<package>_backend/ is no longer needed and any stale copies
+are removed at the start of the build.
 """
 
 from __future__ import annotations
@@ -29,57 +35,114 @@ POH_DIR = REPO_ROOT / "apps" / "processorderhistory"
 W360_DIR = REPO_ROOT / "apps" / "warehouse360"
 PLATFORM_FRONTEND_DIR = APP_DIR / "frontend"
 STANDALONE_DIR = APP_DIR / "standalone"
+WHEELS_DIR = APP_DIR / "wheels"
 
-SHARED_LIBS = ["shared-db", "shared-api", "shared-auth", "shared-domain"]
-BACKEND_PACKAGES = {
-    "connectedquality_backend": CQ_DIR / "backend" / "connectedquality_backend",
-    "processorderhistory_backend": POH_DIR / "backend" / "processorderhistory_backend",
-    "warehouse360_backend": W360_DIR / "backend" / "warehouse360_backend",
-}
+WHEEL_PACKAGES: list[Path] = [
+    REPO_ROOT / "libs" / "shared-api",
+    REPO_ROOT / "libs" / "shared-auth",
+    REPO_ROOT / "libs" / "shared-db",
+    REPO_ROOT / "libs" / "shared-domain",
+    REPO_ROOT / "libs" / "shared-trace",
+    REPO_ROOT / "libs" / "shared-geo",
+    REPO_ROOT / "apps" / "connectedquality" / "backend",
+    REPO_ROOT / "apps" / "envmon" / "backend",
+    REPO_ROOT / "apps" / "processorderhistory" / "backend",
+    REPO_ROOT / "apps" / "spc" / "backend",
+    REPO_ROOT / "apps" / "trace2" / "backend",
+    REPO_ROOT / "apps" / "warehouse360" / "backend",
+]
 
-STANDALONE_SLUGS = ["enzymes", "pi-sheet", "warehouse", "maintenance", "tpm", "imwm", "pex-e-35", "lineside-monitor"]
+LEGACY_COPY_DIRECTORIES = (
+    "shared_api",
+    "shared_auth",
+    "shared_db",
+    "shared_domain",
+    "shared_trace",
+    "shared_geo",
+    "connectedquality_backend",
+    "processorderhistory_backend",
+    "warehouse360_backend",
+    "poh_backend",
+    "cq_backend",
+    "w360_backend",
+)
+
+STANDALONE_SLUGS = [
+    "enzymes",
+    "pi-sheet",
+    "warehouse",
+    "maintenance",
+    "tpm",
+    "imwm",
+    "pex-e-35",
+    "lineside-monitor",
+]
 
 
-def copy_shared_libs() -> None:
-    for lib in SHARED_LIBS:
-        package_name = lib.replace("-", "_")
-        src = REPO_ROOT / "libs" / lib / "src" / package_name
-        dst = APP_DIR / package_name
-        if dst.exists():
-            shutil.rmtree(dst)
-        shutil.copytree(src, dst)
-        print(f"-> copied {package_name}")
+def remove_legacy_source_copies() -> None:
+    """Remove any stale per-package source copies left behind by the previous
+    file-copy build approach.
+
+    These directories are gitignored so deleting them is safe and only affects
+    the local working tree.
+    """
+    for name in LEGACY_COPY_DIRECTORIES:
+        target = APP_DIR / name
+        if target.exists():
+            shutil.rmtree(target)
+            print(f"-> removed legacy copy {name}")
 
 
-def copy_backend_packages() -> None:
-    """Stage app backend packages under their real import names."""
-    for package_name, src in BACKEND_PACKAGES.items():
-        dst = APP_DIR / package_name
-        if dst.exists():
-            shutil.rmtree(dst)
-        shutil.copytree(
-            src,
-            dst,
-            ignore=shutil.ignore_patterns("tests", "__pycache__", "*.pyc"),
+def build_wheels() -> None:
+    """Build a wheel for every platform-required package via uv.
+
+    Raises:
+        RuntimeError: if any wheel fails to build.
+    """
+    if WHEELS_DIR.exists():
+        shutil.rmtree(WHEELS_DIR)
+    WHEELS_DIR.mkdir()
+
+    failures: list[str] = []
+    for package_dir in WHEEL_PACKAGES:
+        rel = package_dir.relative_to(REPO_ROOT)
+        print(f"-> building wheel for {rel}")
+        result = subprocess.run(
+            ["uv", "build", "--wheel", "--out-dir", str(WHEELS_DIR), str(package_dir)],
+            capture_output=True,
+            text=True,
         )
-        print(f"-> copied {package_name}")
+        if result.returncode != 0:
+            failures.append(f"{rel}: {result.stderr.strip()}")
+            print(f"   FAILED — {result.stderr.strip()}", file=sys.stderr)
+        else:
+            print("   ok")
 
-
-def remove_legacy_backend_aliases() -> None:
-    """Remove old alias package artifacts if they exist from earlier builds."""
-    for alias in ("poh_backend", "cq_backend", "w360_backend"):
-        dst = APP_DIR / alias
-        if dst.exists():
-            shutil.rmtree(dst)
-            print(f"-> removed legacy {alias}")
+    if failures:
+        joined = "\n  ".join(failures)
+        raise RuntimeError(f"Failed to build {len(failures)} wheel(s):\n  {joined}")
 
 
 def build_frontend(app_frontend_dir: Path, base_path: str) -> None:
+    """Run `npm run build` for a frontend app with VITE_BASE_PATH set.
+
+    Args:
+        app_frontend_dir: Frontend project directory (contains package.json).
+        base_path: Vite base path under which the SPA is served.
+    """
     env = {**os.environ, "VITE_BASE_PATH": base_path}
-    subprocess.run("npm run build", cwd=app_frontend_dir, shell=True, check=True, env=env)
+    subprocess.run(
+        "npm run build", cwd=app_frontend_dir, shell=True, check=True, env=env
+    )
 
 
 def copy_static(src: Path, dst: Path) -> None:
+    """Replace dst directory with the contents of src.
+
+    Args:
+        src: Source directory.
+        dst: Destination directory; removed first if it exists.
+    """
     if dst.exists():
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
@@ -103,9 +166,8 @@ def copy_standalone_apps() -> None:
 
 
 if __name__ == "__main__":
-    copy_shared_libs()
-    remove_legacy_backend_aliases()
-    copy_backend_packages()
+    remove_legacy_source_copies()
+    build_wheels()
 
     print("-> building CQ frontend (base=/cq/)")
     build_frontend(CQ_DIR / "frontend", "/cq/")
