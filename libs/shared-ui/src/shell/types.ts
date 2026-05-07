@@ -124,11 +124,49 @@ export interface LandingConfig {
  */
 export interface CrossAppContext {
   /** Business entity type the target app should navigate to. */
-  entity: 'processOrder' | 'pourAnalytics'
+  entity: 'processOrder' | 'pourAnalytics' | 'batch' | 'plant'
   /** Process order ID when entity = 'processOrder'. */
   processOrderId?: string
+  /** Canonical material identifier for batch, SPC, quality, and trace links. */
+  materialId?: string
+  /** Canonical batch identifier for batch traceability links. */
+  batchId?: string
+  /** Canonical plant identifier for plant-scoped operational links. */
+  plantId?: string
   /** Originating module identifier e.g. 'cq.trace' — used for back-navigation. */
   from?: string
+}
+
+const firstParam = (params: URLSearchParams, names: string[]): string | undefined => {
+  for (const name of names) {
+    const value = params.get(name)
+    if (value) return value
+  }
+  return undefined
+}
+
+export function appendCrossAppContext(
+  params: URLSearchParams,
+  ctx: CrossAppContext,
+  fromModuleId?: string,
+): URLSearchParams {
+  params.set('entity', ctx.entity)
+  const from = fromModuleId || ctx.from
+  if (from) params.set('from', from)
+  if (ctx.processOrderId) params.set('processOrderId', ctx.processOrderId)
+  if (ctx.materialId) {
+    params.set('materialId', ctx.materialId)
+    params.set('material_id', ctx.materialId)
+  }
+  if (ctx.batchId) {
+    params.set('batchId', ctx.batchId)
+    params.set('batch_id', ctx.batchId)
+  }
+  if (ctx.plantId) {
+    params.set('plantId', ctx.plantId)
+    params.set('plant_id', ctx.plantId)
+  }
+  return params
 }
 
 /**
@@ -141,8 +179,11 @@ export function parseCrossAppContext(): CrossAppContext | null {
   if (!entity) return null
   return {
     entity,
-    processOrderId: params.get('processOrderId') ?? undefined,
-    from: params.get('from') ?? undefined,
+    processOrderId: firstParam(params, ['processOrderId', 'process_order_id']) ?? undefined,
+    materialId: firstParam(params, ['materialId', 'material_id', 'material']) ?? undefined,
+    batchId: firstParam(params, ['batchId', 'batch_id', 'batch']) ?? undefined,
+    plantId: firstParam(params, ['plantId', 'plant_id', 'plant']) ?? undefined,
+    from: firstParam(params, ['from']) ?? undefined,
   }
 }
 

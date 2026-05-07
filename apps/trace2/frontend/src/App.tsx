@@ -5,6 +5,7 @@ import {
   Sidebar,
   TopBar,
   Icon,
+  parseCrossAppContext,
   type NavGroup,
   type Breadcrumb
 } from "@connectio/shared-ui";
@@ -193,9 +194,10 @@ function TraceApp() {
 
   const initialContext = (() => {
     const params = new URLSearchParams(window.location.search);
+    const ctx = parseCrossAppContext();
     return {
-      material: params.get("material") ?? params.get("material_id") ?? "",
-      batch: params.get("batch") ?? params.get("batch_id") ?? "",
+      material: ctx?.materialId ?? params.get("material") ?? params.get("material_id") ?? "",
+      batch: ctx?.batchId ?? params.get("batch") ?? params.get("batch_id") ?? "",
       demo: params.get("demo") === "1" || params.get("demo") === "true",
     };
   })();

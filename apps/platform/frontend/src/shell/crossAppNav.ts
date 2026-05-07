@@ -1,4 +1,4 @@
-import type { ConnectIOModule, CrossAppContext } from '@connectio/shared-ui/shell'
+import { appendCrossAppContext, type ConnectIOModule, type CrossAppContext } from '@connectio/shared-ui/shell'
 import { moduleHref } from './LandingCard'
 
 /**
@@ -17,9 +17,7 @@ export function buildCrossAppUrl(
   const params = new URLSearchParams()
   params.set('module', targetModule.moduleId)
   if (targetModule.defaultTab) params.set('tab', targetModule.defaultTab)
-  params.set('entity', ctx.entity)
-  if (fromModuleId) params.set('from', fromModuleId)
-  if (ctx.processOrderId) params.set('processOrderId', ctx.processOrderId)
+  appendCrossAppContext(params, ctx, fromModuleId)
   return `?${params.toString()}`
 }
 
@@ -35,9 +33,7 @@ export function buildSpaContextUrl(
 ): string {
   const base = moduleHref(targetModule, activeTabId)
   const params = new URLSearchParams()
-  params.set('entity', ctx.entity)
-  if (ctx.from) params.set('from', ctx.from)
-  if (ctx.processOrderId) params.set('processOrderId', ctx.processOrderId)
+  appendCrossAppContext(params, ctx)
   const sep = base.includes('?') ? '&' : '?'
   return `${base}${sep}${params.toString()}`
 }
