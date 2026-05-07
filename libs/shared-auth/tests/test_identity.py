@@ -2,7 +2,7 @@ import jwt
 import pytest
 from fastapi import HTTPException
 
-from shared_auth.identity import _extract_identity
+from shared_auth.identity import _extract_identity, warn_if_jwks_unconfigured
 
 
 def _jwt(payload: dict) -> str:
@@ -40,3 +40,41 @@ def test_extract_identity_accepts_malformed_dev_token_as_dev_user(monkeypatch):
 
     assert identity.user_id == "dev-user"
     assert identity.raw_token == "not-a-jwt"
+
+
+def test_warn_if_jwks_unconfigured_passes_when_jwks_url_set(monkeypatch):
+    """JWKS configured — startup proceeds with no error."""
+    monkeypatch.setenv("AUTH_JWKS_URL", "https://example.com/oidc/jwks")
+    monkeypatch.delenv("APP_ENV", raising=False)
+
+    warn_if_jwks_unconfigured()
+
+
+def test_warn_if_jwks_unconfigured_passes_in_dev_without_jwks(monkeypatch):
+    """Dev mode without JWKS is allowed — only warned about."""
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.delenv("AUTH_JWKS_URL", raising=False)
+    monkeypatch.delenv("AUTH_ALLOW_UNVERIFIED_JWT", raising=False)
+
+    warn_if_jwks_unconfigured()
+
+
+def test_warn_if_jwks_unconfigured_raises_in_prod_without_jwks(monkeypatch):
+    """Non-dev environment with no JWKS and no opt-out flag must fail startup."""
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.delenv("AUTH_JWKS_URL", raising=False)
+    monkeypatch.delenv("AUTH_ALLOW_UNVERIFIED_JWT", raising=False)
+
+    with pytest.raises(RuntimeError) as exc:
+        warn_if_jwks_unconfigured()
+    assert "AUTH_JWKS_URL is not configured" in str(exc.value)
+
+
+def test_warn_if_jwks_unconfigured_allows_explicit_unverified_opt_out(monkeypatch):
+    """Setting AUTH_ALLOW_UNVERIFIED_JWT=true is an explicit acknowledgement
+    that the deploy is running without verification — startup proceeds."""
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.delenv("AUTH_JWKS_URL", raising=False)
+    monkeypatch.setenv("AUTH_ALLOW_UNVERIFIED_JWT", "true")
+
+    warn_if_jwks_unconfigured()

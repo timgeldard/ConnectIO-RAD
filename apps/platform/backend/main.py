@@ -1,163 +1,99 @@
-"""ConnectIO Platform - unified FastAPI entry point.
+"""ConnectIO Platform — unified FastAPI entry point.
 
 Serves ConnectedQuality (at /cq), ProcessOrderHistory (at /poh), and
 Warehouse360 (at /warehouse360) from a single Databricks App process.
 
-Backend bundles are produced by scripts/build.py. The module is still importable
-before that build step so health/readiness can report a clear degraded state.
+Backend packages are installed from local wheels produced by
+``scripts/build.py``. Every router listed in ``CQ_ROUTERS``, ``POH_ROUTERS``,
+and ``W360_ROUTERS`` is treated as *required*: an import failure aborts
+startup rather than silently 404-ing the affected routes.
 """
+from __future__ import annotations
+
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
-from fastapi import HTTPException
+from fastapi import APIRouter, HTTPException
 from starlette.staticfiles import StaticFiles
 
 from shared_api import create_api_app, health_payload, databricks_sql_ready
 from backend.routes.badges import router as badges_router
 from backend.routes.session import router as session_router
-from backend.utils import _optional_attr, get_missing_artifacts
+from backend.utils import (
+    _optional_attr,
+    get_missing_optional_artifacts,
+)
 
 logger = logging.getLogger(__name__)
-_missing_build_artifacts = get_missing_artifacts()
 
 
-def _optional_router(module_name: str, artifact: str) -> Any | None:
-    """Return a router from an optional app module, or None if the artifact is unavailable."""
-    return _optional_attr(module_name, "router", artifact)
+def _required_router(module_name: str) -> Any:
+    """Import a router that is required for the platform to start.
+
+    Args:
+        module_name: Fully-qualified path of the router module.
+
+    Returns:
+        The router instance from that module.
+
+    Raises:
+        RequiredArtifactMissing: If the module or its ``router`` attribute is
+            unavailable.
+    """
+    return _optional_attr(module_name, "router", required=True)
 
 
-check_warehouse_config = _optional_attr(
-    "processorderhistory_backend.db",
-    "check_warehouse_config",
-    "processorderhistory_backend",
+def _required_attr(module_name: str, attr_name: str) -> Any:
+    """Import an attribute that is required at startup."""
+    return _optional_attr(module_name, attr_name, required=True)
+
+
+check_warehouse_config = _required_attr(
+    "processorderhistory_backend.db", "check_warehouse_config"
 )
-run_sql_async = _optional_attr("processorderhistory_backend.db", "run_sql_async", "processorderhistory_backend")
+run_sql_async = _required_attr("processorderhistory_backend.db", "run_sql_async")
 
-CQ_ROUTERS = [
-    (_optional_router("connectedquality_backend.routers.trace", "connectedquality_backend"), "/api/cq", ["CQ-Trace"]),
-    (_optional_router("connectedquality_backend.routers.envmon", "connectedquality_backend"), "/api/cq", ["CQ-EnvMon"]),
-    (_optional_router("connectedquality_backend.routers.spc", "connectedquality_backend"), "/api/cq", ["CQ-SPC"]),
-    (_optional_router("connectedquality_backend.routers.lab", "connectedquality_backend"), "/api/cq", ["CQ-Lab"]),
-    (
-        _optional_router("connectedquality_backend.user_preferences.router_me", "connectedquality_backend"),
-        "/api/cq",
-        ["CQ-Me"],
-    ),
-    (_optional_router("connectedquality_backend.routers.alarms", "connectedquality_backend"), "/api/cq", ["CQ-Alarms"]),
+
+# (router, mount_prefix, tags)
+RouterEntry = tuple[Any, str, Optional[list[str]]]
+
+
+CQ_ROUTERS: list[RouterEntry] = [
+    (_required_router("connectedquality_backend.routers.trace"), "/api/cq", ["CQ-Trace"]),
+    (_required_router("connectedquality_backend.routers.envmon"), "/api/cq", ["CQ-EnvMon"]),
+    (_required_router("connectedquality_backend.routers.spc"), "/api/cq", ["CQ-SPC"]),
+    (_required_router("connectedquality_backend.routers.lab"), "/api/cq", ["CQ-Lab"]),
+    (_required_router("connectedquality_backend.user_preferences.router_me"), "/api/cq", ["CQ-Me"]),
+    (_required_router("connectedquality_backend.routers.alarms"), "/api/cq", ["CQ-Alarms"]),
 ]
 
-POH_ROUTERS = [
-    (_optional_router("processorderhistory_backend.order_execution.router_me", "processorderhistory_backend"), "/api", None),
-    (_optional_router("processorderhistory_backend.order_execution.router_orders", "processorderhistory_backend"), "/api", None),
-    (
-        _optional_router("processorderhistory_backend.order_execution.router_order_detail", "processorderhistory_backend"),
-        "/api",
-        None,
-    ),
-    (_optional_router("processorderhistory_backend.order_execution.router_pours", "processorderhistory_backend"), "/api", None),
-    (
-        _optional_router("processorderhistory_backend.production_planning.router_planning", "processorderhistory_backend"),
-        "/api",
-        None,
-    ),
-    (
-        _optional_router("processorderhistory_backend.order_execution.router_day_view", "processorderhistory_backend"),
-        "/api",
-        None,
-    ),
-    (
-        _optional_router("processorderhistory_backend.manufacturing_analytics.router_yield", "processorderhistory_backend"),
-        "/api",
-        None,
-    ),
-    (
-        _optional_router("processorderhistory_backend.manufacturing_analytics.router_quality", "processorderhistory_backend"),
-        "/api",
-        None,
-    ),
-    (
-        _optional_router("processorderhistory_backend.manufacturing_analytics.router_downtime", "processorderhistory_backend"),
-        "/api",
-        None,
-    ),
-    (
-        _optional_router("processorderhistory_backend.manufacturing_analytics.router_oee", "processorderhistory_backend"),
-        "/api",
-        None,
-    ),
-    (
-        _optional_router("processorderhistory_backend.manufacturing_analytics.router_adherence", "processorderhistory_backend"),
-        "/api",
-        None,
-    ),
-    (
-        _optional_router("processorderhistory_backend.genie_assist.router_genie", "processorderhistory_backend"),
-        "/api",
-        None,
-    ),
-    (
-        _optional_router(
-            "processorderhistory_backend.production_planning.router_vessel_planning",
-            "processorderhistory_backend",
-        ),
-        "/api",
-        None,
-    ),
-    (
-        _optional_router(
-            "processorderhistory_backend.manufacturing_analytics.router_equipment_insights",
-            "processorderhistory_backend",
-        ),
-        "/api",
-        None,
-    ),
-    (
-        _optional_router(
-            "processorderhistory_backend.manufacturing_analytics.router_equipment_insights2",
-            "processorderhistory_backend",
-        ),
-        "/api",
-        None,
-    ),
+POH_ROUTERS: list[RouterEntry] = [
+    (_required_router("processorderhistory_backend.order_execution.router_me"), "/api", None),
+    (_required_router("processorderhistory_backend.order_execution.router_orders"), "/api", None),
+    (_required_router("processorderhistory_backend.order_execution.router_order_detail"), "/api", None),
+    (_required_router("processorderhistory_backend.order_execution.router_pours"), "/api", None),
+    (_required_router("processorderhistory_backend.production_planning.router_planning"), "/api", None),
+    (_required_router("processorderhistory_backend.order_execution.router_day_view"), "/api", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_yield"), "/api", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_quality"), "/api", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_downtime"), "/api", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_oee"), "/api", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_adherence"), "/api", None),
+    (_required_router("processorderhistory_backend.genie_assist.router_genie"), "/api", None),
+    (_required_router("processorderhistory_backend.production_planning.router_vessel_planning"), "/api", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_equipment_insights"), "/api", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_equipment_insights2"), "/api", None),
 ]
 
-W360_ROUTERS = [
-    (
-        _optional_router("warehouse360_backend.order_fulfillment.router_process_orders", "warehouse360_backend"),
-        "/api/wh",
-        ["W360-ProcessOrders"],
-    ),
-    (
-        _optional_router("warehouse360_backend.order_fulfillment.router_deliveries", "warehouse360_backend"),
-        "/api/wh",
-        ["W360-Deliveries"],
-    ),
-    (
-        _optional_router("warehouse360_backend.inventory_management.router_inbound", "warehouse360_backend"),
-        "/api/wh",
-        ["W360-Inbound"],
-    ),
-    (
-        _optional_router("warehouse360_backend.inventory_management.router_inventory", "warehouse360_backend"),
-        "/api/wh",
-        ["W360-Inventory"],
-    ),
-    (
-        _optional_router("warehouse360_backend.dispensary_ops.router_dispensary", "warehouse360_backend"),
-        "/api/wh",
-        ["W360-Dispensary"],
-    ),
-    (
-        _optional_router("warehouse360_backend.operations_control_tower.router_kpis", "warehouse360_backend"),
-        "/api/wh",
-        ["W360-KPIs"],
-    ),
-    (
-        _optional_router("warehouse360_backend.inventory_management.router_plants", "warehouse360_backend"),
-        "/api/wh",
-        ["W360-Plants"],
-    ),
+W360_ROUTERS: list[RouterEntry] = [
+    (_required_router("warehouse360_backend.order_fulfillment.router_process_orders"), "/api/wh", ["W360-ProcessOrders"]),
+    (_required_router("warehouse360_backend.order_fulfillment.router_deliveries"), "/api/wh", ["W360-Deliveries"]),
+    (_required_router("warehouse360_backend.inventory_management.router_inbound"), "/api/wh", ["W360-Inbound"]),
+    (_required_router("warehouse360_backend.inventory_management.router_inventory"), "/api/wh", ["W360-Inventory"]),
+    (_required_router("warehouse360_backend.dispensary_ops.router_dispensary"), "/api/wh", ["W360-Dispensary"]),
+    (_required_router("warehouse360_backend.operations_control_tower.router_kpis"), "/api/wh", ["W360-KPIs"]),
+    (_required_router("warehouse360_backend.inventory_management.router_plants"), "/api/wh", ["W360-Plants"]),
 ]
 
 _STATIC = Path(__file__).parent.parent / "static"
@@ -177,24 +113,20 @@ LINESIDE_STATIC   = _STATIC / "lineside-monitor"
 app = create_api_app(title="ConnectIO Platform API")
 
 
-def _include_available_routers() -> None:
-    """Mount all available app routers onto the platform FastAPI app, skipping absent ones."""
+def _include_required_routers() -> None:
+    """Mount all required app routers onto the platform FastAPI app.
+
+    Routers in CQ/POH/W360 lists are guaranteed non-None (their imports above
+    are ``required=True`` and would have raised at module load otherwise).
+    """
     for router, prefix, tags in [*CQ_ROUTERS, *POH_ROUTERS, *W360_ROUTERS]:
-        if router is None:
-            continue
-        kwargs = {"prefix": prefix}
+        kwargs: dict[str, Any] = {"prefix": prefix}
         if tags is not None:
             kwargs["tags"] = tags
         app.include_router(router, **kwargs)
 
-    if _missing_build_artifacts:
-        logger.warning(
-            "Platform started with missing build artifacts: %s. Some routes will return 404.",
-            ", ".join(sorted(_missing_build_artifacts.keys())),
-        )
 
-
-_include_available_routers()
+_include_required_routers()
 app.include_router(badges_router)
 app.include_router(session_router)
 
@@ -207,26 +139,38 @@ async def health():
 
 @app.get("/api/ready", include_in_schema=False)
 async def ready():
-    """Readiness probe - build artifacts and POH warehouse connectivity."""
-    if _missing_build_artifacts:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "not_ready",
-                "reason": "platform_build_artifacts_missing",
-                "artifacts": sorted(_missing_build_artifacts),
-            },
-        )
-    if check_warehouse_config is None or run_sql_async is None:
-        raise HTTPException(
-            status_code=503,
-            detail={"status": "not_ready", "reason": "processorderhistory_backend_unavailable"},
-        )
+    """Readiness probe — verifies POH warehouse connectivity.
+
+    Required-artifact failures abort startup, so the only runtime readiness
+    concern is the SQL warehouse roundtrip.
+    """
     return await databricks_sql_ready(
         check_warehouse_config=check_warehouse_config,
         run_sql=run_sql_async,
         endpoint_hint="platform.ready",
     )
+
+
+@app.get("/api/health/routers", include_in_schema=False)
+async def routers_health():
+    """Inventory of registered API routes plus any optional artifacts that
+    failed to import.
+
+    Returns:
+        Object with:
+            * ``registered``: list of route paths the platform is serving.
+            * ``registered_count``: ``len(registered)``.
+            * ``missing_optional``: map of artifact key to import-error string,
+              one entry per optional artifact that failed to load.
+    """
+    registered = sorted(
+        route.path for route in app.routes if hasattr(route, "path")
+    )
+    return {
+        "registered": registered,
+        "registered_count": len(registered),
+        "missing_optional": get_missing_optional_artifacts(),
+    }
 
 
 # Static mounts AFTER all API routes.

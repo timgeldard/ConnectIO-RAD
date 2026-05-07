@@ -57,17 +57,49 @@ def resolve_token(
 
 
 def warn_if_jwks_unconfigured() -> None:
-    """Emit a startup warning when AUTH_JWKS_URL is absent outside dev/test environments.
+    """Refuse to start a non-dev process with JWT verification disabled.
 
-    Call this from each app's lifespan or startup handler so operators are
-    alerted before the first real request arrives rather than mid-flight.
+    JWT verification is *defence-in-depth*. The Databricks Apps proxy validates
+    tokens upstream, but the app must verify signatures itself so a bypass of
+    the proxy alone cannot mint acceptable tokens.
+
+    Behaviour:
+        * In dev/test mode (``APP_ENV`` in {development, local, test}) — emit a
+          warning if JWKS is absent so a developer iterating locally is not
+          forced to wire JWKS for every test run.
+        * Outside dev/test mode — raise ``RuntimeError`` if both
+          ``AUTH_JWKS_URL`` is empty and ``AUTH_ALLOW_UNVERIFIED_JWT`` is not
+          enabled. This guards against deploying with neither verification
+          configured nor an explicit ack of unsafe behaviour.
+
+    Raises:
+        RuntimeError: If running in a non-dev environment with no JWKS URL
+            configured and unverified tokens not explicitly allowed.
     """
     jwks_url = os.environ.get("AUTH_JWKS_URL", "").strip()
-    if not jwks_url and not _is_dev_mode():
+    if jwks_url:
+        return
+
+    if _is_dev_mode():
         logger.warning(
             "AUTH_JWKS_URL is not set. JWT signatures will not be verified. "
-            "Set AUTH_JWKS_URL to a JWKS endpoint before deploying to production."
+            "This is acceptable in dev (APP_ENV=%s).",
+            os.environ.get("APP_ENV", "<unset>"),
         )
+        return
+
+    if _allow_unverified_tokens():
+        logger.error(
+            "AUTH_JWKS_URL is empty AND AUTH_ALLOW_UNVERIFIED_JWT is set. "
+            "Running in production without signature verification — fix this."
+        )
+        return
+
+    raise RuntimeError(
+        "AUTH_JWKS_URL is not configured and AUTH_ALLOW_UNVERIFIED_JWT is not set. "
+        "Configure AUTH_JWKS_URL to your workspace OIDC jwks_uri or, for a "
+        "deliberately-unsafe deploy, set AUTH_ALLOW_UNVERIFIED_JWT=true."
+    )
 
 
 def _is_dev_mode() -> bool:

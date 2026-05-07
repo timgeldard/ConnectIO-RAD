@@ -22,6 +22,7 @@
 
 - [x] **100% i18n Translation Coverage** — 13 standard languages enforced via `scripts/validate_i18n.py` and pre-commit hook.
 - [x] **Maintain Documentation Freshness** — Regularly audit `docs/` and `apps/*/docs/` to remove completed plans and stale quality reviews.
+- [ ] **Coverage ratchet to 75%** — `apps/platform/frontend` is gated at lines/functions/branches/statements = 60/65/75/60 as of 2026-05-07; raise toward 75/75/75/75 every sprint. Other frontends and all backends are already at the 75% mandate. See `apps/platform/frontend/vite.config.ts`.
 
 ## Lower priority
 

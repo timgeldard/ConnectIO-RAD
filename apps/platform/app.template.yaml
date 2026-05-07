@@ -50,7 +50,13 @@ env:
   - name: PREFS_DB_PATH
     value: "${PREFS_DB_PATH}"
 
-  # Databricks Apps proxy pre-validates JWTs before forwarding to this process.
-  # Always true in this deployment context — the proxy handles verification upstream.
+  # JWT verification — defence-in-depth. The Databricks Apps proxy validates
+  # the token upstream; the app additionally verifies the signature against
+  # the workspace JWKS endpoint so a bypass of the proxy alone cannot mint
+  # acceptable tokens.
+  - name: AUTH_JWKS_URL
+    value: "${AUTH_JWKS_URL}"
+  - name: AUTH_JWT_ISSUER
+    value: "${AUTH_JWT_ISSUER}"
   - name: AUTH_ALLOW_UNVERIFIED_JWT
-    value: "true"
+    value: "${AUTH_ALLOW_UNVERIFIED_JWT}"

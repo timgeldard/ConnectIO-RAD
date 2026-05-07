@@ -1,24 +1,28 @@
+"""Tests for the platform shell — health, readiness, and router inventory."""
+
 from fastapi.testclient import TestClient
 
-import backend.main as main_module
 from backend.main import app
 
 
-def test_platform_imports_without_build_artifacts():
+def test_platform_health_returns_ok():
+    """``/api/health`` is a liveness probe that does not depend on imports."""
     response = TestClient(app).get("/api/health")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
-def test_platform_ready_reports_missing_build_artifacts():
-    original = dict(main_module._missing_build_artifacts)
-    main_module._missing_build_artifacts["test_artifact"] = "not installed"
-    try:
-        response = TestClient(app).get("/api/ready")
-    finally:
-        main_module._missing_build_artifacts.clear()
-        main_module._missing_build_artifacts.update(original)
+def test_routers_health_lists_registered_routes():
+    """``/api/health/routers`` reports the inventory of registered API routes."""
+    response = TestClient(app).get("/api/health/routers")
 
-    assert response.status_code == 503
-    assert response.json()["detail"]["reason"] == "platform_build_artifacts_missing"
+    assert response.status_code == 200
+    body = response.json()
+    assert body["registered_count"] > 0
+    assert isinstance(body["registered"], list)
+    assert any(path.startswith("/api/cq") for path in body["registered"])
+    assert any(path.startswith("/api/wh") for path in body["registered"])
+    # Required-artifact failures abort startup, so by definition no required
+    # artifacts can be missing here. Optional artifacts may still be empty.
+    assert isinstance(body["missing_optional"], dict)
