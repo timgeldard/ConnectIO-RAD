@@ -45,6 +45,14 @@ jobs:
       - name: Verify wheel-bundled package versions are bumped on source changes
         run: python3 scripts/check_wheel_versions.py --base=$NX_BASE --head=$NX_HEAD
 
+      # Central DDD guardrail. Pre-commit also runs this, but a forked PR or
+      # a contributor who skips hooks would otherwise bypass it. The test
+      # AST-walks every domain/, application/, and router*.py file across all
+      # apps and enforces the bounded-context allowlist; not part of the per-
+      # app `nx test` graph because it lives at scripts/tests/.
+      - name: DDD architecture guardrails
+        run: uv run --with pytest pytest scripts/tests/test_ddd_architecture_guardrails.py --tb=short
+
       - name: Typecheck affected frontends
         run: npx nx affected -t typecheck --base=$NX_BASE --head=$NX_HEAD --parallel=4
 

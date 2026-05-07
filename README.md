@@ -58,4 +58,4 @@ Common logic and utilities are shared across applications to ensure consistency:
 - **Frontend**: React, Vite, TypeScript, Nx.
 - **Orchestration**: Nx (build, test, lint, deploy).
 - **Dependency Management**: `uv` (Python), `npm` (Node.js).
-- **Internationalization**: i18next with 13 standard languages enforced.
+- **Internationalization**: i18next with 16 standard languages enforced (`en`, `de`, `fr`, `es`, `ja`, `pt`, `id`, `ms`, `ga`, `pl`, `nl`, `uk`, `da`, `vi`, `zh-Hans`, `zh-Hant` — see `scripts/validate_i18n.py`).
