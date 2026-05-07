@@ -82,7 +82,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} customer · {{quantity}} {{uom}} total",
     "trace.overview.customers.subtitle.other": "{{customers}} customers · {{quantity}} {{uom}} total",
     "trace.overview.deliveries.title": "Recent deliveries",
-    "trace.overview.deliveries.subtitle": "Last 8 deliveries by date"
+    "trace.overview.deliveries.subtitle": "Last 8 deliveries by date",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "fr": {
     "shared.language.label": "Langue",
@@ -167,7 +173,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} client · {{quantity}} {{uom}} au total",
     "trace.overview.customers.subtitle.other": "{{customers}} clients · {{quantity}} {{uom}} au total",
     "trace.overview.deliveries.title": "Livraisons récentes",
-    "trace.overview.deliveries.subtitle": "8 dernières livraisons par date"
+    "trace.overview.deliveries.subtitle": "8 dernières livraisons par date",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "es": {
     "shared.language.label": "Idioma",
@@ -252,7 +264,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} cliente · {{quantity}} {{uom}} total",
     "trace.overview.customers.subtitle.other": "{{customers}} clientes · {{quantity}} {{uom}} total",
     "trace.overview.deliveries.title": "Entregas recientes",
-    "trace.overview.deliveries.subtitle": "Últimas 8 entregas por fecha"
+    "trace.overview.deliveries.subtitle": "Últimas 8 entregas por fecha",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "de": {
     "shared.language.label": "Sprache",
@@ -337,7 +355,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} Kunde · {{quantity}} {{uom}} gesamt",
     "trace.overview.customers.subtitle.other": "{{customers}} Kunden · {{quantity}} {{uom}} gesamt",
     "trace.overview.deliveries.title": "Aktuelle Lieferungen",
-    "trace.overview.deliveries.subtitle": "Letzte 8 Lieferungen nach Datum"
+    "trace.overview.deliveries.subtitle": "Letzte 8 Lieferungen nach Datum",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "ja": {
     "shared.language.label": "言語",
@@ -422,7 +446,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} 顧客 · 合計 {{quantity}} {{uom}}",
     "trace.overview.customers.subtitle.other": "{{customers}} 顧客 · 合計 {{quantity}} {{uom}}",
     "trace.overview.deliveries.title": "最近の配送",
-    "trace.overview.deliveries.subtitle": "直近 8 件の配送（日付順）"
+    "trace.overview.deliveries.subtitle": "直近 8 件の配送（日付順）",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "zh-Hans": {
     "shared.language.label": "语言",
@@ -507,7 +537,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} 个客户 · 总计 {{quantity}} {{uom}}",
     "trace.overview.customers.subtitle.other": "{{customers}} 个客户 · 总计 {{quantity}} {{uom}}",
     "trace.overview.deliveries.title": "最近发货",
-    "trace.overview.deliveries.subtitle": "按日期排序的最近 8 次发货"
+    "trace.overview.deliveries.subtitle": "按日期排序的最近 8 次发货",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "zh-Hant": {
     "shared.language.label": "語言",
@@ -592,7 +628,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} 個客戶 · 總計 {{quantity}} {{uom}}",
     "trace.overview.customers.subtitle.other": "{{customers}} 個客戶 · 總計 {{quantity}} {{uom}}",
     "trace.overview.deliveries.title": "最近發貨",
-    "trace.overview.deliveries.subtitle": "按日期排序的最近 8 次發貨"
+    "trace.overview.deliveries.subtitle": "按日期排序的最近 8 次發貨",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "pt": {
     "shared.language.label": "Idioma",
@@ -677,7 +719,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} cliente · {{quantity}} {{uom}} total",
     "trace.overview.customers.subtitle.other": "{{customers}} clientes · {{quantity}} {{uom}} total",
     "trace.overview.deliveries.title": "Entregas recentes",
-    "trace.overview.deliveries.subtitle": "Últimas 8 entregas por data"
+    "trace.overview.deliveries.subtitle": "Últimas 8 entregas por data",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "id": {
     "shared.language.label": "Bahasa",
@@ -762,7 +810,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} pelanggan · total {{quantity}} {{uom}}",
     "trace.overview.customers.subtitle.other": "{{customers}} pelanggan · total {{quantity}} {{uom}}",
     "trace.overview.deliveries.title": "Pengiriman terbaru",
-    "trace.overview.deliveries.subtitle": "8 pengiriman terakhir berdasarkan tanggal"
+    "trace.overview.deliveries.subtitle": "8 pengiriman terakhir berdasarkan tanggal",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "ms": {
     "shared.language.label": "Bahasa",
@@ -847,7 +901,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} pelanggan · jumlah {{quantity}} {{uom}}",
     "trace.overview.customers.subtitle.other": "{{customers}} pelanggan · jumlah {{quantity}} {{uom}}",
     "trace.overview.deliveries.title": "Penghantaran terkini",
-    "trace.overview.deliveries.subtitle": "8 penghantaran terakhir mengikut tarikh"
+    "trace.overview.deliveries.subtitle": "8 penghantaran terakhir mengikut tarikh",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "ga": {
     "shared.language.label": "Teanga",
@@ -932,7 +992,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} custaiméir · {{quantity}} {{uom}} san iomlán",
     "trace.overview.customers.subtitle.other": "{{customers}} custaiméir · {{quantity}} {{uom}} san iomlán",
     "trace.overview.deliveries.title": "Seachadtaí le déanaí",
-    "trace.overview.deliveries.subtitle": "Na 8 seachadadh deiridh de réir dáta"
+    "trace.overview.deliveries.subtitle": "Na 8 seachadadh deiridh de réir dáta",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "pl": {
     "shared.language.label": "Język",
@@ -1017,7 +1083,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} klient · łącznie {{quantity}} {{uom}}",
     "trace.overview.customers.subtitle.other": "{{customers}} klienci · łącznie {{quantity}} {{uom}}",
     "trace.overview.deliveries.title": "Ostatnie dostawy",
-    "trace.overview.deliveries.subtitle": "Ostatnie 8 dostaw wg daty"
+    "trace.overview.deliveries.subtitle": "Ostatnie 8 dostaw wg daty",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "nl": {
     "shared.language.label": "Taal",
@@ -1102,7 +1174,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} klant · {{quantity}} {{uom}} totaal",
     "trace.overview.customers.subtitle.other": "{{customers}} klanten · {{quantity}} {{uom}} totaal",
     "trace.overview.deliveries.title": "Recente leveringen",
-    "trace.overview.deliveries.subtitle": "Laatste 8 leveringen op datum"
+    "trace.overview.deliveries.subtitle": "Laatste 8 leveringen op datum",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "uk": {
     "shared.language.label": "Мова",
@@ -1187,7 +1265,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} клієнт · всього {{quantity}} {{uom}}",
     "trace.overview.customers.subtitle.other": "{{customers}} клієнтів · всього {{quantity}} {{uom}}",
     "trace.overview.deliveries.title": "Останні поставки",
-    "trace.overview.deliveries.subtitle": "Останні 8 поставок за датою"
+    "trace.overview.deliveries.subtitle": "Останні 8 поставок за датою",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "da": {
     "shared.language.label": "Sprog",
@@ -1272,7 +1356,13 @@
     "trace.overview.customers.subtitle.one": "{{customers}} kunde · {{quantity}} {{uom}} i alt",
     "trace.overview.customers.subtitle.other": "{{customers}} kunder · {{quantity}} {{uom}} i alt",
     "trace.overview.deliveries.title": "Seneste leverancer",
-    "trace.overview.deliveries.subtitle": "Sidste 8 leverancer efter dato"
+    "trace.overview.deliveries.subtitle": "Sidste 8 leverancer efter dato",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   },
   "vi": {
     "shared.language.label": "Ngôn ngữ",
@@ -1357,6 +1447,12 @@
     "trace.overview.customers.subtitle.one": "{{customers}} khách hàng · tổng cộng {{quantity}} {{uom}}",
     "trace.overview.customers.subtitle.other": "{{customers}} khách hàng · tổng cộng {{quantity}} {{uom}}",
     "trace.overview.deliveries.title": "Giao hàng gần đây",
-    "trace.overview.deliveries.subtitle": "8 đợt giao hàng gần nhất theo ngày"
+    "trace.overview.deliveries.subtitle": "8 đợt giao hàng gần nhất theo ngày",
+    "trace.live.loading.title": "Loading live batch",
+    "trace.live.loading.message": "Loading material {{material}} and batch {{batch}} from the backend.",
+    "trace.live.error.title": "Live batch unavailable",
+    "trace.live.error.message": "Unable to load the requested batch. Please check the material and batch IDs and try again.",
+    "trace.live.select.title": "Select a live batch",
+    "trace.live.select.message": "Enter a material and batch ID to load traceability data. Demo data is only available with an explicit demo URL flag."
   }
 }

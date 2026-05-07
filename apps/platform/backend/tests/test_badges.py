@@ -29,7 +29,16 @@ def test_get_badge_counts_unauthenticated(client):
 async def test_get_badge_counts_success(mock_alarms, mock_require_user, app, mock_user):
     """Should return filtered badge counts when authenticated."""
     mock_require_user.return_value = mock_user
-    mock_alarms.return_value = {"open": 5}
+    mock_alarms.return_value = {
+        "open": 5,
+        "alarms": [
+            {"source": "spc", "status": "open"},
+            {"source": "spc", "status": "open"},
+            {"source": "envmon", "status": "open"},
+            {"source": "trace", "status": "acknowledged"},
+            {"source": "unknown", "status": "open"},
+        ],
+    }
     
     # We need to use the actual app and override the dependency
     app.dependency_overrides[require_proxy_user] = lambda: mock_user
@@ -38,18 +47,16 @@ async def test_get_badge_counts_success(mock_alarms, mock_require_user, app, moc
         response = client.get("/api/badges")
         assert response.status_code == 200
         data = response.json()
-        assert data["spc"] == 5
-        assert data["envmon"] == 5
-        assert data["trace"] == 5
+        assert data == {"spc": 2, "envmon": 1}
     
     app.dependency_overrides.clear()
 
 @patch("backend.routes.badges.require_proxy_user")
 @patch("backend.routes.badges._get_cq_alarms", new_callable=AsyncMock)
 async def test_get_badge_counts_filtering(mock_alarms, mock_require_user, app, mock_user):
-    """Should omit zero-valued counts."""
+    """Should not map aggregate CQ counts onto every module badge."""
     mock_require_user.return_value = mock_user
-    mock_alarms.return_value = {"open": 0}
+    mock_alarms.return_value = {"open": 5}
     
     app.dependency_overrides[require_proxy_user] = lambda: mock_user
     

@@ -8,6 +8,9 @@ const orderModule = MODULES.find((m) => m.moduleId === 'poh-orders')!
 const ctx = {
   entity: 'processOrder' as const,
   processOrderId: '1001234',
+  materialId: 'MAT-1',
+  batchId: 'BATCH-1',
+  plantId: 'PLANT-1',
   from: 'trace',
 }
 
@@ -24,6 +27,17 @@ describe('buildCrossAppUrl', () => {
     const url = buildCrossAppUrl(orderModule, ctx, 'trace')
     const params = new URLSearchParams(url.slice(1))
     expect(params.get('processOrderId')).toBe('1001234')
+  })
+
+  it('includes canonical and backend-style operational context identifiers', () => {
+    const url = buildCrossAppUrl(orderModule, ctx, 'trace')
+    const params = new URLSearchParams(url.slice(1))
+    expect(params.get('materialId')).toBe('MAT-1')
+    expect(params.get('material_id')).toBe('MAT-1')
+    expect(params.get('batchId')).toBe('BATCH-1')
+    expect(params.get('batch_id')).toBe('BATCH-1')
+    expect(params.get('plantId')).toBe('PLANT-1')
+    expect(params.get('plant_id')).toBe('PLANT-1')
   })
 
   it('includes defaultTab when module has tabs', () => {

@@ -13,7 +13,7 @@ export function HomePanel({ onModuleChange }: HomePanelProps) {
   const [name, setName] = useState('')
 
   useEffect(() => {
-    fetch('/api/me')
+    fetch('/api/platform/me')
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { name?: string } | null) => {
         if (data?.name) setName(firstName(data.name))

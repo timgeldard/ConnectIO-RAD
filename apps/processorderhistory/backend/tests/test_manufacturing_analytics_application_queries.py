@@ -9,30 +9,30 @@ from processorderhistory_backend.manufacturing_analytics.application import quer
 async def test_get_adherence_analytics_delegates_to_dal(monkeypatch):
     calls = []
 
-    async def fake_fetch(token, *, plant_id, date_from, date_to, request_path):
-        calls.append((token, plant_id, date_from, date_to, request_path))
+    async def fake_fetch(token, *, plant_id, date_from, date_to, timezone):
+        calls.append((token, plant_id, date_from, date_to, timezone))
         return {"kind": "adherence"}
 
     monkeypatch.setattr(queries.adherence_analytics_dal, "fetch_adherence_analytics", fake_fetch)
 
     result = await queries.get_adherence_analytics(
-        "token", plant_id="P1", date_from="2026-04-01", date_to="2026-04-30", request_path="/api/adherence"
+        "token", plant_id="P1", date_from="2026-04-01", date_to="2026-04-30", timezone="Europe/Dublin"
     )
 
     assert result == {"kind": "adherence"}
-    assert calls == [("token", "P1", "2026-04-01", "2026-04-30", "/api/adherence")]
+    assert calls == [("token", "P1", "2026-04-01", "2026-04-30", "Europe/Dublin")]
 
 
 @pytest.mark.asyncio
 async def test_get_downtime_analytics_delegates_to_dal(monkeypatch):
-    async def fake_fetch(token, *, plant_id, date_from, date_to, request_path):
-        return {"args": [token, plant_id, date_from, date_to, request_path]}
+    async def fake_fetch(token, *, plant_id, date_from, date_to, timezone):
+        return {"args": [token, plant_id, date_from, date_to, timezone]}
 
     monkeypatch.setattr(queries.downtime_analytics_dal, "fetch_downtime_analytics", fake_fetch)
 
     assert await queries.get_downtime_analytics(
-        "token", plant_id=None, date_from=None, date_to=None, request_path="/api/downtime"
-    ) == {"args": ["token", None, None, None, "/api/downtime"]}
+        "token", plant_id=None, date_from=None, date_to=None, timezone="UTC"
+    ) == {"args": ["token", None, None, None, "UTC"]}
 
 
 @pytest.mark.asyncio
@@ -73,8 +73,8 @@ async def test_get_oee_quality_and_yield_delegate_to_dals(monkeypatch):
         calls.append(("quality", token, plant_id, date_from, date_to, timezone))
         return {"quality": []}
 
-    async def fake_yield(token, *, plant_id, date_from, date_to):
-        calls.append(("yield", token, plant_id, date_from, date_to))
+    async def fake_yield(token, *, plant_id, date_from, date_to, timezone):
+        calls.append(("yield", token, plant_id, date_from, date_to, timezone))
         return {"yield": []}
 
     monkeypatch.setattr(queries.oee_analytics_dal, "fetch_oee_analytics", fake_oee)
@@ -88,10 +88,10 @@ async def test_get_oee_quality_and_yield_delegate_to_dals(monkeypatch):
         "token", plant_id="P1", date_from="2026-04-01", date_to="2026-04-30", timezone="UTC"
     ) == {"quality": []}
     assert await queries.get_yield_analytics(
-        "token", plant_id="P1", date_from="2026-04-01", date_to="2026-04-30"
+        "token", plant_id="P1", date_from="2026-04-01", date_to="2026-04-30", timezone="UTC"
     ) == {"yield": []}
     assert calls == [
         ("oee", "token", "P1", "2026-04-01", "2026-04-30", "UTC"),
         ("quality", "token", "P1", "2026-04-01", "2026-04-30", "UTC"),
-        ("yield", "token", "P1", "2026-04-01", "2026-04-30"),
+        ("yield", "token", "P1", "2026-04-01", "2026-04-30", "UTC"),
     ]

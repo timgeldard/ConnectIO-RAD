@@ -96,12 +96,21 @@ def validate_frontend_test(
     project_file: Path,
     project: dict[str, Any],
     target: dict[str, Any],
+    targets: dict[str, Any],
 ) -> None:
     command = command_for(target)
-    if "npm run test:ci" not in command:
-        errors.append(f"{project['name']}: frontend test target must run `npm run test:ci`, got `{command}`")
+    if "npm test -- --run" not in command:
+        errors.append(f"{project['name']}: frontend test target must run non-watch Vitest via `npm test -- --run`, got `{command}`")
     if any(command.strip() == watch for watch in WATCH_TEST_COMMANDS):
         errors.append(f"{project['name']}: frontend test target may run in watch mode: `{command}`")
+
+    coverage_target = targets.get("test:coverage")
+    if coverage_target is None:
+        errors.append(f"{project['name']}: frontend project must define `test:coverage` target")
+    else:
+        coverage_command = command_for(coverage_target)
+        if "npm run test:ci" not in coverage_command:
+            errors.append(f"{project['name']}: frontend test:coverage target must run `npm run test:ci`, got `{coverage_command}`")
 
     package_path = package_json_for(project_file, target)
     if package_path is None:
@@ -193,7 +202,7 @@ def validate_project(project_file: Path, errors: list[str], seen_backend_ports: 
             if required not in targets:
                 errors.append(f"{name}: frontend project must define `{required}` target")
         if test_target:
-            validate_frontend_test(errors, project_file, project, test_target)
+            validate_frontend_test(errors, project_file, project, test_target, targets)
         lint_target = targets.get("lint")
         if lint_target:
             validate_frontend_lint(errors, project_file, project, lint_target)

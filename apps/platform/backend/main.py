@@ -15,6 +15,7 @@ from starlette.staticfiles import StaticFiles
 
 from shared_api import create_api_app, health_payload, databricks_sql_ready
 from backend.routes.badges import router as badges_router
+from backend.routes.session import router as session_router
 from backend.utils import _optional_attr, get_missing_artifacts
 
 logger = logging.getLogger(__name__)
@@ -200,6 +201,7 @@ def _include_available_routers() -> None:
 
 _include_available_routers()
 app.include_router(badges_router)
+app.include_router(session_router)
 
 
 @app.get("/api/health", include_in_schema=False)

@@ -31,26 +31,26 @@ def test_post_adherence_analytics_returns_200(mock_adherence):
     assert "orders" in data
     assert "daily30d" in data
     mock_adherence.assert_called_once_with(
-        "token", plant_id=None, date_from=None, date_to=None, request_path="/api/adherence"
+        "token", plant_id=None, date_from=None, date_to=None, timezone="UTC"
     )
 
 
 def test_post_adherence_analytics_passes_plant_id(mock_adherence):
     client.post("/api/adherence", json={"plant_id": "P001"})
     mock_adherence.assert_called_once_with(
-        "token", plant_id="P001", date_from=None, date_to=None, request_path="/api/adherence"
+        "token", plant_id="P001", date_from=None, date_to=None, timezone="UTC"
     )
 
 
 def test_post_adherence_analytics_passes_date_range(mock_adherence):
     client.post("/api/adherence", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
     mock_adherence.assert_called_once_with(
-        "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07", request_path="/api/adherence"
+        "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07", timezone="UTC"
     )
 
 
-def test_post_adherence_analytics_ignores_unknown_timezone(mock_adherence):
+def test_post_adherence_analytics_passes_timezone(mock_adherence):
     client.post("/api/adherence", json={"timezone": "Europe/London"})
     mock_adherence.assert_called_once_with(
-        "token", plant_id=None, date_from=None, date_to=None, request_path="/api/adherence"
+        "token", plant_id=None, date_from=None, date_to=None, timezone="Europe/London"
     )

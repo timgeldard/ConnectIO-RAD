@@ -39,6 +39,15 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
+        "command": "npm test -- --run",
+        "cwd": "apps/envmon/frontend"
+      },
+      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "test:coverage": {
+      "executor": "nx:run-commands",
+      "options": {
         "command": "npm run test:ci",
         "cwd": "apps/envmon/frontend"
       },

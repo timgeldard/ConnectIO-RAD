@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { usePlantSelection } from '~/context/PlantContext'
+import { resolveWarehouseApiPath } from '~/api/apiBase'
 
 /** Appends plant_id query param to API paths that don't already have it. */
 const withPlantId = (path: string, plantId: string): string => {
@@ -26,7 +27,7 @@ export interface ApiState<T> {
  */
 export function useApi<T = unknown>(path: string, deps: unknown[] = []): ApiState<T> {
   const { selectedPlantId } = usePlantSelection()
-  const requestPath = withPlantId(path, selectedPlantId)
+  const requestPath = resolveWarehouseApiPath(withPlantId(path, selectedPlantId))
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
