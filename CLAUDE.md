@@ -2,7 +2,7 @@
 
 ## Repo Structure
 
-This is an Nx monorepo containing core Databricks Apps:
+This is an Nx monorepo containing seven Databricks Apps:
 
 | App | Path | Purpose |
 |---|---|---|
@@ -11,8 +11,17 @@ This is an Nx monorepo containing core Databricks Apps:
 | `trace2` | `apps/trace2/` | Batch traceability — forward/reverse trace and mass balance |
 | `warehouse360`| `apps/warehouse360/`| Warehouse cockpit — stock, dispensary, and control tower |
 | `poh` | `apps/processorderhistory/`| Order history — OEE, downtime, and production planning |
+| `connectedquality` | `apps/connectedquality/` | Cross-app facade combining trace, envmon, spc, lab, and alarms behind one API namespace |
+| `platform` | `apps/platform/` | Unified shell that bundles CQ + POH + W360 in a single Databricks App, served at `/cq`, `/poh`, `/warehouse360` |
 
 Shared libraries live in `libs/`. Each app has `frontend/` and `backend/`.
+
+The platform shell installs the bundled app backends from local wheels produced
+by `apps/platform/scripts/build.py`. Source for those backends lives at
+`apps/<x>/backend/`; do not edit copies under `apps/platform/<x>_backend/` —
+those are gitignored build output and are rebuilt by `make build`. When changing
+a wheel-bundled package, **bump its `pyproject.toml` version** so pip reinstalls
+on the next deploy.
 
 ## Core Mandates (Definition of Done)
 
