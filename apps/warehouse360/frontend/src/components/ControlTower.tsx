@@ -25,11 +25,11 @@ interface ControlTowerProps {
 const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: ControlTowerProps) => {
   const { t } = useI18n()
   const { selectedPlant } = usePlantSelection()
-  const { data: kpiResp } = useApi<any>('/api/kpis')
+  const { data: kpiResp, loading: kpisLoading, error: kpisError } = useApi<any>('/api/kpis')
   const { data: ordersResp, loading: ordersLoading, error: ordersError } = useApi<any>('/api/wh-cockpit')
   const { data: inboundResp, loading: inboundLoading, error: inboundError } = useApi<any>('/api/inbound')
   const { data: outboundResp, loading: outboundLoading, error: outboundError } = useApi<any>('/api/deliveries')
-  const { data: binsResp } = useApi<any>('/api/inventory/bins')
+  const { data: binsResp, error: binsError } = useApi<any>('/api/inventory/bins')
   const kpis = kpiResp?.kpis ?? null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,6 +44,7 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
     { label: t('warehouse.ct.kpi.deliveriesAtRisk'), value: kpis?.deliveries_at_risk ?? 0, tone: 'amber', nav: 'outbound' },
     { label: t('warehouse.inventory.kpi.blockedQA'), value: kpis?.bins_blocked ?? 0, tone: 'slate', nav: 'inventory' },
   ].filter((signal: any) => signal.value > 0);
+  const kpiUnavailable = !kpisLoading && Boolean(kpisError)
   const workload = [
     { area: 'Production orders', open: kpis?.orders_total ?? 0, exceptions: (kpis?.orders_red ?? 0) + (kpis?.orders_amber ?? 0), nav: 'staging' },
     { area: 'Transfer orders', open: kpis?.tos_open ?? 0, exceptions: 0, nav: 'inventory' },
@@ -78,13 +79,21 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
       </div>
 
       {/* Top KPI strip */}
+      {kpisError && (
+        <div className="card" style={{ marginBottom: 16, borderColor: 'var(--sunset)' }}>
+          <div className="card-body">
+            <div className="red" style={{ fontWeight: 700, marginBottom: 4 }}>Live warehouse KPIs unavailable</div>
+            <div className="muted small">The backend did not return KPI signals for the selected plant: {kpisError}</div>
+          </div>
+        </div>
+      )}
       <div className="kpi-grid">
-        <KPI label={t('warehouse.ct.kpi.ordersAtRisk')} value={kpis?.orders_red ?? '…'} tone={kpis?.orders_red > 0 ? 'critical' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.ordersAmber')} value={kpis?.orders_amber ?? '…'} tone={kpis?.orders_amber > 0 ? 'warn' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.openTOs')} value={kpis?.tos_open ?? '…'} unit=" TOs" tone="ok"/>
-        <KPI label={t('warehouse.ct.kpi.deliveriesAtRisk')} value={kpis?.deliveries_at_risk ?? '…'} tone={kpis?.deliveries_at_risk > 0 ? 'warn' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.openInbound')} value={kpis?.inbound_open ?? '…'} unit=" lines" tone="ok"/>
-        <KPI label={t('warehouse.ct.kpi.binUtil')} value={kpis?.bin_util_pct ?? '…'} unit="%" tone={kpis?.bin_util_pct > 92 ? 'critical' : kpis?.bin_util_pct > 80 ? 'warn' : 'ok'} barPct={kpis?.bin_util_pct ?? 0} barTone={kpis?.bin_util_pct > 92 ? 'red' : kpis?.bin_util_pct > 80 ? 'amber' : ''}/>
+        <KPI label={t('warehouse.ct.kpi.ordersAtRisk')} value={kpisError ? 'Unavailable' : kpis?.orders_red ?? '…'} tone={kpisError ? 'warn' : kpis?.orders_red > 0 ? 'critical' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.ordersAmber')} value={kpisError ? 'Unavailable' : kpis?.orders_amber ?? '…'} tone={kpisError ? 'warn' : kpis?.orders_amber > 0 ? 'warn' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.openTOs')} value={kpisError ? 'Unavailable' : kpis?.tos_open ?? '…'} unit={kpisError ? undefined : ' TOs'} tone={kpisError ? 'warn' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.deliveriesAtRisk')} value={kpisError ? 'Unavailable' : kpis?.deliveries_at_risk ?? '…'} tone={kpisError ? 'warn' : kpis?.deliveries_at_risk > 0 ? 'warn' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.openInbound')} value={kpisError ? 'Unavailable' : kpis?.inbound_open ?? '…'} unit={kpisError ? undefined : ' lines'} tone={kpisError ? 'warn' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.binUtil')} value={kpisError ? 'Unavailable' : kpis?.bin_util_pct ?? '…'} unit={kpisError ? undefined : '%'} tone={kpisError ? 'warn' : kpis?.bin_util_pct > 92 ? 'critical' : kpis?.bin_util_pct > 80 ? 'warn' : 'ok'} barPct={kpisError ? undefined : kpis?.bin_util_pct ?? 0} barTone={kpis?.bin_util_pct > 92 ? 'red' : kpis?.bin_util_pct > 80 ? 'amber' : ''}/>
       </div>
 
       {/* Today's run sheet + Critical exceptions */}
@@ -109,7 +118,8 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
                 </div>
               </button>
             ))}
-            {exceptionSignals.length === 0 && <div className="muted small">No live critical KPI signals for this plant.</div>}
+            {kpiUnavailable && <div className="red small">Unable to determine live critical KPI signals: {kpisError}</div>}
+            {!kpiUnavailable && exceptionSignals.length === 0 && <div className="muted small">No live critical KPI signals for this plant.</div>}
           </div>
         </Card>
       </div>
@@ -118,6 +128,7 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
       <div className="grid-2" style={{ marginBottom: 16 }}>
         <Card title={t('warehouse.ct.card.workload')} subtitle="Open · in progress · confirmed tasks this shift" eyebrow="Warehouse tasks">
           <div className="stack-8">
+            {kpiUnavailable && <div className="red small">Workload unavailable because KPI data could not be loaded: {kpisError}</div>}
             {workload.map((w: any, i: number) => {
               const total = Math.max(1, w.open + w.exceptions);
               return (
@@ -253,7 +264,11 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
                 <Hbar key={i} label={`${s.id} · ${s.blocked} blocked`} value={Math.round(pct)} max={100} tone={tone}/>
               );
             })}
-            {storageByType.length === 0 && <div className="muted small">No live storage utilisation data for this plant.</div>}
+            {storageByType.length === 0 && (
+              <div className={binsError ? 'red small' : 'muted small'}>
+                {binsError ? `Unable to load live storage utilisation data: ${binsError}` : 'No live storage utilisation data for this plant.'}
+              </div>
+            )}
           </div>
           <div style={{ marginTop: 12, padding: 10, background: 'var(--stone)', borderRadius: 6, fontSize: 12, color: 'var(--forest)' }}>
             <span className="bold">Live bin utilisation</span> is scoped to the selected plant where quant plant data is available.
