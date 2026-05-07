@@ -24,20 +24,29 @@ _get_cq_alarms = _optional_attr(
 async def _fetch_cq_counts(user: UserIdentity) -> dict[str, int]:
     """Return alarm counts for CQ modules (trace, envmon, spc).
 
-    Calls the CQ alarms stub; returns mapped counts once the CQ data layer is wired.
+    Prefer per-alarm source counts. If CQ only returns an aggregate count, do not
+    fan that out to every module because that creates false module-specific badges.
     """
     if _get_cq_alarms is None:
         return {"spc": 0, "envmon": 0, "trace": 0}
 
     try:
         result = await _get_cq_alarms(user=user)
-        open_count: int = result.get("open", 0)
-        # TODO: Wire to per-module counts once available in CQ backend.
-        # For now, we apply the aggregate "open" count to all three as a signal.
+        counts = {"spc": 0, "envmon": 0, "trace": 0}
+
+        for alarm in result.get("alarms", []):
+            if alarm.get("status", "open") != "open":
+                continue
+            source = alarm.get("source")
+            if source in counts:
+                counts[source] += 1
+
+        if any(counts.values()):
+            return counts
+
         return {
-            "spc": open_count,
-            "envmon": open_count,
-            "trace": open_count,
+            module_id: int(result.get(module_id, 0) or result.get(f"{module_id}_open", 0) or 0)
+            for module_id in counts
         }
     except Exception as exc:
         logger.exception("Failed to fetch CQ alarm counts: %s", exc)
