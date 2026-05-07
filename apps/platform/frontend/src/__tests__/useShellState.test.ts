@@ -18,7 +18,7 @@ beforeEach(() => {
 describe('useShellState', () => {
   it('defaults to the composition defaultModule when no URL param', () => {
     const { result } = renderHook(() => useShellState())
-    expect(result.current[0].activeModuleId).toBe('trace')
+    expect(result.current[0].activeModuleId).toBe('home')
   })
 
   it('reads ?module= from the URL on init', () => {

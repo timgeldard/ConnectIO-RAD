@@ -31,26 +31,26 @@ def test_post_downtime_analytics_returns_200(mock_downtime):
     assert "reasons" in data
     assert "daily30d" in data
     mock_downtime.assert_called_once_with(
-        "token", plant_id=None, date_from=None, date_to=None, request_path="/api/downtime"
+        "token", plant_id=None, date_from=None, date_to=None, timezone="UTC"
     )
 
 
 def test_post_downtime_analytics_passes_plant_id(mock_downtime):
     client.post("/api/downtime", json={"plant_id": "P001"})
     mock_downtime.assert_called_once_with(
-        "token", plant_id="P001", date_from=None, date_to=None, request_path="/api/downtime"
+        "token", plant_id="P001", date_from=None, date_to=None, timezone="UTC"
     )
 
 
 def test_post_downtime_analytics_passes_date_range(mock_downtime):
     client.post("/api/downtime", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
     mock_downtime.assert_called_once_with(
-        "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07", request_path="/api/downtime"
+        "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07", timezone="UTC"
     )
 
 
-def test_post_downtime_analytics_ignores_unknown_timezone(mock_downtime):
+def test_post_downtime_analytics_passes_timezone(mock_downtime):
     client.post("/api/downtime", json={"timezone": "Europe/London"})
     mock_downtime.assert_called_once_with(
-        "token", plant_id=None, date_from=None, date_to=None, request_path="/api/downtime"
+        "token", plant_id=None, date_from=None, date_to=None, timezone="Europe/London"
     )
