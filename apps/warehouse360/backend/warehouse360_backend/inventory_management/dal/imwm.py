@@ -19,13 +19,19 @@ def _plant_scope_filter(plant_id: Optional[str]) -> tuple[str, list[dict]]:
 
 
 async def fetch_imwm_stock(token: str, plant_id: Optional[str] = None) -> list[dict]:
-    """Return IM vs WM stock comparison rows."""
+    """Return IM vs WM stock comparison rows.
+
+    Capped at 2000 rows to stay under the Databricks SQL Statement API's
+    25 MB inline-result ceiling. Callers should pass ``plant_id`` to scope
+    further; un-scoped requests across all plants can exceed the cap.
+    """
     plant_filter, params = _plant_scope_filter(plant_id)
     q = f"""
         SELECT *
         FROM {tbl('imwm_stock_comparison_v')}
         {plant_filter}
         ORDER BY plant_id, material_id, storage_loc
+        LIMIT 2000
     """
     return await run_sql_async(token, q, params, endpoint_hint="wh360.imwm_stock")
 
@@ -44,24 +50,34 @@ async def fetch_imwm_movements(token: str, plant_id: Optional[str] = None) -> li
 
 
 async def fetch_imwm_exceptions(token: str, plant_id: Optional[str] = None) -> list[dict]:
-    """Return the rule-generated IMWM exception queue."""
+    """Return the rule-generated IMWM exception queue.
+
+    Capped at 2000 rows for the same reason as :func:`fetch_imwm_stock`.
+    """
     plant_filter, params = _plant_scope_filter(plant_id)
     q = f"""
         SELECT *
         FROM {tbl('imwm_exceptions_v')}
         {plant_filter}
         ORDER BY severity DESC, exception_type
+        LIMIT 2000
     """
     return await run_sql_async(token, q, params, endpoint_hint="wh360.imwm_exceptions")
 
 
 async def fetch_imwm_aging(token: str, plant_id: Optional[str] = None) -> list[dict]:
-    """Return inventory aging buckets for the analytics chart."""
+    """Return inventory aging buckets for the analytics chart.
+
+    Capped at 2000 rows for the same reason as :func:`fetch_imwm_stock`.
+    Aging is bucketed (a handful of rows per plant), so this cap is
+    defensive rather than load-bearing.
+    """
     plant_filter, params = _plant_scope_filter(plant_id)
     q = f"""
         SELECT *
         FROM {tbl('imwm_analytics_aging_v')}
         {plant_filter}
         ORDER BY plant_id, age_bucket_order
+        LIMIT 2000
     """
     return await run_sql_async(token, q, params, endpoint_hint="wh360.imwm_aging")
