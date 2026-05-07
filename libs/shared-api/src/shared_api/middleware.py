@@ -62,7 +62,11 @@ class LatencyMiddleware(BaseHTTPMiddleware):
             
             budget_ms = self.latency_budgets_ms.get(request_path, self.default_latency_budget_ms)
             
-            logger.info(
+            # DEBUG so a healthy app doesn't drown its log channel with one
+            # line per request. Latency-budget breaches are logged at INFO via
+            # the alert callback below; that's where the actually-actionable
+            # signal lives.
+            logger.debug(
                 "request.completed path=%s status=%d duration_ms=%d",
                 request_path,
                 status_code,

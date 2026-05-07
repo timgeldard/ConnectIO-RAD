@@ -11,7 +11,7 @@ PyJWT[crypto]>=2.8
 # falls back to PyPI for any of these names. The wheels/ directory is produced
 # by scripts/build.py and uploaded with the bundle. Bumping a package version
 # means bumping its pyproject.toml AND the matching line below.
-./wheels/shared_api-0.1.0-py3-none-any.whl
+./wheels/shared_api-0.1.1-py3-none-any.whl
 ./wheels/shared_auth-0.1.0-py3-none-any.whl
 ./wheels/shared_db-0.1.0-py3-none-any.whl
 ./wheels/shared_domain-0.1.0-py3-none-any.whl
