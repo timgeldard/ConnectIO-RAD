@@ -2,8 +2,9 @@
 
 const { Icon, Sparkline, Kpi, StackBar, MismatchBadge, StockTypeBadge, SeverityBar, Money, K, Bar } = window.UI;
 
-function Overview({ rows, plants, persona, onNav, onOpenItem }) {
+function Overview({ rows, plants, persona, onNav, onOpenItem, movements: movementsProp }) {
   const D = window.__INV_DATA__;
+  const movements = movementsProp ?? D.MOVEMENTS;
   const im_total = rows.reduce((s,r) => s + r.im_total, 0);
   const wm_total = rows.reduce((s,r) => s + r.wm_total, 0);
   const value_eur = rows.reduce((s,r) => s + r.value_eur, 0);
@@ -224,7 +225,7 @@ function Overview({ rows, plants, persona, onNav, onOpenItem }) {
                 <tr><th>Time</th><th>MvT</th><th>Material</th><th className="num">Qty</th><th>Plant</th><th>Doc</th></tr>
               </thead>
               <tbody>
-                {D.MOVEMENTS.map((m,i) => (
+                {movements.map((m,i) => (
                   <tr key={i}>
                     <td className="code muted">{m.time}</td>
                     <td><span className="badge muted">{m.code}</span></td>

@@ -30,7 +30,7 @@ W360_DIR = REPO_ROOT / "apps" / "warehouse360"
 PLATFORM_FRONTEND_DIR = APP_DIR / "frontend"
 STANDALONE_DIR = APP_DIR / "standalone"
 
-SHARED_LIBS = ["shared-db", "shared-api", "shared-auth"]
+SHARED_LIBS = ["shared-db", "shared-api", "shared-auth", "shared-domain"]
 BACKEND_PACKAGES = {
     "connectedquality_backend": CQ_DIR / "backend" / "connectedquality_backend",
     "processorderhistory_backend": POH_DIR / "backend" / "processorderhistory_backend",

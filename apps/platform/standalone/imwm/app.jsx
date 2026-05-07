@@ -40,16 +40,49 @@ function App() {
   const [savedView, setSavedView] = React.useState(null);
   const [drawerItem, setDrawerItem] = React.useState(null);
 
-  React.useEffect(() => {
-    document.documentElement.setAttribute("data-theme", tw.theme);
-    document.documentElement.setAttribute("data-density", tw.density);
-    document.documentElement.setAttribute("data-annotations", tw.showAnnotations ? "on" : "off");
-  }, [tw.theme, tw.density, tw.showAnnotations]);
+  // Live API data; null = not yet loaded; only populated when USE_MOCK_DATA is unset
+  const [apiData, setApiData] = React.useState(null);
 
-  // Filter rows by current filters
   const D = window.__INV_DATA__;
+  const useMock = !!window.USE_MOCK_DATA;
+
+  // Fetch all four data sources whenever the plant filter changes
+  React.useEffect(() => {
+    if (useMock) return;
+    const plant = filters.plant !== "all" ? filters.plant : null;
+    let cancelled = false;
+
+    async function loadAll() {
+      const [stockRes, movRes, excRes, agingRes] = await Promise.all([
+        window.IMWMApi.loadStock(plant),
+        window.IMWMApi.loadMovements(plant),
+        window.IMWMApi.loadExceptions(plant),
+        window.IMWMApi.loadAging(plant),
+      ]);
+      if (cancelled) return;
+      if (!stockRes.error) {
+        setApiData({
+          STOCK_ROWS:    stockRes.data ?? [],
+          MOVEMENTS:     movRes.error   ? D.MOVEMENTS     : (movRes.data ?? []),
+          EXCEPTIONS:    excRes.error   ? D.EXCEPTIONS    : (excRes.data ?? []),
+          AGING_BUCKETS: agingRes.error ? D.AGING_BUCKETS : (agingRes.data ?? []),
+        });
+      }
+    }
+
+    loadAll();
+    return () => { cancelled = true; };
+  }, [filters.plant, useMock]);
+
+  // Source of stock rows: live API data when available, mock otherwise
+  const srcRows = (!useMock && apiData) ? apiData.STOCK_ROWS : D.STOCK_ROWS;
+  const srcMovements = (!useMock && apiData) ? apiData.MOVEMENTS : D.MOVEMENTS;
+  const srcExceptions = (!useMock && apiData) ? apiData.EXCEPTIONS : D.EXCEPTIONS;
+  const srcAgingBuckets = (!useMock && apiData) ? apiData.AGING_BUCKETS : D.AGING_BUCKETS;
+
+  // Filter stock rows by active UI filters
   const rows = React.useMemo(() => {
-    return D.STOCK_ROWS.filter(r => {
+    return srcRows.filter(r => {
       if (filters.plant !== "all" && r.plant !== filters.plant) return false;
       if (filters.sloc !== "all" && r.storageLoc !== filters.sloc) return false;
       if (filters.mtype !== "all" && r.mtype !== filters.mtype) return false;
@@ -61,19 +94,48 @@ function App() {
       }
       return true;
     });
-  }, [filters]);
+  }, [filters, srcRows]);
+
+  // Derive reconciliation items from filtered rows (mismatch only)
+  const reconItems = React.useMemo(() => {
+    return rows
+      .filter(r => r.mismatch_kind !== 'match')
+      .map((r, idx) => ({
+        id:       `RC-${String(idx + 1).padStart(4, '0')}`,
+        material: r.material,
+        desc:     r.desc,
+        plant:    r.plant,
+        sloc:     r.storageLoc,
+        im_qty:   r.im_total,
+        wm_qty:   r.wm_total,
+        delta:    r.delta,
+        kind:     r.mismatch_kind,
+        age_h:    0,
+        owner:    'Unassigned',
+        status:   'open',
+        reason:   '',
+        priority: r.mismatch_kind === 'true' ? 3 : 2,
+        value_eur: r.value_eur,
+      }));
+  }, [rows]);
 
   const plantSummary = React.useMemo(() => D.plantSummary(rows), [rows]);
+
+  React.useEffect(() => {
+    document.documentElement.setAttribute("data-theme", tw.theme);
+    document.documentElement.setAttribute("data-density", tw.density);
+    document.documentElement.setAttribute("data-annotations", tw.showAnnotations ? "on" : "off");
+  }, [tw.theme, tw.density, tw.showAnnotations]);
 
   const t = TITLES[route];
   const screen = (() => {
     switch (route) {
-      case "overview":   return <window.Overview rows={rows} plants={plantSummary} persona={persona} onNav={setRoute} onOpenItem={setDrawerItem}/>;
+      case "overview":   return <window.Overview rows={rows} plants={plantSummary} persona={persona} onNav={setRoute} onOpenItem={setDrawerItem} movements={srcMovements}/>;
       case "im":         return <window.IMExplorer rows={rows} persona={persona} onOpenItem={setDrawerItem}/>;
       case "wm":         return <window.WMExplorer rows={rows} onOpenItem={setDrawerItem}/>;
-      case "recon":      return <window.Recon onOpenItem={setDrawerItem}/>;
-      case "exceptions": return <window.Exceptions onOpenItem={setDrawerItem}/>;
-      case "analytics":  return <window.Analytics/>;
+      case "recon":      return <window.Recon onOpenItem={setDrawerItem} reconItems={reconItems}/>;
+      case "exceptions": return <window.Exceptions onOpenItem={setDrawerItem} exceptions={srcExceptions}/>;
+      case "analytics":  return <window.Analytics agingBuckets={srcAgingBuckets}/>;
       case "spec":       return <window.Spec onNav={setRoute}/>;
       default:           return <div>404</div>;
     }

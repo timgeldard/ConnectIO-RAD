@@ -1,5 +1,6 @@
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
 import { LandingCard, moduleHref } from './LandingCard'
+import { HomePanel } from './HomePanel'
 
 interface ModuleContentPanelProps {
   /** The ID of the module currently selected in the shell. */
@@ -8,10 +9,15 @@ interface ModuleContentPanelProps {
   modules: ConnectIOModule[]
   /** The tab currently active in the shell SubNav for this module. */
   activeTabId?: string
+  onModuleChange?: (moduleId: string) => void
 }
 
-/** Renders the content panel for the active module using the module's real route when available. */
-export function ModuleContentPanel({ moduleId, modules, activeTabId }: ModuleContentPanelProps) {
+/** Renders the content panel for the active module. */
+export function ModuleContentPanel({ moduleId, modules, activeTabId, onModuleChange }: ModuleContentPanelProps) {
+  if (moduleId === 'home') {
+    return <HomePanel onModuleChange={onModuleChange ?? (() => {})} />
+  }
+
   const mod = modules.find((m) => m.moduleId === moduleId)
   if (!mod) {
     return (

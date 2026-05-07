@@ -1,16 +1,17 @@
 // exceptions.jsx — Inventory Exceptions queue
 const { Icon, Kpi, SeverityBar } = window.UI;
 
-function Exceptions({ onOpenItem }) {
+function Exceptions({ onOpenItem, exceptions: exceptionsProp }) {
   const D = window.__INV_DATA__;
+  const allExceptions = exceptionsProp ?? D.EXCEPTIONS;
   const [filter, setFilter] = React.useState("all");
   const [bulk, setBulk] = React.useState({});
 
-  const items = D.EXCEPTIONS.filter(e => filter === "all" ? true : filter === "sev4" ? e.severity === 4 : filter === "sev3" ? e.severity === 3 : filter === "open" ? e.status === "open" : filter === "mine" ? e.owner === "S. Murphy" : true);
+  const items = allExceptions.filter(e => filter === "all" ? true : filter === "sev4" ? e.severity === 4 : filter === "sev3" ? e.severity === 3 : filter === "open" ? e.status === "open" : filter === "mine" ? e.owner === "S. Murphy" : true);
 
-  const sev4 = D.EXCEPTIONS.filter(e => e.severity === 4).length;
-  const slaBreach = D.EXCEPTIONS.filter(e => e.age_h > e.sla_h && e.sla_h > 0).length;
-  const unassigned = D.EXCEPTIONS.filter(e => e.owner === "Unassigned").length;
+  const sev4 = allExceptions.filter(e => e.severity === 4).length;
+  const slaBreach = allExceptions.filter(e => e.age_h > e.sla_h && e.sla_h > 0).length;
+  const unassigned = allExceptions.filter(e => e.owner === "Unassigned").length;
   const bulkCount = Object.values(bulk).filter(Boolean).length;
 
   return (

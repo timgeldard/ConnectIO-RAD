@@ -2,23 +2,24 @@
 
 const { Icon, Sparkline, Kpi, MismatchBadge, K, Money, Bar } = window.UI;
 
-function Recon({ onOpenItem }) {
+function Recon({ onOpenItem, reconItems: reconItemsProp }) {
   const D = window.__INV_DATA__;
+  const allReconItems = reconItemsProp ?? D.RECON_ITEMS;
   const [view, setView] = React.useState("triage"); // triage | ledger | flow
   const [filter, setFilter] = React.useState("all"); // all | true | timing | interim
-  const [selectedId, setSelectedId] = React.useState("RC-2420");
+  const [selectedId, setSelectedId] = React.useState(null);
   const [bulkSel, setBulkSel] = React.useState({});
 
-  const items = D.RECON_ITEMS.filter(i => filter === "all" ? i.kind !== "match" : i.kind === filter);
-  const sel = D.RECON_ITEMS.find(i => i.id === selectedId);
+  const items = allReconItems.filter(i => filter === "all" ? i.kind !== "match" : i.kind === filter);
+  const sel = allReconItems.find(i => i.id === selectedId);
 
   const counts = {
-    true: D.RECON_ITEMS.filter(i => i.kind === "true").length,
-    timing: D.RECON_ITEMS.filter(i => i.kind === "timing").length,
-    interim: D.RECON_ITEMS.filter(i => i.kind === "interim").length,
-    match: D.RECON_ITEMS.filter(i => i.kind === "match").length,
+    true: allReconItems.filter(i => i.kind === "true").length,
+    timing: allReconItems.filter(i => i.kind === "timing").length,
+    interim: allReconItems.filter(i => i.kind === "interim").length,
+    match: allReconItems.filter(i => i.kind === "match").length,
   };
-  const totalExposure = D.RECON_ITEMS.filter(i => i.kind === "true").reduce((s,i) => s + i.value_eur, 0);
+  const totalExposure = allReconItems.filter(i => i.kind === "true").reduce((s,i) => s + i.value_eur, 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
