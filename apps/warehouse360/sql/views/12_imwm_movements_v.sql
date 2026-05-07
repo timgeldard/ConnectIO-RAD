@@ -7,7 +7,11 @@
 -- Notes : MKPF fields (posting date/time/user) are denormalized into MSEG
 --         as BUDAT_MKPF, CPUTM_MKPF, USNAM_MKPF — no JOIN to MKPF needed.
 --         LIMIT is applied in the DAL (not here) for caller-controlled page size.
---         WM-internal movements filtered by BWLVS column if present in extraction.
+-- Note  : earlier drafts proposed filtering WM-internal movements by BWLVS,
+--         but BWLVS is not extracted into the MSEG bronze table today, so the
+--         filter cannot be applied. The earlier comment claiming a filter is
+--         removed to keep the doc honest. Restore the predicate here if BWLVS
+--         is added to the extraction in future.
 -- =============================================================================
 
 CREATE OR REPLACE VIEW connected_plant_uat.wh360.imwm_movements_v AS
@@ -32,7 +36,10 @@ LEFT JOIN connected_plant_uat.silver.silver_material_description AS md
   ON  LPAD(md.MATERIAL_ID, 18, '0') = ms.MATNR
   AND md.LANGUAGE_ID = 'E'
 
-WHERE ms.BUDAT_MKPF >= date_format(date_add(current_date(), -1), 'yyyy-MM-dd')
+-- BUDAT_MKPF is a string column in bronze; cast both sides so the comparison
+-- is a real date comparison, not a lexicographic string compare that would
+-- silently break if the source format ever drifts.
+WHERE TRY_CAST(ms.BUDAT_MKPF AS DATE) >= date_add(current_date(), -1)
   AND ms.WERKS IS NOT NULL
   AND LENGTH(TRIM(ms.WERKS)) > 0
   AND ms.MATNR IS NOT NULL

@@ -57,6 +57,8 @@ LEGACY_COPY_DIRECTORIES = (
     "shared_auth",
     "shared_db",
     "shared_domain",
+    "shared_trace",
+    "shared_geo",
     "connectedquality_backend",
     "processorderhistory_backend",
     "warehouse360_backend",

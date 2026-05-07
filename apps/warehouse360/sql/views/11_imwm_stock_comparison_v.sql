@@ -195,10 +195,18 @@ with_mismatch AS (
   SELECT
     *,
     CASE
-      WHEN ABS(delta_qty) <= im_total_qty * 0.01 OR im_total_qty = 0
+      -- Genuine match: both sides agree (within 1% tolerance) or both empty.
+      WHEN im_total_qty = 0 AND wm_total_qty = 0
         THEN 'match'
+      WHEN im_total_qty > 0 AND ABS(delta_qty) <= im_total_qty * 0.01
+        THEN 'match'
+      -- Timing: there is in-flight movement that explains the gap.
       WHEN open_tos > 0 OR interim_qty > 0
         THEN 'timing'
+      -- Everything else (including WM-only stock when IM=0) is a true mismatch
+      -- worth surfacing — GR-not-posted, physical inventory adjustments,
+      -- and other reconciliation gaps that downstream `imwm_exceptions_v`
+      -- is meant to escalate.
       ELSE 'true'
     END                                                            AS mismatch_kind
   FROM base

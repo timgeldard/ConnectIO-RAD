@@ -104,6 +104,18 @@ def _validate_host(host: str) -> str:
             detail=f"DATABRICKS_HOST is not a valid hostname: {host!r}",
         )
 
+    # `urlparse` defers port validation until `parsed.port` is accessed; an
+    # invalid port (non-numeric or out-of-range) raises ValueError at that
+    # point, bypassing our HTTPException contract. Catch and re-raise as the
+    # same 500 we use for all other host-validation failures.
+    try:
+        _ = parsed.port
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"DATABRICKS_HOST has an invalid port: {host!r}",
+        ) from exc
+
     suffixes = _allowed_host_suffixes()
     if not any(hostname.endswith(suffix) for suffix in suffixes):
         raise HTTPException(
@@ -114,10 +126,10 @@ def _validate_host(host: str) -> str:
             ),
         )
 
-    # Force https for production hosts; http is only acceptable for explicit
-    # local-dev overrides, which won't match the production suffix allowlist
-    # anyway. Drop any port component to keep the canonical form clean.
-    return f"https://{hostname}" + (f":{parsed.port}" if parsed.port else "")
+    # Drop the port component entirely — workspace traffic always goes to the
+    # default https port and a non-default port on an allowlisted hostname is
+    # an unexpected redirect that we should not forward a bearer token to.
+    return f"https://{hostname}"
 
 
 def _host() -> str:

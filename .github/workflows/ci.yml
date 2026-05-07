@@ -86,14 +86,14 @@ jobs:
 
       # ----- Python: known-CVE scan via pip-audit ---------------------------
       # `uv sync` resolves and installs the workspace into a single venv that
-      # covers every backend and shared lib. `uv run pip-audit` then walks
-      # the live environment, so we audit the actually-resolved dependency
-      # tree rather than the loose pyproject pins.
+      # covers every backend and shared lib. `uv run --with pip-audit` runs
+      # pip-audit *inside* that env so we audit the actually-resolved
+      # dependency tree (`uv tool run` would isolate pip-audit and miss the
+      # project deps entirely).
       - name: pip-audit (Python dependencies)
         run: |
           uv sync --all-extras
-          uv tool install pip-audit
-          uv tool run pip-audit --strict
+          uv run --with pip-audit pip-audit --strict
 
       # ----- JavaScript: known-CVE scan via npm audit ----------------------
       # Workspace-aware; --workspaces flag would also work but the root audit

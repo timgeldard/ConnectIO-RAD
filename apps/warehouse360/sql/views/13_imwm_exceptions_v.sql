@@ -155,7 +155,7 @@ WHERE (LVORM IS NULL OR LVORM = '')
   AND LFMON IS NOT NULL AND LFMON <> '000' AND LENGTH(TRIM(LFMON)) >= 1
   AND datediff(
     current_date(),
-    to_date(CONCAT(LFGJA, '-', LPAD(CAST(CAST(TRIM(LFMON) AS INT) AS STRING), 2, '0'), '-01'), 'yyyy-MM-dd')
+    to_date(CONCAT(LFGJA, '-', LPAD(CAST(TRY_CAST(TRIM(LFMON) AS INT) AS STRING), 2, '0'), '-01'), 'yyyy-MM-dd')
   ) > 14
 
 UNION ALL
@@ -183,5 +183,5 @@ WHERE (LVORM IS NULL OR LVORM = '')
   AND LFMON IS NOT NULL AND LFMON <> '000' AND LENGTH(TRIM(LFMON)) >= 1
   AND datediff(
     current_date(),
-    to_date(CONCAT(LFGJA, '-', LPAD(CAST(CAST(TRIM(LFMON) AS INT) AS STRING), 2, '0'), '-01'), 'yyyy-MM-dd')
+    to_date(CONCAT(LFGJA, '-', LPAD(CAST(TRY_CAST(TRIM(LFMON) AS INT) AS STRING), 2, '0'), '-01'), 'yyyy-MM-dd')
   ) > 3

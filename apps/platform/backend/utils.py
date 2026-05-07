@@ -4,11 +4,15 @@ The platform shell imports routers from several upstream packages (CQ, POH,
 W360, plus shared libs). Rather than letting an `ImportError` at module load
 time abort the whole process, these helpers wrap the imports and classify
 failures as either *required* (fail loud at startup) or *optional* (log a
-warning and continue, with the artifact recorded for `/health/routers`).
+warning and continue, with the artifact recorded for inspection later).
 
 Required failures raise immediately so a broken deploy never silently 404s
-the affected routes. Optional failures are surfaced via
-`get_missing_optional_artifacts()` and the readiness probe.
+the affected routes. Optional failures are recorded in
+:func:`get_missing_optional_artifacts` and surfaced by the
+``GET /api/health/routers`` endpoint defined in :mod:`backend.main`. The
+readiness probe (``/api/ready``) only reports on the live SQL warehouse
+roundtrip — it intentionally does *not* mention optional artifacts so a
+deferred-feature wheel doesn't keep the app reporting not-ready.
 """
 from __future__ import annotations
 

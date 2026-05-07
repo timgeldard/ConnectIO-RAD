@@ -90,7 +90,11 @@ def package_has_source_changes(base: str, head: str, package: str) -> bool:
             return False
         if rel.endswith((".md", ".rst")):
             return False
-        if rel == "pyproject.toml":
+        # Files at the package directory root that hatchling does not include
+        # in the wheel build. `pyproject.toml` is checked separately for the
+        # version-bump signal; the rest are dev-tooling configs that don't
+        # ship to runtime.
+        if rel in ("pyproject.toml", "project.json", ".coveragerc", "uv.lock"):
             return False
         return True
 
@@ -119,6 +123,16 @@ def main(argv: list[str] | None = None) -> int:
             # New package on this branch — version bump rule does not apply.
             continue
         if not package_has_source_changes(args.base, args.head, package):
+            continue
+        if head_version is None:
+            # pyproject.toml was deleted or made unparsable at the head ref.
+            # That breaks both the wheel build AND the version-bump signal,
+            # so flag it explicitly rather than silently passing.
+            failures.append(
+                f"{package}: source changed AND {package}/pyproject.toml is "
+                f"missing or unparsable at head — fix the manifest so a wheel "
+                f"can still be built and version-bumped."
+            )
             continue
         if base_version == head_version:
             failures.append(

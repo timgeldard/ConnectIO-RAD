@@ -217,16 +217,7 @@ Maps LQUA.LGNUM → WERKS when plant is not denormalized into LQUA (not needed f
 
 | Column | Type | Notes |
 |---|---|---|
-| MATERIAL_ID | STRING | Material number (may need LPAD to 18 chars for join) |
-| LANGUAGE_ID | STRING | Language key; use `'E'` for English |
-| MATERIAL_NAME | STRING | Material short text |
-| MATERIAL_NAME_UPPERCASE | STRING | Uppercase version for matchcode search |
-
-### silver_material_description (already in ai-context)
-
-| Column | Type | Notes |
-|---|---|---|
-| MATERIAL_ID | STRING | Material number (may need LPAD to 18 chars for join to MATNR) |
+| MATERIAL_ID | STRING | Material number (LPAD to 18 chars when joining to bronze MATNR) |
 | LANGUAGE_ID | STRING | Language key; use `'E'` for English |
 | MATERIAL_NAME | STRING | Material short text |
 | MATERIAL_NAME_UPPERCASE | STRING | Uppercase version for matchcode search |

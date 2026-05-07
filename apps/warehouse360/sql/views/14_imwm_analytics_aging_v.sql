@@ -32,6 +32,10 @@ batch_ages AS (
     AND HSDAT IS NOT NULL
     AND LENGTH(TRIM(HSDAT)) = 10
     AND HSDAT <> '0001-01-01'
+    -- Reject malformed HSDAT values that match the length check but aren't
+    -- parseable dates — without this, age_days falls through as NULL and
+    -- the row gets misclassified into the >180d bucket.
+    AND TRY_CAST(HSDAT AS DATE) IS NOT NULL
   GROUP BY MATNR, WERKS
 ),
 

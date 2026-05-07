@@ -72,11 +72,11 @@ Order of work (low-risk → low-risk; safe to land in any order):
 ## M7 + M8 — pre-commit hook fixes
 
 **Goals:**
-- M7: stop enumerating each app's `test_architecture_boundaries.py` by full path. Use a glob so adding an app doesn't require editing the hook config.
-- M8: ALSO run the central `scripts/tests/test_ddd_architecture_guardrails.py` so unauthorized bounded contexts and cross-cutting violations fail at commit time, not on push.
+- M7: stop enumerating each app's `test_architecture_boundaries.py` by full path. The original plan was to glob them, but during execution we discovered `pytest`'s `conftest.py` collision blocks running the per-app tests in one invocation — so the actual fix dropped them entirely from pre-commit and let `nx affected -t test` cover them in CI per app.
+- M8: run the central `scripts/tests/test_ddd_architecture_guardrails.py` so unauthorized bounded contexts and cross-cutting violations fail at commit time, not on push.
 
 **Changes:**
-- `.pre-commit-config.yaml`: replace the seven hard-coded test paths with `apps/*/backend/tests/test_architecture_boundaries.py` and append `scripts/tests/test_ddd_architecture_guardrails.py`.
+- `.pre-commit-config.yaml`: replace the seven hard-coded test paths with a single invocation of `scripts/tests/test_ddd_architecture_guardrails.py`. The central guardrail AST-walks every domain/application/router file across all apps and is broader than the per-app tests; per-app tests still run under `nx affected -t test` in CI.
 
 **Verification:**
 - `pre-commit run ddd-guardrails --all-files` passes on a clean tree.

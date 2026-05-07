@@ -24,7 +24,20 @@ async def list_imwm_stock(
     plant: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user),
 ):
-    """Return IM vs WM stock comparison rows, with data freshness metadata."""
+    """Return IM vs WM stock comparison rows for the IMWM Reconciliation tab.
+
+    Args:
+        request: FastAPI request, used to attach the request path to the
+            data-freshness metadata for log correlation.
+        plant: Optional plant ID; ``None`` returns all plants visible to
+            the caller's token.
+        user: Proxy-validated identity, injected by FastAPI.
+
+    Returns:
+        Object with ``stock`` (list of comparison rows) and
+        ``data_freshness`` metadata for the upstream
+        ``imwm_stock_comparison_v`` view.
+    """
     token = user.raw_token
     check_warehouse_config()
     rows = await inventory_queries.list_imwm_stock(token, plant_id=plant)
@@ -43,7 +56,17 @@ async def list_imwm_movements(
     plant: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user),
 ):
-    """Return recent goods movements for the IMWM Overview activity strip."""
+    """Return recent goods movements for the IMWM Overview activity strip.
+
+    Args:
+        request: FastAPI request (used for freshness logging).
+        plant: Optional plant ID; ``None`` means all visible plants.
+        user: Proxy-validated identity, injected by FastAPI.
+
+    Returns:
+        Object with ``movements`` (most-recent rows, capped at 200 in the
+        DAL) and ``data_freshness`` metadata for ``imwm_movements_v``.
+    """
     token = user.raw_token
     check_warehouse_config()
     rows = await inventory_queries.list_imwm_movements(token, plant_id=plant)
@@ -62,7 +85,17 @@ async def list_imwm_exceptions(
     plant: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user),
 ):
-    """Return the rule-generated IMWM exception queue."""
+    """Return the rule-generated IMWM exception queue for the operations cockpit.
+
+    Args:
+        request: FastAPI request (used for freshness logging).
+        plant: Optional plant ID; ``None`` means all visible plants.
+        user: Proxy-validated identity, injected by FastAPI.
+
+    Returns:
+        Object with ``exceptions`` (rows ordered severity-DESC) and
+        ``data_freshness`` metadata for ``imwm_exceptions_v``.
+    """
     token = user.raw_token
     check_warehouse_config()
     rows = await inventory_queries.list_imwm_exceptions(token, plant_id=plant)
@@ -81,7 +114,17 @@ async def list_imwm_aging(
     plant: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user),
 ):
-    """Return inventory aging buckets for the IMWM Analytics tab."""
+    """Return inventory aging buckets for the IMWM Analytics tab.
+
+    Args:
+        request: FastAPI request (used for freshness logging).
+        plant: Optional plant ID; ``None`` means all visible plants.
+        user: Proxy-validated identity, injected by FastAPI.
+
+    Returns:
+        Object with ``aging`` (one row per plant × age bucket) and
+        ``data_freshness`` metadata for ``imwm_analytics_aging_v``.
+    """
     token = user.raw_token
     check_warehouse_config()
     rows = await inventory_queries.list_imwm_aging(token, plant_id=plant)
