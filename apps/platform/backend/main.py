@@ -94,6 +94,7 @@ W360_ROUTERS: list[RouterEntry] = [
     (_required_router("warehouse360_backend.dispensary_ops.router_dispensary"), "/api/wh", ["W360-Dispensary"]),
     (_required_router("warehouse360_backend.operations_control_tower.router_kpis"), "/api/wh", ["W360-KPIs"]),
     (_required_router("warehouse360_backend.inventory_management.router_plants"), "/api/wh", ["W360-Plants"]),
+    (_required_router("warehouse360_backend.inventory_management.router_imwm"), "/api/wh", ["W360-IMWM"]),
 ]
 
 _STATIC = Path(__file__).parent.parent / "static"
