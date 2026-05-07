@@ -42,12 +42,6 @@ AUTH_JWKS_URL = "https://northeurope-c2.azuredatabricks.net/oidc/jwks.json"
 AUTH_JWT_ISSUER = "https://adb-604667594731808.8.azuredatabricks.net/oidc"
 AUTH_ALLOW_UNVERIFIED_JWT = "false"
 
-# Prod values not yet discovered — render is allowed to leave them empty so a
-# UAT-only deploy doesn't break. Fill them in (and remove this allowlist entry)
-# before the first prod deploy after this change.
-[targets.prod]
-allow_empty_render_variables = ["AUTH_JWKS_URL", "AUTH_JWT_ISSUER"]
-
 [targets.prod.env]
 DATABRICKS_WAREHOUSE_ID = "161e0117e7a3507f"
 DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/161e0117e7a3507f"
@@ -63,11 +57,8 @@ TRACE_CATALOG = "connected_plant_prod"
 TRACE_SCHEMA = "gold"
 WH360_SCHEMA = "wh360"
 PREFS_DB_PATH = "/tmp/connectio_platform_prefs.db"
-# JWT verification — TODO: discover prod OIDC values once `databricks auth login --profile prod`
-# is re-authed. Run:
-#   databricks auth env --profile prod  # gives DATABRICKS_HOST
-#   curl <DATABRICKS_HOST>/oidc/.well-known/openid-configuration
-# and copy `jwks_uri` to AUTH_JWKS_URL and `issuer` to AUTH_JWT_ISSUER.
-AUTH_JWKS_URL = ""
-AUTH_JWT_ISSUER = ""
+# JWT verification — workspace OIDC discovery values for prod.
+# Discovery doc: https://adb-3998371303355516.16.azuredatabricks.net/oidc/.well-known/openid-configuration
+AUTH_JWKS_URL = "https://northeurope-c2.azuredatabricks.net/oidc/jwks.json"
+AUTH_JWT_ISSUER = "https://adb-3998371303355516.16.azuredatabricks.net/oidc"
 AUTH_ALLOW_UNVERIFIED_JWT = "false"
