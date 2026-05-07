@@ -47,6 +47,8 @@ env:
     value: "${TRACE_CATALOG}"
   - name: TRACE_SCHEMA
     value: "${TRACE_SCHEMA}"
+  - name: WH360_SCHEMA
+    value: "${WH360_SCHEMA}"
   - name: PREFS_DB_PATH
     value: "${PREFS_DB_PATH}"
 
