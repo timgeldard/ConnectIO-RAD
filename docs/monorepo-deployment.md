@@ -4,16 +4,19 @@ This document outlines the CI/CD pipelines and deployment strategies for the `Co
 
 ## 🚀 CI/CD Overview
 
-We use **GitHub Actions** for continuous integration and deployment. The pipeline is optimized using **Nx affected** to only run tasks for projects that have changed in a given Pull Request or Push to `master`.
+We use **GitHub Actions** for continuous integration and deployment. The pipeline is optimized using **Nx affected** to only run tasks for projects that have changed in a given Pull Request or Push to `main`.
 
 ### Pipeline Stages
 
 1.  **Sync**: Synchronizes Python environments for affected projects.
 2.  **Lint**: Runs static analysis (Ruff, ESLint).
-3.  **Typecheck**: Validates TypeScript types.
-4.  **Test**: Executes unit and integration tests (Pytest, Vitest).
-5.  **Build**: Compiles frontend assets into static files.
-6.  **Deploy**: (Master branch only) Deploys changed applications to Databricks.
+3.  **Wheel-version guard**: Fails when wheel-bundled package source changes without a `pyproject.toml` version bump.
+4.  **DDD guardrails**: Runs `scripts/tests/test_ddd_architecture_guardrails.py` to enforce 4-layer separation and bounded-context allowlist.
+5.  **Typecheck**: Validates TypeScript types.
+6.  **Test**: Executes unit and integration tests (Pytest, Vitest) including coverage gates.
+7.  **Security**: Parallel job — `pip-audit`, `npm audit`, `gitleaks`, CodeQL.
+8.  **Build**: Compiles frontend assets into static files.
+9.  **Deploy**: (`main` branch only, requires both `ci` and `security` to pass) Deploys changed applications to Databricks.
 
 ## ☁️ Databricks Apps Deployment
 

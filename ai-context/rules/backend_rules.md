@@ -67,8 +67,32 @@ Use `classify_sql_runtime_error()` to map SQL errors to HTTP status codes:
 - Everything else → 500 with reference ID for log correlation
 
 ### 3.3 Error Response Shape
-All error responses MUST have the shape: `{"detail": "message"}` or
-`{"detail": "message", "error_id": "uuid"}`. Frontend depends on this.
+
+The shape returned by `safe_global_exception_response` (in
+`libs/shared-api/src/shared_api/errors.py`) is:
+
+| Case | Shape |
+|---|---|
+| Domain error (`DomainError` subclass) | `{"detail": "message", "error_type": "<ExceptionClassName>", "extra": {...}?}` |
+| `HTTPException` raised explicitly | `{"detail": "message"}` (or whatever `detail` was set to) |
+| Unhandled / 500 | `{"detail": "Internal server error", "error_id": "<uuid>"}` |
+
+Frontend handling rules:
+* Always read `detail` for the human-facing message.
+* `error_type` is optional but, when present, identifies the domain class
+  (e.g. `UnauthorizedPlantAccess`) so the client can branch on
+  recoverable vs. fatal cases without parsing strings.
+* `extra` is an optional structured payload attached to specific domain
+  exceptions; never assume it exists.
+* `error_id` is only present on unhandled 500s; surface it in error UI as
+  a copy-paste reference for log correlation.
+
+**4.2** Token rejected → 401 (no body details — surface only `{"detail": "..."}`).
+
+**4.3** SQL errors classified via `classify_sql_runtime_error()`:
+- Permission denied → 403
+- Table not found → 503 (with helpful message)
+- Everything else → 500 with `error_id` for log correlation
 
 ## 4. Authentication
 

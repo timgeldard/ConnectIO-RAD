@@ -48,22 +48,64 @@ async def fetch_active_plant_ids(token: str) -> list[str]:
     ]
 
 
+def _plant_id_in_clause(plant_ids: list[str]) -> tuple[str, list[dict]]:
+    """Build a parameterised IN clause for a list of plant IDs.
+
+    The repo rule is "all user-supplied values via :name parameters" — even
+    though plant IDs are typed list[str] before reaching here, building the
+    IN clause via f-string concatenation normalises the unsafe pattern in a
+    repo that explicitly forbids it. This helper expands one named parameter
+    per ID so the same ``run_sql_async`` path enforces type-correct binding.
+
+    Args:
+        plant_ids: List of plant ID strings to match.
+
+    Returns:
+        Two-tuple of ``(in_clause, params)``. ``in_clause`` is the SQL
+        fragment ``"(:p0, :p1, ...)"`` for inlining after ``IN``;
+        ``params`` is the matching named-parameter list. Returns
+        ``("(NULL)", [])`` for an empty input so the predicate produces
+        no rows rather than a syntax error.
+    """
+    if not plant_ids:
+        return "(NULL)", []
+    placeholders = ", ".join(f":p{i}" for i in range(len(plant_ids)))
+    params = [sql_param(f"p{i}", pid) for i, pid in enumerate(plant_ids)]
+    return f"({placeholders})", params
+
+
 async def fetch_plant_geo(token: str, plant_ids: list[str]) -> list[dict]:
-    """Return lat/lon rows from em_plant_geo for the given plant IDs."""
-    id_list = ", ".join(f"'{pid}'" for pid in plant_ids)
-    sql = f"SELECT plant_id, lat, lon FROM {PLANT_GEO_TBL} WHERE plant_id IN ({id_list})"
-    return await run_sql_async(token, sql)
+    """Return lat/lon rows from em_plant_geo for the given plant IDs.
+
+    Args:
+        token: Forwarded Databricks access token.
+        plant_ids: List of plant IDs to look up. Empty list returns no rows.
+
+    Returns:
+        List of ``{plant_id, lat, lon}`` rows from ``em_plant_geo``.
+    """
+    in_clause, params = _plant_id_in_clause(plant_ids)
+    sql = f"SELECT plant_id, lat, lon FROM {PLANT_GEO_TBL} WHERE plant_id IN {in_clause}"
+    return await run_sql_async(token, sql, params)
 
 
 async def fetch_plant_metadata(token: str, plant_ids: list[str]) -> list[dict]:
-    """Return plant name, country, city rows from gold_plant for the given plant IDs."""
-    id_list = ", ".join(f"'{pid}'" for pid in plant_ids)
+    """Return plant name, country, city rows from gold_plant for the given IDs.
+
+    Args:
+        token: Forwarded Databricks access token.
+        plant_ids: List of plant IDs to look up. Empty list returns no rows.
+
+    Returns:
+        List of ``{PLANT_ID, PLANT_NAME, COUNTRY_ID, CITY}`` rows.
+    """
+    in_clause, params = _plant_id_in_clause(plant_ids)
     sql = f"""
         SELECT PLANT_ID, PLANT_NAME, COUNTRY_ID, CITY
         FROM {PLANT_TBL}
-        WHERE PLANT_ID IN ({id_list})
+        WHERE PLANT_ID IN {in_clause}
     """
-    return await run_sql_async(token, sql)
+    return await run_sql_async(token, sql, params)
 
 
 async def fetch_plant_kpis(token: str, plant_id: str, days: int) -> list[dict]:
