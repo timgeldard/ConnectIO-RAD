@@ -8,8 +8,8 @@ import {
   type NavGroup,
   type Breadcrumb
 } from "@connectio/shared-ui";
-import type { Batch, DemoState, PageId, Tweaks } from "./types";
-import { BATCH, BATCH_FAIL, BATCH_RECALL } from "./data/mock";
+import type { Batch, PageId, Tweaks } from "./types";
+import { BATCH } from "./data/mock";
 import { fetchBatchHeader } from "./data/api";
 import { ParamField, SimBanner, StatusPill } from "./ui";
 import { PageRecallReadiness } from "./pages/RecallReadiness";
@@ -129,6 +129,45 @@ function BatchPicker({
   );
 }
 
+function TraceEmptyState({
+  title,
+  message,
+  tone = "default",
+}: {
+  title: string;
+  message: string;
+  tone?: "default" | "error";
+}) {
+  return (
+    <div style={{
+      minHeight: 360,
+      display: "grid",
+      placeItems: "center",
+      padding: 24,
+    }}>
+      <div style={{
+        width: "min(680px, 100%)",
+        background: "var(--card)",
+        border: `1px solid ${tone === "error" ? "var(--sunset)" : "var(--line)"}`,
+        borderRadius: 8,
+        padding: "28px 32px",
+        boxShadow: "0 1px 2px rgba(20,55,0,0.025)",
+      }}>
+        <div style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          color: tone === "error" ? "var(--sunset)" : "var(--text-3)",
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          marginBottom: 10,
+        }}>Live batch context</div>
+        <h2 style={{ margin: 0, color: "var(--text-1)", fontSize: 22, fontWeight: 600 }}>{title}</h2>
+        <p style={{ margin: "10px 0 0", color: "var(--text-2)", lineHeight: 1.5 }}>{message}</p>
+      </div>
+    </div>
+  );
+}
+
 function TraceApp() {
   const { t } = useI18n();
   const [page, setPage] = useState<PageId>(() => {
@@ -138,7 +177,6 @@ function TraceApp() {
   });
   const [maxLevels, setMaxLevels] = useState(3);
   const [maxInputDepth, setMaxInputDepth] = useState(3);
-  const [demoState, setDemoState] = useState<DemoState>("default");
   const [sim, setSim] = useState(false);
   const [tweaks, _setTweaksState] = useState<Tweaks>(() => {
     try {
@@ -150,7 +188,6 @@ function TraceApp() {
 
   useEffect(() => { localStorage.setItem("mi:page", page); }, [page]);
 
-  const mockBatch: Batch = demoState === "qi" ? BATCH_FAIL : demoState === "recall" ? BATCH_RECALL : BATCH;
   const pageDef = PAGES.find((p) => p.id === page) ?? PAGES[0];
   const PageComp = pageDef.component;
 
@@ -159,25 +196,46 @@ function TraceApp() {
     return {
       material: params.get("material") ?? params.get("material_id") ?? "",
       batch: params.get("batch") ?? params.get("batch_id") ?? "",
+      demo: params.get("demo") === "1" || params.get("demo") === "true",
     };
   })();
+  const demoBatch: Batch | null = initialContext.demo ? BATCH : null;
   const [liveMaterialId, setLiveMaterialId] = useState(initialContext.material);
   const [liveBatchId, setLiveBatchId] = useState(initialContext.batch);
   const [materialDraft, setMaterialDraft] = useState(liveMaterialId);
   const [batchDraft, setBatchDraft] = useState(liveBatchId);
   const [liveBatch, setLiveBatch] = useState<Batch | null>(null);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!liveMaterialId || !liveBatchId) return;
+    if (!liveMaterialId || !liveBatchId) {
+      setLiveBatch(null);
+      setLiveLoading(false);
+      setLiveError(null);
+      return;
+    }
     let cancelled = false;
     setLiveBatch(null);
+    setLiveLoading(true);
+    setLiveError(null);
     fetchBatchHeader(liveMaterialId, liveBatchId)
-      .then((payload) => { if (!cancelled) setLiveBatch(payload.batch); })
-      .catch(() => {});
+      .then((payload) => {
+        if (!cancelled) {
+          setLiveBatch(payload.batch);
+          setLiveLoading(false);
+        }
+      })
+      .catch((err: Error) => {
+        if (!cancelled) {
+          setLiveError(err.message || "Unable to load this batch from the live backend.");
+          setLiveLoading(false);
+        }
+      });
     return () => { cancelled = true; };
   }, [liveMaterialId, liveBatchId]);
 
-  const batch: Batch = liveBatch ?? { ...mockBatch, material_id: liveMaterialId, batch_id: liveBatchId };
+  const batch = liveBatch ?? demoBatch;
 
   const navGroups: NavGroup[] = useMemo(() => {
     const groups = [
@@ -199,7 +257,7 @@ function TraceApp() {
 
   const breadcrumbs: Breadcrumb[] = [
     { label: t("trace.top.globalOps"), icon: "home" },
-    { label: batch.batch_id }
+    { label: batch?.batch_id || liveBatchId || "No batch selected" }
   ];
 
   return (
@@ -239,11 +297,11 @@ function TraceApp() {
                 border: "1px solid var(--line-1)",
                 borderRadius: 6,
               }}>
-                <ParamField label={t("trace.field.material")} value={batch.material_id} />
+                <ParamField label={t("trace.field.material")} value={batch?.material_id || liveMaterialId || "—"} />
                 <div style={{ width: 1, height: 20, background: "var(--line-1)" }} />
-                <ParamField label={t("trace.field.description")} value={batch.material_desc40} mono={false} />
+                <ParamField label={t("trace.field.description")} value={batch?.material_desc40 || "—"} mono={false} />
                 <div style={{ width: 1, height: 20, background: "var(--line-1)" }} />
-                <StatusPill status={batch.batch_status} size="sm" />
+                <StatusPill status={batch?.batch_status || "UNKNOWN"} size="sm" />
               </div>
               <LanguageSelector compact />
               <button className="icon-btn" onClick={() => window.location.reload()}>
@@ -269,21 +327,42 @@ function TraceApp() {
       }
     >
       <div style={{ padding: "24px 32px", maxWidth: 1600, margin: "0 auto" }}>
-        {sim && (
+        {batch && sim && (
           <div style={{ marginBottom: 20 }}>
             <SimBanner batchId={batch.batch_id} onClear={() => setSim(false)} />
           </div>
         )}
-        <PageComp
-          batch={batch}
-          navigate={setPage}
-          sim={sim}
-          onSim={setSim}
-          maxLevels={maxLevels}
-          setMaxLevels={setMaxLevels}
-          maxInputDepth={maxInputDepth}
-          setMaxInputDepth={setMaxInputDepth}
-        />
+        {liveLoading && (
+          <TraceEmptyState
+            title="Loading live batch"
+            message={`Loading material ${liveMaterialId} and batch ${liveBatchId} from the backend.`}
+          />
+        )}
+        {!liveLoading && liveError && (
+          <TraceEmptyState
+            tone="error"
+            title="Live batch unavailable"
+            message={liveError}
+          />
+        )}
+        {!liveLoading && !liveError && !batch && (
+          <TraceEmptyState
+            title="Select a live batch"
+            message="Enter a material and batch id to load traceability data. Demo data is only available with an explicit demo URL flag."
+          />
+        )}
+        {!liveLoading && !liveError && batch && (
+          <PageComp
+            batch={batch}
+            navigate={setPage}
+            sim={sim}
+            onSim={setSim}
+            maxLevels={maxLevels}
+            setMaxLevels={setMaxLevels}
+            maxInputDepth={maxInputDepth}
+            setMaxInputDepth={setMaxInputDepth}
+          />
+        )}
       </div>
     </AppShell>
   );

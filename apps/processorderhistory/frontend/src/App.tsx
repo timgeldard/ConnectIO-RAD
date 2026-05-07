@@ -14,7 +14,6 @@ import { EquipmentInsightsPage } from './pages/EquipmentInsights'
 import { EquipmentInsights2Page } from './pages/EquipmentInsights2'
 import { fetchCurrentUser, type CurrentUser } from './api/me'
 import { fetchPreferences, savePreferences } from './api/preferences'
-import { ORDERS } from './data/mock'
 import { GenieDrawer } from './genie/GenieDrawer'
 import { buildGeniePageContext } from './genie/pageContext'
 
@@ -29,8 +28,6 @@ type View =
   | { name: 'vessel-planning' }
   | { name: 'equipment-insights' }
   | { name: 'equipment-insights-2' }
-
-const HOUR = 3600 * 1000
 
 function viewToModule(view: View): string {
   switch (view.name) {
@@ -103,41 +100,11 @@ function AppContent() {
       window.scrollTo(0, 0)
     }
     ;(window as any).__navigateToOrder = (poId: string | number, ctx: any) => {
-      const list = ORDERS as any[]
-      let order = list.find(o => o.processOrderId === String(poId))
       const c = ctx || {}
-      if (!order) {
-        const start = c.start || (Date.now() - 4 * HOUR)
-        const end = c.end || null
-        order = {
-          processOrderId: String(poId),
-          id: String(poId),
-          materialId: c.materialId || 'MAT-000000',
-          materialDescription: c.label || 'Process order',
-          plantId: c.plantId || 'LND1',
-          batchId: '8' + String(poId).slice(-9).padStart(9, '0'),
-          supplierBatchId: '—',
-          manufactureDate: start,
-          expiryDate: start + 540 * 24 * HOUR,
-          allergens: ['—'],
-          orderStatus: c.kind === 'running' ? 'In progress' : c.kind === 'material-short' ? 'On hold' : 'Released',
-          lot: 'BATCH-' + String(poId).slice(-6),
-          product: { sku: c.materialId || 'MAT-000000', name: c.label || 'Process order', category: c.category || '—', fullName: c.label || 'Process order' },
-          plant: { code: c.plantId || 'LND1', name: 'Listowel' },
-          operator: c.operator || '—',
-          status: c.kind === 'running' ? 'running' : c.kind === 'material-short' ? 'onhold' : 'released',
-          targetQty: c.qty || 1000,
-          actualQty: c.kind === 'running' ? Math.round((c.qty || 1000) * 0.4) : 0,
-          yieldPct: null,
-          start,
-          end,
-          durationH: c.end && c.start ? Math.round((c.end - c.start) / HOUR * 10) / 10 : null,
-          shift: c.shift || 'A',
-          line: c.lineId || 'Line 1',
-          __planningMaterials: c.materials || null,
-          __planningKind: c.kind || null,
-          __planningShortageETA: c.shortageETA || null,
-        }
+      const order = {
+        id: String(poId),
+        processOrderId: String(poId),
+        status: 'unknown',
       }
       const fromView =
         c._from === 'planning' ? 'planning' :

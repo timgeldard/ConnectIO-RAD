@@ -1,4 +1,5 @@
 import React from 'react'
+import { resolveWarehouseApiPath } from '~/api/apiBase'
 
 const STORAGE_KEY = 'warehouse360:plant-id'
 
@@ -70,7 +71,7 @@ export const PlantProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true)
     setError(null)
 
-    fetch('/api/plants')
+    fetch(resolveWarehouseApiPath('/api/plants'))
       .then((res) => {
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
         return res.json() as Promise<{ plants?: unknown[] }>
