@@ -1,5 +1,5 @@
 import { act, render, screen } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
 import App from '../App'
 
 const orderDetailSpy = vi.fn()
@@ -30,6 +30,10 @@ vi.mock('../api/preferences', () => ({
 }))
 
 describe('App', () => {
+  beforeEach(() => {
+    orderDetailSpy.mockClear()
+  })
+
   it('renders the order list view by default with the sidebar', () => {
     render(<App />)
     expect(screen.getByTestId('page-list')).toBeInTheDocument()

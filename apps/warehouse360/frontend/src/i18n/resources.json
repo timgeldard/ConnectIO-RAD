@@ -293,7 +293,15 @@
     "warehouse.perf.kpi.dispensaryReady": "Dispensary readiness",
     "warehouse.perf.kpi.ssccCompliance": "SSCC scan compliance",
     "warehouse.perf.kpi.leftoverReturn": "Leftover return rate",
-    "warehouse.perf.kpi.stockoutRate": "Fast-mover stockout rate"
+    "warehouse.perf.kpi.stockoutRate": "Fast-mover stockout rate",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "fr": {
     "shared.language.label": "Langue",
@@ -589,7 +597,15 @@
     "warehouse.perf.kpi.dispensaryReady": "Disponibilité dispensaire",
     "warehouse.perf.kpi.ssccCompliance": "Conformité scan SSCC",
     "warehouse.perf.kpi.leftoverReturn": "Taux de retour des restes",
-    "warehouse.perf.kpi.stockoutRate": "Taux de rupture rapide"
+    "warehouse.perf.kpi.stockoutRate": "Taux de rupture rapide",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "es": {
     "shared.language.label": "Idioma",
@@ -885,7 +901,15 @@
     "warehouse.perf.kpi.dispensaryReady": "Disponibilidad dispensario",
     "warehouse.perf.kpi.ssccCompliance": "Conformidad escaneo SSCC",
     "warehouse.perf.kpi.leftoverReturn": "Tasa de devolución de restos",
-    "warehouse.perf.kpi.stockoutRate": "Tasa de rotura de stock rápido"
+    "warehouse.perf.kpi.stockoutRate": "Tasa de rotura de stock rápido",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "de": {
     "shared.language.label": "Sprache",
@@ -1181,7 +1205,15 @@
     "warehouse.perf.kpi.dispensaryReady": "Dosierungsbereitschaft",
     "warehouse.perf.kpi.ssccCompliance": "SSCC-Scan-Konformität",
     "warehouse.perf.kpi.leftoverReturn": "Restbestand-Rückgabequote",
-    "warehouse.perf.kpi.stockoutRate": "Fehlmengenrate Schnelldreher"
+    "warehouse.perf.kpi.stockoutRate": "Fehlmengenrate Schnelldreher",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "ja": {
     "shared.language.label": "言語",
@@ -1477,7 +1509,15 @@
     "warehouse.perf.kpi.dispensaryReady": "調剤準備状況",
     "warehouse.perf.kpi.ssccCompliance": "SSCCスキャン遵守率",
     "warehouse.perf.kpi.leftoverReturn": "残数返品率",
-    "warehouse.perf.kpi.stockoutRate": "ファストムーバー欠品率"
+    "warehouse.perf.kpi.stockoutRate": "ファストムーバー欠品率",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "zh-Hans": {
     "shared.language.label": "语言",
@@ -1773,7 +1813,15 @@
     "warehouse.perf.kpi.dispensaryReady": "配料室就绪率",
     "warehouse.perf.kpi.ssccCompliance": "SSCC扫描合规率",
     "warehouse.perf.kpi.leftoverReturn": "剩余物料退回率",
-    "warehouse.perf.kpi.stockoutRate": "快速周转物料缺货率"
+    "warehouse.perf.kpi.stockoutRate": "快速周转物料缺货率",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "zh-Hant": {
     "shared.language.label": "語言",
@@ -2069,7 +2117,15 @@
     "warehouse.perf.kpi.dispensaryReady": "配料室就緒率",
     "warehouse.perf.kpi.ssccCompliance": "SSCC掃描合規率",
     "warehouse.perf.kpi.leftoverReturn": "剩餘物料退回率",
-    "warehouse.perf.kpi.stockoutRate": "快速周轉物料缺貨率"
+    "warehouse.perf.kpi.stockoutRate": "快速周轉物料缺貨率",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "pt": {
     "shared.language.label": "Idioma",
@@ -2365,7 +2421,15 @@
     "warehouse.perf.kpi.dispensaryReady": "Prontidão do dispensário",
     "warehouse.perf.kpi.ssccCompliance": "Conformidade de scan SSCC",
     "warehouse.perf.kpi.leftoverReturn": "Taxa de retorno de sobras",
-    "warehouse.perf.kpi.stockoutRate": "Taxa de stockout de giro rápido"
+    "warehouse.perf.kpi.stockoutRate": "Taxa de stockout de giro rápido",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "id": {
     "shared.language.label": "Bahasa",
@@ -2661,7 +2725,15 @@
     "warehouse.perf.kpi.dispensaryReady": "Kesiapan dispensari",
     "warehouse.perf.kpi.ssccCompliance": "Kepatuhan pindai SSCC",
     "warehouse.perf.kpi.leftoverReturn": "Tingkat pengembalian sisa",
-    "warehouse.perf.kpi.stockoutRate": "Tingkat kehabisan stok fast-mover"
+    "warehouse.perf.kpi.stockoutRate": "Tingkat kehabisan stok fast-mover",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "ms": {
     "shared.language.label": "Bahasa",
@@ -2957,7 +3029,15 @@
     "warehouse.perf.kpi.dispensaryReady": "Kesediaan dispensari",
     "warehouse.perf.kpi.ssccCompliance": "Kepatuhan imbasan SSCC",
     "warehouse.perf.kpi.leftoverReturn": "Kadar pulangan baki",
-    "warehouse.perf.kpi.stockoutRate": "Kadar ketiadaan stok fast-mover"
+    "warehouse.perf.kpi.stockoutRate": "Kadar ketiadaan stok fast-mover",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "ga": {
     "shared.language.label": "Teanga",
@@ -3253,7 +3333,15 @@
     "warehouse.perf.kpi.dispensaryReady": "Ullmhacht braidhis",
     "warehouse.perf.kpi.ssccCompliance": "Cloí le scanadh SSCC",
     "warehouse.perf.kpi.leftoverReturn": "Ráta fillte fágtha",
-    "warehouse.perf.kpi.stockoutRate": "Ráta stoc-amach fast-mover"
+    "warehouse.perf.kpi.stockoutRate": "Ráta stoc-amach fast-mover",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "pl": {
     "shared.language.label": "Język",
@@ -3549,7 +3637,15 @@
     "warehouse.perf.kpi.dispensaryReady": "Gotowość dozowni",
     "warehouse.perf.kpi.ssccCompliance": "Zgodność skanowania SSCC",
     "warehouse.perf.kpi.leftoverReturn": "Wskaźnik zwrotu resztek",
-    "warehouse.perf.kpi.stockoutRate": "Wskaźnik braków towarów szybkozbywalnych"
+    "warehouse.perf.kpi.stockoutRate": "Wskaźnik braków towarów szybkozbywalnych",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "nl": {
     "shared.language.label": "Taal",
@@ -3845,7 +3941,15 @@
     "warehouse.perf.kpi.dispensaryReady": "Dispensarium gereedheid",
     "warehouse.perf.kpi.ssccCompliance": "SSCC-scan naleving",
     "warehouse.perf.kpi.leftoverReturn": "Restant-retourpercentage",
-    "warehouse.perf.kpi.stockoutRate": "Fast-mover stockout-percentage"
+    "warehouse.perf.kpi.stockoutRate": "Fast-mover stockout-percentage",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "uk": {
     "shared.language.label": "Мова",
@@ -4141,7 +4245,15 @@
     "warehouse.perf.kpi.dispensaryReady": "Готовність дозування",
     "warehouse.perf.kpi.ssccCompliance": "Дотримання сканування SSCC",
     "warehouse.perf.kpi.leftoverReturn": "Рівень повернення залишків",
-    "warehouse.perf.kpi.stockoutRate": "Рівень дефіциту швидких товарів"
+    "warehouse.perf.kpi.stockoutRate": "Рівень дефіциту швидких товарів",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "da": {
     "shared.language.label": "Sprog",
@@ -4437,7 +4549,15 @@
     "warehouse.perf.kpi.dispensaryReady": "Dispensary parathed",
     "warehouse.perf.kpi.ssccCompliance": "SSCC scan overholdelse",
     "warehouse.perf.kpi.leftoverReturn": "Rest-returrate",
-    "warehouse.perf.kpi.stockoutRate": "Hurtigløber restordre-rate"
+    "warehouse.perf.kpi.stockoutRate": "Hurtigløber restordre-rate",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   },
   "vi": {
     "shared.language.label": "Ngôn ngữ",
@@ -4733,6 +4853,14 @@
     "warehouse.perf.kpi.dispensaryReady": "Sẵn sàng cấp phát",
     "warehouse.perf.kpi.ssccCompliance": "Tuân thủ quét SSCC",
     "warehouse.perf.kpi.leftoverReturn": "Tỷ lệ trả lại hàng dư",
-    "warehouse.perf.kpi.stockoutRate": "Tỷ lệ hết hàng nhanh"
+    "warehouse.perf.kpi.stockoutRate": "Tỷ lệ hết hàng nhanh",
+    "warehouse.ct.error.kpisUnavailableTitle": "Live warehouse KPIs unavailable",
+    "warehouse.ct.error.kpisUnavailableBody": "The backend did not return KPI signals for the selected plant.",
+    "warehouse.ct.error.kpiValue": "Unavailable",
+    "warehouse.ct.error.criticalKpis": "Unable to determine live critical KPI signals.",
+    "warehouse.ct.info.noCriticalKpis": "No live critical KPI signals for this plant.",
+    "warehouse.ct.error.workload": "Workload unavailable — KPI data could not be loaded.",
+    "warehouse.ct.error.storage": "Unable to load live storage utilisation data.",
+    "warehouse.ct.info.noStorage": "No live storage utilisation data for this plant."
   }
 }

@@ -10,6 +10,7 @@ def test_health():
     assert response.json()["status"] == "ok"
 
 def test_ready(monkeypatch):
+    """Verify /api/ready returns status 'ready' with detailed checks when all dependencies are healthy."""
     monkeypatch.setenv("DATABRICKS_READINESS_TOKEN", "token")
     monkeypatch.setattr(main_module, "check_warehouse_config", lambda: None)
 

@@ -130,6 +130,13 @@ function BatchPicker({
   );
 }
 
+/**
+ * Renders a centred empty-state card for the live batch context panel.
+ * @param title - Heading displayed in the card.
+ * @param message - Body text describing the current state.
+ * @param tone - Visual style: `"error"` renders borders and labels in red; defaults to `"default"`.
+ * @returns A centred card JSX element.
+ */
 function TraceEmptyState({
   title,
   message,
@@ -237,7 +244,9 @@ function TraceApp() {
     return () => { cancelled = true; };
   }, [liveMaterialId, liveBatchId]);
 
-  const batch = liveBatch ?? demoBatch;
+  // Only fall back to demo data when no live IDs have been entered; once the user types
+  // live IDs we show loading/error state rather than misleading demo values in the header.
+  const batch = liveBatch ?? (liveMaterialId || liveBatchId ? null : demoBatch);
 
   const navGroups: NavGroup[] = useMemo(() => {
     const groups = [
@@ -336,21 +345,21 @@ function TraceApp() {
         )}
         {liveLoading && (
           <TraceEmptyState
-            title="Loading live batch"
-            message={`Loading material ${liveMaterialId} and batch ${liveBatchId} from the backend.`}
+            title={t("trace.live.loading.title")}
+            message={t("trace.live.loading.message", { material: liveMaterialId, batch: liveBatchId })}
           />
         )}
         {!liveLoading && liveError && (
           <TraceEmptyState
             tone="error"
-            title="Live batch unavailable"
-            message={liveError}
+            title={t("trace.live.error.title")}
+            message={t("trace.live.error.message")}
           />
         )}
         {!liveLoading && !liveError && !batch && (
           <TraceEmptyState
-            title="Select a live batch"
-            message="Enter a material and batch id to load traceability data. Demo data is only available with an explicit demo URL flag."
+            title={t("trace.live.select.title")}
+            message={t("trace.live.select.message")}
           />
         )}
         {!liveLoading && !liveError && batch && (

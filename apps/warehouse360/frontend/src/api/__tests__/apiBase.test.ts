@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getWarehouseApiBase, resolveWarehouseApiPath } from '../apiBase'
 
 const setPathname = (pathname: string) => {
@@ -6,6 +6,10 @@ const setPathname = (pathname: string) => {
 }
 
 describe('warehouse API base resolution', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   it('keeps standalone routes on the local /api prefix', () => {
     setPathname('/')
 
@@ -32,7 +36,5 @@ describe('warehouse API base resolution', () => {
 
     expect(getWarehouseApiBase()).toBe('/custom/warehouse')
     expect(resolveWarehouseApiPath('/api/inbound')).toBe('/custom/warehouse/inbound')
-
-    vi.unstubAllEnvs()
   })
 })

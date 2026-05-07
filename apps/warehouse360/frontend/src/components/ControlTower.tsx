@@ -82,18 +82,18 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
       {kpisError && (
         <div className="card" style={{ marginBottom: 16, borderColor: 'var(--sunset)' }}>
           <div className="card-body">
-            <div className="red" style={{ fontWeight: 700, marginBottom: 4 }}>Live warehouse KPIs unavailable</div>
-            <div className="muted small">The backend did not return KPI signals for the selected plant: {kpisError}</div>
+            <div className="red" style={{ fontWeight: 700, marginBottom: 4 }}>{t('warehouse.ct.error.kpisUnavailableTitle')}</div>
+            <div className="muted small">{t('warehouse.ct.error.kpisUnavailableBody')}</div>
           </div>
         </div>
       )}
       <div className="kpi-grid">
-        <KPI label={t('warehouse.ct.kpi.ordersAtRisk')} value={kpisError ? 'Unavailable' : kpis?.orders_red ?? '…'} tone={kpisError ? 'warn' : kpis?.orders_red > 0 ? 'critical' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.ordersAmber')} value={kpisError ? 'Unavailable' : kpis?.orders_amber ?? '…'} tone={kpisError ? 'warn' : kpis?.orders_amber > 0 ? 'warn' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.openTOs')} value={kpisError ? 'Unavailable' : kpis?.tos_open ?? '…'} unit={kpisError ? undefined : ' TOs'} tone={kpisError ? 'warn' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.deliveriesAtRisk')} value={kpisError ? 'Unavailable' : kpis?.deliveries_at_risk ?? '…'} tone={kpisError ? 'warn' : kpis?.deliveries_at_risk > 0 ? 'warn' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.openInbound')} value={kpisError ? 'Unavailable' : kpis?.inbound_open ?? '…'} unit={kpisError ? undefined : ' lines'} tone={kpisError ? 'warn' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.binUtil')} value={kpisError ? 'Unavailable' : kpis?.bin_util_pct ?? '…'} unit={kpisError ? undefined : '%'} tone={kpisError ? 'warn' : kpis?.bin_util_pct > 92 ? 'critical' : kpis?.bin_util_pct > 80 ? 'warn' : 'ok'} barPct={kpisError ? undefined : kpis?.bin_util_pct ?? 0} barTone={kpis?.bin_util_pct > 92 ? 'red' : kpis?.bin_util_pct > 80 ? 'amber' : ''}/>
+        <KPI label={t('warehouse.ct.kpi.ordersAtRisk')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.orders_red ?? '…'} tone={kpisError ? 'warn' : kpis?.orders_red > 0 ? 'critical' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.ordersAmber')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.orders_amber ?? '…'} tone={kpisError ? 'warn' : kpis?.orders_amber > 0 ? 'warn' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.openTOs')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.tos_open ?? '…'} unit={kpisError ? undefined : ' TOs'} tone={kpisError ? 'warn' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.deliveriesAtRisk')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.deliveries_at_risk ?? '…'} tone={kpisError ? 'warn' : kpis?.deliveries_at_risk > 0 ? 'warn' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.openInbound')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.inbound_open ?? '…'} unit={kpisError ? undefined : ' lines'} tone={kpisError ? 'warn' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.binUtil')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.bin_util_pct ?? '…'} unit={kpisError ? undefined : '%'} tone={kpisError ? 'warn' : kpis?.bin_util_pct > 92 ? 'critical' : kpis?.bin_util_pct > 80 ? 'warn' : 'ok'} barPct={kpisError ? undefined : kpis?.bin_util_pct ?? 0} barTone={kpis?.bin_util_pct > 92 ? 'red' : kpis?.bin_util_pct > 80 ? 'amber' : ''}/>
       </div>
 
       {/* Today's run sheet + Critical exceptions */}
@@ -118,8 +118,8 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
                 </div>
               </button>
             ))}
-            {kpiUnavailable && <div className="red small">Unable to determine live critical KPI signals: {kpisError}</div>}
-            {!kpiUnavailable && exceptionSignals.length === 0 && <div className="muted small">No live critical KPI signals for this plant.</div>}
+            {kpiUnavailable && <div className="red small">{t('warehouse.ct.error.criticalKpis')}</div>}
+            {!kpiUnavailable && exceptionSignals.length === 0 && <div className="muted small">{t('warehouse.ct.info.noCriticalKpis')}</div>}
           </div>
         </Card>
       </div>
@@ -128,7 +128,7 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
       <div className="grid-2" style={{ marginBottom: 16 }}>
         <Card title={t('warehouse.ct.card.workload')} subtitle="Open · in progress · confirmed tasks this shift" eyebrow="Warehouse tasks">
           <div className="stack-8">
-            {kpiUnavailable && <div className="red small">Workload unavailable because KPI data could not be loaded: {kpisError}</div>}
+            {kpiUnavailable && <div className="red small">{t('warehouse.ct.error.workload')}</div>}
             {workload.map((w: any, i: number) => {
               const total = Math.max(1, w.open + w.exceptions);
               return (
@@ -266,7 +266,7 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
             })}
             {storageByType.length === 0 && (
               <div className={binsError ? 'red small' : 'muted small'}>
-                {binsError ? `Unable to load live storage utilisation data: ${binsError}` : 'No live storage utilisation data for this plant.'}
+                {binsError ? t('warehouse.ct.error.storage') : t('warehouse.ct.info.noStorage')}
               </div>
             )}
           </div>
