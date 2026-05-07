@@ -158,11 +158,6 @@ W360_ROUTERS = [
         "/api/wh",
         ["W360-Plants"],
     ),
-    (
-        _optional_router("warehouse360_backend.inventory_management.router_imwm", "warehouse360_backend"),
-        "/api/wh",
-        ["IMWM"],
-    ),
 ]
 
 _STATIC = Path(__file__).parent.parent / "static"
