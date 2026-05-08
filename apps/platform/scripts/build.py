@@ -5,11 +5,14 @@ Steps:
   1. Build wheels for all platform-required Python packages (shared libs +
      app backends). Output to apps/platform/wheels/.
   2. Build CQ frontend with VITE_BASE_PATH=/cq/ and copy dist to static/cq/.
-  3. Build POH frontend with VITE_BASE_PATH=/poh/ and copy dist to static/poh/.
-  4. Build W360 frontend with VITE_BASE_PATH=/warehouse360/ and copy dist to
+  3. Build Trace frontend with VITE_BASE_PATH=/trace/ and copy dist to static/trace/.
+  4. Build EnvMon frontend with VITE_BASE_PATH=/envmon/ and copy dist to static/envmon/.
+  5. Build SPC frontend with VITE_BASE_PATH=/spc/ and copy dist to static/spc/.
+  6. Build POH frontend with VITE_BASE_PATH=/poh/ and copy dist to static/poh/.
+  7. Build W360 frontend with VITE_BASE_PATH=/warehouse360/ and copy dist to
      static/warehouse360/.
-  5. Build Platform frontend (base=/) and copy dist to static/home/.
-  6. Copy standalone app sources from standalone/<slug>/ to static/<slug>/.
+  8. Build Platform frontend (base=/) and copy dist to static/home/.
+  9. Copy standalone app sources from standalone/<slug>/ to static/<slug>/.
 
 Run via `make deploy` or `python3 scripts/build.py` from the app root
 (apps/platform/).
@@ -31,6 +34,9 @@ from pathlib import Path
 APP_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = APP_DIR.parents[1]
 CQ_DIR = REPO_ROOT / "apps" / "connectedquality"
+TRACE_DIR = REPO_ROOT / "apps" / "trace2"
+ENVMON_DIR = REPO_ROOT / "apps" / "envmon"
+SPC_DIR = REPO_ROOT / "apps" / "spc"
 POH_DIR = REPO_ROOT / "apps" / "processorderhistory"
 W360_DIR = REPO_ROOT / "apps" / "warehouse360"
 PLATFORM_FRONTEND_DIR = APP_DIR / "frontend"
@@ -70,10 +76,8 @@ LEGACY_COPY_DIRECTORIES = (
 STANDALONE_SLUGS = [
     "enzymes",
     "pi-sheet",
-    "warehouse",
     "maintenance",
     "tpm",
-    "imwm",
     "pex-e-35",
     "lineside-monitor",
 ]
@@ -173,6 +177,21 @@ if __name__ == "__main__":
     build_frontend(CQ_DIR / "frontend", "/cq/")
     copy_static(CQ_DIR / "frontend" / "dist", APP_DIR / "static" / "cq")
     print("-> CQ static ready")
+
+    print("-> building Trace frontend (base=/trace/)")
+    build_frontend(TRACE_DIR / "frontend", "/trace/")
+    copy_static(TRACE_DIR / "frontend" / "dist", APP_DIR / "static" / "trace")
+    print("-> Trace static ready")
+
+    print("-> building EnvMon frontend (base=/envmon/)")
+    build_frontend(ENVMON_DIR / "frontend", "/envmon/")
+    copy_static(ENVMON_DIR / "frontend" / "dist", APP_DIR / "static" / "envmon")
+    print("-> EnvMon static ready")
+
+    print("-> building SPC frontend (base=/spc/)")
+    build_frontend(SPC_DIR / "frontend", "/spc/")
+    copy_static(SPC_DIR / "frontend" / "dist", APP_DIR / "static" / "spc")
+    print("-> SPC static ready")
 
     print("-> building POH frontend (base=/poh/)")
     build_frontend(POH_DIR / "frontend", "/poh/")

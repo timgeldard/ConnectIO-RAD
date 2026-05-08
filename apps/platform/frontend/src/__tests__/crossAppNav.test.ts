@@ -55,22 +55,26 @@ describe('buildCrossAppUrl', () => {
 })
 
 describe('buildSpaContextUrl', () => {
-  it('appends context params to integrated SPA URL', () => {
+  it('appends context params to Trace standalone SPA URL', () => {
     const url = buildSpaContextUrl(traceModule, ctx)
-    expect(url).toContain('/cq/?module=trace')
+    expect(url).toContain('/trace/')
     expect(url).toContain('entity=processOrder')
     expect(url).toContain('from=trace')
     expect(url).toContain('processOrderId=1001234')
   })
 
-  it('uses default tab when no activeTabId given', () => {
+  it('does not add platform tab params to standalone Trace URL', () => {
     const url = buildSpaContextUrl(traceModule, ctx)
-    expect(url).toContain('tab=header')
+    const qs = url.split('?').slice(1).join('?')
+    const params = new URLSearchParams(qs)
+    expect(params.has('tab')).toBe(false)
   })
 
-  it('uses provided activeTabId', () => {
+  it('ignores provided platform activeTabId for standalone Trace URL', () => {
     const url = buildSpaContextUrl(traceModule, ctx, 'tree')
-    expect(url).toContain('tab=tree')
+    const qs = url.split('?').slice(1).join('?')
+    const params = new URLSearchParams(qs)
+    expect(params.has('tab')).toBe(false)
   })
 
   it('returns standalone href for standalone apps', () => {

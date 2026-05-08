@@ -32,12 +32,12 @@ export const MODULES: ConnectIOModule[] = [
       ],
     },
     contextBarSlot: false,
-    routeBase: '/cq',
-    i18nNamespace: 'platform',
+    routeBase: '/trace/',
+    i18nNamespace: 'trace',
     isUserSelectable: true,
     isPinnedByDefault: true,
     isMandatory: false,
-    backendPrefix: '/api/cq',
+    backendPrefix: '/api',
   },
   {
     moduleId: 'envmon',
@@ -67,12 +67,12 @@ export const MODULES: ConnectIOModule[] = [
       ],
     },
     contextBarSlot: false,
-    routeBase: '/cq',
-    i18nNamespace: 'platform',
+    routeBase: '/envmon/',
+    i18nNamespace: 'envmon',
     isUserSelectable: true,
     isPinnedByDefault: true,
     isMandatory: false,
-    backendPrefix: '/api/cq',
+    backendPrefix: '/api/em',
   },
   {
     moduleId: 'spc',
@@ -103,12 +103,12 @@ export const MODULES: ConnectIOModule[] = [
       ],
     },
     contextBarSlot: false,
-    routeBase: '/cq',
-    i18nNamespace: 'platform',
+    routeBase: '/spc/',
+    i18nNamespace: 'spc',
     isUserSelectable: true,
     isPinnedByDefault: true,
     isMandatory: false,
-    backendPrefix: '/api/cq',
+    backendPrefix: '/api/spc',
   },
   {
     moduleId: 'lab',
@@ -154,8 +154,8 @@ export const MODULES: ConnectIOModule[] = [
     defaultTab: '',
     tabs: [],
     landingCard: {
-      tag: 'Process order formula optimisation',
-      desc: 'MILP-based formula optimiser for enzyme production batches. Adjust ingredient constraints, run the solver, compare optimised vs baseline, and accept to SAP.',
+      tag: 'Demo · Process order formula optimisation',
+      desc: 'Static concept demo for enzyme production optimisation. Shows the intended workflow, but is not wired to live order, solver, or SAP acceptance services.',
       stats: [
         { value: '—', label: 'Active batches' },
         { value: '—', label: 'Avg cost saving' },
@@ -185,8 +185,8 @@ export const MODULES: ConnectIOModule[] = [
     defaultTab: '',
     tabs: [],
     landingCard: {
-      tag: 'Process order execution & staging review',
-      desc: 'Execution-stage review for PEX-E-35 enzyme batches. Staging status, order progress, quality gate checks, and sign-off readiness across active process orders.',
+      tag: 'Demo · Process order execution & staging review',
+      desc: 'Static concept demo for PEX-E-35 staging review. Shows the intended operational surface, but is not wired to live process order or quality-gate services.',
       stats: [
         { value: '—', label: 'Orders staged' },
         { value: '—', label: 'Gate checks' },
@@ -493,8 +493,8 @@ export const MODULES: ConnectIOModule[] = [
     defaultTab: '',
     tabs: [],
     landingCard: {
-      tag: 'Electronic batch record · operator execution',
-      desc: 'Operator-facing tablet UI for real-time batch execution. Step-by-step recipe guidance with tolerance checks, deviation capture, and EBR generation.',
+      tag: 'Demo · Electronic batch record · operator execution',
+      desc: 'Static concept demo for operator batch execution. Shows the intended tablet workflow, but is not wired to live recipe, deviation, or EBR services.',
       stats: [
         { value: '—', label: 'Orders in progress' },
         { value: '—', label: 'Steps completed' },
@@ -596,12 +596,12 @@ export const MODULES: ConnectIOModule[] = [
       ],
     },
     contextBarSlot: false,
-    routeBase: '/imwm/',
+    routeBase: '/warehouse360',
     i18nNamespace: 'platform',
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,
-    backendPrefix: '',
+    backendPrefix: '/api/wh',
   },
   {
     moduleId: 'tpm',
@@ -617,8 +617,8 @@ export const MODULES: ConnectIOModule[] = [
     defaultTab: '',
     tabs: [],
     landingCard: {
-      tag: 'Toll processing · 7-stage lifecycle',
-      desc: 'End-to-end toll processing management from STO through manufacturing, quality receipt, and customer fulfilment — with lot-level traceability and exception SLA tracking.',
+      tag: 'Demo · Toll processing · 7-stage lifecycle',
+      desc: 'Static concept demo for toll processing. Shows the intended lifecycle, but is not wired to live STO, lot traceability, fulfilment, or exception services.',
       stats: [
         { value: '—', label: 'Active lots' },
         { value: '—', label: 'In transit' },
@@ -647,8 +647,8 @@ export const MODULES: ConnectIOModule[] = [
     defaultTab: '',
     tabs: [],
     landingCard: {
-      tag: 'Maintenance planning · reliability · backlog',
-      desc: 'Multi-persona maintenance hub: backlog prioritisation, asset reliability drills (MTBF, downtime trends), work order scheduling, and compliance governance.',
+      tag: 'Demo · Maintenance planning · reliability · backlog',
+      desc: 'Static concept demo for plant maintenance. Shows the intended backlog and reliability workflows, but is not wired to live work order or asset services.',
       stats: [
         { value: '—', label: 'Open orders' },
         { value: '—', label: 'Overdue' },

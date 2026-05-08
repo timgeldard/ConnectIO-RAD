@@ -1,6 +1,6 @@
 # warehouse360 Local Setup Guide
 
-Follow these steps to set up the Warehouse Operations Cockpit mockup for local development.
+Follow these steps to set up the Warehouse Operations Cockpit for local development.
 
 ## 📋 Prerequisites
 

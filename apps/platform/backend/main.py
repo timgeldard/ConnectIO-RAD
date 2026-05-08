@@ -1,12 +1,14 @@
 """ConnectIO Platform — unified FastAPI entry point.
 
-Serves ConnectedQuality (at /cq), ProcessOrderHistory (at /poh), and
-Warehouse360 (at /warehouse360) from a single Databricks App process.
+Serves ConnectedQuality (at /cq), Trace (at /trace), EnvMon (at /envmon), SPC
+(at /spc), ProcessOrderHistory (at /poh), and Warehouse360 (at /warehouse360)
+from a single Databricks App process.
 
 Backend packages are installed from local wheels produced by
-``scripts/build.py``. Every router listed in ``CQ_ROUTERS``, ``POH_ROUTERS``,
-and ``W360_ROUTERS`` is treated as *required*: an import failure aborts
-startup rather than silently 404-ing the affected routes.
+``scripts/build.py``. Every router listed in ``CQ_ROUTERS``,
+``TRACE_ROUTERS``, ``ENVMON_ROUTERS``, ``SPC_ROUTERS``, ``POH_ROUTERS``, and
+``W360_ROUTERS`` is treated as *required*: an import failure aborts startup
+rather than silently 404-ing the affected routes.
 """
 from __future__ import annotations
 
@@ -65,12 +67,29 @@ RouterEntry = tuple[Any, str, Optional[list[str]]]
 
 
 CQ_ROUTERS: list[RouterEntry] = [
-    (_required_router("connectedquality_backend.routers.trace"), "/api/cq", ["CQ-Trace"]),
-    (_required_router("connectedquality_backend.routers.envmon"), "/api/cq", ["CQ-EnvMon"]),
-    (_required_router("connectedquality_backend.routers.spc"), "/api/cq", ["CQ-SPC"]),
     (_required_router("connectedquality_backend.routers.lab"), "/api/cq", ["CQ-Lab"]),
     (_required_router("connectedquality_backend.user_preferences.router_me"), "/api/cq", ["CQ-Me"]),
     (_required_router("connectedquality_backend.routers.alarms"), "/api/cq", ["CQ-Alarms"]),
+]
+
+TRACE_ROUTERS: list[RouterEntry] = [
+    (_required_router("trace2_backend.batch_trace.router"), "/api", ["Trace-Batch"]),
+    (_required_router("trace2_backend.lineage_analysis.router"), "/api", ["Trace-Lineage"]),
+    (_required_router("trace2_backend.quality_record.router"), "/api", ["Trace-Quality"]),
+]
+
+ENVMON_ROUTERS: list[RouterEntry] = [
+    (_required_router("envmon_backend.inspection_analysis.router"), "/api/em", ["EnvMon-Inspection"]),
+    (_required_router("envmon_backend.spatial_config.router"), "/api/em", ["EnvMon-Spatial"]),
+]
+
+SPC_ROUTERS: list[RouterEntry] = [
+    (_required_router("spc_backend.process_control.router_metadata"), "/api/spc", ["SPC"]),
+    (_required_router("spc_backend.process_control.router_charts"), "/api/spc", ["SPC"]),
+    (_required_router("spc_backend.process_control.router_analysis"), "/api/spc", ["SPC"]),
+    (_required_router("spc_backend.routers.export"), "/api/spc", ["SPC-Export"]),
+    (_required_router("spc_backend.chart_config.router"), "/api/spc", ["SPC-ChartConfig"]),
+    (_required_router("spc_backend.routers.genie"), "/api/spc", ["SPC-Genie"]),
 ]
 
 POH_ROUTERS: list[RouterEntry] = [
@@ -103,26 +122,27 @@ W360_ROUTERS: list[RouterEntry] = [
 ]
 
 # Static-asset roots. Filled in by `apps/platform/scripts/build.py`:
-#   * cq/poh/warehouse360 are the bundled SPA dist outputs of the active
-#     React apps (CQ, POH, W360).
+#   * cq/trace/envmon/spc/poh/warehouse360 are the bundled SPA dist outputs of
+#     the active React apps (CQ, Trace, EnvMon, SPC, POH, W360).
 #   * home is the platform shell SPA served at `/`.
-#   * The remaining "standalone" directories (enzymes / pi-sheet / warehouse /
-#     maintenance / tpm / imwm / pex-e-35 / lineside-monitor) are static HTML
+#   * The remaining "standalone" directories (enzymes / pi-sheet / maintenance /
+#     tpm / pex-e-35 / lineside-monitor) are static HTML
 #     micro-apps copied verbatim from `apps/platform/standalone/<slug>/`.
 #     They are mounted but not part of any build pipeline. If you're adding
 #     a real React app, mirror the cq/poh/warehouse360 pattern in build.py
 #     instead of the standalone copy step.
 _STATIC = Path(__file__).parent.parent / "static"
 CQ_STATIC = _STATIC / "cq"
+TRACE_STATIC = _STATIC / "trace"
+ENVMON_STATIC = _STATIC / "envmon"
+SPC_STATIC = _STATIC / "spc"
 POH_STATIC = _STATIC / "poh"
 W360_STATIC = _STATIC / "warehouse360"
 HOME_STATIC = _STATIC / "home"
 ENZYMES_STATIC    = _STATIC / "enzymes"
 PI_SHEET_STATIC   = _STATIC / "pi-sheet"
-WAREHOUSE_STATIC  = _STATIC / "warehouse"
 MAINTENANCE_STATIC = _STATIC / "maintenance"
 TPM_STATIC        = _STATIC / "tpm"
-IMWM_STATIC       = _STATIC / "imwm"
 PEX_E35_STATIC    = _STATIC / "pex-e-35"
 LINESIDE_STATIC   = _STATIC / "lineside-monitor"
 
@@ -132,10 +152,18 @@ app = create_api_app(title="ConnectIO Platform API")
 def _include_required_routers() -> None:
     """Mount all required app routers onto the platform FastAPI app.
 
-    Routers in CQ/POH/W360 lists are guaranteed non-None (their imports above
-    are ``required=True`` and would have raised at module load otherwise).
+    Routers in CQ/Trace/EnvMon/SPC/POH/W360 lists are guaranteed non-None
+    (their imports above are ``required=True`` and would have raised at module
+    load otherwise).
     """
-    for router, prefix, tags in [*CQ_ROUTERS, *POH_ROUTERS, *W360_ROUTERS]:
+    for router, prefix, tags in [
+        *CQ_ROUTERS,
+        *TRACE_ROUTERS,
+        *ENVMON_ROUTERS,
+        *SPC_ROUTERS,
+        *POH_ROUTERS,
+        *W360_ROUTERS,
+    ]:
         kwargs: dict[str, Any] = {"prefix": prefix}
         if tags is not None:
             kwargs["tags"] = tags
@@ -195,6 +223,15 @@ async def routers_health():
 if CQ_STATIC.exists():
     app.mount("/cq", StaticFiles(directory=str(CQ_STATIC), html=True), name="cq")
 
+if TRACE_STATIC.exists():
+    app.mount("/trace", StaticFiles(directory=str(TRACE_STATIC), html=True), name="trace")
+
+if ENVMON_STATIC.exists():
+    app.mount("/envmon", StaticFiles(directory=str(ENVMON_STATIC), html=True), name="envmon")
+
+if SPC_STATIC.exists():
+    app.mount("/spc", StaticFiles(directory=str(SPC_STATIC), html=True), name="spc")
+
 if POH_STATIC.exists():
     app.mount("/poh", StaticFiles(directory=str(POH_STATIC), html=True), name="poh")
 
@@ -207,17 +244,11 @@ if ENZYMES_STATIC.exists():
 if PI_SHEET_STATIC.exists():
     app.mount("/pi-sheet", StaticFiles(directory=str(PI_SHEET_STATIC), html=True), name="pi-sheet")
 
-if WAREHOUSE_STATIC.exists():
-    app.mount("/warehouse", StaticFiles(directory=str(WAREHOUSE_STATIC), html=True), name="warehouse")
-
 if MAINTENANCE_STATIC.exists():
     app.mount("/maintenance", StaticFiles(directory=str(MAINTENANCE_STATIC), html=True), name="maintenance")
 
 if TPM_STATIC.exists():
     app.mount("/tpm", StaticFiles(directory=str(TPM_STATIC), html=True), name="tpm")
-
-if IMWM_STATIC.exists():
-    app.mount("/imwm", StaticFiles(directory=str(IMWM_STATIC), html=True), name="imwm")
 
 if PEX_E35_STATIC.exists():
     app.mount("/pex-e-35", StaticFiles(directory=str(PEX_E35_STATIC), html=True), name="pex-e-35")
