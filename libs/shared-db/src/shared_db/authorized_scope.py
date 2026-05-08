@@ -1,0 +1,52 @@
+"""Authorized plant scope — shared cross-app plant discovery via Unity Catalog.
+
+The current implementation queries ``gold_plant`` with the calling user's token.
+Unity Catalog's token-passthrough model means the SQL warehouse executes the query
+as that user; if row-level security is applied to ``gold_plant`` the result is
+already scoped to what that user can see.
+
+TODO: Request a dedicated ``authorized_scope_v`` view from UC Admin.
+      That view should use ``is_account_group_member(CONCAT('plant-', LOWER(plant_id),
+      '-read'))`` so authorization is enforced by Databricks account group membership
+      (synced from Azure AD) rather than inferred from data visibility in gold_plant.
+      Once the view exists, replace the query below with:
+          SELECT plant_id FROM {catalog}.{schema}.authorized_scope_v
+      and remove the gold_plant dependency.
+"""
+from __future__ import annotations
+
+import logging
+
+from shared_db.core import TRACE_CATALOG, TRACE_SCHEMA, run_sql_async
+
+logger = logging.getLogger(__name__)
+
+
+async def fetch_authorized_plants(
+    token: str,
+    *,
+    catalog: str | None = None,
+    schema: str | None = None,
+) -> list[str]:
+    """Return plant IDs the current user is authorized to see.
+
+    Executes ``SELECT DISTINCT PLANT_ID FROM gold_plant`` using the caller's
+    token so Unity Catalog enforces access.  An empty list means the user has
+    no visible plants; callers should surface this as an appropriate UX state
+    (e.g. empty plant picker) rather than raising an error.
+
+    Args:
+        token: Databricks access token forwarded from the Databricks Apps proxy.
+        catalog: Unity Catalog catalog name. Defaults to ``TRACE_CATALOG`` env var.
+        schema: Unity Catalog schema name. Defaults to ``TRACE_SCHEMA`` env var.
+
+    Returns:
+        Sorted list of PLANT_ID strings the calling user can access.
+    """
+    cat = catalog or TRACE_CATALOG
+    sch = schema or TRACE_SCHEMA
+    sql = f"SELECT DISTINCT PLANT_ID FROM `{cat}`.`{sch}`.`gold_plant` ORDER BY PLANT_ID"
+    rows = await run_sql_async(token, sql, endpoint_hint="shared.authorized_scope")
+    plants = sorted(str(r["PLANT_ID"]) for r in rows if r.get("PLANT_ID"))
+    logger.debug("authorized_scope: user has %d plant(s)", len(plants))
+    return plants

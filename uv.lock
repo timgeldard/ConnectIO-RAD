@@ -1680,7 +1680,7 @@ requires-dist = [
 
 [[package]]
 name = "shared-db"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "libs/shared-db" }
 dependencies = [
     { name = "cachetools" },
