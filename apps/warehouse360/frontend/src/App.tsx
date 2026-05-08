@@ -16,7 +16,7 @@ import { IMWMCockpit } from '~/components/IMWMCockpit'
 import { Dispensary } from '~/components/Dispensary'
 import { Exceptions, Performance } from '~/components/ExceptionsPerf'
 import { DocsPage } from '~/components/Docs'
-import resources from '~/i18n/resources.json'
+import enResources from '~/i18n/locales/en.json'
 import { fmtTime } from '~/utils/time'
 
 /** Discriminated union for the slide-in drawer state. */
@@ -162,8 +162,16 @@ function WarehouseApp() {
 
 /** Root component — provides i18n and plant context to the entire app. */
 export default function App() {
+  const loadResource = async (lang: string) => {
+    return (await import(`./i18n/locales/${lang}.json`)).default
+  }
+
   return (
-    <I18nProvider appName="warehouse360" resources={resources}>
+    <I18nProvider
+      appName="warehouse360"
+      resources={{ en: enResources }}
+      loadResource={loadResource}
+    >
       <PlantProvider>
         <WarehouseApp />
       </PlantProvider>

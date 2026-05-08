@@ -15,31 +15,31 @@ interface StatCardProps {
 
 function StatCard({ label, value, tone = 'neutral', hint }: StatCardProps) {
   const borderColor =
-    tone === 'critical' ? 'var(--cds-support-error)'
-    : tone === 'warning' ? 'var(--cds-support-warning)'
-    : 'var(--cds-border-subtle-01)'
+    tone === 'critical' ? 'var(--status-risk)'
+    : tone === 'warning' ? 'var(--status-warn)'
+    : 'var(--line-1)'
   const color =
-    tone === 'critical' ? 'var(--cds-support-error)'
-    : tone === 'warning' ? 'var(--cds-support-warning)'
-    : 'var(--cds-text-primary)'
+    tone === 'critical' ? 'var(--status-risk)'
+    : tone === 'warning' ? 'var(--status-warn)'
+    : 'var(--text-1)'
   return (
     <div
       style={{
         minWidth: 0,
         borderRadius: 4,
         padding: '0.75rem',
-        background: 'var(--cds-layer)',
+        background: 'var(--surface-1)',
         border: `1px solid ${borderColor}`,
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--cds-text-secondary)' }}>
+        <span style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)' }}>
           {label}
         </span>
         <span style={{ fontSize: '1.25rem', fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums', color }}>
           {value}
         </span>
-        {hint && <span style={{ fontSize: '0.6875rem', color: 'var(--cds-text-secondary)' }}>{hint}</span>}
+        {hint && <span style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>{hint}</span>}
       </div>
     </div>
   )
@@ -64,8 +64,8 @@ export default function DataQualityPanel({ summary, loading, error }: DataQualit
         role="alert"
         style={{
           borderRadius: 4,
-          border: '1px solid var(--cds-support-error)',
-          background: 'var(--cds-notification-background-error)',
+          border: '1px solid var(--status-risk)',
+          background: 'var(--status-risk-bg)',
           padding: '0.75rem 1rem',
           fontSize: '0.8125rem',
         }}
@@ -76,7 +76,7 @@ export default function DataQualityPanel({ summary, loading, error }: DataQualit
   }
   if (loading && !summary) {
     return (
-      <div style={{ padding: '0.75rem', fontSize: '0.8125rem', color: 'var(--cds-text-secondary)' }}>
+      <div style={{ padding: '0.75rem', fontSize: '0.8125rem', color: 'var(--text-3)' }}>
         Computing data quality…
       </div>
     )
@@ -95,10 +95,10 @@ export default function DataQualityPanel({ summary, loading, error }: DataQualit
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
       <div>
-        <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--cds-text-secondary)' }}>
+        <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)' }}>
           Data quality
         </div>
-        <div style={{ marginTop: 4, fontSize: '1rem', fontWeight: 700, color: 'var(--cds-text-primary)' }}>
+        <div style={{ marginTop: 4, fontSize: '1rem', fontWeight: 700, color: 'var(--text-1)' }}>
           Population health
         </div>
       </div>
@@ -131,13 +131,13 @@ export default function DataQualityPanel({ summary, loading, error }: DataQualit
         />
       </div>
       {summary.first_batch_date && summary.last_batch_date && (
-        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
+        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-3)' }}>
           Range: {summary.first_batch_date} → {summary.last_batch_date}
         </p>
       )}
       {summary.disposition_breakdown && Object.keys(summary.disposition_breakdown).length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <span style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--cds-text-secondary)' }}>
+          <span style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)' }}>
             Disposition (SAP usage decision)
           </span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', fontSize: '0.75rem' }}>
@@ -148,9 +148,9 @@ export default function DataQualityPanel({ summary, loading, error }: DataQualit
                 style={{
                   padding: '2px 8px',
                   borderRadius: 999,
-                  background: 'var(--cds-layer)',
-                  border: '1px solid var(--cds-border-subtle-01)',
-                  color: 'var(--cds-text-primary)',
+                  background: 'var(--surface-1)',
+                  border: '1px solid var(--line-1)',
+                  color: 'var(--text-1)',
                 }}
               >
                 {code === '__UNSET__' ? '(none)' : code}: {count.toLocaleString()}

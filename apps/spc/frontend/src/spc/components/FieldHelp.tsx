@@ -22,7 +22,7 @@ export default function FieldHelp({ id, error = false, live = false, children }:
       id={id}
       style={{
         fontSize: '0.75rem',
-        color: error ? 'var(--cds-support-error)' : 'var(--cds-text-secondary)',
+        color: error ? 'var(--status-risk)' : 'var(--text-3)',
         fontWeight: error ? 600 : 400,
       }}
       role={error && live ? 'alert' : undefined}

@@ -169,17 +169,17 @@ export default function IndividualsChart({ spc, indexedPoints, signals, onPointC
   if (!imr || !indexedPoints || !option) return null
 
   return (
-    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--cds-border-subtle-01)', paddingBottom: '1rem' }}>
-      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--cds-text-secondary)' }}>
+    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--line-1)', paddingBottom: '1rem' }}>
+      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-3)' }}>
         Individuals Chart (X)
         <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>n = {indexedPoints.length}</span>
       </div>
       <EChart option={option} style={{ height: 280 }} theme="spc" notMerge onEvents={onEvents} ariaLabel="Individuals (I) control chart" />
-      <p style={{ marginTop: '0.25rem', fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--cds-text-secondary)' }}>
+      <p style={{ marginTop: '0.25rem', fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--text-3)' }}>
         Sigma estimator: {imr.sigmaMethod === 'mssd' ? 'MSSD (trend-aware / low-n)' : 'Moving range (MR̄ / d2)'}
       </p>
       {onPointClick && (
-        <p style={{ marginTop: '0.25rem', fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--cds-text-secondary)' }}>Click any point to open the reviewed exclusion flow for control-limit calculation</p>
+        <p style={{ marginTop: '0.25rem', fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--text-3)' }}>Click any point to open the reviewed exclusion flow for control-limit calculation</p>
       )}
     </div>
   )

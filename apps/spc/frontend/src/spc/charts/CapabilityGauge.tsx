@@ -44,10 +44,10 @@ export default function CapabilityGauge({
   const needleBase2 = polarToXY(needleAngle + 90, 6)
 
   const color =
-    value === null ? 'var(--cds-text-placeholder)' :
-    value >= 1.33  ? 'var(--cds-support-success)' :
-    value >= 1.00  ? 'var(--cds-support-warning)' :
-                     'var(--cds-support-error)'
+    value === null ? 'var(--text-4)' :
+    value >= 1.33  ? 'var(--status-ok)' :
+    value >= 1.00  ? 'var(--status-warn)' :
+                     'var(--status-risk)'
 
   const ciTitle = (lower95 != null && upper95 != null)
     ? `${label}: ${value?.toFixed(2) ?? '—'}\n95% CI: [${lower95.toFixed(2)}, ${upper95.toFixed(2)}]`
@@ -93,7 +93,7 @@ export default function CapabilityGauge({
         <text x={CX} y={CY - 2} textAnchor="middle" fontSize="10" fill="#6b7280">{label}</text>
       </svg>
       {lower95 != null && upper95 != null && (
-        <div style={{ fontSize: '0.7rem', color: 'var(--cds-text-secondary)' }}>[{lower95.toFixed(2)}, {upper95.toFixed(2)}]</div>
+        <div style={{ fontSize: '0.7rem', color: 'var(--text-3)' }}>[{lower95.toFixed(2)}, {upper95.toFixed(2)}]</div>
       )}
     </div>
   )

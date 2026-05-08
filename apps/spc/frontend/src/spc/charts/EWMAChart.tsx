@@ -106,8 +106,8 @@ export default function EWMAChart({ spc, indexedPoints, signals, onPointClick }:
   if (!ewma || !option) return null
 
   return (
-    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--cds-border-subtle-01)', paddingBottom: '1rem' }}>
-      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--cds-text-secondary)' }}>
+    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--line-1)', paddingBottom: '1rem' }}>
+      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-3)' }}>
         EWMA Chart
         <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>λ={ewma.lambda.toFixed(2)} · L={ewma.L.toFixed(1)}</span>
       </div>

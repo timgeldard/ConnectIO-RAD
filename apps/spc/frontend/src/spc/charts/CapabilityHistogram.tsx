@@ -128,10 +128,10 @@ export default function CapabilityHistogram({ spc }: CapabilityHistogramProps) {
   if (!option) return null
 
   return (
-    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--cds-border-subtle-01)', paddingBottom: '1rem' }}>
-      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--cds-text-secondary)' }}>Capability Histogram</div>
+    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--line-1)', paddingBottom: '1rem' }}>
+      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-3)' }}>Capability Histogram</div>
       <EChart option={option} style={{ height: 220 }} theme="spc" notMerge ariaLabel="Process capability histogram" />
-      <p style={{ marginTop: '0.25rem', fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--cds-text-secondary)' }}>Blue = in spec · Red = outside spec · Green curve = normal distribution</p>
+      <p style={{ marginTop: '0.25rem', fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--text-3)' }}>Blue = in spec · Red = outside spec · Green curve = normal distribution</p>
     </div>
   )
 }

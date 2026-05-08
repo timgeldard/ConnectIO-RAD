@@ -98,8 +98,8 @@ export default function MovingRangeChart({ spc, indexedPoints, mrSignals, extern
   if (!imr || !indexedPoints || !option) return null
 
   return (
-    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--cds-border-subtle-01)', paddingBottom: '1rem' }}>
-      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--cds-text-secondary)' }}>Moving Range Chart (MR)</div>
+    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--line-1)', paddingBottom: '1rem' }}>
+      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-3)' }}>Moving Range Chart (MR)</div>
       <EChart option={option} style={{ height: 180 }} theme="spc" notMerge ariaLabel="Moving range (MR) control chart" />
     </div>
   )

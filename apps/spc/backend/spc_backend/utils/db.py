@@ -255,6 +255,7 @@ async def run_sql_async(
     *,
     endpoint_hint: str = "unknown",
     audit: bool = True,
+    bypass_cache: bool = False,
 ) -> list[dict]:
     is_query_audit_statement = _is_query_audit_statement(statement)
     async with _SQL_SEMAPHORE:
@@ -265,6 +266,7 @@ async def run_sql_async(
             endpoint_hint=endpoint_hint,
             audit=audit and not is_query_audit_statement,
             invalidate_cache=not is_query_audit_statement,
+            bypass_cache=bypass_cache,
         )
 
 

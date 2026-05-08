@@ -142,15 +142,15 @@ export default function UChart({ points, embedded = false }: UChartViewProps) {
   if (embedded) return chartNode
 
   return (
-    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--cds-border-subtle-01)', paddingBottom: '1rem' }}>
-      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--cds-text-secondary)' }}>
+    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--line-1)', paddingBottom: '1rem' }}>
+      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-3)' }}>
         U Chart (Defects per Unit — variable subgroup size)
         {oocCount > 0 && (
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cds-support-error)' }}>⚠ {oocCount} point{oocCount !== 1 ? 's' : ''} beyond limits</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--status-risk)' }}>⚠ {oocCount} point{oocCount !== 1 ? 's' : ''} beyond limits</span>
         )}
       </div>
       {chartNode}
-      <p style={{ marginTop: '0.25rem', fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--cds-text-secondary)' }}>
+      <p style={{ marginTop: '0.25rem', fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--text-3)' }}>
         ū = {chart.uBar.toFixed(4)} · Variable limits per inspection unit count
       </p>
     </div>

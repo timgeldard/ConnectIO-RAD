@@ -158,16 +158,16 @@ export default function PChart({ points, embedded = false }: PChartViewProps) {
   if (embedded) return chartNode
 
   return (
-    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--cds-border-subtle-01)', paddingBottom: '1rem' }}>
-      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--cds-text-secondary)' }}>
+    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--line-1)', paddingBottom: '1rem' }}>
+      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-3)' }}>
         P Chart (Proportion Nonconforming)
         <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>n̄ = {nBar}</span>
         {oocCount > 0 && (
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cds-support-error)' }}>⚠ {oocCount} point{oocCount !== 1 ? 's' : ''} beyond limits</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--status-risk)' }}>⚠ {oocCount} point{oocCount !== 1 ? 's' : ''} beyond limits</span>
         )}
       </div>
       {chartNode}
-      <p style={{ marginTop: '0.25rem', fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--cds-text-secondary)' }}>
+      <p style={{ marginTop: '0.25rem', fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--text-3)' }}>
         p̄ = {(pChart.pBar * 100).toFixed(2)}% overall nonconforming · Variable control limits shown per batch size
       </p>
     </div>

@@ -116,8 +116,8 @@ export default function CUSUMChart({ spc, indexedPoints, signals, onPointClick }
   if (!cusum || !option) return null
 
   return (
-    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--cds-border-subtle-01)', paddingBottom: '1rem' }}>
-      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--cds-text-secondary)' }}>
+    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--line-1)', paddingBottom: '1rem' }}>
+      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-3)' }}>
         CUSUM Chart
         <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>k={cusum.k.toFixed(2)} · h={cusum.h.toFixed(1)}</span>
       </div>

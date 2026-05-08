@@ -24,7 +24,11 @@ import { PageSupplierRisk } from "./pages/SupplierRisk";
 import { PageCoA } from "./pages/CoA";
 import { PageOverview } from "./pages/Overview";
 import { PageCustomersDeliveries } from "./pages/CustomersDeliveries";
-import resources from "./i18n/resources.json";
+import enResources from "./i18n/locales/en.json";
+
+const loadResource = async (lang: string) => {
+  return (await import(`./i18n/locales/${lang}.json`)).default;
+};
 
 export type PageProps = {
   batch: Batch;
@@ -381,7 +385,11 @@ function TraceApp() {
 
 export default function App() {
   return (
-    <I18nProvider appName="trace2" resources={resources}>
+    <I18nProvider
+      appName="trace2"
+      resources={{ en: enResources }}
+      loadResource={loadResource}
+    >
       <TraceApp />
     </I18nProvider>
   );

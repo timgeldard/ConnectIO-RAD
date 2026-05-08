@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
+import { I18nProvider } from '@connectio/shared-frontend-i18n'
 import { PlatformShell, ContextBar, type CtxState } from '@connectio/shared-ui'
 import { CQ_MODULES, CQ_COMPOSITION } from '~/manifest'
 import { fetchPreferences, savePreferences } from '~/api/preferences'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import enResources from '~/i18n/locales/en.json'
+
+const loadResource = async (lang: string) => {
+  return (await import(`./i18n/locales/${lang}.json`)).default
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,20 +89,26 @@ export function App() {
   const contextBar = activeModDef?.contextBarSlot && ctxState ? <ContextBar ctx={ctxState} /> : undefined
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <PlatformShell
-        composition={CQ_COMPOSITION}
-        modules={CQ_MODULES}
-        activeModule={activeModule}
-        tabState={tabState}
-        onModuleChange={setActiveModule}
-        onTabChange={handleTabChange}
-        contextBar={contextBar}
-        pinnedModules={pinnedModules}
-        onModulePinToggle={handleModulePinToggle}
-      >
-        <ActivePage mod={activeModule} />
-      </PlatformShell>
-    </QueryClientProvider>
+    <I18nProvider
+      appName="connectedquality"
+      resources={{ en: enResources }}
+      loadResource={loadResource}
+    >
+      <QueryClientProvider client={queryClient}>
+        <PlatformShell
+          composition={CQ_COMPOSITION}
+          modules={CQ_MODULES}
+          activeModule={activeModule}
+          tabState={tabState}
+          onModuleChange={setActiveModule}
+          onTabChange={handleTabChange}
+          contextBar={contextBar}
+          pinnedModules={pinnedModules}
+          onModulePinToggle={handleModulePinToggle}
+        >
+          <ActivePage mod={activeModule} />
+        </PlatformShell>
+      </QueryClientProvider>
+    </I18nProvider>
   )
 }

@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { I18nProvider, LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n';
-import resources from '../../i18n/resources.json';
+import enResources from '../../i18n/locales/en.json';
 import {
   AppShell as SharedAppShell,
   Sidebar,
@@ -172,8 +172,16 @@ function AppShellContent() {
 }
 
 export default function AppShell() {
+  const loadResource = async (lang: string) => {
+    return (await import(`../../i18n/locales/${lang}.json`)).default;
+  };
+
   return (
-    <I18nProvider appName="envmon" resources={resources}>
+    <I18nProvider 
+      appName="envmon" 
+      resources={{ en: enResources }}
+      loadResource={loadResource}
+    >
       <AppShellContent />
     </I18nProvider>
   );
