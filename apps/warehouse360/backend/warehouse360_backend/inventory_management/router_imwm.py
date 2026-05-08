@@ -18,8 +18,29 @@ _AGING_FRESHNESS_SOURCES = ["imwm_analytics_aging_v"]
 
 
 def _resolve_plant_scope(plant: Optional[str], plant_id: Optional[str]) -> Optional[str]:
-    """Support both the original IMWM query param and Warehouse360 plant context."""
-    return plant if plant not in (None, "") else plant_id
+    """Resolve the plant identifier from the two accepted query parameters.
+
+    Both ``plant`` (the original IMWM-tab parameter) and ``plant_id`` (the
+    Warehouse360 cross-app plant context) are accepted on every IMWM
+    endpoint. ``plant`` wins when both are present so a deliberate
+    cockpit selection takes precedence over inherited context. Whitespace-
+    only strings are normalised to empty so a stray space in the URL
+    doesn't bypass the fallback.
+
+    Args:
+        plant: The original IMWM query parameter.
+        plant_id: The Warehouse360 plant context parameter.
+
+    Returns:
+        The resolved plant identifier (already stripped), or ``None`` when
+        neither parameter carries a meaningful value — in which case the
+        caller queries across all plants visible to the token.
+    """
+    primary = (plant or "").strip()
+    if primary:
+        return primary
+    secondary = (plant_id or "").strip()
+    return secondary or None
 
 
 @router.get("/imwm/stock")
@@ -35,8 +56,12 @@ async def list_imwm_stock(
     Args:
         request: FastAPI request, used to attach the request path to the
             data-freshness metadata for log correlation.
-        plant: Optional plant ID; ``None`` returns all plants visible to
-            the caller's token.
+        plant: Optional IMWM-tab plant filter. Takes precedence over
+            ``plant_id`` when both are provided.
+        plant_id: Optional Warehouse360 cross-app plant context (e.g.
+            forwarded via ``parseCrossAppContext``). Used as a fallback
+            when ``plant`` is empty so navigations from another W360
+            module land scoped to the same plant.
         user: Proxy-validated identity, injected by FastAPI.
 
     Returns:
@@ -67,7 +92,10 @@ async def list_imwm_movements(
 
     Args:
         request: FastAPI request (used for freshness logging).
-        plant: Optional plant ID; ``None`` means all visible plants.
+        plant: Optional IMWM-tab plant filter. Takes precedence over
+            ``plant_id`` when both are provided.
+        plant_id: Optional Warehouse360 cross-app plant context, used
+            as a fallback when ``plant`` is empty.
         user: Proxy-validated identity, injected by FastAPI.
 
     Returns:
@@ -97,7 +125,10 @@ async def list_imwm_exceptions(
 
     Args:
         request: FastAPI request (used for freshness logging).
-        plant: Optional plant ID; ``None`` means all visible plants.
+        plant: Optional IMWM-tab plant filter. Takes precedence over
+            ``plant_id`` when both are provided.
+        plant_id: Optional Warehouse360 cross-app plant context, used
+            as a fallback when ``plant`` is empty.
         user: Proxy-validated identity, injected by FastAPI.
 
     Returns:
@@ -127,7 +158,10 @@ async def list_imwm_aging(
 
     Args:
         request: FastAPI request (used for freshness logging).
-        plant: Optional plant ID; ``None`` means all visible plants.
+        plant: Optional IMWM-tab plant filter. Takes precedence over
+            ``plant_id`` when both are provided.
+        plant_id: Optional Warehouse360 cross-app plant context, used
+            as a fallback when ``plant`` is empty.
         user: Proxy-validated identity, injected by FastAPI.
 
     Returns:

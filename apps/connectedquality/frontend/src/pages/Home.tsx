@@ -4,7 +4,15 @@ import { Pill } from '~/components/Pill'
 import { Icon } from '~/components/Icon'
 import { fetchJson } from '@connectio/shared-frontend-api'
 
-/** Home launcher — module cards, cross-module inbox, plant health, pinned views. */
+/**
+ * Home launcher for the ConnectedQuality application.
+ *
+ * Renders the operating console — a tile grid for the CQ-owned modules
+ * (Lab, Alarms, Admin), the cross-module inbox feed, plant-health
+ * indicators, and the user's pinned views.
+ *
+ * @returns The CQ home page React element.
+ */
 export function Home() {
   const ts = new Date().toLocaleString('en-GB', { hour12: false })
 

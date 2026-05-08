@@ -18,6 +18,7 @@ import { Exceptions, Performance } from '~/components/ExceptionsPerf'
 import { DocsPage } from '~/components/Docs'
 import enResources from '~/i18n/locales/en.json'
 import { fmtTime } from '~/utils/time'
+import { moduleToRoute, routeToModule } from '~/routing'
 
 /** Discriminated union for the slide-in drawer state. */
 type DrawerState =
@@ -27,46 +28,6 @@ type DrawerState =
   | { type: 'delivery'; entity: any }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   | { type: 'receipt';  entity: any }
-
-/**
- * Maps a PlatformShell moduleId to the internal route string used by the
- * legacy page-switch logic (kept for backwards compatibility with page
- * components that call onNav() with route strings).
- */
-function moduleToRoute(moduleId: string): string {
-  const map: Record<string, string> = {
-    home: 'today',
-    'wh-cockpit': 'staging',
-    deliveries: 'outbound',
-    inbound: 'inbound',
-    inventory: 'inventory',
-    imwm: 'imwm',
-    dispensary: 'dispensary',
-    exceptions: 'exceptions',
-    performance: 'performance',
-  }
-  return map[moduleId] ?? moduleId
-}
-
-/**
- * Maps the internal route string back to a PlatformShell moduleId so the shell
- * stays in sync when page components call onNav() with a route string.
- */
-function routeToModule(route: string): string {
-  const map: Record<string, string> = {
-    today: 'home',
-    staging: 'wh-cockpit',
-    outbound: 'deliveries',
-    inbound: 'inbound',
-    inventory: 'inventory',
-    imwm: 'imwm',
-    dispensary: 'dispensary',
-    exceptions: 'exceptions',
-    performance: 'performance',
-    docs: 'home', // docs is internal-only; fallback to home module in the rail
-  }
-  return map[route] ?? 'home'
-}
 
 /** Inner app — rendered inside I18nProvider and PlantProvider. */
 function WarehouseApp() {

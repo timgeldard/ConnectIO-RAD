@@ -123,7 +123,7 @@ export const W360_MODULES: ConnectIOModule[] = [
     domain: 'warehouse',
     iconSet: 'shared-ui',
     icon: 'database',
-    color: '#F24A00',
+    color: 'var(--sunset)',
     sidebarGroup: 'main',
     sidebarOrder: 5,
     defaultTab: '',
