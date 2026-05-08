@@ -41,6 +41,14 @@ def _latency_budget_ms_for_path(path: str) -> int:
     Mirror of the lookup the LatencyMiddleware does internally; exposed
     here so tests can verify the SPC-specific budget map without reaching
     into middleware internals.
+
+    Args:
+        path: The HTTP request path to look up in
+            ``LATENCY_BUDGETS_MS``.
+
+    Returns:
+        The configured budget in milliseconds, or
+        ``DEFAULT_LATENCY_BUDGET_MS`` when ``path`` is not registered.
     """
     return LATENCY_BUDGETS_MS.get(path, DEFAULT_LATENCY_BUDGET_MS)
 

@@ -145,6 +145,12 @@ class ConnectIoApp:
         mount has the same shadowing problem the deferred-mount design
         is preventing.
 
+        Args:
+            router: The FastAPI ``APIRouter`` to register on the
+                underlying app.
+            **kwargs: Forwarded verbatim to ``FastAPI.include_router``
+                (e.g. ``prefix``, ``tags``, ``dependencies``).
+
         Raises:
             RuntimeError: If called after the SPA has been mounted.
         """
@@ -181,6 +187,11 @@ class ConnectIoApp:
         ``rad_app.mount_spa()`` explicitly after all
         ``rad_app.include_router(...)`` calls, then read ``fastapi_app``
         once at the end.
+
+        Returns:
+            The configured ``FastAPI`` application instance, with the
+            SPA catch-all already mounted (if ``static_dir`` was
+            provided).
         """
         if not self._spa_mounted:
             self.mount_spa()
