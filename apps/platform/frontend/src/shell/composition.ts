@@ -21,14 +21,6 @@ export const COMPOSITION: AppComposition = {
       action: 'modal',
       target: '',
     },
-    {
-      id: 'help',
-      icon: 'help',
-      iconSet: 'shared-ui',
-      tooltip: 'Help & documentation',
-      action: 'external',
-      target: 'https://confluence.kerry.com/connectio',
-    },
   ],
   landingConfig: {
     greetingPrefix: 'Welcome to',

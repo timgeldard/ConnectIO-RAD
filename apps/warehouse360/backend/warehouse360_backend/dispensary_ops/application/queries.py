@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from shared_db import assert_plant_authorized
+
 from warehouse360_backend.dispensary_ops.dal import dispensary as dispensary_dal
 from warehouse360_backend.dispensary_ops.domain.task_status import is_urgent, normalize_task_status
 from warehouse360_backend.inventory_management.domain.plant_scope import PlantScope
@@ -16,6 +18,7 @@ async def list_dispensary_tasks(token: str, plant_id: Optional[str] = None) -> l
     and ``is_urgent`` (bool) derived from ``mins_to_start``.
     """
     scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
     rows = await dispensary_dal.fetch_dispensary_tasks(token, plant_id=scope.plant_id)
     for row in rows:
         status = normalize_task_status(row.get("status"))

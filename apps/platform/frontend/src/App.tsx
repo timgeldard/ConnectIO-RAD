@@ -25,7 +25,10 @@ import './genie/genie.css'
  */
 export function App() {
   const [state, handlers] = useShellState()
-  const [pinnedModules, onModulePinToggle] = usePinnedModules()
+  const selectableModuleIds = MODULES
+    .filter((m) => COMPOSITION.enabledModules.includes(m.moduleId) && m.isUserSelectable && !m.isMandatory)
+    .map((m) => m.moduleId)
+  const [pinnedModules, onModulePinToggle] = usePinnedModules(selectableModuleIds)
   const badgeMap = useBadgeCounts()
   const [genieOpen, setGenieOpen] = useState(false)
 

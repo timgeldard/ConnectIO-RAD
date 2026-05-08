@@ -29,22 +29,28 @@ function writePinned(pins: string[] | null): void {
  * Reads and writes the user's pinned module list from localStorage.
  *
  * Returns null when no preferences are saved (show all enabled modules).
- * Returns string[] once the user has pinned at least one module.
- * Exposes onPinToggle(moduleId, pin) to add/remove pins.
+ * Returns string[] once the user has customised the rail.
+ *
+ * @param selectableModuleIds  All user-selectable, non-mandatory module IDs
+ *   currently enabled. Used to seed the initial pin set when the user
+ *   removes a module for the first time (from the "show all" null state).
  */
-export function usePinnedModules(): [string[] | null, (moduleId: string, pin: boolean) => void] {
+export function usePinnedModules(selectableModuleIds: string[]): [string[] | null, (moduleId: string, pin: boolean) => void] {
   const [pinned, setPinned] = useState<string[] | null>(readPinned)
 
   const onPinToggle = useCallback((moduleId: string, pin: boolean) => {
     setPinned((prev) => {
-      const current = prev ?? []
+      // When no preferences exist yet, seed from the full selectable list so
+      // that "unpin" from the default state actually removes the item rather
+      // than being a no-op (filtering an empty array returns an empty array).
+      const current = prev ?? selectableModuleIds
       const next = pin
         ? current.includes(moduleId) ? current : [...current, moduleId]
         : current.filter((id) => id !== moduleId)
       writePinned(next.length > 0 ? next : null)
       return next.length > 0 ? next : null
     })
-  }, [])
+  }, [selectableModuleIds])
 
   return [pinned, onPinToggle]
 }

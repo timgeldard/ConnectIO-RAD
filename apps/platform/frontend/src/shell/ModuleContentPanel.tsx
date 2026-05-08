@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
-import { LandingCard } from './LandingCard'
+import { moduleHref } from './LandingCard'
 import { HomePanel } from './HomePanel'
 
 interface ModuleContentPanelProps {
@@ -9,27 +10,24 @@ interface ModuleContentPanelProps {
   modules: ConnectIOModule[]
   /** The tab currently active in the shell SubNav for this module. */
   activeTabId?: string
-  onModuleChange?: (moduleId: string) => void
 }
 
 /** Renders the content panel for the active module. */
-export function ModuleContentPanel({ moduleId, modules, activeTabId, onModuleChange }: ModuleContentPanelProps) {
-  if (moduleId === 'home') {
-    return <HomePanel onModuleChange={onModuleChange ?? (() => {})} />
-  }
-
+export function ModuleContentPanel({ moduleId, modules, activeTabId }: ModuleContentPanelProps) {
   const mod = modules.find((m) => m.moduleId === moduleId)
-  if (!mod) {
-    return (
-      <div className="plat-empty">
-        <p>Module not found: {moduleId}</p>
-      </div>
-    )
+
+  // Selecting any non-home module navigates directly into the sub-app,
+  // bypassing the intermediate landing card step.
+  useEffect(() => {
+    if (moduleId !== 'home' && mod) {
+      window.location.href = moduleHref(mod, activeTabId)
+    }
+  }, [moduleId, mod, activeTabId])
+
+  if (moduleId === 'home' || !mod) {
+    return <HomePanel />
   }
 
-  return (
-    <div className="plat-panel">
-      <LandingCard mod={mod} activeTabId={activeTabId} />
-    </div>
-  )
+  // Render nothing while the navigation fires.
+  return null
 }

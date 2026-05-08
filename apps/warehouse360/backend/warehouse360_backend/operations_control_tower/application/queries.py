@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from shared_db import assert_plant_authorized
+
 from warehouse360_backend.inventory_management.domain.plant_scope import PlantScope
 from warehouse360_backend.operations_control_tower.dal import kpis as kpis_dal
 from warehouse360_backend.operations_control_tower.domain.kpi_health import (
@@ -22,6 +24,7 @@ async def list_kpis(token: str, plant_id: Optional[str] = None) -> list[dict]:
     derived from ``kpi_value`` against standard operation thresholds.
     """
     scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
     rows = await kpis_dal.fetch_kpis(token, plant_id=scope.plant_id)
     for row in rows:
         val_raw = row.get("kpi_value")

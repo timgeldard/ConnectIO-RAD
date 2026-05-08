@@ -1,22 +1,15 @@
 import { useState, useEffect } from 'react'
 import { MODULES } from './modules'
+import { moduleHref } from './LandingCard'
 
-function firstName(fullName: string): string {
-  return fullName.split(' ')[0] ?? fullName
-}
-
-interface HomePanelProps {
-  onModuleChange: (moduleId: string) => void
-}
-
-export function HomePanel({ onModuleChange }: HomePanelProps) {
+export function HomePanel() {
   const [name, setName] = useState('')
 
   useEffect(() => {
     fetch('/api/platform/me')
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { name?: string } | null) => {
-        if (data?.name) setName(firstName(data.name))
+        if (data?.name) setName(data.name)
       })
       .catch(() => {})
   }, [])
@@ -30,11 +23,11 @@ export function HomePanel({ onModuleChange }: HomePanelProps) {
       </h1>
       <div className="plat-home-grid">
         {cards.map((mod) => (
-          <button
+          <a
             key={mod.moduleId}
             className="plat-home-card"
+            href={moduleHref(mod)}
             style={{ '--card-accent': mod.color } as React.CSSProperties}
-            onClick={() => onModuleChange(mod.moduleId)}
           >
             <div className="plat-home-card-bar" />
             <div className="plat-home-card-body">
@@ -42,7 +35,7 @@ export function HomePanel({ onModuleChange }: HomePanelProps) {
               <div className="plat-home-card-name">{mod.displayName}</div>
               <p className="plat-home-card-desc">{mod.landingCard!.desc}</p>
             </div>
-          </button>
+          </a>
         ))}
       </div>
     </div>
