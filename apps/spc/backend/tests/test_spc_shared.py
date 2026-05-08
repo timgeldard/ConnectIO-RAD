@@ -35,8 +35,11 @@ def test_infer_spec_type_bilateral_no_nominal():
     assert infer_spec_type(10, 5, None) == "bilateral_symmetric"
 
 def test_compute_normality_invalid_p_value(monkeypatch):
-    import scipy.stats
-    # Mock shapiro to return NaN p-value
-    monkeypatch.setattr(scipy.stats, "shapiro", lambda data: (1.0, float('nan')))
+    # capability.py imports `shapiro` directly via `from scipy.stats import
+    # shapiro`, so the patch target is the module-level binding inside
+    # capability — not scipy.stats. Patching scipy.stats.shapiro doesn't
+    # affect the already-resolved reference.
+    from spc_backend.process_control.domain import capability
+    monkeypatch.setattr(capability, "shapiro", lambda data: (1.0, float('nan')))
     res = compute_normality_result([1.0, 2.0, 3.0])
     assert "invalid p-value" in res["warning"]

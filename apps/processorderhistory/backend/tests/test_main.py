@@ -15,7 +15,13 @@ def test_health() -> None:
 
 
 def test_ready(monkeypatch) -> None:
-    """`/api/ready` returns 200 when warehouse config and SQL connectivity are available."""
+    """`/api/ready` returns 200 when warehouse config and SQL connectivity are available.
+
+    After the ConnectIoApp migration the readiness probe also guards on
+    ``DATABRICKS_READINESS_TOKEN`` (returning 503 when absent), so the
+    test sets it explicitly to exercise the success path.
+    """
+    monkeypatch.setenv("DATABRICKS_READINESS_TOKEN", "fake-token")
     ready_payload = {"status": "ready", "checks": {"config": "ok", "sql_warehouse": "ok"}}
 
     async def _mock_ready(**_kwargs):

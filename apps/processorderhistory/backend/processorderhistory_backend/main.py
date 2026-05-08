@@ -1,14 +1,15 @@
-"""Process Order History — FastAPI entry."""
+"""Process Order History — FastAPI entry.
+
+Bootstraps via the shared :class:`ConnectIoApp` framework so liveness /
+readiness probes, SPA mounting, and debug-endpoint scaffolding are uniform
+with envmon, spc, trace2, and connectedquality.
+"""
 from pathlib import Path
 
-from shared_api import (
-    create_api_app,
-    databricks_sql_ready,
-    health_payload,
-    register_spa_routes,
-)
-from processorderhistory_backend.db import check_warehouse_config, run_sql_async
+from shared_api import ConnectIoApp, databricks_sql_ready
 from shared_db.errors import send_operational_alert
+
+from processorderhistory_backend.db import check_warehouse_config, run_sql_async
 from processorderhistory_backend.order_execution.router_me import router as me_router
 from processorderhistory_backend.order_execution.router_orders import router as orders_router
 from processorderhistory_backend.order_execution.router_order_detail import router as order_detail_router
@@ -37,41 +38,9 @@ LATENCY_BUDGETS_MS = {
     "/api/planning/schedule": 8_000,
 }
 
-app = create_api_app(
-    title="Process Order History API",
-    latency_budgets_ms=LATENCY_BUDGETS_MS,
-    latency_alert_callback=lambda path, dur, bud, status: send_operational_alert(
-        subject="Latency budget exceeded",
-        body=f"Request to {path} completed in {dur} ms (budget {bud} ms, status {status}).",
-        request_path=path,
-    ),
-)
-app.include_router(me_router, prefix="/api")
-app.include_router(orders_router, prefix="/api")
-app.include_router(order_detail_router, prefix="/api")
-app.include_router(pours_router, prefix="/api")
-app.include_router(planning_router, prefix="/api")
-app.include_router(day_view_router, prefix="/api")
-app.include_router(yield_router, prefix="/api")
-app.include_router(quality_router, prefix="/api")
-app.include_router(downtime_router, prefix="/api")
-app.include_router(oee_router, prefix="/api")
-app.include_router(adherence_router, prefix="/api")
-app.include_router(genie_router, prefix="/api")
-app.include_router(vessel_planning_router, prefix="/api")
-app.include_router(equipment_insights_router, prefix="/api")
-app.include_router(equipment_insights2_router, prefix="/api")
 
-
-@app.get("/api/health")
-async def health():
-    """Liveness probe for the Databricks Apps load balancer."""
-    return health_payload()
-
-
-@app.get("/api/ready")
-async def ready():
-    """Readiness probe — verifies warehouse config and SQL connectivity."""
+async def poh_readiness_check() -> dict:
+    """Confirm the Databricks SQL warehouse is reachable for POH workloads."""
     return await databricks_sql_ready(
         check_warehouse_config=check_warehouse_config,
         run_sql=run_sql_async,
@@ -79,4 +48,35 @@ async def ready():
     )
 
 
-register_spa_routes(app, static_dir_getter=lambda: STATIC_DIR)
+rad_app = ConnectIoApp(
+    title="Process Order History API",
+    static_dir=STATIC_DIR,
+    latency_budgets_ms=LATENCY_BUDGETS_MS,
+    latency_alert_callback=lambda path, dur, bud, status: send_operational_alert(
+        subject="Latency budget exceeded",
+        body=f"Request to {path} completed in {dur} ms (budget {bud} ms, status {status}).",
+        request_path=path,
+    ),
+    readiness_checks=[poh_readiness_check],
+)
+
+# Domain Router Registration — must happen BEFORE mount_spa() / fastapi_app
+# access, because the SPA catch-all would otherwise shadow these routes.
+rad_app.include_router(me_router, prefix="/api")
+rad_app.include_router(orders_router, prefix="/api")
+rad_app.include_router(order_detail_router, prefix="/api")
+rad_app.include_router(pours_router, prefix="/api")
+rad_app.include_router(planning_router, prefix="/api")
+rad_app.include_router(day_view_router, prefix="/api")
+rad_app.include_router(yield_router, prefix="/api")
+rad_app.include_router(quality_router, prefix="/api")
+rad_app.include_router(downtime_router, prefix="/api")
+rad_app.include_router(oee_router, prefix="/api")
+rad_app.include_router(adherence_router, prefix="/api")
+rad_app.include_router(genie_router, prefix="/api")
+rad_app.include_router(vessel_planning_router, prefix="/api")
+rad_app.include_router(equipment_insights_router, prefix="/api")
+rad_app.include_router(equipment_insights2_router, prefix="/api")
+
+rad_app.mount_spa()
+app = rad_app.fastapi_app

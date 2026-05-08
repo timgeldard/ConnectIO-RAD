@@ -25,8 +25,10 @@ rad_app = ConnectIoApp(
     ],
 )
 
-app = rad_app.fastapi_app
+# Domain Router Registration — must happen BEFORE mount_spa() / fastapi_app
+# access, because the SPA catch-all would otherwise shadow these routes.
+rad_app.include_router(inspection_router, prefix="/api/em", tags=["Inspection Analysis"])
+rad_app.include_router(spatial_router, prefix="/api/em", tags=["Spatial Config"])
 
-# Domain Router Registration
-app.include_router(inspection_router, prefix="/api/em", tags=["Inspection Analysis"])
-app.include_router(spatial_router, prefix="/api/em", tags=["Spatial Config"])
+rad_app.mount_spa()
+app = rad_app.fastapi_app

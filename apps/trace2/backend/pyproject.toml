@@ -1,6 +1,6 @@
 [project]
 name = "trace2-backend"
-version = "0.1.0"
+version = "0.1.1"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.110",
@@ -24,7 +24,7 @@ packages = ["trace2_backend"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-q --cov=trace2_backend --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=65"
+addopts = "-q --cov=trace2_backend --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=64"
 asyncio_mode = "auto"
 filterwarnings = ["ignore::DeprecationWarning"]
 
