@@ -14,7 +14,7 @@
 #   RESTRICTED  — agent may query only with explicit human instruction
 #   DEPRECATED  — do not use; listed for migration awareness only
 #
-# Last reviewed: 2026-04-23
+# Last reviewed: 2026-05-08
 # =============================================================================
 
 catalog: "{{CATALOG}}"
@@ -2087,3 +2087,389 @@ entities:
     notes:
       - "This is an append-only audit log — rows are never updated or deleted"
       - "Used by the SPC frontend to grey out excluded points on control charts"
+
+  # ===========================================================================
+  # POH APP — Gold Layer Pre-computed Metric MVs (connected_plant_uat.gold)
+  # ===========================================================================
+  # All five MVs refresh daily at 06:00 UTC.  Use gold_tbl() helper to reference.
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # MATERIALIZED VIEW: metric_yield_per_order
+  # ---------------------------------------------------------------------------
+  - name: metric_yield_per_order
+    business_name: Yield Per Order
+    type: materialized_view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Pre-computed yield metrics at process order grain.  One row per
+      PROCESS_ORDER_ID.  Replaces per-request CTE scans of
+      vw_gold_adp_movement for receipt and issue quantities.
+      yield_pct = (qty_received_kg / qty_issued_kg) × 100.
+      loss_kg = qty_issued_kg − qty_received_kg.
+      Refreshed daily at 06:00 UTC.
+    grain: One row per PROCESS_ORDER_ID
+    primary_keys: [PROCESS_ORDER_ID]
+    preferred_synonyms:
+      - yield per order
+      - order yield
+    important_dimensions:
+      - name: PROCESS_ORDER_ID
+        type: STRING
+        description: SAP process order number
+      - name: MATERIAL_ID
+        type: STRING
+        description: Produced material
+      - name: material_name
+        type: STRING
+        description: Material description (pre-joined from gold_material)
+      - name: PLANT_ID
+        type: STRING
+        description: Production plant
+      - name: receipt_date
+        type: DATE
+        description: Local calendar date of the last goods receipt (use for date-range filters)
+      - name: last_receipt_ts
+        type: TIMESTAMP
+        description: UTC timestamp of the most recent goods receipt movement
+    important_measures:
+      - name: qty_received_kg
+        type: DOUBLE
+        description: Total goods-receipt quantity in kg (101 movements)
+      - name: qty_issued_kg
+        type: DOUBLE
+        description: Total goods-issue quantity in kg (261 movements)
+      - name: yield_pct
+        type: DOUBLE
+        description: "(qty_received_kg / qty_issued_kg) × 100 — NULL when qty_issued_kg = 0"
+      - name: loss_kg
+        type: DOUBLE
+        description: qty_issued_kg − qty_received_kg
+    traps:
+      - "yield_pct and loss_kg are NULL when qty_issued_kg = 0 — handle before rendering"
+      - "Filter by receipt_date (DATE) for date-range queries, not last_receipt_ts"
+    notes:
+      - "Access via gold_tbl('metric_yield_per_order') — lives in the gold schema"
+
+  # ---------------------------------------------------------------------------
+  # MATERIALIZED VIEW: metric_yield_daily
+  # ---------------------------------------------------------------------------
+  - name: metric_yield_daily
+    business_name: Daily Yield
+    type: materialized_view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Pre-computed daily average yield percentage per plant.  Used by the
+      30-day trend series in the Yield Analytics dashboard.
+      Refreshed daily at 06:00 UTC.
+    grain: One row per (production_date, PLANT_ID)
+    primary_keys: [production_date, PLANT_ID]
+    preferred_synonyms:
+      - daily yield
+      - yield trend
+    important_dimensions:
+      - name: production_date
+        type: DATE
+        description: Local calendar production date
+      - name: PLANT_ID
+        type: STRING
+        description: Production plant
+    important_measures:
+      - name: avg_yield_pct
+        type: DOUBLE
+        description: Average yield % across all orders on this date
+      - name: order_count
+        type: INT
+        description: Number of orders in the average
+    traps:
+      - "production_date is a DATE; when converting to epoch-ms use UNIX_TIMESTAMP and apply remap_utc_midnight_to_local_day for non-UTC timezones"
+    notes:
+      - "Access via gold_tbl('metric_yield_daily')"
+
+  # ---------------------------------------------------------------------------
+  # MATERIALIZED VIEW: metric_downtime_daily
+  # ---------------------------------------------------------------------------
+  - name: metric_downtime_daily
+    business_name: Daily Downtime
+    type: materialized_view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Pre-computed daily downtime duration and event counts by reason code.
+      Replaces per-request JOIN of vw_gold_downtime_and_issues to
+      vw_gold_process_order.  Refreshed daily at 06:00 UTC.
+    grain: One row per (downtime_date, PLANT_ID, REASON_CODE, ISSUE_TITLE)
+    primary_keys: [downtime_date, PLANT_ID, REASON_CODE, ISSUE_TITLE]
+    preferred_synonyms:
+      - daily downtime
+      - downtime pareto
+    important_dimensions:
+      - name: downtime_date
+        type: DATE
+        description: Local calendar date of the downtime event
+      - name: PLANT_ID
+        type: STRING
+        description: Production plant
+      - name: REASON_CODE
+        type: STRING
+        description: SAP downtime reason code
+      - name: ISSUE_TITLE
+        type: STRING
+        description: Human-readable downtime issue title
+    important_measures:
+      - name: total_duration_s
+        type: DOUBLE
+        description: Total downtime duration in seconds for this date/plant/reason
+      - name: event_count
+        type: INT
+        description: Number of individual downtime events
+    traps:
+      - "downtime_date is a DATE — use direct string comparison for date-range filters"
+      - "SUM across reason codes to get daily total; GROUP BY REASON_CODE for pareto"
+    notes:
+      - "Access via gold_tbl('metric_downtime_daily')"
+
+  # ---------------------------------------------------------------------------
+  # MATERIALIZED VIEW: metric_quality_daily
+  # ---------------------------------------------------------------------------
+  - name: metric_quality_daily
+    business_name: Daily Quality
+    type: materialized_view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Pre-computed daily accepted/rejected inspection result counts per plant.
+      Used by the 30-day quality trend series.  Replaces per-request JOIN of
+      vw_gold_inspection_result to vw_gold_inspection_usage_decision and
+      vw_gold_process_order.  Refreshed daily at 06:00 UTC.
+    grain: One row per (decision_date, PLANT_ID, MATERIAL_ID)
+    primary_keys: [decision_date, PLANT_ID, MATERIAL_ID]
+    preferred_synonyms:
+      - daily quality
+      - RFT trend
+    important_dimensions:
+      - name: decision_date
+        type: DATE
+        description: Local calendar date of the usage decision
+      - name: PLANT_ID
+        type: STRING
+        description: Production plant
+      - name: MATERIAL_ID
+        type: STRING
+        description: Material number
+    important_measures:
+      - name: accepted_count
+        type: INT
+        description: Number of accepted inspection results on this date
+      - name: rejected_count
+        type: INT
+        description: Number of rejected inspection results on this date
+    traps:
+      - "SUM across MATERIAL_ID to get plant-level daily totals"
+      - "decision_date is a DATE — apply remap_utc_midnight_to_local_day when converting to epoch-ms"
+    notes:
+      - "Access via gold_tbl('metric_quality_daily')"
+
+  # ---------------------------------------------------------------------------
+  # MATERIALIZED VIEW: metric_equipment_state_snapshot
+  # ---------------------------------------------------------------------------
+  - name: metric_equipment_state_snapshot
+    business_name: Equipment State Snapshot
+    type: materialized_view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Latest equipment state per instrument.  One row per INSTRUMENT_ID.
+      Replaces a ROW_NUMBER window scan of vw_gold_equipment_history.
+      Refreshed daily at 06:00 UTC.
+      NOTE: Confirm PLANT_ID column is present before using (see plan gate 3a).
+    grain: One row per INSTRUMENT_ID
+    primary_keys: [INSTRUMENT_ID]
+    preferred_synonyms:
+      - equipment snapshot
+      - current equipment state
+      - vessel state
+    important_dimensions:
+      - name: INSTRUMENT_ID
+        type: STRING
+        description: Instrument identifier
+      - name: EQUIPMENT_TYPE
+        type: STRING
+        description: Equipment classification
+      - name: current_status
+        type: STRING
+        description: Most recent equipment status
+      - name: last_change_at
+        type: TIMESTAMP
+        description: Timestamp of the most recent state change
+    traps:
+      - "PLANT_ID presence in the deployed MV is gated — verify with data team before relying on plant filtering"
+    notes:
+      - "Access via gold_tbl('metric_equipment_state_snapshot')"
+      - "Implementation deferred until PLANT_ID column confirmed (Phase 3a gate)"
+
+  # ===========================================================================
+  # POH APP — Gold Views (connected_plant_uat.csm_process_order_history schema)
+  # ===========================================================================
+  # Access via tbl() helper (not gold_tbl()).
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # VIEW: vw_gold_order_summary
+  # ---------------------------------------------------------------------------
+  - name: vw_gold_order_summary
+    business_name: Order Summary
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Pre-joined process order summary with confirmation timestamps, receipt
+      qty, duration, and material name.  Replaces a 3-CTE query joining
+      vw_gold_process_order, vw_gold_confirmation, vw_gold_adp_movement, and
+      vw_gold_material.  Source for the POH order list page.
+    grain: One row per PROCESS_ORDER_ID
+    primary_keys: [PROCESS_ORDER_ID]
+    preferred_synonyms:
+      - order list
+      - order summary
+    important_dimensions:
+      - name: PROCESS_ORDER_ID
+        type: STRING
+        description: SAP process order number
+      - name: INSPECTION_LOT_ID
+        type: STRING
+        description: Related quality inspection lot
+      - name: MATERIAL_ID
+        type: STRING
+        description: Produced material
+      - name: material_name
+        type: STRING
+        description: Material description (pre-joined)
+      - name: MATERIAL_CATEGORY
+        type: STRING
+        description: Material group/category
+      - name: PLANT_ID
+        type: STRING
+        description: Production plant
+      - name: STATUS
+        type: STRING
+        description: "SAP status (IN PROGRESS, COMPLETED, CLOSED, NOT STARTED)"
+      - name: start_ts
+        type: TIMESTAMP
+        description: First confirmation start timestamp (MIN across confirmations)
+      - name: end_ts
+        type: TIMESTAMP
+        description: Last confirmation end timestamp (MAX across confirmations)
+    important_measures:
+      - name: duration_h
+        type: DOUBLE
+        description: "(end_ts − start_ts) / 3600 — NULL if either timestamp is missing"
+      - name: actual_qty_kg
+        type: DOUBLE
+        description: Total goods-receipt qty in kg (movement type 101 net of 102 reversals)
+    traps:
+      - "STATUS must be mapped through ORDER_STATUS_EXPR before exposing to the UI"
+      - "Alias the FROM clause as 'po' so ORDER_STATUS_EXPR (which references po.STATUS) works"
+    notes:
+      - "Access via tbl('vw_gold_order_summary') — lives in csm_process_order_history schema"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: vw_gold_quality_result_enriched
+  # ---------------------------------------------------------------------------
+  - name: vw_gold_quality_result_enriched
+    business_name: Quality Result Enriched
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Pre-joined inspection result rows with usage decisions, specifications,
+      and material names.  Replaces a 4-way JOIN query against
+      vw_gold_inspection_result, vw_gold_inspection_usage_decision,
+      vw_gold_inspection_specification, and vw_gold_material.
+    grain: One row per inspection result characteristic
+    primary_keys: []
+    preferred_synonyms:
+      - quality results
+      - enriched results
+      - inspection results
+    important_dimensions:
+      - name: process_order
+        type: STRING
+        description: Process order number (maps to process_order in app output)
+      - name: inspection_lot_id
+        type: STRING
+        description: Inspection lot
+      - name: material_id
+        type: STRING
+        description: Material number
+      - name: material_name
+        type: STRING
+        description: Material description (pre-joined)
+      - name: PLANT_ID
+        type: STRING
+        description: Production plant
+      - name: characteristic_id
+        type: STRING
+        description: Inspection characteristic ID
+      - name: characteristic_name
+        type: STRING
+        description: "MIC name — alias to characteristic_description in app queries"
+      - name: sample_id
+        type: STRING
+        description: Sample number
+      - name: judgement
+        type: STRING
+        description: "Pre-computed valuation: 'A' = accepted, 'R' = rejected"
+      - name: decision_date
+        type: DATE
+        description: Local calendar date of the usage decision (use for date-range filters)
+      - name: decision_ts
+        type: TIMESTAMP
+        description: "UTC timestamp of the usage decision — alias to result_date_ms via CAST(UNIX_TIMESTAMP(decision_ts)*1000 AS BIGINT)"
+    important_measures:
+      - name: quantitative_result
+        type: DOUBLE
+        description: Numeric measurement value (NULL for qualitative MICs)
+      - name: quality_score
+        type: DOUBLE
+        description: Numeric quality score from the usage decision
+    traps:
+      - "Column names are lowercase — unlike most gold views"
+      - "Alias characteristic_name → characteristic_description in app SELECT lists"
+      - "Alias CAST(UNIX_TIMESTAMP(decision_ts)*1000 AS BIGINT) → result_date_ms for app compatibility"
+      - "Filter by decision_date (DATE) for date-range queries for efficiency"
+    notes:
+      - "Access via tbl('vw_gold_quality_result_enriched') — lives in csm_process_order_history schema"
+
+  # ---------------------------------------------------------------------------
+  # VIEW: vw_gold_day_view_blocks
+  # ---------------------------------------------------------------------------
+  - name: vw_gold_day_view_blocks
+    business_name: Day View Blocks
+    type: view
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Pre-joined Gantt-style day-view blocks for the production planning board.
+      Replaces a 4-join query in day_view_dal._q_blocks().
+      NOTE: Confirm PROCESS_LINE source before using (see plan gate 3b).
+    grain: One row per process order confirmation block
+    primary_keys: []
+    preferred_synonyms:
+      - day view
+      - gantt blocks
+      - planning blocks
+    important_dimensions:
+      - name: confirmation_date
+        type: DATE
+        description: Local calendar date of the confirmation block (use for date filter)
+      - name: PLANT_ID
+        type: STRING
+        description: Production plant
+    traps:
+      - "PROCESS_LINE source (silver vs gold) must be confirmed before relying on this view"
+    notes:
+      - "Access via tbl('vw_gold_day_view_blocks') — lives in csm_process_order_history schema"
+      - "Implementation deferred until PROCESS_LINE source confirmed (Phase 3b gate)"

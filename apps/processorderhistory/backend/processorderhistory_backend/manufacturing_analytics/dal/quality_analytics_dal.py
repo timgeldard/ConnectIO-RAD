@@ -1,18 +1,16 @@
 """DAL for quality analytics — inspection result aggregations.
 
 Runs 3–4 Databricks queries in parallel (asyncio.gather):
-  1. results_range — inspection result rows for the requested date range
-  2. daily30d      — daily accepted/rejected counts, last 30 days
-  3. hourly24h     — hourly accepted/rejected counts, last 24 hours
-  4. prior7d       — result rows for the 7 days before date_from (only when date_from is supplied)
-
-Timestamp strategy: joins through vw_gold_process_order.INSPECTION_LOT_ID →
-vw_gold_inspection_usage_decision.USAGE_DECISION_CREATED_DATE (closest available
-quality-event timestamp; rows without a usage decision are excluded from
-date-filtered queries).
-
-Judgement rule: INSPECTION_RESULT_VALUATION LIKE 'A%' → 'A', else 'R'
-(same as order_detail_dal.py).
+  1. results_range — inspection result rows for the requested date range.
+                     Source: ``vw_gold_quality_result_enriched`` (pre-joined gold view).
+                     Filters by ``decision_date`` (DATE column).
+  2. daily30d      — daily accepted/rejected counts, last 30 days.
+                     Source: ``metric_quality_daily`` (pre-computed MV).
+  3. hourly24h     — hourly accepted/rejected counts, last 24 hours.
+                     Source: ``vw_gold_quality_result_enriched`` with hour bucketing.
+  4. prior7d       — result rows for the 7 days before date_from (only when date_from
+                     is supplied; used for card-view comparison).
+                     Source: ``vw_gold_quality_result_enriched``.
 
 If ``date_from`` / ``date_to`` are omitted the results_range query falls back to a
 24-hour rolling window for backward compatibility, and prior7d is empty.
@@ -21,8 +19,12 @@ import asyncio
 from datetime import datetime, timezone as dt_timezone
 from typing import Optional
 
-from processorderhistory_backend.db import run_sql_async, sql_param, tbl, tz_date, tz_day_ms, tz_hour_ms
-from processorderhistory_backend.manufacturing_analytics.domain.series import local_day_buckets, local_hour_buckets
+from processorderhistory_backend.db import gold_tbl, run_sql_async, sql_param, tbl, tz_hour_ms
+from processorderhistory_backend.manufacturing_analytics.domain.series import (
+    local_day_buckets,
+    local_hour_buckets,
+    remap_utc_midnight_to_local_day,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -34,25 +36,20 @@ async def _q_results_range(
     date_from: Optional[str],
     date_to: Optional[str],
     plant_id: Optional[str],
-    tz: str,
 ) -> list[dict]:
-    """Inspection result rows joined to usage decision, specification, process order, and material.
+    """Inspection result rows from ``vw_gold_quality_result_enriched``.
 
-    Falls back to last-24h window when no dates supplied.
-    Rows without a usage decision are excluded (INNER JOIN to ud).
-    Date comparisons use the plant's local calendar date (via ``tz``).
+    Filters by ``decision_date`` (DATE column).  Falls back to last-24h window
+    when no dates supplied.
     """
     if date_from and date_to:
-        date_clause = (
-            f"AND {tz_date('ud.USAGE_DECISION_CREATED_DATE', tz)} >= :date_from"
-            f" AND {tz_date('ud.USAGE_DECISION_CREATED_DATE', tz)} <= :date_to"
-        )
+        date_clause = "AND decision_date >= :date_from AND decision_date <= :date_to"
         params: list[dict] = [sql_param("date_from", date_from), sql_param("date_to", date_to)]
     else:
-        date_clause = "AND ud.USAGE_DECISION_CREATED_DATE >= current_timestamp() - INTERVAL 24 HOURS"
+        date_clause = "AND decision_ts >= current_timestamp() - INTERVAL 24 HOURS"
         params = []
 
-    plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
+    plant_clause = "AND PLANT_ID = :plant_id" if plant_id else ""
     if plant_id:
         params.append(sql_param("plant_id", plant_id))
 
@@ -60,98 +57,76 @@ async def _q_results_range(
 
     query = f"""
         SELECT
-            ir.PROCESS_ORDER_ID                                                    AS process_order,
-            po.INSPECTION_LOT_ID                                                   AS inspection_lot_id,
-            po.MATERIAL_ID                                                         AS material_id,
-            COALESCE(m.MATERIAL_NAME, po.MATERIAL_ID)                             AS material_name,
-            po.PLANT_ID                                                            AS plant_id,
-            ir.INSPECTION_CHARACTERISTIC_ID                                        AS characteristic_id,
-            COALESCE(spec.MIC_NAME, ir.INSPECTION_CHARACTERISTIC_ID)              AS characteristic_description,
-            ir.SAMPLE_ID                                                           AS sample_id,
-            spec.TOLERANCE                                                         AS specification,
-            ir.QUANTITATIVE_RESULT                                                 AS quantitative_result,
-            ir.QUALITATIVE_RESULT                                                  AS qualitative_result,
-            spec.UNIT_OF_MEASURE                                                   AS uom,
-            CASE WHEN ir.INSPECTION_RESULT_VALUATION LIKE 'A%' THEN 'A'
-                 ELSE 'R'
-            END                                                                    AS judgement,
-            CAST(UNIX_TIMESTAMP(ud.USAGE_DECISION_CREATED_DATE) * 1000 AS BIGINT) AS result_date_ms,
-            ud.USAGE_DECISION_CODE                                                 AS usage_decision_code,
-            ud.VALUATION_CODE                                                      AS valuation_code,
-            ud.QUALITY_SCORE                                                       AS quality_score
-        FROM {tbl('vw_gold_inspection_result')} ir
-        JOIN {tbl('vw_gold_process_order')} po
-            ON po.PROCESS_ORDER_ID = ir.PROCESS_ORDER_ID
-        JOIN {tbl('vw_gold_inspection_usage_decision')} ud
-            ON ud.INSPECTION_LOT_ID = po.INSPECTION_LOT_ID
-        LEFT JOIN {tbl('vw_gold_inspection_specification')} spec
-            ON spec.INSPECTION_CHARACTERISTIC_ID = ir.INSPECTION_CHARACTERISTIC_ID
-           AND spec.INSPECTION_OPERATION_ID = ir.INSPECTION_OPERATION_ID
-        LEFT JOIN {tbl('vw_gold_material')} m
-            ON m.MATERIAL_ID = po.MATERIAL_ID
-           AND m.LANGUAGE_ID = 'E'
+            process_order,
+            inspection_lot_id,
+            material_id,
+            material_name,
+            PLANT_ID                                                       AS plant_id,
+            characteristic_id,
+            characteristic_name                                            AS characteristic_description,
+            sample_id,
+            specification,
+            quantitative_result,
+            qualitative_result,
+            uom,
+            judgement,
+            CAST(UNIX_TIMESTAMP(decision_ts) * 1000 AS BIGINT)            AS result_date_ms,
+            usage_decision_code,
+            valuation_code,
+            quality_score
+        FROM {tbl('vw_gold_quality_result_enriched')}
         WHERE 1 = 1
           {date_clause}
           {plant_clause}
-        ORDER BY result_date_ms
+        ORDER BY decision_ts DESC
         LIMIT 50000
     """
     return await run_sql_async(token, query, final_params, endpoint_hint="poh.quality.results_range")
 
 
-async def _q_daily30d(token: str, plant_id: Optional[str], tz: str) -> list[dict]:
-    """Daily accepted/rejected counts over the last 30 days bucketed by local calendar day.
+async def _q_daily30d(token: str, plant_id: Optional[str]) -> list[dict]:
+    """Daily accepted/rejected counts over the last 30 days.
 
-    Day boundaries align to local midnight in ``tz``.
+    Source: ``metric_quality_daily`` (pre-computed MV).
+    Returns UTC-midnight epoch-ms keys; ``_build_daily_series`` remaps them
+    to local-midnight boundaries via ``remap_utc_midnight_to_local_day``.
     """
-    plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
+    plant_clause = "AND PLANT_ID = :plant_id" if plant_id else ""
     params: Optional[list[dict]] = [sql_param("plant_id", plant_id)] if plant_id else None
 
     query = f"""
         SELECT
-            {tz_day_ms('ud.USAGE_DECISION_CREATED_DATE', tz)} AS day_ms,
-            COUNT(CASE WHEN ir.INSPECTION_RESULT_VALUATION LIKE 'A%' THEN 1 END) AS accepted_count,
-            COUNT(CASE
-                WHEN ir.INSPECTION_RESULT_VALUATION LIKE 'A%' THEN NULL
-                ELSE 1
-            END) AS rejected_count
-        FROM {tbl('vw_gold_inspection_result')} ir
-        JOIN {tbl('vw_gold_process_order')} po
-            ON po.PROCESS_ORDER_ID = ir.PROCESS_ORDER_ID
-        JOIN {tbl('vw_gold_inspection_usage_decision')} ud
-            ON ud.INSPECTION_LOT_ID = po.INSPECTION_LOT_ID
-        WHERE ud.USAGE_DECISION_CREATED_DATE >= current_timestamp() - INTERVAL 30 DAYS
+            CAST(UNIX_TIMESTAMP(decision_date) * 1000 AS BIGINT) AS day_ms,
+            SUM(accepted_count)                                   AS accepted_count,
+            SUM(rejected_count)                                   AS rejected_count
+        FROM {gold_tbl('metric_quality_daily')}
+        WHERE decision_date >= current_date() - INTERVAL 30 DAYS
           {plant_clause}
-        GROUP BY day_ms
-        ORDER BY day_ms
+        GROUP BY decision_date
+        ORDER BY decision_date
     """
     return await run_sql_async(token, query, params, endpoint_hint="poh.quality.daily30d")
 
 
 async def _q_hourly24h(token: str, plant_id: Optional[str], tz: str) -> list[dict]:
-    """Hourly accepted/rejected counts over the last 24 hours bucketed by local calendar hour.
+    """Hourly accepted/rejected counts over the last 24 hours.
 
+    Source: ``vw_gold_quality_result_enriched``.  ``judgement`` column is
+    pre-computed ('A' = accepted, any other value = rejected).
     Hour boundaries align to local hour starts in ``tz``.
     """
-    plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
+    plant_clause = "AND PLANT_ID = :plant_id" if plant_id else ""
     params: Optional[list[dict]] = [sql_param("plant_id", plant_id)] if plant_id else None
 
     query = f"""
         SELECT
-            {tz_hour_ms('ud.USAGE_DECISION_CREATED_DATE', tz)} AS hour_ms,
-            COUNT(CASE WHEN ir.INSPECTION_RESULT_VALUATION LIKE 'A%' THEN 1 END) AS accepted_count,
-            COUNT(CASE
-                WHEN ir.INSPECTION_RESULT_VALUATION LIKE 'A%' THEN NULL
-                ELSE 1
-            END) AS rejected_count
-        FROM {tbl('vw_gold_inspection_result')} ir
-        JOIN {tbl('vw_gold_process_order')} po
-            ON po.PROCESS_ORDER_ID = ir.PROCESS_ORDER_ID
-        JOIN {tbl('vw_gold_inspection_usage_decision')} ud
-            ON ud.INSPECTION_LOT_ID = po.INSPECTION_LOT_ID
-        WHERE ud.USAGE_DECISION_CREATED_DATE >= current_timestamp() - INTERVAL 24 HOURS
+            {tz_hour_ms('decision_ts', tz)}                              AS hour_ms,
+            SUM(CASE WHEN judgement = 'A' THEN 1 ELSE 0 END)            AS accepted_count,
+            SUM(CASE WHEN judgement != 'A' THEN 1 ELSE 0 END)           AS rejected_count
+        FROM {tbl('vw_gold_quality_result_enriched')}
+        WHERE decision_ts >= current_timestamp() - INTERVAL 24 HOURS
           {plant_clause}
-        GROUP BY hour_ms
+        GROUP BY {tz_hour_ms('decision_ts', tz)}
         ORDER BY hour_ms
     """
     return await run_sql_async(token, query, params, endpoint_hint="poh.quality.hourly24h")
@@ -161,58 +136,44 @@ async def _q_prior7d_results(
     token: str,
     date_from: Optional[str],
     plant_id: Optional[str],
-    tz: str,
 ) -> list[dict]:
-    """Result rows for 7 days prior to date_from.
+    """Result rows for 7 days prior to date_from from ``vw_gold_quality_result_enriched``.
 
     Used by the card view to compute per-entity averages over the preceding week.
     Returns an empty list when date_from is not supplied (rolling-window mode).
-    Date comparisons use the plant's local calendar date (via ``tz``).
     """
     if not date_from:
         return []
 
     params: list[dict] = [sql_param("date_from", date_from)]
-    plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
+    plant_clause = "AND PLANT_ID = :plant_id" if plant_id else ""
     if plant_id:
         params.append(sql_param("plant_id", plant_id))
 
     query = f"""
         SELECT
-            ir.PROCESS_ORDER_ID                                                    AS process_order,
-            po.INSPECTION_LOT_ID                                                   AS inspection_lot_id,
-            po.MATERIAL_ID                                                         AS material_id,
-            COALESCE(m.MATERIAL_NAME, po.MATERIAL_ID)                             AS material_name,
-            po.PLANT_ID                                                            AS plant_id,
-            ir.INSPECTION_CHARACTERISTIC_ID                                        AS characteristic_id,
-            COALESCE(spec.MIC_NAME, ir.INSPECTION_CHARACTERISTIC_ID)              AS characteristic_description,
-            ir.SAMPLE_ID                                                           AS sample_id,
-            spec.TOLERANCE                                                         AS specification,
-            ir.QUANTITATIVE_RESULT                                                 AS quantitative_result,
-            ir.QUALITATIVE_RESULT                                                  AS qualitative_result,
-            spec.UNIT_OF_MEASURE                                                   AS uom,
-            CASE WHEN ir.INSPECTION_RESULT_VALUATION LIKE 'A%' THEN 'A'
-                 ELSE 'R'
-            END                                                                    AS judgement,
-            CAST(UNIX_TIMESTAMP(ud.USAGE_DECISION_CREATED_DATE) * 1000 AS BIGINT) AS result_date_ms,
-            ud.USAGE_DECISION_CODE                                                 AS usage_decision_code,
-            ud.VALUATION_CODE                                                      AS valuation_code,
-            ud.QUALITY_SCORE                                                       AS quality_score
-        FROM {tbl('vw_gold_inspection_result')} ir
-        JOIN {tbl('vw_gold_process_order')} po
-            ON po.PROCESS_ORDER_ID = ir.PROCESS_ORDER_ID
-        JOIN {tbl('vw_gold_inspection_usage_decision')} ud
-            ON ud.INSPECTION_LOT_ID = po.INSPECTION_LOT_ID
-        LEFT JOIN {tbl('vw_gold_inspection_specification')} spec
-            ON spec.INSPECTION_CHARACTERISTIC_ID = ir.INSPECTION_CHARACTERISTIC_ID
-           AND spec.INSPECTION_OPERATION_ID = ir.INSPECTION_OPERATION_ID
-        LEFT JOIN {tbl('vw_gold_material')} m
-            ON m.MATERIAL_ID = po.MATERIAL_ID
-           AND m.LANGUAGE_ID = 'E'
-        WHERE {tz_date('ud.USAGE_DECISION_CREATED_DATE', tz)} >= DATE_ADD(CAST(:date_from AS DATE), -7)
-          AND {tz_date('ud.USAGE_DECISION_CREATED_DATE', tz)} <  CAST(:date_from AS DATE)
+            process_order,
+            inspection_lot_id,
+            material_id,
+            material_name,
+            PLANT_ID                                                       AS plant_id,
+            characteristic_id,
+            characteristic_name                                            AS characteristic_description,
+            sample_id,
+            specification,
+            quantitative_result,
+            qualitative_result,
+            uom,
+            judgement,
+            CAST(UNIX_TIMESTAMP(decision_ts) * 1000 AS BIGINT)            AS result_date_ms,
+            usage_decision_code,
+            valuation_code,
+            quality_score
+        FROM {tbl('vw_gold_quality_result_enriched')}
+        WHERE decision_date >= DATE_ADD(CAST(:date_from AS DATE), -7)
+          AND decision_date <  CAST(:date_from AS DATE)
           {plant_clause}
-        ORDER BY result_date_ms
+        ORDER BY decision_ts
         LIMIT 50000
     """
     return await run_sql_async(token, query, params, endpoint_hint="poh.quality.prior7d")
@@ -243,18 +204,20 @@ def _coerce_row(row: dict) -> dict:
 def _build_daily_series(daily_rows: list[dict], now_ms: int, tz_name: str = "UTC") -> list[dict]:
     """Zero-padded 30-day series of accepted/rejected counts and right-first-time percentage.
 
-    Bucket boundaries align to local midnight in ``tz_name``.
+    ``metric_quality_daily`` emits UTC-midnight DATE keys; ``remap_utc_midnight_to_local_day``
+    re-aligns them to local-midnight boundaries so non-UTC timezones match correctly.
     rft_pct is None for zero-result buckets (no inspections recorded that day).
     """
     day_buckets = local_day_buckets(now_ms, tz_name)
 
     sparse: dict[int, tuple[int, int]] = {}
     for row in daily_rows:
-        d_ms = int(row["day_ms"])
+        raw_ms = int(row["day_ms"])
+        local_ms = remap_utc_midnight_to_local_day(raw_ms, tz_name)
         acc = int(row.get("accepted_count") or 0)
         rej = int(row.get("rejected_count") or 0)
-        prev_acc, prev_rej = sparse.get(d_ms, (0, 0))
-        sparse[d_ms] = (prev_acc + acc, prev_rej + rej)
+        prev_acc, prev_rej = sparse.get(local_ms, (0, 0))
+        sparse[local_ms] = (prev_acc + acc, prev_rej + rej)
 
     result: list[dict] = []
     for d in day_buckets:
@@ -305,22 +268,29 @@ async def fetch_quality_analytics(
     """Fetch quality analytics via 3–4 parallel Databricks queries.
 
     Returns daily/hourly series, raw rows for the date range, prior-7d rows
-    for card-view averages, and distinct material names.  Timestamp is
-    USAGE_DECISION_CREATED_DATE — see module docstring.
+    for card-view averages, and distinct material names.  Timestamp source is
+    ``decision_ts`` in ``vw_gold_quality_result_enriched``.
 
     ``timezone`` is a validated IANA timezone name (from ``validate_timezone``).
-    Day and hour buckets align to local calendar boundaries in that timezone.
+    Day buckets align to local-midnight boundaries; hour buckets to local hour starts.
 
     If ``date_from`` / ``date_to`` are omitted, results_range defaults to the
     last-24h window and prior7d is empty.
+
+    Args:
+        token: Databricks access token forwarded from the request proxy header.
+        plant_id: Optional SAP plant identifier to filter results.
+        date_from: ISO date string (YYYY-MM-DD) for the start of the range.
+        date_to: ISO date string (YYYY-MM-DD) for the end of the range.
+        timezone: IANA timezone name from ``validate_timezone``.
     """
     now_ms = int(datetime.now(dt_timezone.utc).timestamp() * 1000)
 
     rows_result, daily_rows, hourly_rows, prior7d_rows = await asyncio.gather(
-        _q_results_range(token, date_from, date_to, plant_id, timezone),
-        _q_daily30d(token, plant_id, timezone),
+        _q_results_range(token, date_from, date_to, plant_id),
+        _q_daily30d(token, plant_id),
         _q_hourly24h(token, plant_id, timezone),
-        _q_prior7d_results(token, date_from, plant_id, timezone),
+        _q_prior7d_results(token, date_from, plant_id),
     )
 
     rows = [_coerce_row(r) for r in rows_result]
