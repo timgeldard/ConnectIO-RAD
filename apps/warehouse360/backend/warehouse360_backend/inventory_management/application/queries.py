@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from shared_db import assert_plant_authorized
+
 from warehouse360_backend.inventory_management.dal import imwm as imwm_dal
 from warehouse360_backend.inventory_management.dal import inbound as inbound_dal
 from warehouse360_backend.inventory_management.dal import inventory as inventory_dal
@@ -15,6 +17,7 @@ async def list_bin_stock(token: str, plant_id: Optional[str] = None) -> list[dic
     """Return warehouse bin stock for the selected plant scope."""
 
     scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
     return await inventory_dal.fetch_bin_stock(token, plant_id=scope.plant_id)
 
 
@@ -22,6 +25,7 @@ async def list_lineside_stock(token: str, plant_id: Optional[str] = None) -> lis
     """Return line-side inventory for the selected plant scope."""
 
     scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
     return await inventory_dal.fetch_lineside(token, plant_id=scope.plant_id)
 
 
@@ -29,6 +33,7 @@ async def list_inbound_receipts(token: str, plant_id: Optional[str] = None) -> l
     """Return inbound receipts for the selected plant scope."""
 
     scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
     return await inbound_dal.fetch_inbound(token, plant_id=scope.plant_id)
 
 
@@ -60,6 +65,7 @@ async def list_imwm_stock(token: str, plant_id: Optional[str] = None) -> list[di
         List of rows from ``imwm_stock_comparison_v``.
     """
     scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
     return await imwm_dal.fetch_imwm_stock(token, plant_id=scope.plant_id)
 
 
@@ -74,6 +80,7 @@ async def list_imwm_movements(token: str, plant_id: Optional[str] = None) -> lis
         List of rows from ``imwm_movements_v`` (capped at 200 in the DAL).
     """
     scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
     return await imwm_dal.fetch_imwm_movements(token, plant_id=scope.plant_id)
 
 
@@ -88,6 +95,7 @@ async def list_imwm_exceptions(token: str, plant_id: Optional[str] = None) -> li
         List of rows from ``imwm_exceptions_v``.
     """
     scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
     return await imwm_dal.fetch_imwm_exceptions(token, plant_id=scope.plant_id)
 
 
@@ -103,4 +111,5 @@ async def list_imwm_aging(token: str, plant_id: Optional[str] = None) -> list[di
         ``imwm_analytics_aging_v``.
     """
     scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
     return await imwm_dal.fetch_imwm_aging(token, plant_id=scope.plant_id)

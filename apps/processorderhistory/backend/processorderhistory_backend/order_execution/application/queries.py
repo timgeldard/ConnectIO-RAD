@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from shared_db import assert_plant_authorized
+
 from processorderhistory_backend.order_execution.dal import day_view_dal
 from processorderhistory_backend.order_execution.dal import order_detail_dal
 from processorderhistory_backend.order_execution.dal import orders_dal
@@ -12,7 +14,7 @@ from processorderhistory_backend.order_execution.dal import pours_analytics_dal
 
 async def list_orders(token: str, *, plant_id: Optional[str], limit: int) -> list[dict]:
     """Return process order summaries for the list view."""
-
+    await assert_plant_authorized(token, plant_id)
     return await orders_dal.fetch_orders_list(token, plant_id=plant_id, limit=limit)
 
 
@@ -24,7 +26,7 @@ async def get_order_detail(token: str, *, order_id: str) -> Optional[dict]:
 
 async def get_day_view(token: str, *, day: Optional[str], plant_id: Optional[str]) -> dict:
     """Return day-view schedule and downtime data."""
-
+    await assert_plant_authorized(token, plant_id)
     return await day_view_dal.fetch_day_view(token, day=day, plant_id=plant_id)
 
 
@@ -37,7 +39,7 @@ async def get_pours_analytics(
     timezone: str,
 ) -> dict:
     """Return process-order pour analytics."""
-
+    await assert_plant_authorized(token, plant_id)
     return await pours_analytics_dal.fetch_pours_analytics(
         token,
         plant_id=plant_id,

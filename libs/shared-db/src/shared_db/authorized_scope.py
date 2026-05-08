@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import logging
 
+from fastapi import HTTPException
+
 from shared_db.core import TRACE_CATALOG, TRACE_SCHEMA, run_sql_async
 
 logger = logging.getLogger(__name__)
@@ -50,3 +52,19 @@ async def fetch_authorized_plants(
     plants = sorted(str(r["PLANT_ID"]) for r in rows if r.get("PLANT_ID"))
     logger.debug("authorized_scope: user has %d plant(s)", len(plants))
     return plants
+
+
+async def assert_plant_authorized(token: str, plant_id: str | None) -> None:
+    """Raise HTTP 403 if plant_id is not in the caller's authorized scope.
+
+    No-op when plant_id is None (global scope — results are already filtered
+    by the SQL WHERE clause in each DAL query).
+    """
+    if plant_id is None:
+        return
+    authorized = await fetch_authorized_plants(token)
+    if plant_id not in authorized:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Plant '{plant_id}' is not in your authorized scope.",
+        )

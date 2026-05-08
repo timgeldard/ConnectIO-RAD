@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from shared_db import assert_plant_authorized
+
 from processorderhistory_backend.manufacturing_analytics.dal import adherence_analytics_dal
 from processorderhistory_backend.manufacturing_analytics.dal import downtime_analytics_dal
 from processorderhistory_backend.manufacturing_analytics.dal import equipment_insights2_dal
@@ -21,6 +23,7 @@ async def get_adherence_analytics(
     date_to: Optional[str],
     timezone: str = "UTC",
 ) -> dict:
+    await assert_plant_authorized(token, plant_id)
     return await adherence_analytics_dal.fetch_adherence_analytics(
         token,
         plant_id=plant_id,
@@ -38,6 +41,7 @@ async def get_downtime_analytics(
     date_to: Optional[str],
     timezone: str = "UTC",
 ) -> dict:
+    await assert_plant_authorized(token, plant_id)
     return await downtime_analytics_dal.fetch_downtime_analytics(
         token,
         plant_id=plant_id,
@@ -48,10 +52,12 @@ async def get_downtime_analytics(
 
 
 async def get_equipment_insights(token: str, *, plant_id: Optional[str], timezone: str) -> dict:
+    await assert_plant_authorized(token, plant_id)
     return await equipment_insights_dal.fetch_equipment_insights(token, plant_id=plant_id, timezone=timezone)
 
 
 async def get_equipment_insights2(token: str, *, plant_id: Optional[str], timezone: str) -> dict:
+    await assert_plant_authorized(token, plant_id)
     return await equipment_insights2_dal.fetch_equipment_insights2(token, plant_id=plant_id, timezone=timezone)
 
 
@@ -63,6 +69,7 @@ async def get_oee_analytics(
     date_to: Optional[str],
     timezone: str,
 ) -> dict:
+    await assert_plant_authorized(token, plant_id)
     return await oee_analytics_dal.fetch_oee_analytics(
         token,
         plant_id=plant_id,
@@ -80,6 +87,7 @@ async def get_quality_analytics(
     date_to: Optional[str],
     timezone: str,
 ) -> dict:
+    await assert_plant_authorized(token, plant_id)
     return await quality_analytics_dal.fetch_quality_analytics(
         token,
         plant_id=plant_id,
@@ -97,6 +105,7 @@ async def get_yield_analytics(
     date_to: Optional[str],
     timezone: str = "UTC",
 ) -> dict:
+    await assert_plant_authorized(token, plant_id)
     return await yield_analytics_dal.fetch_yield_analytics(
         token,
         plant_id=plant_id,

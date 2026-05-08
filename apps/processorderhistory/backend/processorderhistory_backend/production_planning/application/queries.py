@@ -4,13 +4,15 @@ from __future__ import annotations
 
 from typing import Optional
 
+from shared_db import assert_plant_authorized
+
 from processorderhistory_backend.production_planning.dal import planning_dal
 from processorderhistory_backend.production_planning.dal import vessel_planning_dal
 
 
 async def get_planning_schedule(token: str, *, plant_id: Optional[str]) -> dict:
     """Return production planning schedule data."""
-
+    await assert_plant_authorized(token, plant_id)
     return await planning_dal.fetch_planning_schedule(token, plant_id=plant_id)
 
 
@@ -23,7 +25,7 @@ async def get_vessel_planning_analytics(
     timezone: str,
 ) -> dict:
     """Return vessel planning analytics."""
-
+    await assert_plant_authorized(token, plant_id)
     return await vessel_planning_dal.fetch_vessel_planning_analytics(
         token,
         plant_id=plant_id,

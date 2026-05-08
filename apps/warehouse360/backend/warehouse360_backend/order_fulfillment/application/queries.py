@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from shared_db import assert_plant_authorized
+
 from warehouse360_backend.inventory_management.domain.plant_scope import PlantScope
 from warehouse360_backend.order_fulfillment.dal import deliveries as deliveries_dal
 from warehouse360_backend.order_fulfillment.dal import process_orders as process_orders_dal
@@ -25,6 +27,7 @@ async def list_deliveries(token: str, plant_id: Optional[str] = None) -> list[di
     ``delivery_status`` field in ``wh360_deliveries_v``.
     """
     scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
     rows = await deliveries_dal.fetch_deliveries(token, plant_id=scope.plant_id)
     for row in rows:
         status = normalize_delivery_status(row.get("delivery_status"))
@@ -46,6 +49,7 @@ async def list_process_orders(token: str, plant_id: Optional[str] = None) -> lis
     ``order_status`` field in ``wh360_process_orders_v``.
     """
     scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
     rows = await process_orders_dal.fetch_process_orders(token, plant_id=scope.plant_id)
     for row in rows:
         status = normalize_po_status(row.get("order_status"))

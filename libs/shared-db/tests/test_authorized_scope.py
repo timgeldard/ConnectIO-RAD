@@ -2,8 +2,9 @@
 from unittest.mock import patch
 
 import pytest
+from fastapi import HTTPException
 
-from shared_db.authorized_scope import fetch_authorized_plants
+from shared_db.authorized_scope import assert_plant_authorized, fetch_authorized_plants
 
 
 @pytest.fixture()
@@ -71,3 +72,32 @@ async def test_endpoint_hint_passed(mock_run_sql):
     await fetch_authorized_plants("tok")
     kwargs = mock_run_sql.call_args[1]
     assert kwargs.get("endpoint_hint") == "shared.authorized_scope"
+
+
+# ---------------------------------------------------------------------------
+# assert_plant_authorized tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_assert_authorized_no_op_when_plant_id_none(mock_run_sql):
+    """No database call is made when plant_id is None (global scope)."""
+    await assert_plant_authorized("tok", None)
+    mock_run_sql.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_assert_authorized_passes_when_plant_in_scope(mock_run_sql):
+    """No exception raised when the plant is in the authorized set."""
+    mock_run_sql.return_value = [{"PLANT_ID": "IE01"}, {"PLANT_ID": "DE01"}]
+    await assert_plant_authorized("tok", "IE01")  # should not raise
+
+
+@pytest.mark.asyncio
+async def test_assert_authorized_raises_403_when_plant_not_in_scope(mock_run_sql):
+    """HTTPException 403 is raised when the plant is not authorized."""
+    mock_run_sql.return_value = [{"PLANT_ID": "IE01"}]
+    with pytest.raises(HTTPException) as exc_info:
+        await assert_plant_authorized("tok", "DE01")
+    assert exc_info.value.status_code == 403
+    assert "DE01" in exc_info.value.detail
