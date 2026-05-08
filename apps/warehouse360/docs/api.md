@@ -1,6 +1,6 @@
 # warehouse360 API Reference
 
-Currently, the `warehouse360` backend primarily serves as a static file server for the React frontend mockup.
+The `warehouse360` backend serves the React frontend and live warehouse operation endpoints.
 
 ## 📍 Base URL
 When running locally: `http://localhost:8003`
@@ -15,8 +15,9 @@ When the backend is running, you can access the interactive Swagger UI at:
 - `GET /`: Serves the `index.html` of the compiled frontend.
 - `GET /assets/*`: Serves static assets (images, fonts, scripts).
 
-### Future Endpoints
-The backend is prepared to support future API integrations for:
-- **Inventory Status:** Real-time quantity checks.
-- **Order Management:** Tracking inbound and outbound shipment progress.
-- **Alerting:** Pushing critical warehouse events to the frontend.
+### Live Endpoints
+The backend exposes Databricks-backed API routes for:
+- **Control Tower:** Operational KPIs and readiness.
+- **Inbound/Outbound:** Receipts, deliveries, and production staging.
+- **Inventory:** Bins, line-side stock, plant scope, and IM/WM reconciliation.
+- **Dispensary:** Weighing and dispensing work queues.

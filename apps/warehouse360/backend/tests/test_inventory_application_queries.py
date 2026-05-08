@@ -3,6 +3,7 @@
 import pytest
 
 from warehouse360_backend.inventory_management.application import queries
+from warehouse360_backend.inventory_management.router_imwm import _resolve_plant_scope
 
 
 @pytest.mark.asyncio
@@ -78,6 +79,12 @@ async def test_list_plants_delegates_to_dal(monkeypatch):
     monkeypatch.setattr(queries.plants_dal, "fetch_plants", fake_fetch_plants)
 
     assert await queries.list_plants("token") == [{"plant_id": "IE01"}]
+
+
+def test_imwm_router_accepts_warehouse360_plant_context_param():
+    assert _resolve_plant_scope(None, "IE01") == "IE01"
+    assert _resolve_plant_scope("", "DE01") == "DE01"
+    assert _resolve_plant_scope("US01", "DE01") == "US01"
 
 
 # --- IMWM application-layer tests --------------------------------------------

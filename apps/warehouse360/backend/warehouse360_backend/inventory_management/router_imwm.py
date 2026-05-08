@@ -17,11 +17,17 @@ _EXCEPTIONS_FRESHNESS_SOURCES = ["imwm_exceptions_v"]
 _AGING_FRESHNESS_SOURCES = ["imwm_analytics_aging_v"]
 
 
+def _resolve_plant_scope(plant: Optional[str], plant_id: Optional[str]) -> Optional[str]:
+    """Support both the original IMWM query param and Warehouse360 plant context."""
+    return plant if plant not in (None, "") else plant_id
+
+
 @router.get("/imwm/stock")
 @limiter.limit("60/minute")
 async def list_imwm_stock(
     request: Request,
     plant: Optional[str] = None,
+    plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user),
 ):
     """Return IM vs WM stock comparison rows for the IMWM Reconciliation tab.
@@ -40,7 +46,7 @@ async def list_imwm_stock(
     """
     token = user.raw_token
     check_warehouse_config()
-    rows = await inventory_queries.list_imwm_stock(token, plant_id=plant)
+    rows = await inventory_queries.list_imwm_stock(token, plant_id=_resolve_plant_scope(plant, plant_id))
     return await attach_data_freshness(
         {"stock": rows},
         token,
@@ -54,6 +60,7 @@ async def list_imwm_stock(
 async def list_imwm_movements(
     request: Request,
     plant: Optional[str] = None,
+    plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user),
 ):
     """Return recent goods movements for the IMWM Overview activity strip.
@@ -69,7 +76,7 @@ async def list_imwm_movements(
     """
     token = user.raw_token
     check_warehouse_config()
-    rows = await inventory_queries.list_imwm_movements(token, plant_id=plant)
+    rows = await inventory_queries.list_imwm_movements(token, plant_id=_resolve_plant_scope(plant, plant_id))
     return await attach_data_freshness(
         {"movements": rows},
         token,
@@ -83,6 +90,7 @@ async def list_imwm_movements(
 async def list_imwm_exceptions(
     request: Request,
     plant: Optional[str] = None,
+    plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user),
 ):
     """Return the rule-generated IMWM exception queue for the operations cockpit.
@@ -98,7 +106,7 @@ async def list_imwm_exceptions(
     """
     token = user.raw_token
     check_warehouse_config()
-    rows = await inventory_queries.list_imwm_exceptions(token, plant_id=plant)
+    rows = await inventory_queries.list_imwm_exceptions(token, plant_id=_resolve_plant_scope(plant, plant_id))
     return await attach_data_freshness(
         {"exceptions": rows},
         token,
@@ -112,6 +120,7 @@ async def list_imwm_exceptions(
 async def list_imwm_aging(
     request: Request,
     plant: Optional[str] = None,
+    plant_id: Optional[str] = None,
     user: UserIdentity = Depends(require_proxy_user),
 ):
     """Return inventory aging buckets for the IMWM Analytics tab.
@@ -127,7 +136,7 @@ async def list_imwm_aging(
     """
     token = user.raw_token
     check_warehouse_config()
-    rows = await inventory_queries.list_imwm_aging(token, plant_id=plant)
+    rows = await inventory_queries.list_imwm_aging(token, plant_id=_resolve_plant_scope(plant, plant_id))
     return await attach_data_freshness(
         {"aging": rows},
         token,

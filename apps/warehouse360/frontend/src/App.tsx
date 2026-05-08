@@ -12,6 +12,7 @@ import { OrderStagingDetail } from '~/components/OrderDetail'
 import { Inbound, ReceiptDetail } from '~/components/Inbound'
 import { Outbound, DeliveryDetail } from '~/components/Outbound'
 import { Inventory } from '~/components/Inventory'
+import { IMWMCockpit } from '~/components/IMWMCockpit'
 import { Dispensary } from '~/components/Dispensary'
 import { Exceptions, Performance } from '~/components/ExceptionsPerf'
 import { DocsPage } from '~/components/Docs'
@@ -39,6 +40,7 @@ function moduleToRoute(moduleId: string): string {
     deliveries: 'outbound',
     inbound: 'inbound',
     inventory: 'inventory',
+    imwm: 'imwm',
     dispensary: 'dispensary',
     exceptions: 'exceptions',
     performance: 'performance',
@@ -57,6 +59,7 @@ function routeToModule(route: string): string {
     outbound: 'deliveries',
     inbound: 'inbound',
     inventory: 'inventory',
+    imwm: 'imwm',
     dispensary: 'dispensary',
     exceptions: 'exceptions',
     performance: 'performance',
@@ -100,6 +103,7 @@ function WarehouseApp() {
   else if (route === 'inbound')   page = <Inbound onOpen={openReceipt}/>
   else if (route === 'outbound')  page = <Outbound onOpen={openDelivery}/>
   else if (route === 'inventory') page = <Inventory/>
+  else if (route === 'imwm')      page = <IMWMCockpit/>
   else if (route === 'dispensary')  page = <Dispensary/>
   else if (route === 'exceptions')  page = <Exceptions onOpenOrder={openOrder} onOpenDelivery={openDelivery} onOpenReceipt={openReceipt}/>
   else if (route === 'performance') page = <Performance/>

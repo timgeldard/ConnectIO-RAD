@@ -578,9 +578,6 @@ button { cursor: pointer; }
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
 /* Module color accents */
-.mod-trace   { --mod-color: #005776; --mod-color-bg: color-mix(in srgb, #005776 14%, var(--cq-surface)); }
-.mod-envmon  { --mod-color: #289BA2; --mod-color-bg: color-mix(in srgb, #289BA2 14%, var(--cq-surface)); }
-.mod-spc     { --mod-color: #F24A00; --mod-color-bg: color-mix(in srgb, #F24A00 12%, var(--cq-surface)); }
 .mod-home    { --mod-color: #143700; --mod-color-bg: color-mix(in srgb, #143700 10%, var(--cq-surface)); }
 .mod-alarms  { --mod-color: #F9C20A; --mod-color-bg: color-mix(in srgb, #F9C20A 18%, var(--cq-surface)); }
 
