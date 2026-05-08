@@ -57,6 +57,5 @@
       ]
     }
   },
-  "defaultProject": "trace2-frontend",
   "analytics": false
-  }
+}

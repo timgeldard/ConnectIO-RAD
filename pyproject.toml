@@ -1,3 +1,9 @@
+# Listed explicitly rather than glob-ed because libs/ mixes Python packages
+# (shared-api/auth/db/domain/geo/trace — uv members) with TypeScript-only
+# packages (shared-frontend-api/i18n/ui — npm workspace members, no
+# pyproject.toml). A `libs/*` glob would fail uv's resolution. Adding a new
+# Python lib means adding it here AND ensuring `libs/<name>/pyproject.toml`
+# exists.
 [tool.uv.workspace]
 members = [
   "apps/connectedquality/backend",

@@ -85,8 +85,17 @@ class TestResolveToken:
         token = resolve_token("forwarded-token", None)
         assert token == "forwarded-token"
 
-    def test_extracts_bearer_token_from_authorization(self):
-        token = resolve_token(None, "Bearer my-bearer-token")
+    def test_extracts_bearer_token_from_authorization(self, monkeypatch):
+        # After the H1 strict-default fix (commit 4258545) the bearer fallback
+        # is dev-mode-only AND only honoured when callers explicitly pass
+        # strict=False. The shared_db.core.resolve_token wrapper SPC normally
+        # uses doesn't expose ``strict``, so for this test we bypass the
+        # wrapper and exercise shared_auth.resolve_token directly — the
+        # behaviour the wrapper inherits when ``strict=False`` is opt-in.
+        from shared_auth.identity import resolve_token as auth_resolve_token
+
+        monkeypatch.setenv("APP_ENV", "test")
+        token = auth_resolve_token(None, "Bearer my-bearer-token", strict=False)
         assert token == "my-bearer-token"
 
     def test_prefers_forwarded_over_bearer(self):

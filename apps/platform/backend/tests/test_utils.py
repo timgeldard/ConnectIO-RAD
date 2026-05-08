@@ -1,70 +1,58 @@
 """Tests for ``backend.utils`` — required vs optional artifact classification.
 
-Each test runs against a freshly-cleared ``_missing_optional_artifacts``
-tracker via the ``reset_optional_artifacts`` autouse fixture below; otherwise
-the global accumulates entries across tests and assertions become
-order-dependent.
+Each test constructs its own :class:`ArtifactTracker` so failures recorded
+in one test never leak into another. This replaces the earlier autouse
+fixture that cleared a module-level global; testing the class directly is
+both cleaner and exercises the production path.
 """
 
 import pytest
 
 from backend.utils import (
+    ArtifactTracker,
     RequiredArtifactMissing,
-    _missing_optional_artifacts,
     _optional_attr,
     get_missing_optional_artifacts,
 )
 
 
-@pytest.fixture(autouse=True)
-def reset_optional_artifacts():
-    """Clear the module-level optional-artifact tracker before and after each test.
-
-    The tracker is a soft singleton mutated at import time. Clearing it on
-    setup and teardown isolates test state and removes ordering coupling.
-    """
-    _missing_optional_artifacts.clear()
-    try:
-        yield
-    finally:
-        _missing_optional_artifacts.clear()
-
-
-def test_required_import_raises_on_missing_module():
+def test_required_attempt_raises_on_missing_module():
     """A required artifact that fails to import aborts startup.
 
     Verifies the contract that callers using ``required=True`` propagate
     ``RequiredArtifactMissing`` (rather than getting ``None`` back) so the
     platform can refuse to start with a partial route surface.
     """
+    tracker = ArtifactTracker()
     with pytest.raises(RequiredArtifactMissing) as exc_info:
-        _optional_attr(
+        tracker.attempt(
             "definitely_not_a_real_module_xyz", "router", required=True
         )
     assert "definitely_not_a_real_module_xyz" in str(exc_info.value)
 
 
-def test_optional_import_returns_none_on_missing_module():
+def test_optional_attempt_returns_none_on_missing_module():
     """An optional artifact that fails to import logs a warning and returns None.
 
-    Also confirms the module name is recorded in the failure tracker so
+    Also confirms the module name is recorded in the tracker so
     ``GET /api/health/routers`` can surface the optional gap to ops.
     """
-    result = _optional_attr(
+    tracker = ArtifactTracker()
+    result = tracker.attempt(
         "definitely_not_a_real_module_xyz", "router", required=False
     )
     assert result is None
-    failures = get_missing_optional_artifacts()
-    assert "definitely_not_a_real_module_xyz" in failures
+    assert "definitely_not_a_real_module_xyz" in tracker.missing()
 
 
-def test_required_import_returns_attribute_when_module_exists():
+def test_required_attempt_returns_attribute_when_module_exists():
     """A required import succeeds and returns the named attribute.
 
     Uses ``logging.getLogger`` as a stable real attribute on a real module
     so the test never depends on the platform's own router inventory.
     """
-    getter = _optional_attr("logging", "getLogger", required=True)
+    tracker = ArtifactTracker()
+    getter = tracker.attempt("logging", "getLogger", required=True)
     assert callable(getter)
 
 
@@ -74,10 +62,38 @@ def test_optional_artifact_key_defaults_to_module_name():
     The pre-2026-05-07 implementation keyed every W360 router under one
     ``"warehouse360_backend"`` bucket, so a single broken router clobbered
     the readiness signal for unrelated ones. After the C3 fix the key is
-    the module path, and this test pins that contract.
+    the module path; this test pins that contract.
     """
-    _optional_attr("nonexistent_module_a", "router", required=False)
-    _optional_attr("nonexistent_module_b", "router", required=False)
-    failures = get_missing_optional_artifacts()
+    tracker = ArtifactTracker()
+    tracker.attempt("nonexistent_module_a", "router", required=False)
+    tracker.attempt("nonexistent_module_b", "router", required=False)
+    failures = tracker.missing()
     assert "nonexistent_module_a" in failures
     assert "nonexistent_module_b" in failures
+
+
+def test_tracker_isolation_between_instances():
+    """Two trackers do not see each other's recorded failures.
+
+    Pins the result-object refactor: the previous module-level dict
+    leaked state across tests; an instance-per-tracker design does not.
+    """
+    tracker_a = ArtifactTracker()
+    tracker_b = ArtifactTracker()
+
+    tracker_a.attempt("module_x", "router", required=False)
+
+    assert "module_x" in tracker_a.missing()
+    assert "module_x" not in tracker_b.missing()
+
+
+def test_default_tracker_shim_still_works():
+    """The ``_optional_attr`` convenience shim delegates to the default tracker.
+
+    Production call sites (``backend.main``) still use the shim;
+    ``get_missing_optional_artifacts()`` continues to return that
+    tracker's map. This test ensures the shim path remains functional
+    after the result-object refactor.
+    """
+    _optional_attr("definitely_not_a_real_module_via_shim", "router", required=False)
+    assert "definitely_not_a_real_module_via_shim" in get_missing_optional_artifacts()

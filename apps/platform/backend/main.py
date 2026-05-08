@@ -17,7 +17,12 @@ from typing import Any, Optional
 from fastapi import APIRouter, HTTPException
 from starlette.staticfiles import StaticFiles
 
-from shared_api import create_api_app, health_payload, databricks_sql_ready
+from shared_api import (
+    create_api_app,
+    databricks_sql_ready,
+    health_payload,
+    register_spa_routes,
+)
 from backend.routes.badges import router as badges_router
 from backend.routes.session import router as session_router
 from backend.utils import (
@@ -97,6 +102,16 @@ W360_ROUTERS: list[RouterEntry] = [
     (_required_router("warehouse360_backend.inventory_management.router_imwm"), "/api/wh", ["W360-IMWM"]),
 ]
 
+# Static-asset roots. Filled in by `apps/platform/scripts/build.py`:
+#   * cq/poh/warehouse360 are the bundled SPA dist outputs of the active
+#     React apps (CQ, POH, W360).
+#   * home is the platform shell SPA served at `/`.
+#   * The remaining "standalone" directories (enzymes / pi-sheet / warehouse /
+#     maintenance / tpm / imwm / pex-e-35 / lineside-monitor) are static HTML
+#     micro-apps copied verbatim from `apps/platform/standalone/<slug>/`.
+#     They are mounted but not part of any build pipeline. If you're adding
+#     a real React app, mirror the cq/poh/warehouse360 pattern in build.py
+#     instead of the standalone copy step.
 _STATIC = Path(__file__).parent.parent / "static"
 CQ_STATIC = _STATIC / "cq"
 POH_STATIC = _STATIC / "poh"
@@ -210,5 +225,14 @@ if PEX_E35_STATIC.exists():
 if LINESIDE_STATIC.exists():
     app.mount("/lineside-monitor", StaticFiles(directory=str(LINESIDE_STATIC), html=True), name="lineside-monitor")
 
-if HOME_STATIC.exists():
-    app.mount("/", StaticFiles(directory=str(HOME_STATIC), html=True), name="home")
+# Home SPA — served via the shared `register_spa_routes()` utility instead
+# of a raw StaticFiles mount. This gets us the same path-traversal-safe
+# `safe_static_file` checks (`is_relative_to(root)` guard) that every
+# standalone app uses, and centralises the SPA-serving behaviour. Must be
+# the LAST route registration so the catch-all `/{full_path:path}` doesn't
+# shadow the API or per-app static mounts above.
+register_spa_routes(
+    app,
+    static_dir_getter=lambda: HOME_STATIC,
+    missing_frontend_payload={"status": "backend running", "frontend": "not built"},
+)
