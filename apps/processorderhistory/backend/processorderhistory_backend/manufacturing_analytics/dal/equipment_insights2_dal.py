@@ -1,8 +1,8 @@
 """DAL for Equipment Insights v2 — estate, cleaning, and activity metrics.
 
 Derives all available metrics from the two views used by Equipment Insights v1:
-  - vw_gold_instrument        (csm_equipment_history schema) — instrument master
-  - vw_gold_equipment_history (csm_equipment_history schema) — state-change events
+  - vw_gold_instrument        (csm_equipment_history schema, via instrument_tbl()) — instrument master
+  - vw_gold_equipment_history (csm_process_order_history schema, via tbl()) — state-change events
 
 Three parallel queries via asyncio.gather:
   1. instrument_master — full equipment register
@@ -56,8 +56,10 @@ async def _q_instrument_master(token: str, plant_id: Optional[str]) -> list[dict
     query = f"""
         SELECT
             INSTRUMENT_ID,
+            INSTRUMENT_NAME,
             EQUIPMENT_TYPE,
             EQUIPMENT_SUB_TYPE,
+            PRODUCTION_LINE,
             PLANT_ID
         FROM {instrument_tbl('vw_gold_instrument')}
         WHERE EQUIPMENT_TYPE != 'Single-Use Vessel'
@@ -69,9 +71,11 @@ async def _q_instrument_master(token: str, plant_id: Optional[str]) -> list[dict
 
 
 async def _q_current_states(token: str, plant_id: Optional[str]) -> list[dict]:
-    """Latest STATUS_TO per instrument from vw_gold_equipment_history (last 90 days).
+    """Latest STATUS_TO per instrument from vw_gold_equipment_history.
 
-    Uses the same ROW_NUMBER pattern as Equipment Insights v1.
+    Uses the same ROW_NUMBER pattern as Equipment Insights v1. No time-window
+    filter so instruments with no recent activity still appear in the state
+    distribution rather than being silently dropped.
     """
     plant_clause = "AND PLANT_ID = :plant_id" if plant_id else ""
     params: Optional[list[dict]] = [sql_param("plant_id", plant_id)] if plant_id else None
@@ -82,8 +86,7 @@ async def _q_current_states(token: str, plant_id: Optional[str]) -> list[dict]:
                 STATUS_TO,
                 ROW_NUMBER() OVER (PARTITION BY INSTRUMENT_ID ORDER BY CHANGE_AT DESC) AS rn
             FROM {tbl('vw_gold_equipment_history')}
-            WHERE CHANGE_AT >= current_timestamp() - INTERVAL 90 DAYS
-              AND EQUIPMENT_TYPE != 'Single-Use Vessel'
+            WHERE EQUIPMENT_TYPE != 'Single-Use Vessel'
               {plant_clause}
         )
         SELECT

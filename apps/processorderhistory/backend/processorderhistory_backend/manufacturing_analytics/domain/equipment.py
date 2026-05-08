@@ -24,6 +24,8 @@ SUBTYPE_TO_TYPE: dict[str, str] = {
 
 UNCATEGORISED = "Uncategorised"
 
+_MAX_TTC_MINUTES = 24 * 60  # sanity cap: discard anomalous cycles longer than one day
+
 IN_USE_KEYWORDS = frozenset({
     "IN USE", "IN-USE", "INUSE", "RUNNING", "OCCUPIED", "ACTIVE", "PRODUCTION", "PROCESS",
     "IN PRODUCTION", "IN PROCESS",
@@ -185,7 +187,7 @@ def compute_per_instrument_metrics(events: list[dict], now_ms: int) -> dict:
             next_state = classify_state(events[i + 1].get("status_to"))
             if next_state == "available":
                 duration_min = (int(events[i + 1]["change_at_ms"]) - start_ms) / 60_000
-                if 0 < duration_min < 24 * 60:  # sanity cap: 0–24 h
+                if 0 < duration_min < _MAX_TTC_MINUTES:
                     ttc_samples.append(duration_min)
 
         # Track last clean event
@@ -262,7 +264,7 @@ def build_ttc_trend(
                 continue
             clean_ms = int(next_event["change_at_ms"])
             duration_min = (clean_ms - int(event["change_at_ms"])) / 60_000
-            if not 0 < duration_min < 24 * 60:
+            if not 0 < duration_min < _MAX_TTC_MINUTES:
                 continue
             # Assign to the local-day bucket of the clean event
             clean_local = datetime.fromtimestamp(clean_ms / 1000, tz=dt_timezone.utc).astimezone(tz)

@@ -1,5 +1,5 @@
 """Unit tests for shared_db.authorized_scope."""
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -10,7 +10,7 @@ from shared_db.authorized_scope import assert_plant_authorized, fetch_authorized
 @pytest.fixture()
 def mock_run_sql():
     """Patch run_sql_async so no real Databricks connection is needed."""
-    with patch("shared_db.authorized_scope.run_sql_async") as m:
+    with patch("shared_db.authorized_scope.run_sql_async", new_callable=AsyncMock) as m:
         yield m
 
 
@@ -72,6 +72,27 @@ async def test_endpoint_hint_passed(mock_run_sql):
     await fetch_authorized_plants("tok")
     kwargs = mock_run_sql.call_args[1]
     assert kwargs.get("endpoint_hint") == "shared.authorized_scope"
+
+
+# ---------------------------------------------------------------------------
+# Identifier validation tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_invalid_catalog_raises_value_error(mock_run_sql):
+    """A catalog name containing shell-injection characters raises ValueError."""
+    with pytest.raises(ValueError, match="catalog"):
+        await fetch_authorized_plants("tok", catalog="bad;cat")
+    mock_run_sql.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_invalid_schema_raises_value_error(mock_run_sql):
+    """A schema name containing shell-injection characters raises ValueError."""
+    with pytest.raises(ValueError, match="schema"):
+        await fetch_authorized_plants("tok", schema="bad`schema")
+    mock_run_sql.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

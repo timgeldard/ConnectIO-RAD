@@ -24,7 +24,7 @@ export function ModuleContentPanel({ moduleId, modules, activeTabId }: ModuleCon
     }
   }, [moduleId, mod, activeTabId])
 
-  if (moduleId === 'home') {
+  if (moduleId === 'home' || !mod) {
     return <HomePanel />
   }
 

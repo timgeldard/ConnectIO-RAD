@@ -169,7 +169,7 @@ def test_ttc_trend_all_zeros_when_no_cycles():
 
 
 def test_ttc_trend_today_bucket_populated():
-    # Cycle completed 30 minutes ago → goes into today's bucket (index 13)
+    # Cycle completed 60 minutes ago → goes into today's bucket (index 13)
     events_by_instrument = {"I1": [
         _event("I1", "DIRTY",     -2 * _HOUR_MS),
         _event("I1", "AVAILABLE", -1 * _HOUR_MS),  # 60 min TTC, today

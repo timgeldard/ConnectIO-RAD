@@ -16,10 +16,13 @@ TODO: Request a dedicated ``authorized_scope_v`` view from UC Admin.
 from __future__ import annotations
 
 import logging
+import re
 
 from fastapi import HTTPException
 
 from shared_db.core import TRACE_CATALOG, TRACE_SCHEMA, run_sql_async
+
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_\-]+$")
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +50,10 @@ async def fetch_authorized_plants(
     """
     cat = catalog or TRACE_CATALOG
     sch = schema or TRACE_SCHEMA
+    if not _IDENTIFIER_RE.match(cat):
+        raise ValueError(f"Invalid catalog identifier: {cat!r}")
+    if not _IDENTIFIER_RE.match(sch):
+        raise ValueError(f"Invalid schema identifier: {sch!r}")
     sql = f"SELECT DISTINCT PLANT_ID FROM `{cat}`.`{sch}`.`gold_plant` ORDER BY PLANT_ID"
     rows = await run_sql_async(token, sql, endpoint_hint="shared.authorized_scope")
     plants = sorted(str(r["PLANT_ID"]) for r in rows if r.get("PLANT_ID"))

@@ -36,7 +36,10 @@ function LangContextBridge({ children }: { children: ReactNode }) {
     // This is a bit of a hack to keep the t.key access working:
     // we create a proxy that delegates to the shared t() function.
     const proxyT = new Proxy({} as any, {
-      get: (_, key: string) => t(`poh.${key}`),
+      get: (_, key) => {
+        if (typeof key !== 'string') return undefined
+        return t(`poh.${key}`)
+      },
     })
 
     return {
