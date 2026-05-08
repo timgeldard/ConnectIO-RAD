@@ -39,8 +39,8 @@ export const supportedLanguages: LanguageOption[] = [
   { code: 'zh-Hant', label: 'Traditional Chinese', nativeLabel: '繁體中文', enabled: true },
 ]
 
-const DEFAULT_LANGUAGE: LanguageCode = 'en'
-const ALL_SUPPORTED_LANGUAGE_CODES: LanguageCode[] = supportedLanguages.map(l => l.code)
+export const DEFAULT_LANGUAGE: LanguageCode = 'en'
+export const ALL_SUPPORTED_LANGUAGE_CODES: LanguageCode[] = supportedLanguages.map(l => l.code)
 const INTERPOLATION_RE = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g
 
 interface I18nContextValue {
@@ -54,7 +54,7 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null)
 
-function normalizeLanguage(language: string | undefined, available: LanguageCode[]): LanguageCode {
+export function normalizeLanguage(language: string | undefined, available: LanguageCode[]): LanguageCode {
   const raw = (language ?? '').toLowerCase()
   const exact = available.find(code => code.toLowerCase() === raw)
   if (exact) return exact
@@ -62,7 +62,8 @@ function normalizeLanguage(language: string | undefined, available: LanguageCode
   return available.find(code => code === base) ?? DEFAULT_LANGUAGE
 }
 
-function detectInitialLanguage(storageKey: string, available: LanguageCode[]): LanguageCode {
+export function detectInitialLanguage(appName: string, available: LanguageCode[] = ALL_SUPPORTED_LANGUAGE_CODES): LanguageCode {
+  const storageKey = `connectio:${appName}:language`
   if (typeof window === 'undefined') return DEFAULT_LANGUAGE
   try {
     const saved = window.localStorage.getItem(storageKey)
@@ -83,7 +84,8 @@ function interpolate(text: string, values?: TranslationValues): string {
 
 interface I18nProviderProps {
   appName: string
-  resources: LocaleResources
+  resources?: LocaleResources
+  loadResource?: (language: LanguageCode) => Promise<Record<string, string>>
   children: ReactNode
   defaultLanguage?: LanguageCode
   availableLanguages?: LanguageCode[]
@@ -91,7 +93,8 @@ interface I18nProviderProps {
 
 export function I18nProvider({
   appName,
-  resources,
+  resources: initialResources = {},
+  loadResource,
   children,
   defaultLanguage = DEFAULT_LANGUAGE,
   availableLanguages = ALL_SUPPORTED_LANGUAGE_CODES,
@@ -101,12 +104,29 @@ export function I18nProvider({
     ? availableLanguages
     : [defaultLanguage, ...availableLanguages]
   const storageKey = `connectio:${appName}:language`
-  const [language, setLanguageState] = useState<LanguageCode>(() => detectInitialLanguage(storageKey, available))
+  
+  const [language, setLanguageState] = useState<LanguageCode>(() => detectInitialLanguage(appName, available))
+  const [resources, setResources] = useState<LocaleResources>(initialResources)
+  const [isLoading, setIsLoading] = useState(false)
 
   const enabledLanguages = useMemo(
     () => supportedLanguages.filter(option => available.includes(option.code)).map(option => ({ ...option, enabled: true })),
     [available.join('|')],
   )
+
+  const loadLanguage = useCallback(async (lang: LanguageCode) => {
+    if (!loadResource || resources[lang]) return
+    
+    setIsLoading(true)
+    try {
+      const strings = await loadResource(lang)
+      setResources(prev => ({ ...prev, [lang]: strings }))
+    } catch (err) {
+      console.error(`I18nProvider: Failed to load language ${lang}`, err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [loadResource, resources])
 
   const setLanguage = useCallback((next: LanguageCode) => {
     const normalized = available.includes(next) ? next : defaultLanguage
@@ -120,7 +140,8 @@ export function I18nProvider({
 
   useEffect(() => {
     document.documentElement.lang = language
-  }, [language])
+    loadLanguage(language)
+  }, [language, loadLanguage])
 
   const t = useCallback((key: string, values?: TranslationValues) => {
     const selected = resources[language]?.[key]

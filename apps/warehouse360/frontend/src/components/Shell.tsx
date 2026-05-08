@@ -3,7 +3,7 @@ import React from 'react'
 import { I18nProvider, LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n'
 import { Icon } from './Primitives'
 import { usePlantSelection } from '../context/PlantContext'
-import resources from '../i18n/resources.json'
+import enResources from '../i18n/locales/en.json'
 
 /* Sidebar + Top bar */
 const NAV = [
@@ -178,8 +178,16 @@ const MobileNavContent = ({ current, onNav }: MobileNavProps) => {
   );
 };
 
+const loadResource = async (lang: string) => {
+  return (await import(`../i18n/locales/${lang}.json`)).default
+}
+
 const withWarehouseI18n = (children: React.ReactNode) => (
-  <I18nProvider appName="warehouse360" resources={resources}>
+  <I18nProvider
+    appName="warehouse360"
+    resources={{ en: enResources }}
+    loadResource={loadResource}
+  >
     {children}
   </I18nProvider>
 );

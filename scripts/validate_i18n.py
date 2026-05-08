@@ -25,7 +25,21 @@ def placeholders(value: str) -> set[str]:
 
 def validate_resource(path: Path) -> list[str]:
     errors: list[str] = []
-    data = load_json(path)
+    if path.name == "resources.json":
+        data = load_json(path)
+    else:
+        # It's a directory containing {lang}.json files
+        data = {}
+        for lang in REQUIRED_LANGUAGES:
+            lang_file = path / f"{lang}.json"
+            if not lang_file.exists():
+                errors.append(f"{path.relative_to(ROOT)} missing language file: {lang}.json")
+                continue
+            data[lang] = load_json(lang_file)
+
+        if errors:
+            return errors
+
     missing_languages = [language for language in REQUIRED_LANGUAGES if language not in data]
     if missing_languages:
         errors.append(f"{path.relative_to(ROOT)} missing languages: {', '.join(missing_languages)}")
@@ -64,10 +78,15 @@ def validate_resource(path: Path) -> list[str]:
 
 def main() -> int:
     resource_files = sorted((ROOT / "apps").glob("*/frontend/src/i18n/resources.json"))
+    locales_dirs = sorted((ROOT / "apps").glob("*/frontend/src/i18n/locales"))
+
+    targets = resource_files + locales_dirs
     errors: list[str] = []
-    if not resource_files:
-        errors.append("No app i18n resource files found")
-    for path in resource_files:
+
+    if not targets:
+        errors.append("No app i18n resources (resources.json or locales/ dir) found")
+
+    for path in targets:
         errors.extend(validate_resource(path))
 
     if errors:
@@ -76,7 +95,7 @@ def main() -> int:
             print(f"- {error}", file=sys.stderr)
         return 1
 
-    print(f"i18n validation passed for {len(resource_files)} app resource files.")
+    print(f"i18n validation passed for {len(targets)} app resources.")
     return 0
 
 

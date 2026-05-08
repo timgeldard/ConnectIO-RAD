@@ -152,14 +152,14 @@ export default function XbarChart({ spc, signals, externalLimits }: XbarChartPro
   if (!xbarChart || !option) return null
 
   return (
-    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--cds-border-subtle-01)', paddingBottom: '1rem' }}>
-      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--cds-text-secondary)' }}>
+    <div style={{ marginBottom: '0.25rem', borderBottom: '1px solid var(--line-1)', paddingBottom: '1rem' }}>
+      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-3)' }}>
         X̄ Chart (Subgroup Means)
         <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>{xbarChart.subgroupStats.length} subgroups</span>
       </div>
       <EChart option={option} style={{ height: 280 }} theme="spc" notMerge ariaLabel="X-bar chart — subgroup means" />
       {xbarChart.mixedSubgroupSizes && (
-        <p style={{ marginTop: '0.25rem', fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--cds-text-secondary)' }}>
+        <p style={{ marginTop: '0.25rem', fontSize: '0.7rem', fontStyle: 'italic', color: 'var(--text-3)' }}>
           Subgroup sizes vary. Dashed red limits are calculated per subgroup; the centre band uses pooled σ with average n for reference for the {isSigmaFamily ? 'X̄-S' : 'X̄-R'} family.
         </p>
       )}

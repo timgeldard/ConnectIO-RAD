@@ -7,6 +7,7 @@ from urllib.parse import quote, unquote
 from spc_backend.process_control.domain.capability import infer_spec_type
 from spc_backend.utils.db import TRACE_CATALOG, TRACE_SCHEMA, run_sql_async, sql_param, tbl
 from spc_backend.utils.schema_contract import detect_optional_columns
+from shared_trace import schema
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ _ALLOWED_STRATIFY_COLUMNS = {
     "plant_id": "bd.plant_id",
     "inspection_lot_id": "CAST(r.INSPECTION_LOT_ID AS STRING)",
     "operation_id": "CAST(r.OPERATION_ID AS STRING)",
+    "phase_name": "p.PHASE_NAME",
 }
 
 
@@ -240,6 +242,8 @@ def _build_quality_data_cte_sql(filters: ChartFilterSpec) -> str:
                 r.BATCH_ID AS batch_id,
                 r.INSPECTION_LOT_ID,
                 r.OPERATION_ID,
+                p.PHASE_NAME AS phase_name,
+                p.PHASE_NUMBER AS phase_number,
                 r.SAMPLE_ID,
                 r.attribute AS attribut,
                 TRY_CAST(r.QUANTITATIVE_RESULT AS DOUBLE) AS value,
@@ -275,6 +279,11 @@ def _build_quality_data_cte_sql(filters: ChartFilterSpec) -> str:
             INNER JOIN batch_dates bd
                 ON bd.MATERIAL_ID = r.MATERIAL_ID
                AND bd.BATCH_ID = r.BATCH_ID
+            LEFT JOIN {tbl(schema.GOLD_INSPECTION_LOT)} l
+                ON l.INSPECTION_LOT_ID = r.INSPECTION_LOT_ID
+            LEFT JOIN {tbl(schema.GOLD_PROCESS_PHASE)} p
+                ON p.ORDER_ID = l.PROCESS_ORDER_ID
+               AND p.PHASE_ID = l.PHASE_ID
             {_where_clause(filters.quality_conditions)}
         )
     """

@@ -55,8 +55,8 @@ export function Button({
     if (disabled || loading) return 'var(--surface-sunken)'
     if (variant === 'primary') return 'var(--brand)'
     if (variant === 'danger') {
-      if (active) return '#A63300'
-      return hover ? '#CF3F00' : 'var(--status-risk)'
+      if (active) return 'var(--status-risk)' // Simplified, usually a deep variant exists
+      return hover ? 'var(--status-risk)' : 'var(--status-risk-bg)'
     }
     if (variant === 'secondary') return 'var(--surface-2)'
     if (hover || active) return 'var(--surface-sunken)'
@@ -73,7 +73,7 @@ export function Button({
   const getBorder = () => {
     if (disabled || loading) return 'var(--line-1)'
     if (variant === 'primary') return 'var(--brand)'
-    if (variant === 'danger') return active ? '#A63300' : 'var(--status-risk)'
+    if (variant === 'danger') return 'var(--status-risk)'
     if (hover || active) return 'var(--brand)'
     return 'var(--line-2)'
   }

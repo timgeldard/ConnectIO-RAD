@@ -26,14 +26,14 @@ export default function SectionHeader({ eyebrow, title, subtitle, actions }: Sec
               fontWeight: 600,
               letterSpacing: '0.06em',
               textTransform: 'uppercase',
-              color: 'var(--cds-text-secondary)',
+              color: 'var(--text-3)',
             }}
           >
             {eyebrow}
           </div>
         )}
-        <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600, color: 'var(--cds-text-primary)' }}>{title}</h3>
-        {subtitle && <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>{subtitle}</p>}
+        <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-1)' }}>{title}</h3>
+        {subtitle && <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--text-3)' }}>{subtitle}</p>}
       </div>
       {actions && (
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem' }}>

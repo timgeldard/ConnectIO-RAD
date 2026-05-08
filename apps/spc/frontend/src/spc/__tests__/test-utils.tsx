@@ -1,7 +1,7 @@
 import { render, type RenderOptions } from '@testing-library/react'
 import { I18nProvider } from '@connectio/shared-frontend-i18n'
 import type { ReactElement } from 'react'
-import resources from '../../i18n/resources.json'
+import enResources from '../../i18n/locales/en.json'
 
 /**
  * Renders a component wrapped in an I18nProvider with English forced.
@@ -13,7 +13,7 @@ import resources from '../../i18n/resources.json'
 export function renderWithI18n(ui: ReactElement, options?: RenderOptions) {
   localStorage.clear()
   return render(
-    <I18nProvider appName="spc" resources={resources} availableLanguages={['en']}>
+    <I18nProvider appName="spc" resources={{ en: enResources }} availableLanguages={['en']}>
       {ui}
     </I18nProvider>,
     options,

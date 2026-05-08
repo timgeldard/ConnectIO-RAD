@@ -23,18 +23,18 @@ function SuppressedCapabilityCard({ reason, onOverride }: SuppressedCapabilityCa
       aria-label="Capability indices suppressed"
       style={{
         borderRadius: 4,
-        border: '1px solid var(--cds-support-warning)',
-        background: 'var(--cds-notification-background-warning)',
+        border: '1px solid var(--status-warn)',
+        background: 'var(--status-warn-bg)',
         padding: '0.75rem 1rem',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.5rem',
       }}
     >
-      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--cds-text-primary)' }}>
+      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-1)' }}>
         Capability indices suppressed
       </div>
-      <div style={{ fontSize: '0.8125rem', color: 'var(--cds-text-primary)', lineHeight: 1.4 }}>
+      <div style={{ fontSize: '0.8125rem', color: 'var(--text-1)', lineHeight: 1.4 }}>
         {reason} Per AIAG SPC §V, capability indices are only meaningful on a stable process.
         Investigate the assignable cause before reporting Cpk/Ppk.
       </div>
@@ -44,8 +44,8 @@ function SuppressedCapabilityCard({ reason, onOverride }: SuppressedCapabilityCa
         style={{
           alignSelf: 'flex-start',
           background: 'transparent',
-          border: '1px solid var(--cds-border-strong)',
-          color: 'var(--cds-text-primary)',
+          border: '1px solid var(--line-2)',
+          color: 'var(--text-1)',
           padding: '0.25rem 0.75rem',
           fontSize: '0.75rem',
           cursor: 'pointer',
@@ -73,12 +73,12 @@ function StabilityWarning({ signals, mrSignals }: StabilityWarningProps) {
       alignItems: 'flex-start',
       gap: '0.5rem',
       borderRadius: 4,
-      border: '1px solid var(--cds-support-warning)',
-      background: 'var(--cds-notification-background-warning)',
+      border: '1px solid var(--status-warn)',
+      background: 'var(--status-warn-bg)',
       padding: '0.5rem 0.75rem',
       fontSize: '0.8125rem',
       lineHeight: 1.4,
-      color: 'var(--cds-text-primary)',
+      color: 'var(--text-1)',
     }}>
       <span style={{ marginTop: '0.05rem', flexShrink: 0, fontSize: '1rem' }}>⚠</span>
       <span>
@@ -89,11 +89,11 @@ function StabilityWarning({ signals, mrSignals }: StabilityWarningProps) {
   )
 }
 
-// Carbon-token tier styles
+// Kerry-token tier styles
 const TIER_STYLES = {
-  healthy:  { color: 'var(--cds-support-success)', bg: 'var(--cds-notification-background-success)' },
-  warning:  { color: 'var(--cds-support-warning)', bg: 'var(--cds-notification-background-warning)' },
-  critical: { color: 'var(--cds-support-error)',   bg: 'var(--cds-notification-background-error)' },
+  healthy:  { color: 'var(--status-ok)',   bg: 'var(--status-ok-bg)' },
+  warning:  { color: 'var(--status-warn)', bg: 'var(--status-warn-bg)' },
+  critical: { color: 'var(--status-risk)', bg: 'var(--status-risk-bg)' },
 } as const
 
 type Tier = ReturnType<typeof getCapabilityTier>
@@ -119,16 +119,16 @@ function MetricCard({ label, value, tier, subtitle, note }: MetricCardProps) {
       minWidth: 0,
       borderRadius: 4,
       padding: '0.75rem',
-      background: tierStyle?.bg ?? 'var(--cds-layer)',
-      border: `1px solid ${tierStyle ? tierStyle.color : 'var(--cds-border-subtle-01)'}`,
+      background: tierStyle?.bg ?? 'var(--surface-1)',
+      border: `1px solid ${tierStyle ? tierStyle.color : 'var(--line-1)'}`,
     }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: '0.75rem', fontWeight: 500, color: tierStyle?.color ?? 'var(--cds-text-secondary)' }}>{label}</span>
-        <span style={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums', color: tierStyle?.color ?? 'var(--cds-text-primary)' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 500, color: tierStyle?.color ?? 'var(--text-3)' }}>{label}</span>
+        <span style={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums', color: tierStyle?.color ?? 'var(--text-1)' }}>
           {displayVal}
         </span>
-        {subtitle && <span style={{ fontSize: '0.75rem', color: tierStyle?.color ?? 'var(--cds-text-secondary)' }}>{subtitle}</span>}
-        {note && <span style={{ marginTop: 2, fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>{note}</span>}
+        {subtitle && <span style={{ fontSize: '0.75rem', color: tierStyle?.color ?? 'var(--text-3)' }}>{subtitle}</span>}
+        {note && <span style={{ marginTop: 2, fontSize: '0.75rem', color: 'var(--text-3)' }}>{note}</span>}
       </div>
     </div>
   )
@@ -179,30 +179,30 @@ export default function CapabilityPanel({ spc }: CapabilityPanelProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div>
-        <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--cds-text-secondary)' }}>
+        <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)' }}>
           Capability evidence
         </div>
-        <div style={{ marginTop: 4, fontSize: '1rem', fontWeight: 700, color: 'var(--cds-text-primary)' }}>
+        <div style={{ marginTop: 4, fontSize: '1rem', fontWeight: 700, color: 'var(--text-1)' }}>
           Process Capability
         </div>
       </div>
       <StabilityWarning signals={spc.signals} mrSignals={spc.mrSignals} />
       {hasNoSpecification && (
-        <p style={{ borderRadius: 4, border: '1px solid var(--cds-border-subtle-01)', background: 'var(--cds-layer)', padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--cds-text-secondary)', margin: 0 }}>
+        <p style={{ borderRadius: 4, border: '1px solid var(--line-1)', background: 'var(--surface-1)', padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-3)', margin: 0 }}>
           No specification data available — capability metrics cannot be calculated.
         </p>
       )}
       {normality?.is_normal === false && (
-        <p style={{ borderRadius: 4, border: '1px solid var(--cds-support-warning)', background: 'var(--cds-notification-background-warning)', padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--cds-text-primary)', margin: 0 }}>
+        <p style={{ borderRadius: 4, border: '1px solid var(--status-warn)', background: 'var(--status-warn-bg)', padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-1)', margin: 0 }}>
           Non-normal distribution — percentile-based capability applied.
           {normality?.p_value != null ? ` (Shapiro-Wilk p=${normality.p_value.toFixed(4)})` : ''}
         </p>
       )}
       {normalityWarning && normality?.is_normal !== false && (
-        <p style={{ marginBottom: '0.5rem', fontSize: '0.75rem', color: 'var(--cds-support-error)', margin: 0 }}>{normalityWarning}</p>
+        <p style={{ marginBottom: '0.5rem', fontSize: '0.75rem', color: 'var(--status-risk)', margin: 0 }}>{normalityWarning}</p>
       )}
       {normality?.warning && normality?.is_normal == null && (
-        <p style={{ marginBottom: '0.5rem', fontSize: '0.75rem', color: 'var(--cds-text-secondary)', margin: 0 }}>{normality.warning}</p>
+        <p style={{ marginBottom: '0.5rem', fontSize: '0.75rem', color: 'var(--text-3)', margin: 0 }}>{normality.warning}</p>
       )}
 
       {/* Headline metric — suppressed when the process is not in statistical control. */}
@@ -221,7 +221,7 @@ export default function CapabilityPanel({ spc }: CapabilityPanelProps) {
       )}
 
       {/* Progressive disclosure for secondary stats */}
-      <div style={{ borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.5rem' }}>
+      <div style={{ borderTop: '1px solid var(--line-1)', paddingTop: '0.5rem' }}>
         <button
           style={{
             display: 'flex',
@@ -236,7 +236,7 @@ export default function CapabilityPanel({ spc }: CapabilityPanelProps) {
             fontWeight: 600,
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
-            color: 'var(--cds-text-secondary)',
+            color: 'var(--text-3)',
           }}
           type="button"
           aria-expanded={detailsOpen}
@@ -287,31 +287,31 @@ export default function CapabilityPanel({ spc }: CapabilityPanelProps) {
                 <MetricCard label="Z (σ level)" value={zScore} tier={null} note="Process sigma" />
               )}
               {dpmo != null && (
-                <div style={{ minWidth: 0, borderRadius: 4, border: '1px solid var(--cds-border-subtle-01)', background: 'var(--cds-layer)', padding: '0.75rem' }}>
+                <div style={{ minWidth: 0, borderRadius: 4, border: '1px solid var(--line-1)', background: 'var(--surface-1)', padding: '0.75rem' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--cds-text-secondary)' }}>DPMO</span>
-                    <span style={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums', color: 'var(--cds-text-primary)' }}>{dpmo.toLocaleString()}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>1.5σ shift</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-3)' }}>DPMO</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums', color: 'var(--text-1)' }}>{dpmo.toLocaleString()}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>1.5σ shift</span>
                   </div>
                 </div>
               )}
             </div>
 
             {cpkTier && cp != null && cpk != null && Math.abs(cp - cpk) > 0.05 && !isUnilateral && (
-              <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', margin: 0 }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', margin: 0 }}>
                 Process is {cpk < cp ? 'off-centre' : 'centred'} — Cp {cp.toFixed(2)} vs Cpk {cpk.toFixed(2)}
               </p>
             )}
             {isUnilateral && (
-              <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', margin: 0 }}>Cp / Pp not defined for one-sided specification</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', margin: 0 }}>Cp / Pp not defined for one-sided specification</p>
             )}
             {spc.capability?.specWarning && (
-              <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', margin: 0 }}>{spc.capability.specWarning}</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', margin: 0 }}>{spc.capability.specWarning}</p>
             )}
 
             {!hasNoSpecification && (usesNonParametricCapability ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--cds-text-secondary)' }}>
+                <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)' }}>
                   Empirical percentile evidence
                 </div>
                 <div style={{ display: 'grid', gap: '0.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))' }}>
@@ -326,7 +326,7 @@ export default function CapabilityPanel({ spc }: CapabilityPanelProps) {
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.75rem' }}>
               {CAPABILITY_TIERS.map((t, i) => (
-                <span key={i} style={{ borderRadius: 999, background: 'var(--cds-layer)', padding: '2px 8px', color: TIER_STYLES[t.status].color }}>
+                <span key={i} style={{ borderRadius: 999, background: 'var(--surface-1)', padding: '2px 8px', color: TIER_STYLES[t.status].color }}>
                   {i < CAPABILITY_TIERS.length - 1 ? `≥ ${t.min.toFixed(2)} ${t.label}` : `< ${CAPABILITY_TIERS[i - 1]?.min.toFixed(2) ?? '1.33'} ${t.label}`}
                 </span>
               ))}

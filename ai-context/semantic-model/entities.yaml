@@ -358,6 +358,59 @@ entities:
       - "What was the planned vs actual output for order X?"
     traps:
       - "ACTUAL_END_DATE is NULL for orders not yet completed — filter ORDER_STATUS IN ('CONFIRMED','CLOSED') for completion analysis"
+
+  # ---------------------------------------------------------------------------
+  # FACT: gold_process_phase
+  # ---------------------------------------------------------------------------
+  - name: gold_process_phase
+    business_name: Process Phase
+    type: fact
+    tier: APPROVED
+    approved_for_agent_use: true
+    business_purpose: >
+      Detailed operations and phases within a process order. In SAP PP-PI, 
+      the Phase is the atomic unit of work and quality control. This table 
+      allows joining process orders to specific IPC measurements (e.g. Mixing 
+      vs Granulation vs Filling). Sourced from AFVC and AFTX.
+    grain: One row per (ORDER_ID, PHASE_ID)
+    primary_keys: [ORDER_ID, PHASE_ID]
+    preferred_synonyms:
+      - phase
+      - operation
+      - routing step
+    important_dimensions:
+      - name: ORDER_ID
+        type: STRING
+        description: SAP process/production order number
+      - name: PHASE_ID
+        type: STRING
+        description: Unique phase/operation identifier (routing node)
+      - name: PHASE_NUMBER
+        type: STRING
+        description: Sequential operation number (e.g. "0010", "0020")
+      - name: PHASE_NAME
+        type: STRING
+        description: Description of the phase (e.g. "Mixing", "Packaging")
+      - name: WORK_CENTER
+        type: STRING
+        description: Resource/work center assigned to this phase
+      - name: PHASE_STATUS
+        type: STRING
+        description: Current status of the phase (e.g. "STARTED", "CONFIRMED")
+    important_measures:
+      - name: PLANNED_YIELD
+        type: DECIMAL(23,3)
+        description: Expected quantity from this phase
+      - name: ACTUAL_YIELD
+        type: DECIMAL(23,3)
+        description: Confirmed output quantity for this phase
+    forbidden_usage:
+      - "NEVER assume Phase numbers are sequential without gaps (0010, 0020 is standard)."
+    common_questions:
+      - "What phase of the process order is currently running?"
+      - "Which work center executed the filling phase for order X?"
+    traps:
+      - "Not all operations have quality data. Join to QALS using both ORDER_ID and PHASE_ID to isolate IPC results."
       - "SCRAP_QTY is cumulative — do not double-count across confirmations"
       - "One order can produce into multiple batches — join to gold_batch_lineage for batch-level detail"
 
@@ -660,6 +713,9 @@ entities:
       - name: PROCESS_ORDER_ID
         type: STRING
         description: Process order that triggered the lot
+      - name: PHASE_ID
+        type: STRING
+        description: Process phase (routing node) that triggered the lot. Join with gold_process_phase.
       - name: CREATED_DATE
         type: DATE
         description: Lot creation date
