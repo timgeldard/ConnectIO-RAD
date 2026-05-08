@@ -1,50 +1,68 @@
 # processorderhistory — Process Order History
 
 Databricks App: FastAPI backend + Vite/React/TypeScript frontend providing a
-plant-floor view of process order execution. Four pages cover the order list,
-per-order detail (BOM, pours, quality, timeline), the daily planning board, and
-pour analytics.
-
-The current build is a faithful port of the Claude Design handoff prototype.
-The frontend ships against in-memory mock data (`src/data/mock.ts`); the
-backend exposes only health/readiness endpoints. Wiring against
-`connected_plant_uat.gold` views is tracked in `docs/architecture.md`.
+plant-floor view of process order execution. Six domains cover order execution,
+manufacturing analytics (OEE, downtime, equipment, quality, yield, adherence),
+production planning, Genie Assist, and user preferences.
 
 ## 📚 Documentation
 
-- [**Architecture Overview**](./docs/architecture.md): components, page flow, and the work remaining to swap mock data for gold views.
+- [**Architecture Overview**](./docs/architecture.md): domain breakdown, bounded contexts, and data flow.
 - [**Local Setup Guide**](./docs/setup.md): prerequisites and how to run locally.
-- [**API Reference**](./docs/api.md): backend endpoints (health/ready today; future SQL routers).
+- [**API Reference**](./docs/api.md): backend endpoints and request models.
 
 ## Layout
 
 ```
 backend/
-  main.py                       FastAPI entry, health/ready + SPA serving
-  routers/                      router stubs (orders, pours, planning) — not wired yet
-  schemas/                      pydantic request models
-  dal/                          (TBD) gold-view DAL
+  main.py                             FastAPI entry, readiness + SPA serving
+  order_execution/                    order list, detail, day view, pours
+  manufacturing_analytics/            OEE, downtime, equipment insights, quality, yield, adherence
+  production_planning/                planning board, vessel planning
+  genie_assist/                       Genie natural-language query integration
+  prefs_store.py                      per-user preferences (plant, timezone)
 frontend/
-  src/App.tsx                   Top-level layout, view router, language provider
-  src/ui.tsx                    Sidebar, TopBar, StatusBadge, icons, formatters
-  src/pages/                    OrderList, OrderDetail, PlanningBoard, PourAnalytics
-  src/data/mock.ts              In-memory orders, pours, plants, materials
-  src/i18n/resources.json       en/fr/es/de strings (consumed via shared-frontend-i18n)
-  src/styles/                   colors_and_type.css, app.css (ported from prototype)
+  src/App.tsx                         layout, sidebar, navigation
+  src/pages/                          one directory per domain
+  src/data/mock.ts                    reference data for demo mode
 scripts/
-  build.py                      Pre-bundle: copy shared libs + npm run build
-docs/                           architecture.md, setup.md, api.md
+  build.py                            pre-bundle: copy shared libs + npm run build
+docs/                                 architecture.md, setup.md, api.md
 ```
 
-## Endpoints (current)
+## Data contract
+
+SQL queries use two schemas, both resolved from `POH_CATALOG` (env var, default `connected_plant_uat`).
+
+### `csm_process_order_history` schema (`POH_SCHEMA` env var)
 
 ```
-GET  /api/health   liveness
-GET  /api/ready    readiness probe stub
+vw_gold_process_order               process order headers — status, material, plant, dates
+vw_gold_material                    material master — description, base UoM
+vw_gold_process_order_material      BOM components per order (input materials)
+vw_gold_process_order_phase         order phases and operations
+vw_gold_process_order_plan          planned orders from MRP
+vw_gold_adp_movement                goods movements / pours with batch and quantity
+vw_gold_confirmation                order confirmations — actual quantities and labour
+vw_gold_downtime_and_issues         downtime events with cause classification
+vw_gold_inspection_lot              inspection lot headers linked to orders
+vw_gold_inspection_result           MIC-level inspection results
+vw_gold_inspection_specification    inspection specifications and tolerance limits
+vw_gold_inspection_usage_decision   usage decision per inspection lot (PASS/FAIL/etc.)
+vw_gold_logs_notes_and_comments     production notes and comments
+vw_gold_equipment_history           equipment state-change events (cleaning, in-use, etc.)
+vw_gold_batch_material              batch-level material relationships
+metric_oee_daily                    pre-computed daily OEE metrics
+metric_schedule_adherence           pre-computed schedule adherence metrics
+silver_process_order                LEFT JOIN only — scheduled start dates; degrades gracefully
+                                    if `POH_CATALOG.silver` is inaccessible
 ```
 
-Future endpoints (see `docs/api.md`): orders list, order detail, planning slots,
-pour-time analytics — all sourced from `connected_plant_uat.gold` views.
+### `csm_equipment_history` schema (accessed via `instrument_tbl()`)
+
+```
+vw_gold_instrument                  equipment/instrument master — type, sub-type, plant
+```
 
 ## Dev
 

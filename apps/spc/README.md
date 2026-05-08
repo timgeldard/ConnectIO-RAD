@@ -160,6 +160,45 @@ For more details, see [tests/README.md](tests/README.md).
 
 ---
 
+## Data contract
+
+SQL queries assume Unity Catalog views in `TRACE_CATALOG.TRACE_SCHEMA`
+(see `app.template.yaml`). Full column specs, change procedures, and the
+runtime schema-validation JSON live in [`docs/DATA_CONTRACT.md`](./docs/DATA_CONTRACT.md)
+and [`docs/GOLD_LAYER.md`](./docs/GOLD_LAYER.md).
+
+### Upstream views (read-only, SAP / trace pipeline owned)
+
+```
+gold_batch_quality_result_v     per-sample MIC inspection results (grain: lot + sample + MIC)
+gold_batch_mass_balance_mat     material batch provenance and posting dates
+gold_material                   material master — display names and units
+```
+
+### App-owned objects (SPC maintains these in Databricks)
+
+```
+spc_batch_dim_mv                batch dimension — materialized for scorecard performance
+spc_characteristic_dim_mv       MIC characteristic master
+spc_material_dim_mv             material dimension with spec limits
+spc_plant_material_dim_mv       plant × material crosstab
+spc_attribute_subgroup_mv       attribute-chart subgroup aggregates
+spc_quality_metrics             per-characteristic quality metric snapshots
+spc_quality_metric_subgroup_v   subgroup-level quality metrics view
+spc_attribute_quality_metrics   attribute-chart quality metrics
+spc_spec_drift_summary_v        rolling spec-drift detection view
+spc_correlation_source_mv       pairwise-correlation source data
+spc_lineage_graph_mv            upstream/downstream material lineage DAG
+spc_process_flow_source_mv      process-flow page source data
+spc_exclusions                  user-managed point exclusions (with audit trail)
+spc_locked_limits               user-managed locked control limits
+spc_mic_chart_config            per-MIC chart configuration overrides
+spc_msa_sessions                MSA study session storage
+spc_query_audit                 query audit log
+```
+
+---
+
 ## Deployment
 
 Use the shared deployment script from the root:

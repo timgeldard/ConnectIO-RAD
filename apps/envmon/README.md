@@ -132,3 +132,28 @@ The app is fully configurable via environment variables:
 -   **Dark Mode**: Supports a high-contrast dark theme for control room environments.
 -   **Responsive & Mobile-Ready**: Collapsible side panels and wrapping filter bars ensure usability on tablets and mobile devices.
 -   **Stability**: Global Error Boundaries prevent UI crashes and provide graceful recovery.
+
+---
+
+## Data contract
+
+SQL queries assume Unity Catalog views resolved via `TRACE_CATALOG` / `TRACE_SCHEMA`
+(see `app.template.yaml`). Individual table paths can be overridden per the `EM_*_TABLE`
+environment variables documented in `backend/utils/em_config.py`.
+
+### Upstream views (read-only, SAP pipeline owned)
+
+```
+gold_inspection_lot             inspection lot headers (SAP types 14, Z14 by default)
+gold_inspection_point           sample-point master with FUNCTIONAL_LOCATION hierarchy
+gold_batch_quality_result_v     MIC-level measurement results (numeric and attribute)
+gold_plant                      plant master (name, country)
+```
+
+### App-managed tables (read-write, envmon owned)
+
+```
+em_location_coordinates         X/Y floor-plan coordinates per FUNCTIONAL_LOCATION
+em_plant_floor                  floor plan image metadata per plant/floor
+em_plant_geo                    plant-level geo bounding boxes (replaces SAP epmplantconfiguration join)
+```
