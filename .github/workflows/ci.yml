@@ -45,6 +45,20 @@ jobs:
       - name: Verify wheel-bundled package versions are bumped on source changes
         run: python3 scripts/check_wheel_versions.py --base=$NX_BASE --head=$NX_HEAD
 
+      # Repo-shape contract checks: target-shape, watch-mode test drift,
+      # rendered app.yaml against deploy.toml. Documented in
+      # docs/architecture/repo-consolidation.md as the source-of-truth
+      # health command.
+      - name: check:repo
+        run: npm run check:repo
+
+      # Frontend design-system audit: --strict fails the build on any
+      # @carbon/* import (forbidden by frontend_rules.md). Tailwind usage
+      # is reported as a warning until the SPC migration question is
+      # answered (see TODO.md).
+      - name: audit:frontend (strict — Carbon forbidden)
+        run: npm run audit:frontend:strict
+
       # Central DDD guardrail. Pre-commit also runs this, but a forked PR or
       # a contributor who skips hooks would otherwise bypass it. The test
       # AST-walks every domain/, application/, and router*.py file across all
@@ -52,6 +66,23 @@ jobs:
       # app `nx test` graph because it lives at scripts/tests/.
       - name: DDD architecture guardrails
         run: uv run --with pytest pytest scripts/tests/test_ddd_architecture_guardrails.py --tb=short
+
+      # Docstring presence gate. Each pyproject.toml has a [tool.interrogate]
+      # block with fail-under set at the current floor (see TODO.md ratchet
+      # entry). Regression below that floor fails CI; ratchet up sprint by
+      # sprint as the team adds docstrings.
+      - name: Docstring presence (interrogate)
+        run: |
+          uv tool install interrogate
+          set -e
+          for cfg in apps/connectedquality/backend apps/envmon/backend \
+                     apps/processorderhistory/backend apps/spc/backend \
+                     apps/trace2/backend apps/warehouse360/backend \
+                     libs/shared-api libs/shared-auth libs/shared-db libs/shared-domain; do
+            echo "::group::interrogate $cfg"
+            uv tool run interrogate --config "$cfg/pyproject.toml" "$cfg"
+            echo "::endgroup::"
+          done
 
       - name: Typecheck affected frontends
         run: npx nx affected -t typecheck --base=$NX_BASE --head=$NX_HEAD --parallel=4

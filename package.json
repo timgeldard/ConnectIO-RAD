@@ -20,6 +20,8 @@
     "check:repo": "python3 scripts/validate_repo_contract.py && python3 scripts/validate_i18n.py && python3 scripts/validate_app_configs.py",
     "check:i18n": "python3 scripts/validate_i18n.py",
     "audit:i18n": "python3 scripts/audit_i18n_literals.py",
+    "audit:frontend": "node scripts/frontend-audit.mjs",
+    "audit:frontend:strict": "node scripts/frontend-audit.mjs --strict",
     "render:app-configs": "python3 scripts/render_app_configs.py",
     "check:app-configs": "python3 scripts/validate_app_configs.py",
     "graph": "nx graph"

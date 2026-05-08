@@ -7,12 +7,21 @@ failures as either *required* (fail loud at startup) or *optional* (log a
 warning and continue, with the artifact recorded for inspection later).
 
 Required failures raise immediately so a broken deploy never silently 404s
-the affected routes. Optional failures are recorded in
-:func:`get_missing_optional_artifacts` and surfaced by the
-``GET /api/health/routers`` endpoint defined in :mod:`backend.main`. The
-readiness probe (``/api/ready``) only reports on the live SQL warehouse
-roundtrip — it intentionally does *not* mention optional artifacts so a
-deferred-feature wheel doesn't keep the app reporting not-ready.
+the affected routes. Optional failures are recorded in the active
+:class:`ArtifactTracker` and surfaced by the ``GET /api/health/routers``
+endpoint defined in :mod:`backend.main`. The readiness probe (``/api/ready``)
+only reports on the live SQL warehouse roundtrip — it intentionally does
+*not* mention optional artifacts so a deferred-feature wheel doesn't keep
+the app reporting not-ready.
+
+Test isolation
+--------------
+Production code uses an implicit module-level :data:`_default_tracker` and
+the convenience ``_optional_attr(...)`` shim. Tests should construct their
+own :class:`ArtifactTracker` (``tracker = ArtifactTracker(); tracker.attempt(...)``)
+so a test never accumulates state into the singleton — this replaces the
+brittle "clear the global before/after each test" pattern that earlier
+versions of this module forced on its tests.
 """
 from __future__ import annotations
 
@@ -22,16 +31,96 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-_missing_optional_artifacts: dict[str, str] = {}
-
 
 class RequiredArtifactMissing(RuntimeError):
     """Raised when a *required* platform artifact fails to import.
 
-    Configured at module-import time by `_optional_attr(..., required=True)`.
-    The platform should fail to start rather than register a partial route
+    Configured at module-import time by ``ArtifactTracker.attempt(...,
+    required=True)`` (or the convenience ``_optional_attr`` shim). The
+    platform should fail to start rather than register a partial route
     surface.
     """
+
+
+class ArtifactTracker:
+    """Per-tracker registry of artifacts that failed to import.
+
+    A tracker is the unit of test isolation: production uses one instance
+    (``_default_tracker``), and each test that needs to verify import
+    failure recording can construct its own to avoid cross-test
+    contamination. Tracker instances are not thread-safe; the platform
+    only mutates them at module-load time, before request handling
+    begins.
+    """
+
+    def __init__(self) -> None:
+        """Create an empty tracker with no recorded failures."""
+        self._failures: dict[str, str] = {}
+
+    def attempt(
+        self,
+        module_name: str,
+        attr_name: str,
+        artifact: str | None = None,
+        *,
+        required: bool = False,
+    ) -> Any | None:
+        """Import an attribute from a module, recording or raising on failure.
+
+        Args:
+            module_name: Fully-qualified Python module path.
+            attr_name: Attribute to fetch from the loaded module.
+            artifact: Key under which to record an optional failure.
+                Defaults to ``module_name`` so each module gets its own
+                slot — sharing the key across routers conflates unrelated
+                failures.
+            required: When True, an import failure raises
+                :class:`RequiredArtifactMissing`. When False, the failure
+                is logged and recorded on this tracker; the caller
+                receives ``None`` so the rest of the platform can still
+                come up.
+
+        Returns:
+            The resolved attribute, or ``None`` when the import failed
+            and ``required`` was False.
+
+        Raises:
+            RequiredArtifactMissing: If ``required`` is True and the
+                import or attribute lookup fails.
+        """
+        key = artifact or module_name
+        try:
+            return getattr(import_module(module_name), attr_name)
+        except Exception as exc:
+            error_str = f"{type(exc).__name__}: {exc}"
+            if required:
+                logger.error(
+                    "Required platform artifact missing — %s.%s: %s",
+                    module_name,
+                    attr_name,
+                    error_str,
+                )
+                raise RequiredArtifactMissing(
+                    f"Required platform artifact missing: {module_name}.{attr_name}: {error_str}"
+                ) from exc
+            self._failures[key] = error_str
+            logger.warning(
+                "Optional artifact unavailable — %s.%s: %s",
+                module_name,
+                attr_name,
+                error_str,
+            )
+            return None
+
+    def missing(self) -> dict[str, str]:
+        """Return a copy of the recorded optional-artifact failures."""
+        return dict(self._failures)
+
+
+# Production tracker. ``backend.main`` and the convenience shim below mutate
+# this at module-load time. Tests should construct their own
+# ``ArtifactTracker`` instances rather than reaching in here.
+_default_tracker = ArtifactTracker()
 
 
 def _optional_attr(
@@ -41,55 +130,16 @@ def _optional_attr(
     *,
     required: bool = False,
 ) -> Any | None:
-    """Import an attribute from a module, tracking failures.
+    """Convenience shim that delegates to :data:`_default_tracker`.
 
-    Args:
-        module_name: Fully-qualified Python module path.
-        attr_name: Attribute to fetch from the loaded module.
-        artifact: Key under which to record an optional failure. Defaults to
-            ``module_name`` so each module gets its own slot — sharing the key
-            across routers conflates unrelated failures.
-        required: When True, an import failure raises
-            :class:`RequiredArtifactMissing`. When False, the failure is
-            logged and recorded; the caller receives ``None`` so the rest of
-            the platform can still come up.
-
-    Returns:
-        The resolved attribute, or ``None`` when the import failed and
-        ``required`` was False.
-
-    Raises:
-        RequiredArtifactMissing: If ``required`` is True and the import or
-            attribute lookup fails for any reason.
+    See :meth:`ArtifactTracker.attempt` for parameter and return semantics.
     """
-    key = artifact or module_name
-    try:
-        return getattr(import_module(module_name), attr_name)
-    except Exception as exc:
-        error_str = f"{type(exc).__name__}: {exc}"
-        if required:
-            logger.error(
-                "Required platform artifact missing — %s.%s: %s",
-                module_name,
-                attr_name,
-                error_str,
-            )
-            raise RequiredArtifactMissing(
-                f"Required platform artifact missing: {module_name}.{attr_name}: {error_str}"
-            ) from exc
-        _missing_optional_artifacts[key] = error_str
-        logger.warning(
-            "Optional artifact unavailable — %s.%s: %s",
-            module_name,
-            attr_name,
-            error_str,
-        )
-        return None
+    return _default_tracker.attempt(module_name, attr_name, artifact, required=required)
 
 
 def get_missing_optional_artifacts() -> dict[str, str]:
     """Return the map of optional artifacts that failed to import."""
-    return dict(_missing_optional_artifacts)
+    return _default_tracker.missing()
 
 
 def get_missing_artifacts() -> dict[str, str]:

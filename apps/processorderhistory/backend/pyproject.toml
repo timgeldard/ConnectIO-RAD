@@ -25,7 +25,7 @@ packages = ["processorderhistory_backend"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-q --cov=processorderhistory_backend --cov-report=term-missing --cov-report=xml --cov-fail-under=75"
+addopts = "-q --cov=processorderhistory_backend --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=75"
 asyncio_mode = "auto"
 filterwarnings = ["ignore::DeprecationWarning"]
 markers = [
@@ -35,3 +35,15 @@ markers = [
 [tool.coverage.run]
 source = ["processorderhistory_backend"]
 omit = ["tests/*", "processorderhistory_backend/__init__.py"]
+
+[tool.interrogate]
+# Docstring presence gate - set at the current floor as of 2026-05-08.
+# See TODO.md for the ratchet commitment toward 80%+. Run locally with
+# `uv run --with interrogate interrogate <package>` to see uncovered files.
+fail-under = 80
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = true
+ignore-private = false
+omit-covered-files = true
+verbose = 0

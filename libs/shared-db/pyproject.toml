@@ -20,3 +20,15 @@ packages = ["src/shared_db"]
 
 [tool.mypy]
 ignore_missing_imports = true
+
+[tool.interrogate]
+# Docstring presence gate - set at the current floor as of 2026-05-08.
+# See TODO.md for the ratchet commitment toward 80%+. Run locally with
+# `uv run --with interrogate interrogate <package>` to see uncovered files.
+fail-under = 32
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = true
+ignore-private = false
+omit-covered-files = true
+verbose = 0

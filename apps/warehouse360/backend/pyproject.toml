@@ -23,7 +23,7 @@ packages = ["warehouse360_backend"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-q --cov=warehouse360_backend --cov-report=term-missing --cov-report=xml --cov-fail-under=75"
+addopts = "-q --cov=warehouse360_backend --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=70"
 asyncio_mode = "auto"
 filterwarnings = ["ignore::DeprecationWarning"]
 markers = [
@@ -33,3 +33,15 @@ markers = [
 [tool.coverage.run]
 source = ["warehouse360_backend"]
 omit = ["tests/*", "warehouse360_backend/__init__.py"]
+
+[tool.interrogate]
+# Docstring presence gate - set at the current floor as of 2026-05-08.
+# See TODO.md for the ratchet commitment toward 80%+. Run locally with
+# `uv run --with interrogate interrogate <package>` to see uncovered files.
+fail-under = 78
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = true
+ignore-private = false
+omit-covered-files = true
+verbose = 0

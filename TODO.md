@@ -22,7 +22,11 @@
 
 - [x] **100% i18n Translation Coverage** — 13 standard languages enforced via `scripts/validate_i18n.py` and pre-commit hook.
 - [x] **Maintain Documentation Freshness** — Regularly audit `docs/` and `apps/*/docs/` to remove completed plans and stale quality reviews.
-- [ ] **Coverage ratchet to 75%** — `apps/platform/frontend` is gated at lines/functions/branches/statements = 60/65/75/60 as of 2026-05-07; raise toward 75/75/75/75 every sprint. Other frontends and all backends are already at the 75% mandate. See `apps/platform/frontend/vite.config.ts`.
+- [ ] **Coverage ratchet to 75%** — gates currently below the mandated 75% (set to current actuals to prevent regression while branch-coverage enforcement was added on 2026-05-08):
+  - `apps/platform/frontend`: lines/functions/branches/statements = 60/65/75/60. See `apps/platform/frontend/vite.config.ts`.
+  - `apps/trace2/backend`: combined line+branch coverage gate at 65 (was 75% line-only; branch coverage shaved 10+ points). See `apps/trace2/backend/pyproject.toml`.
+  - `apps/warehouse360/backend`: combined line+branch coverage gate at 70 (was 75% line-only). See `apps/warehouse360/backend/pyproject.toml`.
+  - Raise each toward 75 every sprint. Other backends (cq 79%, envmon 76%, poh 93%, spc green) and other frontends are already at the 75% mandate.
 
 ## Lower priority
 
@@ -38,3 +42,37 @@
   (b) follow the returned cloud-storage URLs to download chunks, (c) stream rather
   than buffer if the result is genuinely large. Affects all apps; warrants its own
   session.
+
+- [ ] **M6 — `databricks.yml` workspace permissions** — every deploy emits a warning
+  that `/Workspace/Shared/.bundle/platform/{uat,prod}` is writable by all workspace
+  users. Scope the bundle root to a service-principal-owned folder and add explicit
+  `permissions:` entries (CAN_MANAGE for the service principal, CAN_USE for the
+  deploy operator group). Affects every app's `databricks.yml`, not just platform's;
+  worth doing as one coordinated change. Security-adjacent, no production behaviour
+  change required.
+
+- [ ] **SQL DDL catalog templating** — every SQL view file under `apps/*/sql/views/`
+  hardcodes `connected_plant_uat` / `published_uat` / `silver_uat`. The Python apps
+  receive `TRACE_CATALOG` per environment via `app.template.yaml`, but SQL DDL
+  ships as-is. Pre-deploy templating from `deploy.toml` is the obvious fix; needs
+  to land before any non-trivial production deploy of W360/IMWM views. Surfaced
+  by CodeRabbit on PR-26.
+
+- [ ] **Backend `--cov-branch`** — every backend's `pyproject.toml` enforces
+  `--cov-fail-under=75` on line coverage but not branch coverage. Gemini review
+  point. One-line addition per pyproject; will surface real gaps. (Now done in
+  the small-fixes batch — keep this entry until the gates have ratcheted.)
+
+- [ ] **`interrogate` / `pydocstyle` for docstring presence** — the "10/10 inline
+  docs" mandate currently relies on review discipline. Wire `interrogate --fail-under=80`
+  per backend (start at current actuals, ratchet) and `eslint-plugin-jsdoc` for
+  TypeScript exports.
+
+- [ ] **SPC Tailwind dead config** — `apps/spc/frontend/tailwind.config.ts`
+  exists but `scripts/frontend-audit.mjs` (now wired into CI) finds zero
+  Tailwind utility classes in the SPC source. The earlier "12 files use
+  Tailwind" claim was a false positive matching `btn-sm`-style custom
+  classes against the `m-` Tailwind prefix. Real action is small: delete
+  the dead config + remove any Tailwind devDependency from `apps/spc/frontend/package.json`,
+  not a multi-day migration. Pinned here so the cleanup can be done
+  deliberately rather than in a sweep.
