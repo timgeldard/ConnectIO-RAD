@@ -1,3 +1,4 @@
+import importlib
 import pytest
 from unittest.mock import AsyncMock
 from shared_auth import require_proxy_user, require_user, UserIdentity
@@ -21,6 +22,25 @@ def mock_auth_users():
         app.dependency_overrides.pop(require_user, None)
     else:
         app.dependency_overrides[require_user] = previous_require_user
+
+@pytest.fixture(autouse=True)
+def bypass_plant_auth(monkeypatch):
+    """Bypass assert_plant_authorized for all SPC unit tests.
+
+    Patches the single definition in dal.authorized_scope plus all application
+    modules that import it, so the mock takes effect regardless of which module
+    is exercised by a given test.
+    """
+    async def _noop(token, plant_id):
+        return
+    for mod_path in [
+        "spc_backend.process_control.application.metadata",
+        "spc_backend.process_control.application.charts",
+        "spc_backend.process_control.application.analysis",
+    ]:
+        mod = importlib.import_module(mod_path)
+        monkeypatch.setattr(mod, "assert_plant_authorized", _noop)
+
 
 @pytest.fixture
 def mock_run_sql_async(monkeypatch):
