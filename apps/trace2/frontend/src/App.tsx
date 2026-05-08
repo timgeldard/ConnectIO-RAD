@@ -46,22 +46,21 @@ interface PageDef {
   id: PageId;
   labelKey: string;
   component: PageComponent;
-  num: string;
   groupKey: string;
 }
 
 const PAGES: PageDef[] = [
-  { id: "overview",             labelKey: "trace.page.overview",             component: PageOverview as unknown as PageComponent,             num: "01", groupKey: "trace.nav.group.360" },
-  { id: "mass_balance",         labelKey: "trace.page.massBalance",          component: PageMassBalance as unknown as PageComponent,         num: "02", groupKey: "trace.nav.group.360" },
-  { id: "bottom_up",            labelKey: "trace.page.bottomUp",             component: PageBottomUp as unknown as PageComponent,            num: "03", groupKey: "trace.nav.group.lineage" },
-  { id: "top_down",             labelKey: "trace.page.topDown",              component: PageTopDown as unknown as PageComponent,             num: "04", groupKey: "trace.nav.group.lineage" },
-  { id: "customers_deliveries", labelKey: "trace.page.customersDeliveries",  component: PageCustomersDeliveries as unknown as PageComponent, num: "05", groupKey: "trace.nav.group.lineage" },
-  { id: "quality",              labelKey: "trace.page.quality",              component: PageQuality as unknown as PageComponent,             num: "06", groupKey: "trace.nav.group.quality" },
-  { id: "production_history",   labelKey: "trace.page.productionHistory",    component: PageProductionHistory as unknown as PageComponent,   num: "07", groupKey: "trace.nav.group.quality" },
-  { id: "batch_comparison",     labelKey: "trace.page.batchComparison",      component: PageBatchCompare as unknown as PageComponent,        num: "08", groupKey: "trace.nav.group.quality" },
-  { id: "supplier_risk",        labelKey: "trace.page.supplierRisk",         component: PageSupplierRisk as unknown as PageComponent,        num: "09", groupKey: "trace.nav.group.quality" },
-  { id: "recall_readiness",     labelKey: "trace.page.recallReadiness",      component: PageRecallReadiness as unknown as PageComponent,     num: "10", groupKey: "trace.nav.group.readiness" },
-  { id: "coa",                  labelKey: "trace.page.coa",                  component: PageCoA as unknown as PageComponent,                 num: "11", groupKey: "trace.nav.group.readiness" },
+  { id: "overview",             labelKey: "trace.page.overview",            component: PageOverview as unknown as PageComponent,             groupKey: "trace.nav.group.360" },
+  { id: "mass_balance",         labelKey: "trace.page.massBalance",         component: PageMassBalance as unknown as PageComponent,         groupKey: "trace.nav.group.360" },
+  { id: "bottom_up",            labelKey: "trace.page.bottomUp",            component: PageBottomUp as unknown as PageComponent,            groupKey: "trace.nav.group.lineage" },
+  { id: "top_down",             labelKey: "trace.page.topDown",             component: PageTopDown as unknown as PageComponent,             groupKey: "trace.nav.group.lineage" },
+  { id: "customers_deliveries", labelKey: "trace.page.customersDeliveries", component: PageCustomersDeliveries as unknown as PageComponent, groupKey: "trace.nav.group.lineage" },
+  { id: "quality",              labelKey: "trace.page.quality",             component: PageQuality as unknown as PageComponent,             groupKey: "trace.nav.group.quality" },
+  { id: "production_history",   labelKey: "trace.page.productionHistory",   component: PageProductionHistory as unknown as PageComponent,   groupKey: "trace.nav.group.quality" },
+  { id: "batch_comparison",     labelKey: "trace.page.batchComparison",     component: PageBatchCompare as unknown as PageComponent,        groupKey: "trace.nav.group.quality" },
+  { id: "supplier_risk",        labelKey: "trace.page.supplierRisk",        component: PageSupplierRisk as unknown as PageComponent,        groupKey: "trace.nav.group.quality" },
+  { id: "recall_readiness",     labelKey: "trace.page.recallReadiness",     component: PageRecallReadiness as unknown as PageComponent,     groupKey: "trace.nav.group.readiness" },
+  { id: "coa",                  labelKey: "trace.page.coa",                 component: PageCoA as unknown as PageComponent,                 groupKey: "trace.nav.group.readiness" },
 ];
 
 const TWEAK_DEFAULTS: Tweaks = {
@@ -265,7 +264,6 @@ function TraceApp() {
         id: p.id,
         label: t(p.labelKey),
         icon: g.icon,
-        tag: p.num
       }))
     }));
   }, [t]);
