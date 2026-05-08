@@ -57,10 +57,17 @@ class ConnectIoApp:
         else:
             self.enable_debug_endpoints = enable_debug_endpoints
 
+        self._spa_mounted = False
         self._register_standard_routes()
 
-        if self.static_dir:
-            register_spa_routes(self.app, static_dir_getter=lambda: self.static_dir)
+        # SPA mounting is *deferred* — it must happen AFTER the caller's
+        # `include_router` calls because `register_spa_routes` adds a
+        # catch-all `/{full_path:path}` route that would otherwise shadow
+        # every API route registered later. The caller must invoke
+        # ``rad_app.mount_spa()`` once their routers are wired up. The
+        # `fastapi_app` property will auto-mount on first access if
+        # `static_dir` was provided and `mount_spa()` hasn't been called
+        # explicitly, but apps should prefer the explicit form for clarity.
 
     def _register_standard_routes(self) -> None:
         """Mount standardized probes and debug endpoints."""
@@ -130,10 +137,62 @@ class ConnectIoApp:
                 return await self.test_query_runner(user)
 
     def include_router(self, router: APIRouter, **kwargs: Any) -> None:
-        """Delegate router registration to the underlying FastAPI app."""
+        """Delegate router registration to the underlying FastAPI app.
+
+        Callers must register all routers BEFORE invoking
+        :meth:`mount_spa` (or accessing :attr:`fastapi_app`, which
+        auto-mounts on first access). Adding a router after the SPA
+        mount has the same shadowing problem the deferred-mount design
+        is preventing.
+
+        Args:
+            router: The FastAPI ``APIRouter`` to register on the
+                underlying app.
+            **kwargs: Forwarded verbatim to ``FastAPI.include_router``
+                (e.g. ``prefix``, ``tags``, ``dependencies``).
+
+        Raises:
+            RuntimeError: If called after the SPA has been mounted.
+        """
+        if self._spa_mounted:
+            raise RuntimeError(
+                "ConnectIoApp.include_router was called after mount_spa(); "
+                "the SPA catch-all would shadow this router. Register all "
+                "routers BEFORE calling mount_spa() or accessing fastapi_app."
+            )
         self.app.include_router(router, **kwargs)
+
+    def mount_spa(self) -> None:
+        """Register SPA serving routes on the FastAPI app.
+
+        Idempotent — safe to call multiple times. Must be called AFTER
+        :meth:`include_router` invocations because
+        :func:`register_spa_routes` registers a catch-all
+        ``/{full_path:path}`` route that would otherwise shadow API
+        routes. No-op when the constructor's ``static_dir`` was None.
+        """
+        if self._spa_mounted or not self.static_dir:
+            self._spa_mounted = True
+            return
+        register_spa_routes(self.app, static_dir_getter=lambda: self.static_dir)
+        self._spa_mounted = True
 
     @property
     def fastapi_app(self) -> FastAPI:
-        """Expose the underlying FastAPI instance."""
+        """Expose the underlying FastAPI instance.
+
+        Auto-invokes :meth:`mount_spa` on first access so apps that
+        forget the explicit call still serve their SPA — at the cost of
+        making the access order load-bearing. Apps should prefer
+        ``rad_app.mount_spa()`` explicitly after all
+        ``rad_app.include_router(...)`` calls, then read ``fastapi_app``
+        once at the end.
+
+        Returns:
+            The configured ``FastAPI`` application instance, with the
+            SPA catch-all already mounted (if ``static_dir`` was
+            provided).
+        """
+        if not self._spa_mounted:
+            self.mount_spa()
         return self.app

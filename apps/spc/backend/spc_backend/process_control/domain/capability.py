@@ -3,6 +3,13 @@
 import math
 from typing import List, Optional
 
+# Cpk classification thresholds (Six Sigma / AIAG conventions).
+# Used by `dal/analysis.py::_scorecard_status` to map a process Ppk into
+# the dashboard buckets {poor, marginal, good, excellent}.
+CPK_MARGINAL = 1.0
+CPK_CAPABLE = 1.33
+CPK_HIGHLY_CAPABLE = 1.67
+
 try:
     from scipy.stats import norm, shapiro
 except ImportError:

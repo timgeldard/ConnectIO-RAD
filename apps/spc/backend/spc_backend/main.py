@@ -32,6 +32,25 @@ LATENCY_BUDGETS_MS = {
     "/api/spc/characteristics": 3_000,
     "/api/spc/materials": 2_000,
 }
+DEFAULT_LATENCY_BUDGET_MS = 10_000
+
+
+def _latency_budget_ms_for_path(path: str) -> int:
+    """Return the configured latency budget for ``path``, or the default.
+
+    Mirror of the lookup the LatencyMiddleware does internally; exposed
+    here so tests can verify the SPC-specific budget map without reaching
+    into middleware internals.
+
+    Args:
+        path: The HTTP request path to look up in
+            ``LATENCY_BUDGETS_MS``.
+
+    Returns:
+        The configured budget in milliseconds, or
+        ``DEFAULT_LATENCY_BUDGET_MS`` when ``path`` is not registered.
+    """
+    return LATENCY_BUDGETS_MS.get(path, DEFAULT_LATENCY_BUDGET_MS)
 
 
 async def spc_readiness_check() -> dict:
@@ -123,13 +142,15 @@ rad_app = ConnectIoApp(
     test_query_runner=spc_test_query,
 )
 
-app = rad_app.fastapi_app
+# Domain Router Registration — must happen BEFORE mount_spa() / fastapi_app
+# access, because the SPA catch-all would otherwise shadow these routes.
+rad_app.include_router(trace_router, prefix="/api", tags=["Traceability"])
+rad_app.include_router(spc_metadata_router, prefix="/api/spc", tags=["SPC"])
+rad_app.include_router(spc_charts_router, prefix="/api/spc", tags=["SPC"])
+rad_app.include_router(spc_analysis_router, prefix="/api/spc", tags=["SPC"])
+rad_app.include_router(export_router, prefix="/api/spc", tags=["SPC Export"])
+rad_app.include_router(chart_config_router, prefix="/api/spc", tags=["SPC Chart Config"])
+rad_app.include_router(genie_router, prefix="/api/spc", tags=["Genie"])
 
-# Domain Router Registration
-app.include_router(trace_router, prefix="/api", tags=["Traceability"])
-app.include_router(spc_metadata_router, prefix="/api/spc", tags=["SPC"])
-app.include_router(spc_charts_router, prefix="/api/spc", tags=["SPC"])
-app.include_router(spc_analysis_router, prefix="/api/spc", tags=["SPC"])
-app.include_router(export_router, prefix="/api/spc", tags=["SPC Export"])
-app.include_router(chart_config_router, prefix="/api/spc", tags=["SPC Chart Config"])
-app.include_router(genie_router, prefix="/api/spc", tags=["Genie"])
+rad_app.mount_spa()
+app = rad_app.fastapi_app
