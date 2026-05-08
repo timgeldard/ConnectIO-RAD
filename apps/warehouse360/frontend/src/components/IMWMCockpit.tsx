@@ -1,5 +1,6 @@
 import React from 'react'
 import { useApi } from '~/hooks/useApi'
+import { usePlantSelection } from '~/context/PlantContext'
 import { Icon, Pill, Progress } from './Primitives'
 import { Card, KPI } from './Shared'
 
@@ -95,6 +96,7 @@ const LiveError = ({ label, error }: { label: string; error: string | null }) =>
  * fetch round trip drives both the strip and the active tab.
  */
 export const IMWMCockpit = () => {
+  const { plants, selectedPlantId, setSelectedPlantId, loading: plantLoading } = usePlantSelection()
   const [tab, setTab] = React.useState('stock')
   const { data: stockResp, loading: stockLoading, error: stockError } = useApi<StockResponse>('/api/imwm/stock')
   const { data: movementsResp, loading: movementsLoading, error: movementsError } = useApi<MovementsResponse>('/api/imwm/movements')
@@ -131,6 +133,22 @@ export const IMWMCockpit = () => {
           <div className="page-desc">Live SAP IM and WM comparison, movement activity, exception queue, and aged inventory value.</div>
         </div>
         <div className="page-actions">
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            <span style={{ color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>Plant</span>
+            <select
+              value={selectedPlantId}
+              disabled={plantLoading || plants.length === 0}
+              onChange={(e) => setSelectedPlantId(e.target.value)}
+              style={{ fontSize: 12, fontFamily: 'var(--font-mono)', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 6px', color: 'var(--text-1)' }}
+            >
+              {plants.length === 0 && <option value="">{plantLoading ? 'Loading…' : 'No plants'}</option>}
+              {plants.map((p) => (
+                <option key={p.plant_id} value={p.plant_id}>
+                  {p.plant_name && p.plant_name !== p.plant_id ? `${p.plant_name} · ${p.plant_id}` : p.plant_id}
+                </option>
+              ))}
+            </select>
+          </label>
           {/*
             Refresh and Export are deliberately disabled for now — wiring
             them up requires the useApi hook to expose a refetch handle
