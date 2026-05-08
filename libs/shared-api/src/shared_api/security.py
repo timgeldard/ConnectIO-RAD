@@ -78,6 +78,7 @@ class SameOriginMiddleware(BaseHTTPMiddleware):
             host = _origin_host(origin) or origin.strip().lower().rstrip("/")
             if host:
                 self._static_allowed.add(host)
+        self._env_allowed: set[str] = _parse_env_allowed_origins()
 
     async def dispatch(self, request: Request, call_next):
         """
@@ -112,7 +113,7 @@ class SameOriginMiddleware(BaseHTTPMiddleware):
                 },
             )
 
-        allowed = self._static_allowed | _parse_env_allowed_origins()
+        allowed = self._static_allowed | self._env_allowed
         candidate_hosts = [direct_host]
         if _trust_forwarded_host():
             candidate_hosts.append(forwarded_host)

@@ -15,7 +15,6 @@ from spc_backend.utils.db import (
     TRACE_SCHEMA,
     WAREHOUSE_HTTP_PATH,
     check_warehouse_config,
-    run_sql,
     run_sql_async,
 )
 from spc_backend.utils.schema_contract import assert_gold_view_schema
@@ -119,7 +118,7 @@ async def spc_test_query(user: UserIdentity) -> dict:
     token = user.raw_token
     info: dict = {"token_present": True, "token_length": len(token)}
     try:
-        info["result"] = run_sql(token, "SELECT 1 AS ok")
+        info["result"] = await run_sql_async(token, "SELECT 1 AS ok")
         info["status"] = "ok"
     except Exception as exc:
         info["status"] = "error"

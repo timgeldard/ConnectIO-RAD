@@ -191,12 +191,20 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Set NX_BASE
+        run: |
+          if [[ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
+            echo "NX_BASE=HEAD~1" >> $GITHUB_ENV
+          else
+            echo "NX_BASE=${{ github.event.before }}" >> $GITHUB_ENV
+          fi
+
       - name: Deploy affected Databricks apps
         env:
           DATABRICKS_HOST:  ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           npx nx affected -t deploy \
-            --base=${{ github.event.before }} \
+            --base=$NX_BASE \
             --head=${{ github.sha }}
 
