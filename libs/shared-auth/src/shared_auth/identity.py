@@ -198,10 +198,16 @@ def _extract_identity(token: str) -> UserIdentity:
     ergonomics. Production deployments must configure JWKS validation.
     """
     payload = _decode_token(token)
+    email = (
+        payload.get("email")
+        or payload.get("upn")
+        or payload.get("unique_name")
+        or payload.get("preferred_username")
+    )
     return UserIdentity(
-        user_id=payload.get("sub") or payload.get("email") or "unknown",
-        email=payload.get("email"),
-        display_name=payload.get("name") or payload.get("preferred_username"),
+        user_id=payload.get("sub") or email or "unknown",
+        email=email,
+        display_name=payload.get("name") or payload.get("given_name"),
         groups=payload.get("groups") or [],
         raw_token=token,
     )
