@@ -57,5 +57,78 @@
       ]
     }
   },
-  "analytics": false
+  "analytics": false,
+  "pluginsConfig": {
+    "@nx/eslint": {
+      "depConstraints": [
+        {
+          "sourceTag": "scope:spc",
+          "onlyDependOnLibsWithTags": [
+            "scope:spc",
+            "scope:shared"
+          ]
+        },
+        {
+          "sourceTag": "scope:warehouse360",
+          "onlyDependOnLibsWithTags": [
+            "scope:warehouse360",
+            "scope:shared"
+          ]
+        },
+        {
+          "sourceTag": "scope:processorderhistory",
+          "onlyDependOnLibsWithTags": [
+            "scope:processorderhistory",
+            "scope:shared"
+          ]
+        },
+        {
+          "sourceTag": "scope:trace2",
+          "onlyDependOnLibsWithTags": [
+            "scope:trace2",
+            "scope:shared"
+          ]
+        },
+        {
+          "sourceTag": "scope:envmon",
+          "onlyDependOnLibsWithTags": [
+            "scope:envmon",
+            "scope:shared"
+          ]
+        },
+        {
+          "sourceTag": "scope:connectedquality",
+          "onlyDependOnLibsWithTags": [
+            "scope:connectedquality",
+            "scope:shared",
+            "scope:spc",
+            "scope:trace2",
+            "scope:envmon"
+          ]
+        },
+        {
+          "sourceTag": "scope:platform",
+          "onlyDependOnLibsWithTags": [
+            "scope:platform",
+            "scope:shared",
+            "scope:connectedquality",
+            "scope:processorderhistory",
+            "scope:warehouse360"
+          ]
+        },
+        {
+          "sourceTag": "type:frontend",
+          "notDependOnLibsWithTags": [
+            "type:backend"
+          ]
+        },
+        {
+          "sourceTag": "scope:shared",
+          "onlyDependOnLibsWithTags": [
+            "scope:shared"
+          ]
+        }
+      ]
+    }
+  }
 }

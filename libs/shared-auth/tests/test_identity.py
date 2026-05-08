@@ -70,14 +70,25 @@ def test_warn_if_jwks_unconfigured_raises_in_prod_without_jwks(monkeypatch):
     assert "AUTH_JWKS_URL is not configured" in str(exc.value)
 
 
-def test_warn_if_jwks_unconfigured_allows_explicit_unverified_opt_out(monkeypatch):
-    """Setting AUTH_ALLOW_UNVERIFIED_JWT=true is an explicit acknowledgement
-    that the deploy is running without verification — startup proceeds."""
+def test_warn_if_jwks_unconfigured_raises_for_unverified_opt_out_in_prod(monkeypatch):
+    """AUTH_ALLOW_UNVERIFIED_JWT=true in non-dev mode must raise — silent bypass
+    is a security misconfiguration that must be surfaced at startup, not logged."""
     monkeypatch.delenv("APP_ENV", raising=False)
     monkeypatch.delenv("AUTH_JWKS_URL", raising=False)
     monkeypatch.setenv("AUTH_ALLOW_UNVERIFIED_JWT", "true")
 
-    warn_if_jwks_unconfigured()
+    with pytest.raises(RuntimeError) as exc:
+        warn_if_jwks_unconfigured()
+    assert "AUTH_ALLOW_UNVERIFIED_JWT" in str(exc.value)
+
+
+def test_warn_if_jwks_unconfigured_passes_in_dev_with_allow_flag(monkeypatch):
+    """In dev mode the allow flag is irrelevant — dev mode returns early."""
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.delenv("AUTH_JWKS_URL", raising=False)
+    monkeypatch.setenv("AUTH_ALLOW_UNVERIFIED_JWT", "true")
+
+    warn_if_jwks_unconfigured()  # should not raise
 
 
 # --- resolve_token strict-by-default behaviour --------------------------------

@@ -1,6 +1,6 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.imwm_analytics_aging_v
--- Sources: published_uat.central_services.batches_mcha (MCHA)
+-- View : ${TRACE_CATALOG}.wh360.imwm_analytics_aging_v
+-- Sources: ${PUBLISHED_CATALOG}.central_services.batches_mcha (MCHA)
 --          sap.storagelocationmaterial_mard             (MARD)
 --          sap.materialvaluation_mbew                   (MBEW)
 -- Grain : (plant_id, age_bucket)
@@ -11,7 +11,7 @@
 --         Sentinel value '0001-01-01' in HSDAT is excluded.
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.imwm_analytics_aging_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.imwm_analytics_aging_v AS
 
 WITH
 
@@ -23,7 +23,7 @@ batch_ages AS (
     MATNR,
     WERKS,
     MIN(HSDAT)                                                     AS oldest_batch_date
-  FROM published_uat.central_services.batches_mcha
+  FROM ${PUBLISHED_CATALOG}.central_services.batches_mcha
   WHERE (LVORM IS NULL OR LVORM = '')
     AND MATNR IS NOT NULL
     AND LENGTH(TRIM(MATNR)) > 0
@@ -58,11 +58,11 @@ valued_stock AS (
       current_date(),
       to_date(ba.oldest_batch_date, 'yyyy-MM-dd')
     )                                                              AS age_days
-  FROM connected_plant_uat.sap.storagelocationmaterial_mard AS m
+  FROM ${TRACE_CATALOG}.sap.storagelocationmaterial_mard AS m
   JOIN batch_ages AS ba
     ON  ba.MATNR = m.MATNR
     AND ba.WERKS = m.WERKS
-  LEFT JOIN connected_plant_uat.sap.materialvaluation_mbew AS mb
+  LEFT JOIN ${TRACE_CATALOG}.sap.materialvaluation_mbew AS mb
     ON  mb.MATNR = m.MATNR
     AND mb.BWKEY = m.WERKS
     AND (mb.BWTAR = '' OR mb.BWTAR IS NULL)

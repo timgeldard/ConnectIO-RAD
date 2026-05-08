@@ -14,6 +14,11 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
-    "paths": {}, "strict": true
+    "paths": {
+      "@connectio/shared-frontend-api": ["libs/shared-frontend-api/src/index.tsx"],
+      "@connectio/shared-frontend-i18n": ["libs/shared-frontend-i18n/src/index.ts"],
+      "@connectio/shared-ui": ["libs/shared-ui/src/index.ts"]
+    },
+    "strict": true
   }
 }

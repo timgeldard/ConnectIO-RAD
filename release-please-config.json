@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "python",
+  "packages": {
+    "apps/spc":                 { "release-type": "python", "changelog-path": "CHANGELOG.md" },
+    "apps/trace2":              { "release-type": "python", "changelog-path": "CHANGELOG.md" },
+    "apps/warehouse360":        { "release-type": "python", "changelog-path": "CHANGELOG.md" },
+    "apps/processorderhistory": { "release-type": "python", "changelog-path": "CHANGELOG.md" },
+    "apps/envmon":              { "release-type": "python", "changelog-path": "CHANGELOG.md" },
+    "apps/connectedquality":    { "release-type": "python", "changelog-path": "CHANGELOG.md" }
+  }
+}

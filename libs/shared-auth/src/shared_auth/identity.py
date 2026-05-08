@@ -124,11 +124,11 @@ def warn_if_jwks_unconfigured() -> None:
         return
 
     if _allow_unverified_tokens():
-        logger.error(
-            "AUTH_JWKS_URL is empty AND AUTH_ALLOW_UNVERIFIED_JWT is set. "
-            "Running in production without signature verification — fix this."
+        raise RuntimeError(
+            "AUTH_ALLOW_UNVERIFIED_JWT is set outside dev mode. "
+            "JWT signature verification is disabled — unset the variable or "
+            "set APP_ENV=development to run without JWKS verification."
         )
-        return
 
     raise RuntimeError(
         "AUTH_JWKS_URL is not configured and AUTH_ALLOW_UNVERIFIED_JWT is not set. "

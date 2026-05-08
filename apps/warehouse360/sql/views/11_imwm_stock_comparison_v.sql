@@ -1,12 +1,12 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.imwm_stock_comparison_v
+-- View : ${TRACE_CATALOG}.wh360.imwm_stock_comparison_v
 -- Sources: sap.storagelocationmaterial_mard   (MARD)
 --          sap.materialmaster_mara            (MARA)
 --          sap.materialvaluation_mbew         (MBEW)
 --          sap.quant_lqua                     (LQUA)
 --          sap.transferorderobjects_ltak      (LTAK)
 --          sap.transferorderobjects_ltap      (LTAP)
---          published_uat.central_services.batches_mcha (MCHA)
+--          ${PUBLISHED_CATALOG}.central_services.batches_mcha (MCHA)
 --          silver.silver_material_description
 --          gold.gold_plant
 --          gold.gold_storage
@@ -16,7 +16,7 @@
 -- Deploy: Run after all wh360_*.sql views; view 13 depends on this view
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.imwm_stock_comparison_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.imwm_stock_comparison_v AS
 
 WITH
 
@@ -44,17 +44,17 @@ im_stock AS (
     NULLIF(COALESCE(mb.PEINH, 0), 0)                              AS peinh,
     gs.STORAGE_NAME,
     gp.PLANT_NAME
-  FROM connected_plant_uat.sap.storagelocationmaterial_mard AS m
-  LEFT JOIN connected_plant_uat.sap.materialmaster_mara AS ma
+  FROM ${TRACE_CATALOG}.sap.storagelocationmaterial_mard AS m
+  LEFT JOIN ${TRACE_CATALOG}.sap.materialmaster_mara AS ma
     ON ma.MATNR = m.MATNR
-  LEFT JOIN connected_plant_uat.sap.materialvaluation_mbew AS mb
+  LEFT JOIN ${TRACE_CATALOG}.sap.materialvaluation_mbew AS mb
     ON  mb.MATNR = m.MATNR
     AND mb.BWKEY = m.WERKS
     AND (mb.BWTAR = '' OR mb.BWTAR IS NULL)
-  LEFT JOIN connected_plant_uat.gold.gold_storage AS gs
+  LEFT JOIN ${TRACE_CATALOG}.gold.gold_storage AS gs
     ON  gs.PLANT_ID = m.WERKS
     AND gs.STORAGE_ID = m.LGORT
-  LEFT JOIN connected_plant_uat.gold.gold_plant AS gp
+  LEFT JOIN ${TRACE_CATALOG}.gold.gold_plant AS gp
     ON gp.PLANT_ID = m.WERKS
   WHERE m.WERKS IS NOT NULL
     AND LENGTH(TRIM(m.WERKS)) > 0
@@ -71,7 +71,7 @@ wm_stock AS (
     MATNR,
     WERKS,
     SUM(GESME)                                                     AS wm_total
-  FROM connected_plant_uat.sap.quant_lqua
+  FROM ${TRACE_CATALOG}.sap.quant_lqua
   WHERE WERKS IS NOT NULL
     AND LENGTH(TRIM(WERKS)) > 0
     AND LGTYP NOT IN ('0921', '0922', '0930', '0910')
@@ -86,7 +86,7 @@ interim_stock AS (
     MATNR,
     WERKS,
     SUM(GESME)                                                     AS interim_total
-  FROM connected_plant_uat.sap.quant_lqua
+  FROM ${TRACE_CATALOG}.sap.quant_lqua
   WHERE WERKS IS NOT NULL
     AND LENGTH(TRIM(WERKS)) > 0
     AND LGTYP IN ('0921', '0922', '0930')
@@ -101,7 +101,7 @@ batch_counts AS (
     MATNR,
     WERKS,
     COUNT(DISTINCT CHARG)                                          AS batch_count
-  FROM published_uat.central_services.batches_mcha
+  FROM ${PUBLISHED_CATALOG}.central_services.batches_mcha
   WHERE (LVORM IS NULL OR LVORM = '')
     AND MATNR IS NOT NULL
     AND LENGTH(TRIM(MATNR)) > 0
@@ -118,8 +118,8 @@ open_tos AS (
     lt.MATNR,
     lt.WERKS,
     COUNT(DISTINCT lk.TANUM)                                       AS open_to_count
-  FROM connected_plant_uat.sap.transferorderobjects_ltak AS lk
-  JOIN connected_plant_uat.sap.transferorderobjects_ltap AS lt
+  FROM ${TRACE_CATALOG}.sap.transferorderobjects_ltak AS lk
+  JOIN ${TRACE_CATALOG}.sap.transferorderobjects_ltap AS lt
     ON  lt.LGNUM = lk.LGNUM
     AND lt.TANUM = lk.TANUM
   WHERE (lk.KQUIT = '' OR lk.KQUIT IS NULL)
@@ -136,7 +136,7 @@ mat_desc AS (
   SELECT
     LPAD(MATERIAL_ID, 18, '0')                                     AS matnr_padded,
     MATERIAL_NAME
-  FROM connected_plant_uat.silver.silver_material_description
+  FROM ${TRACE_CATALOG}.silver.silver_material_description
   WHERE LANGUAGE_ID = 'E'
 ),
 
