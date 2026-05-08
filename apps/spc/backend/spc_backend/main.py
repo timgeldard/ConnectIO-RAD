@@ -2,7 +2,6 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import Depends, HTTPException
 from spc_backend.chart_config.router import router as chart_config_router
 from spc_backend.process_control.router_analysis import router as spc_analysis_router
 from spc_backend.process_control.router_charts import router as spc_charts_router
@@ -20,18 +19,12 @@ from spc_backend.utils.db import (
     run_sql_async,
 )
 from spc_backend.utils.schema_contract import assert_gold_view_schema
-from shared_api import (
-    create_api_app,
-    health_payload,
-    register_spa_routes,
-    databricks_sql_ready,
-)
-from shared_auth import UserIdentity, require_user
+from shared_api import ConnectIoApp, databricks_sql_ready
+from shared_auth import UserIdentity
 from shared_db.errors import send_operational_alert
 
 logger = logging.getLogger(__name__)
 
-ENABLE_DEBUG_ENDPOINTS: bool = os.environ.get("APP_ENV", "").strip().lower() == "development"
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 LATENCY_BUDGETS_MS = {
     "/api/spc/scorecard": 8_000,
@@ -41,60 +34,18 @@ LATENCY_BUDGETS_MS = {
 }
 
 
-def _latency_budget_ms_for_path(path: str) -> int:
-    """Return the latency budget in milliseconds for a given API path, defaulting to 10 s."""
-    return LATENCY_BUDGETS_MS.get(path, 10_000)
+async def spc_readiness_check() -> dict:
+    """Readiness probe logic — verifies warehouse connectivity and gold view schema."""
+    from fastapi import HTTPException
 
-
-app = create_api_app(
-    title="SPC API",
-    latency_budgets_ms=LATENCY_BUDGETS_MS,
-    latency_alert_callback=lambda path, dur, bud, status: send_operational_alert(
-        subject="Latency budget exceeded",
-        body=f"Request to {path} completed in {dur} ms (budget {bud} ms, status {status}).",
-        request_path=path,
-    ),
-)
-
-app.include_router(trace_router, prefix="/api", tags=["Traceability"])
-app.include_router(spc_metadata_router, prefix="/api/spc", tags=["SPC"])
-app.include_router(spc_charts_router, prefix="/api/spc", tags=["SPC"])
-app.include_router(spc_analysis_router, prefix="/api/spc", tags=["SPC"])
-app.include_router(export_router, prefix="/api/spc", tags=["SPC Export"])
-app.include_router(chart_config_router, prefix="/api/spc", tags=["SPC Chart Config"])
-app.include_router(genie_router, prefix="/api/spc", tags=["Genie"])
-
-
-@app.get("/api/health")
-async def health():
-    """Liveness probe — always returns 200 while the process is up."""
-    return health_payload()
-
-
-@app.get("/api/ready")
-async def ready():
-    """Readiness probe — verifies warehouse config, SQL connectivity, and gold view schema."""
-    # We still need a custom ready for SPC because it also checks gold_view_schema drift
-    
-    # Specific check for missing readiness token (needed for test expectations)
-    readiness_token = os.environ.get("DATABRICKS_READINESS_TOKEN", "").strip()
-    if not readiness_token:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "not_ready",
-                "reason": "readiness_token_missing",
-                "message": "DATABRICKS_READINESS_TOKEN environment variable is not set.",
-            },
-        )
-
+    # 1. Base Databricks SQL connectivity check
     try:
         await databricks_sql_ready(
             check_warehouse_config=check_warehouse_config,
             run_sql=run_sql_async,
         )
     except HTTPException as exc:
-        # Re-wrap to ensure the structure expected by spc tests
+        # Re-wrap to ensure the specific structure expected by SPC unit tests
         raise HTTPException(
             status_code=exc.status_code,
             detail={
@@ -103,7 +54,9 @@ async def ready():
                 "error": str(exc.detail),
             },
         )
-    
+
+    # 2. Gold View Schema Contract assertion
+    readiness_token = os.environ.get("DATABRICKS_READINESS_TOKEN", "").strip()
     schema_result = await assert_gold_view_schema(
         readiness_token,
         TRACE_CATALOG,
@@ -124,24 +77,13 @@ async def ready():
         )
 
     return {
-        "status": "ready",
-        "checks": {
-            "config": "ok",
-            "sql_warehouse": "ok",
-            "gold_view_schema": "ok",
-        },
+        "checks": {"config": "ok", "sql_warehouse": "ok", "gold_view_schema": "ok"},
         "schema_contract_version": schema_result.version,
     }
 
 
-@app.get("/api/health/debug")
-async def health_debug(
-    user: UserIdentity = Depends(require_user),
-):
-    """Return detailed runtime config; only available when debug endpoints are enabled."""
-    if not ENABLE_DEBUG_ENDPOINTS:
-        raise HTTPException(status_code=404, detail="Not found")
-    
+async def spc_debug_config(_user: UserIdentity) -> dict:
+    """Runtime configuration summary for debugging."""
     return {
         "status": "ok",
         "databricks_host": DATABRICKS_HOST[:50] if DATABRICKS_HOST else "(NOT SET)",
@@ -153,16 +95,9 @@ async def health_debug(
     }
 
 
-@app.get("/api/test-query")
-async def test_query(
-    user: UserIdentity = Depends(require_user),
-):
-    """Execute a lightweight test query against the warehouse; debug only."""
-    if not ENABLE_DEBUG_ENDPOINTS:
-        raise HTTPException(status_code=404, detail="Not found")
-    
+async def spc_test_query(user: UserIdentity) -> dict:
+    """Lightweight SQL execution test."""
     token = user.raw_token
-    
     info: dict = {"token_present": True, "token_length": len(token)}
     try:
         info["result"] = run_sql(token, "SELECT 1 AS ok")
@@ -173,4 +108,28 @@ async def test_query(
     return info
 
 
-register_spa_routes(app, static_dir_getter=lambda: STATIC_DIR)
+# Bootstrap the application using the ConnectIO framework
+rad_app = ConnectIoApp(
+    title="SPC API",
+    static_dir=STATIC_DIR,
+    latency_budgets_ms=LATENCY_BUDGETS_MS,
+    latency_alert_callback=lambda path, dur, bud, status: send_operational_alert(
+        subject="Latency budget exceeded",
+        body=f"Request to {path} completed in {dur} ms (budget {bud} ms, status {status}).",
+        request_path=path,
+    ),
+    readiness_checks=[spc_readiness_check],
+    debug_config=spc_debug_config,
+    test_query_runner=spc_test_query,
+)
+
+app = rad_app.fastapi_app
+
+# Domain Router Registration
+app.include_router(trace_router, prefix="/api", tags=["Traceability"])
+app.include_router(spc_metadata_router, prefix="/api/spc", tags=["SPC"])
+app.include_router(spc_charts_router, prefix="/api/spc", tags=["SPC"])
+app.include_router(spc_analysis_router, prefix="/api/spc", tags=["SPC"])
+app.include_router(export_router, prefix="/api/spc", tags=["SPC Export"])
+app.include_router(chart_config_router, prefix="/api/spc", tags=["SPC Chart Config"])
+app.include_router(genie_router, prefix="/api/spc", tags=["Genie"])

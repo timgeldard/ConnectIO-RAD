@@ -3,20 +3,21 @@
 import math
 from typing import List, Optional
 
-from spc_backend.process_control.domain.control_charts import mean, moving_range, stddev
+try:
+    from scipy.stats import norm, shapiro
+except ImportError:
+    norm = None
+    shapiro = None
 
-# Cpk capability thresholds — single source of truth shared by spc_backend and tests.
-# Matching values are exported from frontend/src/spc/spcConstants.js.
-CPK_HIGHLY_CAPABLE: float = 1.67
-CPK_CAPABLE: float = 1.33
-CPK_MARGINAL: float = 1.00
+from spc_backend.process_control.domain.control_charts import mean, moving_range, stddev
 
 
 def normal_cdf(z: float) -> float:
     """
     Calculate the cumulative distribution function for a standard normal distribution.
 
-    Uses the Abramowitz & Stegun 26.2.17 approximation, with a maximum error of 7.5e-8.
+    Uses scipy.stats.norm.cdf if available, falling back to a math.erf-based
+    implementation for GxP-compliant precision (1e-15) when scipy is missing.
 
     Args:
         z: The Z-score (standardized value) for which to calculate the CDF.
@@ -24,10 +25,12 @@ def normal_cdf(z: float) -> float:
     Returns:
         The probability that a standard normal variable is less than or equal to z.
     """
-    t = 1 / (1 + 0.2316419 * abs(z))
-    poly = t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))))
-    base = 1 - (1 / math.sqrt(2 * math.pi)) * math.exp(-0.5 * z * z) * poly
-    return base if z >= 0 else 1 - base
+    if norm is not None:
+        return float(norm.cdf(z))
+    
+    # math.erf is highly precise and standard library based.
+    # CDF(z) = 0.5 * (1 + erf(z / sqrt(2)))
+    return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
 
 
 def cpk_ci(cpk: float, n: int) -> tuple[Optional[float], Optional[float]]:
@@ -112,9 +115,7 @@ def compute_normality_result(values: list[Optional[float]]) -> dict:
         result["warning"] = "Normality requires at least 3 quantitative points."
         return result
 
-    try:
-        from scipy.stats import shapiro
-    except ImportError:
+    if shapiro is None:
         result["warning"] = "scipy is not installed; Shapiro-Wilk normality testing skipped."
         return result
 

@@ -19,6 +19,8 @@ GOLD_BATCH_MASS_BALANCE_MAT = "gold_batch_mass_balance_mat"
 GOLD_BATCH_PRODUCTION_HISTORY_V = "gold_batch_production_history_v"
 
 # Quality & Inspections
+GOLD_INSPECTION_LOT = "gold_inspection_lot"
+GOLD_PROCESS_PHASE = "gold_process_phase"
 GOLD_BATCH_QUALITY_LOT_V = "gold_batch_quality_lot_v"
 GOLD_BATCH_QUALITY_RESULT_V = "gold_batch_quality_result_v"
 GOLD_BATCH_QUALITY_SUMMARY_V = "gold_batch_quality_summary_v"

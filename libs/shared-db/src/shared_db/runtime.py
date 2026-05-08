@@ -236,10 +236,11 @@ class SqlRuntime:
         endpoint_hint: str = "unknown",
         audit: bool = True,
         invalidate_cache: bool = True,
+        bypass_cache: bool = False,
     ) -> list[dict]:
         try:
             tier = self._cache_tier_for(statement)
-            if tier is None:
+            if tier is None or bypass_cache:
                 loop = asyncio.get_running_loop()
                 started_at = time.monotonic()
                 rows = await loop.run_in_executor(_sql_executor, lambda: self._run_sql(token, statement, params))

@@ -18,7 +18,7 @@ def test_health_returns_200():
 
 
 def test_health_debug_hidden_in_production(monkeypatch):
-    monkeypatch.setattr(main_module, "ENABLE_DEBUG_ENDPOINTS", False)
+    monkeypatch.setattr(main_module.rad_app, "enable_debug_endpoints", False)
 
     response = client.get("/api/health/debug", headers={"x-forwarded-access-token": "token"})
 
@@ -26,7 +26,7 @@ def test_health_debug_hidden_in_production(monkeypatch):
 
 
 def test_health_debug_visible_in_development(monkeypatch):
-    monkeypatch.setattr(main_module, "ENABLE_DEBUG_ENDPOINTS", True)
+    monkeypatch.setattr(main_module.rad_app, "enable_debug_endpoints", True)
 
     # Pass the token via header to satisfy the manual resolve_token call
     response = client.get("/api/health/debug", headers={"x-forwarded-access-token": "token"})
@@ -41,7 +41,7 @@ def test_health_debug_visible_in_development(monkeypatch):
 
 
 def test_test_query_hidden_in_production(monkeypatch):
-    monkeypatch.setattr(main_module, "ENABLE_DEBUG_ENDPOINTS", False)
+    monkeypatch.setattr(main_module.rad_app, "enable_debug_endpoints", False)
 
     response = client.get("/api/test-query", headers={"x-forwarded-access-token": "token"})
 

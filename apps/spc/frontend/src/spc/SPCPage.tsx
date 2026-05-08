@@ -1,5 +1,4 @@
 import { Suspense, lazy, type ComponentType, type LazyExoticComponent } from 'react'
-import { I18nProvider } from '@connectio/shared-frontend-i18n'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppShell } from '../components/layout'
 import { SPCProvider, useSPCSelector } from './SPCContext'
@@ -7,7 +6,6 @@ import SPCErrorBoundary from './SPCErrorBoundary'
 import { useSPCUrlSync } from './hooks/useSPCUrlSync'
 import { useSPCPreferences } from './hooks/useSPCPreferences'
 import type { SPCState } from './types'
-import resources from '../i18n/resources.json'
 
 type TabId = SPCState['activeTab']
 
@@ -93,10 +91,8 @@ function SPCContent({ dark = false, onToggleDark }: SPCPageProps) {
 
 export default function SPCPage({ dark = false, onToggleDark }: SPCPageProps) {
   return (
-    <I18nProvider appName="spc" resources={resources}>
-      <SPCProvider>
-        <SPCContent dark={dark} onToggleDark={onToggleDark} />
-      </SPCProvider>
-    </I18nProvider>
+    <SPCProvider>
+      <SPCContent dark={dark} onToggleDark={onToggleDark} />
+    </SPCProvider>
   )
 }

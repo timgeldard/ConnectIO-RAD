@@ -1,14 +1,21 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { I18nProvider, useI18n } from '@connectio/shared-frontend-i18n'
-import resources from './i18n/resources.json'
+import enResources from './i18n/locales/en.json'
 
 const SPCPage = lazy(() => import('./spc/SPCPage'))
+
+const loadResource = async (lang) => {
+  const module = await import(`./i18n/locales/${lang}.json`)
+  return module.default
+}
 
 function AppLoadingState() {
   const { t } = useI18n()
   return (
-    <div className="spc-page-shell__loading">
-      {t('spc.loading.workspace')}
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-0)' }}>
+      <div className="t-mono" style={{ color: 'var(--text-3)', fontSize: 13 }}>
+        {t('spc.loading.workspace')}
+      </div>
     </div>
   )
 }
@@ -34,7 +41,11 @@ function SPCApp() {
 
 export default function App() {
   return (
-    <I18nProvider appName="spc" resources={resources}>
+    <I18nProvider
+      appName="spc"
+      resources={{ en: enResources }}
+      loadResource={loadResource}
+    >
       <SPCApp />
     </I18nProvider>
   )

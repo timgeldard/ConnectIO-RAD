@@ -513,7 +513,7 @@ wheels = [
 
 [[package]]
 name = "envmon-backend"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "apps/envmon/backend" }
 dependencies = [
     { name = "cachetools" },
@@ -1177,7 +1177,7 @@ wheels = [
 
 [[package]]
 name = "processorderhistory-backend"
-version = "0.1.0"
+version = "0.1.2"
 source = { editable = "apps/processorderhistory/backend" }
 dependencies = [
     { name = "cachetools" },
@@ -1650,7 +1650,7 @@ wheels = [
 
 [[package]]
 name = "shared-api"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "libs/shared-api" }
 dependencies = [
     { name = "fastapi" },
@@ -1665,7 +1665,7 @@ requires-dist = [
 
 [[package]]
 name = "shared-auth"
-version = "0.1.0"
+version = "0.1.2"
 source = { editable = "libs/shared-auth" }
 dependencies = [
     { name = "fastapi" },
@@ -2019,7 +2019,7 @@ wheels = [
 
 [[package]]
 name = "warehouse360-backend"
-version = "0.1.0"
+version = "0.1.4"
 source = { editable = "apps/warehouse360/backend" }
 dependencies = [
     { name = "cachetools" },

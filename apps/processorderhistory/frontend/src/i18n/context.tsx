@@ -1,5 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { STRINGS, type LangCode, type Strings } from './dictionary'
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { I18nProvider, useI18n, type LanguageCode } from '@connectio/shared-frontend-i18n'
+import type { LangCode, Strings } from './dictionary'
+import enResources from './locales/en.json'
+
+const loadResource = async (lang: LanguageCode) => {
+  return (await import(`./locales/${lang}.json`)).default
+}
 
 interface LangContextValue {
   lang: LangCode
@@ -7,12 +13,9 @@ interface LangContextValue {
   setLang: (next: LangCode) => void
 }
 
-const STORAGE_KEY = 'kerry-poh-lang'
-const DEFAULT_LANG: LangCode = 'en'
-
 const fallback: LangContextValue = {
-  lang: DEFAULT_LANG,
-  t: STRINGS[DEFAULT_LANG] as Strings,
+  lang: 'en',
+  t: enResources as unknown as Strings,
   setLang: () => {},
 }
 
@@ -20,13 +23,30 @@ export const LangContext = createContext<LangContextValue>(fallback)
 
 /**
  * Mirrors the prototype's `useT()` accessor. Returns `{ lang, t, setLang }`
- * where `t` is a flat object of strings for the current language. Components
- * authored against the prototype API (`t.statusRunning`, `t.navOrders`) work
- * verbatim; cross-monorepo tooling (e.g. `validate_i18n.py`) is satisfied via
- * the parallel `resources.json` rendered from the same dictionary.
+ * where `t` is a flat object of strings for the current language.
  */
 export function useT(): LangContextValue {
   return useContext(LangContext)
+}
+
+function LangContextBridge({ children }: { children: ReactNode }) {
+  const { language, setLanguage, t } = useI18n()
+
+  const value = useMemo<LangContextValue>(() => {
+    // This is a bit of a hack to keep the t.key access working:
+    // we create a proxy that delegates to the shared t() function.
+    const proxyT = new Proxy({} as any, {
+      get: (_, key: string) => t(key),
+    })
+
+    return {
+      lang: language as LangCode,
+      setLang: (next: LangCode) => setLanguage(next as LanguageCode),
+      t: proxyT as Strings,
+    }
+  }, [language, setLanguage, t])
+
+  return <LangContext.Provider value={value}>{children}</LangContext.Provider>
 }
 
 interface LangProviderProps {
@@ -34,34 +54,13 @@ interface LangProviderProps {
 }
 
 export function LangProvider({ children }: LangProviderProps) {
-  const [lang, setLangState] = useState<LangCode>(() => {
-    if (typeof window === 'undefined') return DEFAULT_LANG
-    try {
-      const saved = window.localStorage.getItem(STORAGE_KEY) as LangCode | null
-      return saved && saved in STRINGS ? saved : DEFAULT_LANG
-    } catch {
-      return DEFAULT_LANG
-    }
-  })
-
-  const setLang = (next: LangCode) => {
-    if (!(next in STRINGS)) return
-    setLangState(next)
-    try {
-      window.localStorage.setItem(STORAGE_KEY, next)
-    } catch {
-      /* ignore */
-    }
-  }
-
-  useEffect(() => {
-    document.documentElement.lang = lang
-  }, [lang])
-
-  const value = useMemo<LangContextValue>(
-    () => ({ lang, t: STRINGS[lang] as Strings, setLang }),
-    [lang],
+  return (
+    <I18nProvider
+      appName="processorderhistory"
+      resources={{ en: enResources }}
+      loadResource={loadResource}
+    >
+      <LangContextBridge>{children}</LangContextBridge>
+    </I18nProvider>
   )
-
-  return <LangContext.Provider value={value}>{children}</LangContext.Provider>
 }

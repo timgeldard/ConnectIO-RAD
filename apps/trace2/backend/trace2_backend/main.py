@@ -1,8 +1,5 @@
 import os
 from pathlib import Path
-from typing import Optional
-
-from fastapi import Header, HTTPException
 
 from trace2_backend.batch_trace.router import router as batch_trace_router
 from trace2_backend.lineage_analysis.router import router as lineage_router
@@ -14,74 +11,30 @@ from trace2_backend.utils.db import (
     WAREHOUSE_HTTP_PATH,
     check_warehouse_config,
     hostname,
-    resolve_token,
     run_sql_async,
 )
-from shared_api import (
-    create_api_app,
-    databricks_sql_ready,
-    health_payload,
-    register_spa_routes,
-)
+from shared_api import ConnectIoApp, databricks_sql_ready
+from shared_auth import UserIdentity
 
-ENABLE_DEBUG_ENDPOINTS: bool = os.environ.get("APP_ENV", "").strip().lower() == "development"
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 
-app = create_api_app(
-    title="Trace2 API",
-)
 
-app.include_router(batch_trace_router, prefix="/api", tags=["Batch Trace"])
-app.include_router(lineage_router, prefix="/api", tags=["Lineage Analysis"])
-app.include_router(quality_router, prefix="/api", tags=["Quality Record"])
-
-
-@app.get("/api/health")
-async def health():
-    """Liveness probe — always returns 200 while the process is up."""
-    return health_payload()
-
-
-@app.get("/api/ready")
-async def ready():
-    """
-    Operational readiness probe for the Trace2 API.
+async def trace_readiness_check() -> dict:
+    """Readiness probe logic — verifies warehouse connectivity."""
+    from fastapi import HTTPException
     
-    Checks that the DATABRICKS_READINESS_TOKEN and warehouse configuration
-    are present. It then delegates to `databricks_sql_ready` to perform
-    a lightweight warehouse check.
-    
-    Raises:
-        HTTPException: 503 if the token is missing, warehouse config is invalid,
-                       or the SQL warehouse cannot be reached.
-    """
-    # Specific check for missing readiness token (needed for test expectations)
-    readiness_token = os.environ.get("DATABRICKS_READINESS_TOKEN", "").strip()
-    if not readiness_token:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "not_ready",
-                "reason": "readiness_token_missing",
-                "message": "DATABRICKS_READINESS_TOKEN environment variable is not set.",
-            },
-        )
-
-    # Specific check for missing warehouse config
+    # Trace2 has a specific check for missing warehouse config that returns a custom message
     try:
         check_warehouse_config()
     except HTTPException:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "not_ready",
-                "reason": "warehouse_config_missing",
-                "message": "Warehouse configuration is missing or invalid.",
-            },
+        from shared_api import not_ready
+        raise not_ready(
+            "warehouse_config_missing",
+            message="Warehouse configuration is missing or invalid.",
         )
 
     try:
-        await databricks_sql_ready(
+        return await databricks_sql_ready(
             check_warehouse_config=check_warehouse_config,
             run_sql=run_sql_async,
         )
@@ -94,18 +47,10 @@ async def ready():
                 "error": str(exc.detail),
             },
         )
-    return {"status": "ready"}
 
 
-@app.get("/api/health/debug")
-async def health_debug(
-    x_forwarded_access_token: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
-):
-    """Return detailed runtime config; only available when debug endpoints are enabled."""
-    if not ENABLE_DEBUG_ENDPOINTS:
-        raise HTTPException(status_code=404, detail="Not found")
-    resolve_token(x_forwarded_access_token, authorization)
+async def trace_debug_config(_user: UserIdentity) -> dict:
+    """Runtime configuration summary for debugging."""
     return {
         "status": "ok",
         "databricks_host": DATABRICKS_HOST[:50] if DATABRICKS_HOST else "(NOT SET)",
@@ -118,4 +63,17 @@ async def health_debug(
     }
 
 
-register_spa_routes(app, static_dir_getter=lambda: STATIC_DIR)
+# Bootstrap the application using the ConnectIO framework
+rad_app = ConnectIoApp(
+    title="Trace2 API",
+    static_dir=STATIC_DIR,
+    readiness_checks=[trace_readiness_check],
+    debug_config=trace_debug_config,
+)
+
+app = rad_app.fastapi_app
+
+# Domain Router Registration
+app.include_router(batch_trace_router, prefix="/api", tags=["Batch Trace"])
+app.include_router(lineage_router, prefix="/api", tags=["Lineage Analysis"])
+app.include_router(quality_router, prefix="/api", tags=["Quality Record"])

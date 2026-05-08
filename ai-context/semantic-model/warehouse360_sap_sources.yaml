@@ -46,6 +46,23 @@ tables:
     catalog:    sap
     full_name:  connected_plant_uat.sap.productionorderobject_afpo
 
+  - sap_table:  AFVC
+    module:     PP
+    desc:       Process order operations / phases
+    status:     missing
+    todo: >
+      CRITICAL FOR PROCESS MANUFACTURING. Required to resolve the Phase-Level blind spot
+      for in-process control (IPC). Connects AUFPL (routing) and APLZL (internal counter)
+      to QALS to isolate quality events per Phase (e.g. Mixing vs Filling).
+      Raise a data engineering request immediately.
+
+  - sap_table:  AFTX
+    module:     PP
+    desc:       Process order operation/phase texts
+    status:     missing
+    todo: >
+      Required alongside AFVC for human-readable Phase descriptions.
+
   - sap_table:  RESB
     module:     PP
     desc:       Reservation / dependent requirements

@@ -1,3 +1,6 @@
+import os
+os.environ["APP_ENV"] = "test"
+
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
@@ -39,9 +42,9 @@ def test_ready_returns_503_when_warehouse_config_missing(monkeypatch):
 
 
 def test_health_debug_hidden_outside_development(monkeypatch):
-    monkeypatch.setattr(main_module, "ENABLE_DEBUG_ENDPOINTS", False)
+    monkeypatch.setattr(main_module.rad_app, "enable_debug_endpoints", False)
 
-    response = client.get("/api/health/debug")
+    response = client.get("/api/health/debug", headers={"x-forwarded-access-token": "token"})
 
     assert response.status_code == 404
 
