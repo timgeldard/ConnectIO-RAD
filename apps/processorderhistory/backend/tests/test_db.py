@@ -4,6 +4,20 @@ from unittest.mock import MagicMock
 import processorderhistory_backend.db as db
 
 
+def test_tbl_resolves_default_poh_schema(monkeypatch):
+    monkeypatch.setattr(db, "POH_CATALOG", "cat")
+    monkeypatch.setattr(db, "POH_SCHEMA", "poh")
+
+    assert db.tbl("vw_gold_process_order") == "`cat`.`poh`.`vw_gold_process_order`"
+
+
+def test_tbl_resolves_explicit_schema(monkeypatch):
+    monkeypatch.setattr(db, "POH_CATALOG", "cat")
+    monkeypatch.setattr(db, "POH_SCHEMA", "poh")
+
+    assert db.tbl("wh360.wh360_lineside_stock_v") == "`cat`.`wh360`.`wh360_lineside_stock_v`"
+
+
 def test_validate_timezone_accepts_valid_zone():
     assert db.validate_timezone("Europe/Dublin") == "Europe/Dublin"
 

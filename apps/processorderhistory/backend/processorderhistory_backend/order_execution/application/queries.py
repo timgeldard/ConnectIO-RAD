@@ -32,7 +32,16 @@ async def get_day_view(token: str, *, day: Optional[str], plant_id: Optional[str
 
 
 async def get_lineside_monitor(token: str, *, plant_id: Optional[str]) -> dict:
-    """Return live lineside monitor wallboard data."""
+    """Return live lineside monitor wallboard data.
+
+    Args:
+        token: Databricks access token forwarded from the request.
+        plant_id: Optional plant filter selected by the user or platform shell.
+
+    Returns:
+        Lineside Monitor summary containing KPIs, line states, recent activity,
+        line-side stock, and data availability metadata.
+    """
     await assert_plant_authorized(token, plant_id)
     return await lineside_monitor_dal.fetch_lineside_monitor(token, plant_id=plant_id)
 

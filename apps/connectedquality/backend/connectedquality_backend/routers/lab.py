@@ -14,5 +14,15 @@ async def lab_fails(
     lot_type: str | None = Query(default=None, description="Optional SAP inspection lot type."),
     user: UserIdentity = Depends(require_proxy_user),
 ):
-    """Inspection lot characteristics that have failed or are out-of-warning."""
+    """Return failed or warning inspection characteristics for a plant.
+
+    Args:
+        plant_id: Plant selected by the user, session, or deep link.
+        lot_type: Optional SAP inspection lot type filter.
+        user: Authenticated platform user carrying the Databricks token.
+
+    Returns:
+        Lab Board payload containing normalized failure rows and availability
+        metadata.
+    """
     return await fetch_lab_failures(user.raw_token, plant_id=plant_id, lot_type=lot_type)

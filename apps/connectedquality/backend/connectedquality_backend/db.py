@@ -14,14 +14,26 @@ from shared_db.core import (  # noqa: F401 — re-exported
     run_sql,
     run_sql_async as _shared_run_sql_async,
     sql_param,
-    tbl,
 )
 
 CQ_CATALOG: str = os.environ.get("CQ_CATALOG", os.environ.get("TRACE_CATALOG", "connected_plant_uat"))
-CQ_SCHEMA: str = os.environ.get("CQ_SCHEMA", os.environ.get("TRACE_SCHEMA", "gold"))
+CQ_SCHEMA: str = os.environ.get("CQ_SCHEMA", os.environ.get("POH_SCHEMA", "csm_process_order_history"))
 
 _SQL_CONCURRENCY_LIMIT = int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4"))
 _SQL_SEMAPHORE = asyncio.Semaphore(_SQL_CONCURRENCY_LIMIT)
+
+
+def tbl(name: str) -> str:
+    """Return a fully-qualified backtick-quoted ConnectedQuality table reference.
+
+    Args:
+        name: Table or view name within the configured ConnectedQuality schema.
+
+    Returns:
+        Fully-qualified Unity Catalog table reference using ``CQ_CATALOG`` and
+        ``CQ_SCHEMA``.
+    """
+    return f"`{CQ_CATALOG}`.`{CQ_SCHEMA}`.`{name}`"
 
 
 async def run_sql_async(

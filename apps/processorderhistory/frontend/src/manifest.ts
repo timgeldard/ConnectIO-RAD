@@ -60,7 +60,7 @@ export const POH_MODULES: ConnectIOModule[] = [
     domain: 'process-order',
     iconSet: 'shared-ui',
     icon: 'calendar',
-    color: '#289BA2',
+    color: 'var(--sage)',
     sidebarGroup: 'operate',
     sidebarOrder: 2,
     defaultTab: '',

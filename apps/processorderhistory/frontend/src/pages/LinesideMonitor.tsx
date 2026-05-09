@@ -4,6 +4,15 @@ import { fetchLinesideMonitor, type LinesideMonitorSummary } from '../api/linesi
 
 const fmtTime = (ms?: number) => ms ? new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) : '—'
 
+/**
+ * Renders the live Lineside Monitor wallboard inside the POH application.
+ *
+ * Reads an optional `plant_id` or legacy `plant` query parameter, fetches live
+ * line, order, downtime, and stock data, and presents loading, error, empty,
+ * and populated states for production-floor display.
+ *
+ * @returns Lineside Monitor page with KPIs, line cards, and line-side stock.
+ */
 export function LinesideMonitorPage() {
   const params = new URLSearchParams(window.location.search)
   const plantId = params.get('plant_id') ?? params.get('plant')

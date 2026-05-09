@@ -2,10 +2,21 @@
 import asyncio
 from typing import Optional
 
-from processorderhistory_backend.db import POH_CATALOG, run_sql_async, sql_param, tbl
+from processorderhistory_backend.db import run_sql_async, sql_param, tbl
 
 
 async def _q_active_orders(token: str, plant_id: Optional[str]) -> list[dict]:
+    """Fetch active process orders with recent confirmation activity.
+
+    Args:
+        token: Databricks access token forwarded from the request.
+        plant_id: Optional plant filter; when omitted, all authorized plants are
+            included by the query caller.
+
+    Returns:
+        List of active order records with process order, plant, line, status,
+        material, start, and last-activity fields.
+    """
     plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
     params = [sql_param("plant_id", plant_id)] if plant_id else None
     query = f"""
@@ -44,6 +55,17 @@ async def _q_active_orders(token: str, plant_id: Optional[str]) -> list[dict]:
 
 
 async def _q_downtime(token: str, plant_id: Optional[str]) -> list[dict]:
+    """Fetch recent downtime events for lineside display.
+
+    Args:
+        token: Databricks access token forwarded from the request.
+        plant_id: Optional plant filter; when omitted, all authorized plants are
+            included by the query caller.
+
+    Returns:
+        List of downtime records with line, order, reason, issue, start, and
+        duration fields.
+    """
     plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
     params = [sql_param("plant_id", plant_id)] if plant_id else None
     query = f"""
@@ -68,6 +90,17 @@ async def _q_downtime(token: str, plant_id: Optional[str]) -> list[dict]:
 
 
 async def _q_next_orders(token: str, plant_id: Optional[str]) -> list[dict]:
+    """Fetch upcoming released or not-started process orders.
+
+    Args:
+        token: Databricks access token forwarded from the request.
+        plant_id: Optional plant filter; when omitted, all authorized plants are
+            included by the query caller.
+
+    Returns:
+        List of upcoming order records with process order, plant, line, status,
+        and material context.
+    """
     plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
     params = [sql_param("plant_id", plant_id)] if plant_id else None
     query = f"""
@@ -93,6 +126,17 @@ async def _q_next_orders(token: str, plant_id: Optional[str]) -> list[dict]:
 
 
 async def _q_lineside_stock(token: str, plant_id: Optional[str]) -> list[dict]:
+    """Fetch line-side stock from the Warehouse360 stock view.
+
+    Args:
+        token: Databricks access token forwarded from the request.
+        plant_id: Optional plant filter; when omitted, all authorized plants are
+            included by the query caller.
+
+    Returns:
+        List of stock records with plant, bin, storage type, material, available
+        quantity, and unit of measure.
+    """
     plant_clause = "WHERE plant_id = :plant_id" if plant_id else ""
     params = [sql_param("plant_id", plant_id)] if plant_id else None
     query = f"""
@@ -104,7 +148,7 @@ async def _q_lineside_stock(token: str, plant_id: Optional[str]) -> list[dict]:
             material_name,
             available,
             uom
-        FROM `{POH_CATALOG}`.`wh360`.`wh360_lineside_stock_v`
+        FROM {tbl('wh360.wh360_lineside_stock_v')}
         {plant_clause}
         ORDER BY plant_id, bin_id
         LIMIT 500
@@ -113,10 +157,30 @@ async def _q_lineside_stock(token: str, plant_id: Optional[str]) -> list[dict]:
 
 
 def _line_key(row: dict) -> str:
+    """Extract a stable grouping key for a production line or bin row.
+
+    Args:
+        row: Query result row containing ``line_id`` or ``bin_id``.
+
+    Returns:
+        Line identifier, bin identifier, or ``UNKNOWN`` when neither exists.
+    """
     return str(row.get("line_id") or row.get("bin_id") or "UNKNOWN")
 
 
 def _build_summary(active_orders: list[dict], downtime: list[dict], next_orders: list[dict], stock: list[dict]) -> dict:
+    """Aggregate raw query rows into the Lineside Monitor summary contract.
+
+    Args:
+        active_orders: Active process order records from ``_q_active_orders``.
+        downtime: Downtime records from ``_q_downtime``.
+        next_orders: Upcoming order records from ``_q_next_orders``.
+        stock: Line-side stock records from ``_q_lineside_stock``.
+
+    Returns:
+        Summary dictionary containing ``kpis``, ``lines``, ``activity``,
+        ``lineside_stock``, and ``data_available`` keys.
+    """
     line_ids = sorted({_line_key(row) for row in [*active_orders, *downtime, *next_orders] if _line_key(row)})
     lines = []
     for line_id in line_ids:
@@ -149,6 +213,17 @@ def _build_summary(active_orders: list[dict], downtime: list[dict], next_orders:
 
 
 async def fetch_lineside_monitor(token: str, *, plant_id: Optional[str] = None) -> dict:
+    """Fetch and aggregate live Lineside Monitor wallboard data.
+
+    Args:
+        token: Databricks access token forwarded from the request.
+        plant_id: Optional plant filter; when omitted, all authorized plants are
+            included by the query caller.
+
+    Returns:
+        Summary dictionary containing production KPIs, line state cards, recent
+        activity, line-side stock rows, and the ``data_available`` flag.
+    """
     active_orders, downtime, next_orders, stock = await asyncio.gather(
         _q_active_orders(token, plant_id),
         _q_downtime(token, plant_id),
