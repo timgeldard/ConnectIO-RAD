@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Icon } from '~/components/Icon'
 import { useQuery } from '@tanstack/react-query'
 import { fetchJson } from '@connectio/shared-frontend-api'
@@ -41,6 +41,7 @@ export function LabBoard() {
     queryKey: ['cq', 'lab', 'plants'],
     enabled: !urlPlantId,
     queryFn: () => fetchJson<{ plants: PlantOption[] }>('/api/cq/lab/plants'),
+    staleTime: 5 * 60 * 1000,
   })
 
   const { data, isLoading } = useQuery({
@@ -79,61 +80,16 @@ export function LabBoard() {
       : selectedPlant.plant_id)
     : (plantId ?? '')
 
-  if (!plantId) {
-    return (
-      <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)', maxWidth: 480, margin: '0 auto' }}>
-        <Icon name="flask" size={48} style={{ display: 'block', margin: '0 auto 24px', opacity: 0.4 }} />
-        <h2 style={{ fontSize: 20, fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', marginBottom: 8 }}>Select a plant</h2>
-        <p style={{ marginBottom: 24, fontSize: 14 }}>Choose a plant to view live lab inspection failures.</p>
-        {plants.length > 0 && (
-          <select
-            value={selectedPlantId}
-            onChange={e => setSelectedPlantId(e.target.value)}
-            style={{
-              padding: '10px 16px',
-              fontSize: 15,
-              borderRadius: 6,
-              border: '1px solid var(--border)',
-              background: 'var(--surface-2)',
-              color: 'var(--text-1)',
-              minWidth: 260,
-              cursor: 'pointer',
-            }}
-          >
-            <option value="">— select plant —</option>
-            {plants.map(p => (
-              <option key={p.plant_id} value={p.plant_id}>
-                {p.plant_name && p.plant_name !== p.plant_id
-                  ? `${p.plant_name} · ${p.plant_id}`
-                  : p.plant_id}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-    )
-  }
-
-  if (isLoading) {
-    return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)' }}>Loading lab data…</div>
-  }
-
-  if (data?.data_available === false) {
-    return (
-      <div className="lab-board" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <Icon name="clock" size={48} style={{ display: 'block', margin: '0 auto 24px', opacity: 0.5 }} />
-        <h2 style={{ fontSize: 24, fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', marginBottom: 12 }}>No lab failures available</h2>
-        <p style={{ color: 'var(--text-3)', fontSize: 16 }}>{data.reason ?? 'The selected plant has no published lab failure dataset yet.'}</p>
-        {!urlPlantId && (
-          <button
-            onClick={() => setSelectedPlantId('')}
-            style={{ marginTop: 16, fontSize: 13, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-          >
-            change plant
-          </button>
-        )}
-      </div>
-    )
+  const plantSelectStyle: React.CSSProperties = {
+    fontSize: 12,
+    fontFamily: 'var(--font-mono)',
+    background: 'rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.18)',
+    borderRadius: 4,
+    padding: '2px 6px',
+    color: 'inherit',
+    cursor: 'pointer',
+    maxWidth: 220,
   }
 
   return (
@@ -151,14 +107,23 @@ export function LabBoard() {
       <div className="lab-ctx">
         <div className="lab-ctx-field">
           <span className="lbl">Plant</span>
-          <span className="val">{plantLabel}</span>
-          {!urlPlantId && (
-            <button
-              onClick={() => setSelectedPlantId('')}
-              style={{ marginLeft: 8, fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+          {urlPlantId ? (
+            <span className="val">{plantLabel}</span>
+          ) : (
+            <select
+              value={selectedPlantId}
+              onChange={e => setSelectedPlantId(e.target.value)}
+              style={plantSelectStyle}
             >
-              change
-            </button>
+              <option value="">— select —</option>
+              {plants.map(p => (
+                <option key={p.plant_id} value={p.plant_id}>
+                  {p.plant_name && p.plant_name !== p.plant_id
+                    ? `${p.plant_name} · ${p.plant_id}`
+                    : p.plant_id}
+                </option>
+              ))}
+            </select>
           )}
         </div>
         <div className="lab-ctx-field"><span className="lbl">Work centers</span><span className="val">All</span></div>
@@ -173,7 +138,21 @@ export function LabBoard() {
       <div className="lab-grid-wrap">
         <button className="lab-arrow left" onClick={goPrev} title="Previous"><Icon name="chev" size={28} /></button>
         <div className="lab-grid">
-          {visible.map((f, i) => <FailCard key={i} f={f} />)}
+          {!plantId ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gridColumn: '1 / -1', padding: '48px 0', color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
+              <Icon name="flask" size={40} style={{ marginBottom: 16, opacity: 0.35 }} />
+              <div style={{ fontSize: 15 }}>Select a plant above to view live lab inspection failures</div>
+            </div>
+          ) : isLoading ? (
+            <div style={{ gridColumn: '1 / -1', padding: '48px 0', textAlign: 'center', color: 'rgba(255,255,255,0.45)' }}>Loading lab data…</div>
+          ) : data?.data_available === false ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gridColumn: '1 / -1', padding: '48px 0', color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
+              <Icon name="clock" size={40} style={{ marginBottom: 16, opacity: 0.35 }} />
+              <div style={{ fontSize: 15 }}>{data.reason ?? 'No published lab failure dataset yet for this plant'}</div>
+            </div>
+          ) : (
+            visible.map((f, i) => <FailCard key={i} f={f} />)
+          )}
         </div>
         <button className="lab-arrow right" onClick={goNext} title="Next"><Icon name="chev" size={28} /></button>
       </div>

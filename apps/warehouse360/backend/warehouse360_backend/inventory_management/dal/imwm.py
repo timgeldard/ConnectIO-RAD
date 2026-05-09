@@ -100,7 +100,7 @@ async def fetch_imwm_exceptions(token: str, plant_id: Optional[str] = None) -> l
         FROM {tbl('imwm_exceptions_v')}
         {plant_filter}
         ORDER BY severity DESC, exception_type
-        LIMIT 2000
+        LIMIT 5000
     """
     return await run_sql_async(token, q, params, endpoint_hint="wh360.imwm_exceptions")
 
