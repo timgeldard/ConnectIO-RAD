@@ -13,7 +13,9 @@ export class KPICardPO {
 
   /** Returns the KPI card with the given label text. */
   withLabel(label: string): Locator {
-    return this.root.filter({ has: this.root.page().locator(`[data-testid="kpi-label"]:text("${label}")`) })
+    return this.root.filter({
+      has: this.root.page().locator('[data-testid="kpi-label"]', { hasText: label }),
+    })
   }
 
   /** Returns the display value of the first (or scoped) KPI card. */

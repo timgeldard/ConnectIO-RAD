@@ -1,18 +1,29 @@
 import { useState, type ReactNode, type CSSProperties } from 'react'
 
 export interface Column<T> {
+  /** Column header content. */
   header: ReactNode
+  /** Row property to render as cell content when no `render` is provided. */
   key?: keyof T & string
   /** Column key used for sort callbacks; falls back to `key` if omitted. */
   sortKey?: string
+  /** Horizontal text alignment for header and cells. */
   align?: 'left' | 'right' | 'center'
+  /** Fixed column width (px or CSS string). */
   width?: number | string
+  /** Renders cell text in the monospace font at a slightly smaller size. */
   mono?: boolean
+  /** Applies tabular-nums for aligned number columns. */
   num?: boolean
+  /** Renders cell text in the muted text colour. */
   muted?: boolean
+  /** Allows cell content to wrap instead of staying on one line. */
   wrap?: boolean
+  /** Custom cell renderer; takes precedence over `key`. */
   render?: (row: T, i: number) => ReactNode
+  /** Extra CSS class applied to each `<td>`. */
   className?: string
+  /** Inline styles applied to each `<td>`. */
   style?: CSSProperties
 }
 

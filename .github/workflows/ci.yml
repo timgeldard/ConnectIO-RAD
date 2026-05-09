@@ -230,6 +230,8 @@ jobs:
           enable-cache: true
       - name: Install Node dependencies
         run: npm ci
+      - name: Sync Python environments
+        run: uv sync --all-packages
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
       - name: Run E2E — ${{ matrix.app }}
@@ -237,6 +239,7 @@ jobs:
           APP_ENV: test
           E2E_DATABRICKS_TOKEN: ${{ secrets.E2E_DATABRICKS_UAT_TOKEN }}
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          PLAYWRIGHT_BLOB_OUTPUT_DIR: apps/${{ matrix.app }}/e2e/blob-report
         run: |
           npx playwright test \
             --config=apps/${{ matrix.app }}/e2e/playwright.config.ts \

@@ -17,9 +17,13 @@ test.describe('Inventory stock view', () => {
     await expect(dataTable.root).toBeVisible({ timeout: 15_000 })
     const before = await dataTable.rowCount()
 
+    const inventoryResponse = page.waitForResponse(
+      (r) => r.url().includes('/api/inventory') && r.status() < 400,
+      { timeout: 15_000 },
+    )
     await page.locator('[data-testid="material-filter"]').fill('MAT-001')
     await page.keyboard.press('Enter')
-    await page.waitForResponse((r) => r.url().includes('/api/inventory') && r.status() < 400, { timeout: 15_000 })
+    await inventoryResponse
 
     const after = await dataTable.rowCount()
     expect(after).toBeLessThanOrEqual(before)

@@ -7,9 +7,13 @@ import { mockAllApiRoutes } from './mockApi'
 
 /** Extended test context available to all ConnectIO E2E tests. */
 export interface ConnectIOTestContext {
+  /** Page object for the plant selector bar. */
   plantBar: PlantContextBarPO
+  /** Page object for the primary data table on the page. */
   dataTable: DataTablePO
+  /** Page object for KPI summary cards. */
   kpiCard: KPICardPO
+  /** Page object for the slide-in detail drawer. */
   drawer: DrawerPO
 }
 
