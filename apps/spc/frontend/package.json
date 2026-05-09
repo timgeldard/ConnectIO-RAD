@@ -17,6 +17,7 @@
   "dependencies": {
     "@connectio/shared-frontend-api": "file:../../../libs/shared-frontend-api",
     "@connectio/shared-frontend-i18n": "file:../../../libs/shared-frontend-i18n",
+    "@connectio/shared-app-context": "file:../../../libs/shared-app-context",
     "@connectio/shared-ui": "file:../../../libs/shared-ui",
     "@tanstack/react-query": "^5.99.0",
     "d3-array": "^3.2.4",

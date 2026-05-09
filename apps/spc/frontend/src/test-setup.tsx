@@ -1,0 +1,52 @@
+import React from 'react'
+import { afterEach, vi } from 'vitest'
+import { cleanup } from '@testing-library/react'
+import '@testing-library/jest-dom/vitest'
+
+// Ensure RTL cleans up the DOM after each test
+afterEach(() => {
+  cleanup()
+})
+
+vi.mock('@connectio/shared-frontend-i18n', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@connectio/shared-frontend-i18n')>()
+  const enResources = await import('./i18n/locales/en.json')
+  const interpolate = (text: string, values?: Record<string, string | number | boolean | null | undefined>) => {
+    if (!values) return text
+    return Object.entries(values).reduce(
+      (acc, [key, value]) => acc.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), String(value ?? '')),
+      text,
+    )
+  }
+
+  return {
+    ...actual,
+    useI18n: () => ({
+      language: 'en' as const,
+      languages: [{ code: 'en' as const, label: 'English', nativeLabel: 'English', enabled: true }],
+      setLanguage: vi.fn(),
+      t: (key: string, values?: Record<string, string | number | boolean | null | undefined>) =>
+        interpolate((enResources.default as Record<string, string>)[key] ?? key, values),
+      formatNumber: (v: number) => String(v),
+      formatDate: (v: Date | string | number) => String(v),
+    }),
+    LanguageSelector: () => null,
+    I18nProvider: ({ children }: { children: React.ReactNode }) => children,
+  }
+})
+
+vi.mock('@connectio/shared-app-context', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@connectio/shared-app-context')>()
+  return {
+    ...actual,
+    usePlantSelection: () => ({
+      plants: [{ plant_id: 'P1', plant_name: 'Plant 1' }],
+      selectedPlantId: 'P1',
+      selectedPlant: { plant_id: 'P1', plant_name: 'Plant 1' },
+      setSelectedPlantId: vi.fn(),
+      loading: false,
+      error: null,
+    }),
+    PlantProvider: ({ children }: { children: React.ReactNode }) => children,
+  }
+})

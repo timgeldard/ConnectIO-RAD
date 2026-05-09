@@ -126,3 +126,22 @@ vi.mock('@connectio/shared-frontend-i18n', async (importOriginal) => {
     I18nProvider: ({ children }: { children: React.ReactNode }) => children,
   }
 })
+
+vi.mock('@connectio/shared-app-context', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@connectio/shared-app-context')>()
+  let selectedId = ''
+  const mockContext = {
+    plants: [{ plant_id: 'P1', plant_name: 'Plant 1' }],
+    selectedPlantId: selectedId,
+    selectedPlant: selectedId === 'P1' ? { plant_id: 'P1', plant_name: 'Plant 1' } : null,
+    setSelectedPlantId: vi.fn((id) => { selectedId = id }),
+    loading: false,
+    error: null,
+  }
+  return {
+    ...actual,
+    usePlantSelection: () => mockContext,
+    PlantProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    PlantContextBar: () => <div data-testid="plant-context-bar" />,
+  }
+})

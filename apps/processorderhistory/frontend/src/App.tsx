@@ -15,6 +15,7 @@ import { EquipmentInsightsPage } from './pages/EquipmentInsights'
 import { EquipmentInsights2Page } from './pages/EquipmentInsights2'
 import { fetchCurrentUser, type CurrentUser } from './api/me'
 import { fetchPreferences, savePreferences } from './api/preferences'
+import { PlantProvider } from '@connectio/shared-app-context'
 import { GenieDrawer } from './genie/GenieDrawer'
 import { buildGeniePageContext } from './genie/pageContext'
 
@@ -196,7 +197,9 @@ function AppContent() {
 export default function App() {
   return (
     <LangProvider>
-      <AppContent />
+      <PlantProvider appName="processorderhistory">
+        <AppContent />
+      </PlantProvider>
     </LangProvider>
   )
 }

@@ -26,6 +26,10 @@ vi.mock('@connectio/shared-frontend-i18n', async (importOriginal) => {
           'envmon.floorPlan.alt': 'Floor plan for {{floor}}',
           'envmon.floorPlan.loading': 'Loading...',
           'envmon.floorPlan.error': 'Failed to load heatmap:',
+          'envmon.floorPlan.legend.fail': 'FAIL',
+          'envmon.floorPlan.legend.warn': 'WARN',
+          'envmon.floorPlan.legend.pend': 'PEND',
+          'envmon.floorPlan.legend.pass': 'PASS',
         }
         const template = translations[key] ?? key
         if (!values) return template
@@ -39,5 +43,22 @@ vi.mock('@connectio/shared-frontend-i18n', async (importOriginal) => {
     }),
     LanguageSelector: () => null,
     I18nProvider: ({ children }: { children: React.ReactNode }) => children,
+  }
+})
+
+vi.mock('@connectio/shared-app-context', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@connectio/shared-app-context')>()
+  let selectedId = ''
+  return {
+    ...actual,
+    usePlantSelection: () => ({
+      plants: [{ plant_id: 'P1', plant_name: 'Plant 1' }],
+      selectedPlantId: selectedId,
+      selectedPlant: selectedId === 'P1' ? { plant_id: 'P1', plant_name: 'Plant 1' } : null,
+      setSelectedPlantId: vi.fn((id) => { selectedId = id }),
+      loading: false,
+      error: null,
+    }),
+    PlantProvider: ({ children }: { children: React.ReactNode }) => children,
   }
 })

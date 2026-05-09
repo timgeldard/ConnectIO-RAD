@@ -238,12 +238,13 @@ class SqlRuntime:
         invalidate_cache: bool = True,
         bypass_cache: bool = False,
     ) -> list[dict]:
+        tagged_statement = f"/* App={__import__('os').environ.get('APP_NAME', 'unknown')}, Module={endpoint_hint} */\n{statement}"
         try:
             tier = self._cache_tier_for(statement)
             if tier is None or bypass_cache:
                 loop = asyncio.get_running_loop()
                 started_at = time.monotonic()
-                rows = await loop.run_in_executor(_sql_executor, lambda: self._run_sql(token, statement, params))
+                rows = await loop.run_in_executor(_sql_executor, lambda: self._run_sql(token, tagged_statement, params))
                 duration_ms = int((time.monotonic() - started_at) * 1000)
                 if invalidate_cache and is_write_statement(statement):
                     self.clear_cache()
@@ -267,7 +268,7 @@ class SqlRuntime:
 
             loop = asyncio.get_running_loop()
             started_at = time.monotonic()
-            rows = await loop.run_in_executor(_sql_executor, lambda: self._run_sql(token, statement, params))
+            rows = await loop.run_in_executor(_sql_executor, lambda: self._run_sql(token, tagged_statement, params))
             duration_ms = int((time.monotonic() - started_at) * 1000)
             if len(rows) <= tier.row_limit:
                 with self.cache_lock:

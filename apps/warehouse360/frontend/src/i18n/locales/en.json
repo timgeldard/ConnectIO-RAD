@@ -1,4 +1,8 @@
 {
+  "shared.plant.selector": "Plant",
+  "shared.plant.loading": "Loading plants...",
+  "shared.plant.none": "No plants available",
+  "shared.plant.unavailable": "Plant context unavailable",
   "shared.language.label": "Language",
   "warehouse.brand": "Warehouse 360",
   "warehouse.site.name": "Kerry Naas",

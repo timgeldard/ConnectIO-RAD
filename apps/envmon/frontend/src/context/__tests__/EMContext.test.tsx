@@ -15,7 +15,7 @@ describe('EMContext', () => {
 
     expect(result.current.view.level).toBe('global')
     expect(result.current.personaId).toBe('regional')
-    expect(result.current.activeFloor).toBe('F1')
+    expect(result.current.activeFloor).toBeNull()
   })
 
   it('updates view and active floor', () => {

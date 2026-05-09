@@ -1,5 +1,5 @@
 {
-  "name": "@connectio/shared-frontend-i18n",
+  "name": "@connectio/shared-app-context",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,10 +11,10 @@
     "test:watch": "vitest"
   },
   "peerDependencies": {
-    "react": "^18.3.1"
+    "react": "^18.3.1",
+    "@connectio/shared-frontend-i18n": "file:../shared-frontend-i18n"
   },
   "devDependencies": {
-    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

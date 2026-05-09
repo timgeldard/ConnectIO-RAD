@@ -11,6 +11,7 @@ import {
 } from '@connectio/shared-ui';
 import { useEM } from '~/context/EMContext';
 import { usePlants } from '~/api/client';
+import { PlantContextBar } from '@connectio/shared-app-context';
 import PersonaSwitcher, { PERSONAS } from '~/components/ui/PersonaSwitcher';
 import GlobalView from '~/views/GlobalView';
 import SiteView from '~/views/SiteView';
@@ -111,8 +112,9 @@ function AppShellContent() {
             </div>
           }
         />
-      }
-      topbar={
+        }
+        contextBar={<PlantContextBar />}
+        topbar={
         <TopBar
           breadcrumbs={breadcrumbs}
           actions={

@@ -2,6 +2,7 @@ import { EMProvider } from '~/context/EMContext';
 import AppShell from '~/components/layout/AppShell';
 import ErrorBoundary from '~/components/common/ErrorBoundary';
 import { I18nProvider } from '@connectio/shared-frontend-i18n';
+import { PlantProvider } from '@connectio/shared-app-context';
 import enResources from './i18n/locales/en.json';
 
 const loadResource = async (lang: string) => {
@@ -16,9 +17,11 @@ export default function App() {
         resources={{ en: enResources }}
         loadResource={loadResource}
       >
-        <EMProvider>
-          <AppShell />
-        </EMProvider>
+        <PlantProvider appName="envmon" apiEndpoint="/api/em/plants?days=30" requireSelection={false}>
+          <EMProvider>
+            <AppShell />
+          </EMProvider>
+        </PlantProvider>
       </I18nProvider>
     </ErrorBoundary>
   );

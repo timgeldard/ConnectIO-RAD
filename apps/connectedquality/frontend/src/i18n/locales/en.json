@@ -1,4 +1,8 @@
 {
+  "shared.plant.selector": "Plant",
+  "shared.plant.loading": "Loading plants...",
+  "shared.plant.none": "No plants available",
+  "shared.plant.unavailable": "Plant context unavailable",
   "app.title": "ConnectedQuality",
   "app.tagline": "A Kerry Platform",
   "app.env": "UAT",

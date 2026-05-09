@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n/context'
 import { KPI, Icon, TopBar, Button } from '@connectio/shared-ui'
+import { usePlantSelection } from '@connectio/shared-app-context'
 import { fmt, StatusBadge, Check } from '../ui'
 import { STATUSES } from '../data/mock'
 import { fetchOrders } from '../api/orders'
@@ -31,6 +32,7 @@ interface OrderListProps {
 
 export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
   const { t } = useT()
+  const { selectedPlantId } = usePlantSelection()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set())
   const [productFilter, setProductFilter] = useState<string | null>(null)
@@ -50,11 +52,11 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
     let cancelled = false
     setLoading(true)
     setFetchError(null)
-    fetchOrders({ limit: 2000 })
+    fetchOrders({ plantId: selectedPlantId || undefined, limit: 2000 })
       .then(res => { if (!cancelled) { setOrders(res.orders); setLoading(false) } })
       .catch(err => { if (!cancelled) { setFetchError(String(err?.message ?? err)); setLoading(false) } })
     return () => { cancelled = true }
-  }, [])
+  }, [selectedPlantId])
 
   useEffect(() => {
     fetchPoursAnalytics({ dateFrom: _today, dateTo: _today })
