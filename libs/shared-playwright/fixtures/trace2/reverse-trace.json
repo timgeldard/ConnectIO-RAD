@@ -1,0 +1,11 @@
+{
+  "batch_id": "BATCH-E2E-001",
+  "direction": "reverse",
+  "nodes": [
+    { "id": "BATCH-E2E-000", "type": "batch", "material_id": "MAT-RAW", "plant_id": "DEMO_PLANT", "depth": -1 },
+    { "id": "BATCH-E2E-001", "type": "batch", "material_id": "MAT-001", "plant_id": "DEMO_PLANT", "depth": 0  }
+  ],
+  "edges": [
+    { "source": "BATCH-E2E-000", "target": "BATCH-E2E-001", "quantity": "250.0", "uom": "KG" }
+  ]
+}
