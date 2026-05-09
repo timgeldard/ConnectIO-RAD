@@ -198,6 +198,7 @@ export const STRINGS: Record<string, Record<string, string>> = {
     sumDOM: 'Date of manufacture',
     sumAllergens: 'Allergens',
     sumPlant: 'Plant',
+    secActivity: 'Activity',
     secPhases: 'Phases & timing',
     secInspections: 'Inspections',
     secTimelineLogs: 'Timeline & logs',

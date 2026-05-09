@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { fetchPlants, type Plant } from '../api/plants'
 import { Icon, type IconName } from '@connectio/shared-ui'
 import { fetchPoursAnalytics, type PoursData } from '../api/pours'
 import { fetchYieldAnalytics, type YieldData } from '../api/yield'
@@ -61,6 +62,25 @@ export function useAnalyticsFilters() {
 }
 
 // ---------------------------------------------------------------------------
+// Hook: usePlants
+// ---------------------------------------------------------------------------
+
+export function usePlants() {
+  const [plants, setPlants] = useState<Plant[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchPlants()
+      .then(data => { if (!cancelled) { setPlants(data); setLoading(false) } })
+      .catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  return { plants, loading }
+}
+
+// ---------------------------------------------------------------------------
 // Components
 // ---------------------------------------------------------------------------
 
@@ -87,13 +107,20 @@ export function AnalyticsFilterBar({
   onSourceTypeChange?: (value: string) => void
 }) {
   const today = todayISO()
+  const { plants: availablePlants } = usePlants()
   return (
     <div className="analytics-filter-bar" style={{ display: 'flex', gap: 16, padding: '12px 32px', background: 'var(--surface-sunken)', borderBottom: '1px solid var(--line-1)', alignItems: 'center', flexWrap: 'wrap' }}>
       <label className="afb-field" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}><Icon name="factory" size={14} /> Plant</span>
         <select value={filters.plantId} onChange={e => onChange({ plantId: e.target.value })} style={{ padding: '4px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line-1)', background: 'var(--surface-0)', fontSize: 13 }}>
           <option value="ALL">All plants</option>
-          <option value="PL01">PL01 — Valentia</option>
+          {availablePlants.map(p => (
+            <option key={p.plant_id} value={p.plant_id}>
+              {p.plant_name && p.plant_name !== p.plant_id
+                ? `${p.plant_name} · ${p.plant_id}`
+                : p.plant_id}
+            </option>
+          ))}
         </select>
       </label>
 

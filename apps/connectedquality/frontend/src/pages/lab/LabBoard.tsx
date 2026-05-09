@@ -18,6 +18,11 @@ interface FailSpec {
   sev: 'fail' | 'warn'
 }
 
+interface PlantOption {
+  plant_id: string
+  plant_name: string
+}
+
 const PAGE_SIZE = 6
 
 /** Lab Board — full-screen wallboard for quality lab. Auto-rotates inspection lot failures. */
@@ -26,13 +31,24 @@ export function LabBoard() {
   const [page, setPage] = useState(0)
   const stamp = new Date().toLocaleString('en-GB', { hour12: false }).replace(',', ' ·')
   const params = new URLSearchParams(window.location.search)
-  const plantId = params.get('plant_id') ?? params.get('plant')
+  const urlPlantId = params.get('plant_id') ?? params.get('plant')
   const lotType = params.get('lot_type')
+
+  const [selectedPlantId, setSelectedPlantId] = useState<string>(urlPlantId ?? '')
+  const plantId = selectedPlantId || null
+
+  const { data: plantsData } = useQuery({
+    queryKey: ['cq', 'lab', 'plants'],
+    enabled: !urlPlantId,
+    queryFn: () => fetchJson<{ plants: PlantOption[] }>('/api/cq/lab/plants'),
+  })
 
   const { data, isLoading } = useQuery({
     queryKey: ['cq', 'lab', 'fails', plantId, lotType],
     enabled: Boolean(plantId),
-    queryFn: () => fetchJson<{ fails: FailSpec[], data_available?: boolean, reason?: string }>(`/api/cq/lab/fails?plant_id=${encodeURIComponent(plantId as string)}${lotType ? `&lot_type=${encodeURIComponent(lotType)}` : ''}`),
+    queryFn: () => fetchJson<{ fails: FailSpec[], data_available?: boolean, reason?: string }>(
+      `/api/cq/lab/fails?plant_id=${encodeURIComponent(plantId as string)}${lotType ? `&lot_type=${encodeURIComponent(lotType)}` : ''}`
+    ),
   })
 
   const fails = data?.fails || []
@@ -55,8 +71,47 @@ export function LabBoard() {
   const goPrev = () => { setPage((p) => (p - 1 + pages) % pages); setTick(30) }
   const goNext = () => { setPage((p) => (p + 1) % pages); setTick(30) }
 
+  const plants = plantsData?.plants ?? []
+  const selectedPlant = plants.find(p => p.plant_id === selectedPlantId)
+  const plantLabel = selectedPlant
+    ? (selectedPlant.plant_name && selectedPlant.plant_name !== selectedPlant.plant_id
+      ? `${selectedPlant.plant_name} · ${selectedPlant.plant_id}`
+      : selectedPlant.plant_id)
+    : (plantId ?? '')
+
   if (!plantId) {
-    return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)' }}>Select a plant or open Lab Board with a plant deep link to view lab failures.</div>
+    return (
+      <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)', maxWidth: 480, margin: '0 auto' }}>
+        <Icon name="flask" size={48} style={{ display: 'block', margin: '0 auto 24px', opacity: 0.4 }} />
+        <h2 style={{ fontSize: 20, fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', marginBottom: 8 }}>Select a plant</h2>
+        <p style={{ marginBottom: 24, fontSize: 14 }}>Choose a plant to view live lab inspection failures.</p>
+        {plants.length > 0 && (
+          <select
+            value={selectedPlantId}
+            onChange={e => setSelectedPlantId(e.target.value)}
+            style={{
+              padding: '10px 16px',
+              fontSize: 15,
+              borderRadius: 6,
+              border: '1px solid var(--border)',
+              background: 'var(--surface-2)',
+              color: 'var(--text-1)',
+              minWidth: 260,
+              cursor: 'pointer',
+            }}
+          >
+            <option value="">— select plant —</option>
+            {plants.map(p => (
+              <option key={p.plant_id} value={p.plant_id}>
+                {p.plant_name && p.plant_name !== p.plant_id
+                  ? `${p.plant_name} · ${p.plant_id}`
+                  : p.plant_id}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+    )
   }
 
   if (isLoading) {
@@ -69,6 +124,14 @@ export function LabBoard() {
         <Icon name="clock" size={48} style={{ display: 'block', margin: '0 auto 24px', opacity: 0.5 }} />
         <h2 style={{ fontSize: 24, fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', marginBottom: 12 }}>No lab failures available</h2>
         <p style={{ color: 'var(--text-3)', fontSize: 16 }}>{data.reason ?? 'The selected plant has no published lab failure dataset yet.'}</p>
+        {!urlPlantId && (
+          <button
+            onClick={() => setSelectedPlantId('')}
+            style={{ marginTop: 16, fontSize: 13, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            change plant
+          </button>
+        )}
       </div>
     )
   }
@@ -86,7 +149,18 @@ export function LabBoard() {
       </header>
 
       <div className="lab-ctx">
-        <div className="lab-ctx-field"><span className="lbl">Plant</span><span className="val">{plantId}</span></div>
+        <div className="lab-ctx-field">
+          <span className="lbl">Plant</span>
+          <span className="val">{plantLabel}</span>
+          {!urlPlantId && (
+            <button
+              onClick={() => setSelectedPlantId('')}
+              style={{ marginLeft: 8, fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+            >
+              change
+            </button>
+          )}
+        </div>
         <div className="lab-ctx-field"><span className="lbl">Work centers</span><span className="val">All</span></div>
         <div className="lab-ctx-field"><span className="lbl">Inspection lot type</span><span className="val">{lotType ?? 'All'}</span></div>
         <div className="lab-ctx-field"><span className="lbl">Severity</span><span className="val">Fail · Warn</span></div>
