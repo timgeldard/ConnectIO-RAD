@@ -78,3 +78,24 @@ async def fetch_lineside(token: str, plant_id: str | None = None) -> list[dict]:
         LIMIT 500
     """
     return await run_sql_async(token, q, params, endpoint_hint="wh360.lineside")
+
+
+async def fetch_near_expiry_batches(
+    token: str,
+    plant_id: str | None = None,
+) -> list[dict]:
+    """Return batch-level near-expiry stock (within 90 days) ordered by expiry.
+
+    Args:
+        token: Databricks access token forwarded from the proxy.
+        plant_id: Optional plant filter; ``None`` returns all visible plants.
+    """
+    plant_filter, params = _plant_scope_filter(plant_id)
+    q = f"""
+        SELECT *
+        FROM {tbl('wh360_near_expiry_batches_v')}
+        {plant_filter}
+        ORDER BY days_to_expiry
+        LIMIT 500
+    """
+    return await run_sql_async(token, q, params, endpoint_hint="wh360.near_expiry_batches")

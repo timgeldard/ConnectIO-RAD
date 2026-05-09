@@ -118,6 +118,38 @@ async def test_get_receipt_detail_delegates_to_dal(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_list_near_expiry_batches_normalizes_plant_scope(monkeypatch):
+    calls = []
+
+    async def fake_fetch_near_expiry(token, plant_id=None):
+        calls.append((token, plant_id))
+        return [{"batch_id": "B001", "days_to_expiry": 14}]
+
+    monkeypatch.setattr(queries.inventory_dal, "fetch_near_expiry_batches", fake_fetch_near_expiry)
+
+    rows = await queries.list_near_expiry_batches("token", plant_id=" IE01 ")
+
+    assert rows == [{"batch_id": "B001", "days_to_expiry": 14}]
+    assert calls == [("token", "IE01")]
+
+
+@pytest.mark.asyncio
+async def test_list_near_expiry_batches_blank_scope_fetches_all(monkeypatch):
+    calls = []
+
+    async def fake_fetch_near_expiry(token, plant_id=None):
+        calls.append((token, plant_id))
+        return []
+
+    monkeypatch.setattr(queries.inventory_dal, "fetch_near_expiry_batches", fake_fetch_near_expiry)
+
+    rows = await queries.list_near_expiry_batches("token", plant_id=" ")
+
+    assert rows == []
+    assert calls == [("token", None)]
+
+
+@pytest.mark.asyncio
 async def test_list_plants_delegates_to_dal(monkeypatch):
     async def fake_fetch_plants(token):
         assert token == "token"

@@ -7,5 +7,5 @@ export interface Plant {
 
 export async function fetchPlants(): Promise<Plant[]> {
   const res = await fetchJson<{ plants: Plant[] }>('/api/plants', { credentials: 'include' })
-  return res.plants ?? []
+  return (res.plants ?? []).slice().sort((a, b) => a.plant_id.localeCompare(b.plant_id))
 }

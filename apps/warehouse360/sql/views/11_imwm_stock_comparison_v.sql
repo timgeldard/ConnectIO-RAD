@@ -7,6 +7,7 @@
 --          sap.transferorderobjects_ltak      (LTAK)
 --          sap.transferorderobjects_ltap      (LTAP)
 --          ${PUBLISHED_CATALOG}.central_services.batches_mcha (MCHA)
+--          ${PUBLISHED_CATALOG}.central_services.warehouseforplant_t320 (T320)
 --          silver.silver_material_description
 --          gold.gold_plant
 --          gold.gold_storage
@@ -21,7 +22,26 @@ CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.imwm_stock_comparison_v AS
 WITH
 
 -- -----------------------------------------------------------------------
--- IM book stock from MARD; outer-joined to pricing, master data, names
+-- WM-managed storage locations derived from T320 (warehouse-to-plant
+-- assignment table).  A storage location is WM-managed when it has at
+-- least one row in T320 for that plant/sloc combination.  We deduplicate
+-- here so the subsequent LEFT JOIN in im_stock stays 1:1 at the WERKS /
+-- LGORT grain and cannot fan out rows.
+-- -----------------------------------------------------------------------
+wm_managed_locs AS (
+  SELECT DISTINCT
+    WERKS,
+    LGORT
+  FROM ${PUBLISHED_CATALOG}.central_services.warehouseforplant_t320
+  WHERE WERKS IS NOT NULL
+    AND LGORT IS NOT NULL
+    AND LENGTH(TRIM(WERKS)) > 0
+    AND LENGTH(TRIM(LGORT)) > 0
+),
+
+-- -----------------------------------------------------------------------
+-- IM book stock from MARD; outer-joined to pricing, master data, names,
+-- and the WM-managed location set.
 -- -----------------------------------------------------------------------
 im_stock AS (
   SELECT
@@ -43,7 +63,8 @@ im_stock AS (
     mb.VERPR,
     NULLIF(COALESCE(mb.PEINH, 0), 0)                              AS peinh,
     gs.STORAGE_NAME,
-    gp.PLANT_NAME
+    gp.PLANT_NAME,
+    wml.LGORT IS NOT NULL                                          AS wm_managed
   FROM ${TRACE_CATALOG}.sap.storagelocationmaterial_mard AS m
   LEFT JOIN ${TRACE_CATALOG}.sap.materialmaster_mara AS ma
     ON ma.MATNR = m.MATNR
@@ -56,6 +77,9 @@ im_stock AS (
     AND gs.STORAGE_ID = m.LGORT
   LEFT JOIN ${TRACE_CATALOG}.gold.gold_plant AS gp
     ON gp.PLANT_ID = m.WERKS
+  LEFT JOIN wm_managed_locs AS wml
+    ON  wml.WERKS = m.WERKS
+    AND wml.LGORT = m.LGORT
   WHERE m.WERKS IS NOT NULL
     AND LENGTH(TRIM(m.WERKS)) > 0
     AND m.MATNR IS NOT NULL
@@ -170,7 +194,8 @@ base AS (
       ELSE 0
     END                                                            AS inventory_value_eur,
     COALESCE(bc.batch_count, 0)                                    AS batch_count,
-    COALESCE(ot.open_to_count, 0)                                  AS open_tos
+    COALESCE(ot.open_to_count, 0)                                  AS open_tos,
+    im.wm_managed                                                  AS wm_managed
   FROM im_stock AS im
   LEFT JOIN wm_stock AS wm
     ON  wm.MATNR = im.MATNR
@@ -253,5 +278,6 @@ SELECT
     WHEN COALESCE(cumulative_value_pct, 1.0) <= 0.80 THEN 'A'
     WHEN COALESCE(cumulative_value_pct, 1.0) <= 0.95 THEN 'B'
     ELSE 'C'
-  END                                                              AS abc_class
+  END                                                              AS abc_class,
+  wm_managed
 FROM with_abc_rank

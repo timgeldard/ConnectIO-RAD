@@ -20,6 +20,9 @@ interface ExceptionsResponse { exceptions: Row[] }
 /** Shape of `GET /api/imwm/analytics/aging`. */
 interface AgingResponse { aging: Row[] }
 
+/** Sort direction type for column sort state. */
+type SortDir = 'asc' | 'desc'
+
 /** Coerce a possibly-string-or-null value into a finite number, defaulting
  * to 0 when the input is null/undefined/non-numeric. The Databricks SQL
  * Statement API returns numerics as strings, so most of the IMWM fields
@@ -83,9 +86,125 @@ const sumByGroup = (rows: Row[], groupKey: string, valueKey: string): Map<string
   return totals
 }
 
+/** Sort a row array by a column key and direction.
+ *
+ * Numeric columns are coerced with `Number(value)` before comparison —
+ * the Databricks SQL Statement API returns all numeric fields as strings,
+ * so a plain string sort would produce lexicographic ordering ("9" > "10").
+ * We attempt numeric coercion first; if both values parse as finite numbers
+ * we compare numerically, otherwise we fall back to locale string comparison.
+ *
+ * @param rows  Rows to sort (not mutated; a new array is returned).
+ * @param key   Column name to sort by.
+ * @param dir   'asc' | 'desc'.
+ * @returns     New sorted array.
+ */
+const sortRows = (rows: Row[], key: string, dir: SortDir): Row[] => {
+  return [...rows].sort((a, b) => {
+    const av = a[key]
+    const bv = b[key]
+    const an = Number(av)
+    const bn = Number(bv)
+    let cmp: number
+    if (Number.isFinite(an) && Number.isFinite(bn)) {
+      cmp = an - bn
+    } else {
+      cmp = String(av ?? '').localeCompare(String(bv ?? ''))
+    }
+    return dir === 'asc' ? cmp : -cmp
+  })
+}
+
 /** Inline error banner shown when a live IMWM view fails to load. */
 const LiveError = ({ label, error }: { label: string; error: string | null }) =>
   error ? <div className="red small">Unable to load live {label}: {error}</div> : null
+
+/** Props for the SortTh component. */
+interface SortThProps {
+  /** Display label for the column header. */
+  label: string
+  /** Column key this header sorts by. */
+  sortKey: string
+  /** The currently active sort key in the parent table. */
+  activeSortKey: string
+  /** Current sort direction in the parent table. */
+  activeSortDir: SortDir
+  /** Called when the header is clicked; passes this header's sortKey. */
+  onSort: (key: string) => void
+  /** Optional className forwarded to the underlying `<th>`. */
+  className?: string
+}
+
+/** Sortable `<th>` cell.
+ *
+ * Renders the column label plus a sort indicator (▲ / ▼) when this column
+ * is the active sort key. Clicking cycles asc → desc → asc.
+ */
+const SortTh = ({ label, sortKey, activeSortKey, activeSortDir, onSort, className }: SortThProps) => {
+  const isActive = activeSortKey === sortKey
+  return (
+    <th
+      className={className}
+      style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+      onClick={() => onSort(sortKey)}
+      aria-sort={isActive ? (activeSortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      {label}
+      {isActive && (
+        <span style={{ marginLeft: 4, fontSize: 10, opacity: 0.75 }}>
+          {activeSortDir === 'asc' ? '▲' : '▼'}
+        </span>
+      )}
+    </th>
+  )
+}
+
+/** Props for the Pager component. */
+interface PagerProps {
+  /** Zero-based current page index. */
+  page: number
+  /** Total number of items (before pagination). */
+  total: number
+  /** Number of items per page. */
+  pageSize: number
+  /** Called when the user navigates; receives the new zero-based page index. */
+  onPage: (page: number) => void
+}
+
+/** Pagination controls: Prev / Next buttons with a "Page N of M (X total)" label.
+ *
+ * Renders nothing when there is only one page (total <= pageSize).
+ */
+const Pager = ({ page, total, pageSize, onPage }: PagerProps) => {
+  const pageCount = Math.max(1, Math.ceil(total / pageSize))
+  if (pageCount <= 1) return null
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12, color: 'var(--text-3)' }}>
+      <button
+        className="btn btn-secondary"
+        style={{ fontSize: 12, padding: '2px 10px' }}
+        disabled={page === 0}
+        onClick={() => onPage(page - 1)}
+      >
+        Prev
+      </button>
+      <span>
+        Page {page + 1} of {pageCount} ({total.toLocaleString()} total)
+      </span>
+      <button
+        className="btn btn-secondary"
+        style={{ fontSize: 12, padding: '2px 10px' }}
+        disabled={page >= pageCount - 1}
+        onClick={() => onPage(page + 1)}
+      >
+        Next
+      </button>
+    </div>
+  )
+}
+
+/** Page size used for both the stock table and the exceptions table. */
+const PAGE_SIZE = 50
 
 /** Inventory Cockpit for the IMWM (IM vs. WM reconciliation) module.
  *
@@ -94,6 +213,18 @@ const LiveError = ({ label, error }: { label: string; error: string | null }) =>
  * `imwm_*_v` gold views via the `/api/imwm/*` endpoints. KPI strip at
  * the top derives counts and aggregates from the same data so a single
  * fetch round trip drives both the strip and the active tab.
+ *
+ * ### Stock tab features
+ * - Three mismatch-status toggle filters (Match / Timing / True variance),
+ *   each defaulting to ON.
+ * - "WM managed only" toggle (default OFF) — filters to rows where
+ *   `wm_managed === true` as returned by `imwm_stock_comparison_v`.
+ * - Sortable column headers (▲/▼ indicator on active column).
+ * - Paginated table (PAGE_SIZE rows per page).
+ *
+ * ### Exceptions tab features
+ * - Sortable column headers.
+ * - Paginated table (PAGE_SIZE rows per page).
  */
 export const IMWMCockpit = () => {
   const { plants, selectedPlantId, setSelectedPlantId, loading: plantLoading } = usePlantSelection()
@@ -103,11 +234,17 @@ export const IMWMCockpit = () => {
   const { data: exceptionsResp, loading: exceptionsLoading, error: exceptionsError } = useApi<ExceptionsResponse>('/api/imwm/exceptions')
   const { data: agingResp, loading: agingLoading, error: agingError } = useApi<AgingResponse>('/api/imwm/analytics/aging')
 
+  // ---------------------------------------------------------------------------
+  // Raw data memos
+  // ---------------------------------------------------------------------------
   const stock: Row[] = React.useMemo(() => stockResp?.stock ?? [], [stockResp])
   const movements: Row[] = React.useMemo(() => movementsResp?.movements ?? [], [movementsResp])
   const exceptions: Row[] = React.useMemo(() => exceptionsResp?.exceptions ?? [], [exceptionsResp])
   const aging: Row[] = React.useMemo(() => agingResp?.aging ?? [], [agingResp])
 
+  // ---------------------------------------------------------------------------
+  // KPI aggregates (derived from the full, unfiltered stock array)
+  // ---------------------------------------------------------------------------
   const totalValue = stock.reduce((sum, row) => sum + num(row.inventory_value_eur), 0)
   const trueMismatches = stock.filter((row) => row.mismatch_kind === 'true')
   const timingGaps = stock.filter((row) => row.mismatch_kind === 'timing')
@@ -123,6 +260,125 @@ export const IMWMCockpit = () => {
     () => sumByGroup(stock, 'plant_id', 'inventory_value_eur'),
     [stock],
   )
+
+  // ---------------------------------------------------------------------------
+  // Stock table — filter state
+  // ---------------------------------------------------------------------------
+
+  /** Which mismatch statuses are currently visible. All start ON. */
+  const [showMatch, setShowMatch] = React.useState(true)
+  const [showTiming, setShowTiming] = React.useState(true)
+  const [showTrue, setShowTrue] = React.useState(true)
+
+  /** When true, only rows with `wm_managed === true` are shown. Defaults OFF. */
+  const [wmOnly, setWmOnly] = React.useState(false)
+
+  // ---------------------------------------------------------------------------
+  // Stock table — sort state
+  // ---------------------------------------------------------------------------
+  const [stockSortKey, setStockSortKey] = React.useState('material_name')
+  const [stockSortDir, setStockSortDir] = React.useState<SortDir>('asc')
+
+  // ---------------------------------------------------------------------------
+  // Stock table — pagination state
+  // ---------------------------------------------------------------------------
+  const [stockPage, setStockPage] = React.useState(0)
+
+  // ---------------------------------------------------------------------------
+  // Exceptions table — sort state
+  // ---------------------------------------------------------------------------
+  const [excSortKey, setExcSortKey] = React.useState('severity')
+  const [excSortDir, setExcSortDir] = React.useState<SortDir>('desc')
+
+  // ---------------------------------------------------------------------------
+  // Exceptions table — pagination state
+  // ---------------------------------------------------------------------------
+  const [excPage, setExcPage] = React.useState(0)
+
+  // ---------------------------------------------------------------------------
+  // Reset stockPage whenever the filter set or sort key changes so the user
+  // is never left stranded on a page that no longer exists.
+  // ---------------------------------------------------------------------------
+  React.useEffect(() => {
+    setStockPage(0)
+  }, [showMatch, showTiming, showTrue, wmOnly, stockSortKey])
+
+  // Reset excPage when sort key changes.
+  React.useEffect(() => {
+    setExcPage(0)
+  }, [excSortKey])
+
+  // ---------------------------------------------------------------------------
+  // Handlers: toggle sort column — clicking an already-active column reverses
+  // direction; clicking a new column sets it ascending.
+  // ---------------------------------------------------------------------------
+
+  /** Handle a click on a stock-table sort header. */
+  const handleStockSort = (key: string) => {
+    if (key === stockSortKey) {
+      setStockSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setStockSortKey(key)
+      setStockSortDir('asc')
+    }
+  }
+
+  /** Handle a click on an exceptions-table sort header. */
+  const handleExcSort = (key: string) => {
+    if (key === excSortKey) {
+      setExcSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setExcSortKey(key)
+      setExcSortDir('asc')
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Derived: filtered + sorted stock rows, then paginated slice
+  // ---------------------------------------------------------------------------
+  const filteredStock: Row[] = React.useMemo(() => {
+    const filtered = stock.filter((row) => {
+      const kind = row.mismatch_kind
+      if (kind === 'match' && !showMatch) return false
+      if (kind === 'timing' && !showTiming) return false
+      if (kind === 'true' && !showTrue) return false
+      if (wmOnly && row.wm_managed !== true) return false
+      return true
+    })
+    return sortRows(filtered, stockSortKey, stockSortDir)
+  }, [stock, showMatch, showTiming, showTrue, wmOnly, stockSortKey, stockSortDir])
+
+  const stockPageRows: Row[] = React.useMemo(
+    () => filteredStock.slice(stockPage * PAGE_SIZE, (stockPage + 1) * PAGE_SIZE),
+    [filteredStock, stockPage],
+  )
+
+  // ---------------------------------------------------------------------------
+  // Derived: sorted exceptions rows, then paginated slice
+  // ---------------------------------------------------------------------------
+  const sortedExceptions: Row[] = React.useMemo(
+    () => sortRows(exceptions, excSortKey, excSortDir),
+    [exceptions, excSortKey, excSortDir],
+  )
+
+  const excPageRows: Row[] = React.useMemo(
+    () => sortedExceptions.slice(excPage * PAGE_SIZE, (excPage + 1) * PAGE_SIZE),
+    [sortedExceptions, excPage],
+  )
+
+  // ---------------------------------------------------------------------------
+  // Toggle button styles — reused for the status filter bar
+  // ---------------------------------------------------------------------------
+  const toggleStyle = (active: boolean): React.CSSProperties => ({
+    fontSize: 12,
+    padding: '3px 10px',
+    borderRadius: 4,
+    border: '1px solid var(--border)',
+    cursor: 'pointer',
+    background: active ? 'var(--surface-3)' : 'var(--surface-1)',
+    color: active ? 'var(--text-1)' : 'var(--text-3)',
+    fontFamily: 'var(--font-mono)',
+  })
 
   return (
     <div className="page">
@@ -223,13 +479,69 @@ export const IMWMCockpit = () => {
               </div>
             </Card>
           </div>
+
           <Card title="Live stock comparison" subtitle="Material · plant · storage location · IM · WM · delta" eyebrow="imwm_stock_comparison_v" tight>
+            {/* ----------------------------------------------------------------
+                Status filter toggles — mismatch kind and WM-managed gate.
+                Each toggle independently controls which rows are shown; the
+                row count below the toggles reflects all active filters at once.
+            ---------------------------------------------------------------- */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+              <button
+                style={toggleStyle(showMatch)}
+                onClick={() => setShowMatch((v) => !v)}
+                aria-pressed={showMatch}
+                title="Toggle Match rows"
+              >
+                Match
+              </button>
+              <button
+                style={toggleStyle(showTiming)}
+                onClick={() => setShowTiming((v) => !v)}
+                aria-pressed={showTiming}
+                title="Toggle Timing rows"
+              >
+                Timing
+              </button>
+              <button
+                style={toggleStyle(showTrue)}
+                onClick={() => setShowTrue((v) => !v)}
+                aria-pressed={showTrue}
+                title="Toggle True variance rows"
+              >
+                True variance
+              </button>
+              <div style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 4px' }} aria-hidden />
+              <button
+                style={toggleStyle(wmOnly)}
+                onClick={() => setWmOnly((v) => !v)}
+                aria-pressed={wmOnly}
+                title="Show only WM-managed storage locations"
+              >
+                WM managed only
+              </button>
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+                Showing {filteredStock.length.toLocaleString()} of {stock.length.toLocaleString()} rows
+              </span>
+            </div>
+
             <div className="scroll-x">
               <table className="tbl">
-                <thead><tr><th>Material</th><th>Plant</th><th>Storage</th><th className="num">IM qty</th><th className="num">WM qty</th><th className="num">Delta</th><th className="num">Value</th><th>Status</th></tr></thead>
+                <thead>
+                  <tr>
+                    <SortTh label="Material"  sortKey="material_name"        activeSortKey={stockSortKey} activeSortDir={stockSortDir} onSort={handleStockSort}/>
+                    <SortTh label="Plant"     sortKey="plant_id"             activeSortKey={stockSortKey} activeSortDir={stockSortDir} onSort={handleStockSort}/>
+                    <SortTh label="Storage"   sortKey="storage_loc"          activeSortKey={stockSortKey} activeSortDir={stockSortDir} onSort={handleStockSort}/>
+                    <SortTh label="IM qty"    sortKey="im_total_qty"         activeSortKey={stockSortKey} activeSortDir={stockSortDir} onSort={handleStockSort} className="num"/>
+                    <SortTh label="WM qty"    sortKey="wm_total_qty"         activeSortKey={stockSortKey} activeSortDir={stockSortDir} onSort={handleStockSort} className="num"/>
+                    <SortTh label="Delta"     sortKey="delta_qty"            activeSortKey={stockSortKey} activeSortDir={stockSortDir} onSort={handleStockSort} className="num"/>
+                    <SortTh label="Value"     sortKey="inventory_value_eur"  activeSortKey={stockSortKey} activeSortDir={stockSortDir} onSort={handleStockSort} className="num"/>
+                    <SortTh label="Status"    sortKey="mismatch_kind"        activeSortKey={stockSortKey} activeSortDir={stockSortDir} onSort={handleStockSort}/>
+                  </tr>
+                </thead>
                 <tbody>
-                  {stock.slice(0, 50).map((row, index) => (
-                    <tr key={`${row.material_id}-${row.plant_id}-${row.storage_loc}-${index}`} className={row.mismatch_kind === 'true' ? 'is-risk-red' : ''}>
+                  {stockPageRows.map((row, index) => (
+                    <tr key={`${row.material_id}-${row.plant_id}-${row.storage_loc}-${stockPage}-${index}`} className={row.mismatch_kind === 'true' ? 'is-risk-red' : ''}>
                       <td><div style={{ fontSize: 12 }}>{String(row.material_name ?? row.material_id ?? '—')}</div><div className="muted mono small">{String(row.material_id ?? '—')}</div></td>
                       <td><div style={{ fontSize: 12 }}>{String(row.plant_name ?? row.plant_id ?? '—')}</div><div className="muted mono small">{String(row.plant_id ?? '—')}</div></td>
                       <td><div style={{ fontSize: 12 }}>{String(row.storage_loc_name ?? row.storage_loc ?? '—')}</div><div className="muted mono small">{String(row.storage_loc ?? '—')}</div></td>
@@ -240,11 +552,18 @@ export const IMWMCockpit = () => {
                       <td><Pill tone={mismatchTone(row.mismatch_kind)}>{String(row.mismatch_kind ?? '—')}</Pill></td>
                     </tr>
                   ))}
-                  {!stockLoading && stock.length === 0 && <tr><td colSpan={8} className="muted small">No live IM/WM stock rows are available for this plant.</td></tr>}
+                  {!stockLoading && filteredStock.length === 0 && (
+                    <tr><td colSpan={8} className="muted small">
+                      {stock.length === 0
+                        ? 'No live IM/WM stock rows are available for this plant.'
+                        : 'No rows match the current filters.'}
+                    </td></tr>
+                  )}
                   {stockError && <tr><td colSpan={8} className="red small">Unable to load live IM/WM stock rows: {stockError}</td></tr>}
                 </tbody>
               </table>
             </div>
+            <Pager page={stockPage} total={filteredStock.length} pageSize={PAGE_SIZE} onPage={setStockPage}/>
           </Card>
         </>
       )}
@@ -253,10 +572,21 @@ export const IMWMCockpit = () => {
         <Card title="Exception queue" subtitle={`${sev4.length} severity-4 rows require immediate attention`} eyebrow="imwm_exceptions_v" tight>
           <div className="scroll-x">
             <table className="tbl">
-              <thead><tr><th>Type</th><th className="num">Severity</th><th className="num">SLA</th><th>Material</th><th>Plant</th><th>Storage</th><th>Detail</th><th>Detected</th></tr></thead>
+              <thead>
+                <tr>
+                  <SortTh label="Type"     sortKey="exception_type" activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort}/>
+                  <SortTh label="Severity" sortKey="severity"       activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort} className="num"/>
+                  <SortTh label="SLA"      sortKey="sla_hours"      activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort} className="num"/>
+                  <SortTh label="Material" sortKey="material_id"    activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort}/>
+                  <SortTh label="Plant"    sortKey="plant_id"       activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort}/>
+                  <th>Storage</th>
+                  <th>Detail</th>
+                  <th>Detected</th>
+                </tr>
+              </thead>
               <tbody>
-                {exceptions.slice(0, 80).map((row, index) => (
-                  <tr key={`${row.exception_type}-${row.material_id}-${index}`} className={num(row.severity) >= 4 ? 'is-risk-red' : ''}>
+                {excPageRows.map((row, index) => (
+                  <tr key={`${row.exception_type}-${row.material_id}-${excPage}-${index}`} className={num(row.severity) >= 4 ? 'is-risk-red' : ''}>
                     <td><Pill tone={severityTone(row.severity)}>{String(row.exception_type ?? '—')}</Pill></td>
                     <td className="num">{String(row.severity ?? '—')}</td>
                     <td className="num">{String(row.sla_hours ?? '—')}h</td>
@@ -272,6 +602,7 @@ export const IMWMCockpit = () => {
               </tbody>
             </table>
           </div>
+          <Pager page={excPage} total={sortedExceptions.length} pageSize={PAGE_SIZE} onPage={setExcPage}/>
         </Card>
       )}
 

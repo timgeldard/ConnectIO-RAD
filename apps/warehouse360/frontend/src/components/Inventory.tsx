@@ -56,6 +56,7 @@ const Inventory = () => {
   const { data: detailResp, loading: detailLoading, error: detailError } = useApi<any>(detailPath);
 
   const { data: linesideResp, loading: linesideLoading, error: linesideError } = useApi<any>('/api/inventory/lineside');
+  const { data: nearExpiryResp, loading: nearExpiryLoading, error: nearExpiryError } = useApi<any>('/api/inventory/near-expiry');
 
   // Summary rows normalised for the storage-util card
   const summaryTypes = React.useMemo(() => {
@@ -87,8 +88,13 @@ const Inventory = () => {
     return api.map(normalizeLineside);
   }, [linesideResp]);
 
+  const nearExpiryBatches = React.useMemo(() => {
+    const rows: any[] = nearExpiryResp?.batches ?? [];
+    return rows;
+  }, [nearExpiryResp]);
+
   const aged = detailBins.filter((b: any) => b.ageHours > 168 && b.status === 'Occupied').slice(0, 12);
-  const expiring = detailBins.filter((b: any) => b.batchExpiryDays < 30 && b.status === 'Occupied').slice(0, 10);
+  const expiring = nearExpiryBatches.slice(0, 30);
   const blocked = detailBins.filter((b: any) => b.status === 'Blocked').slice(0, 8);
 
   const binUtilPct = summaryTotals.total > 0
@@ -117,7 +123,7 @@ const Inventory = () => {
         <KPI label={t('warehouse.inventory.kpi.binUtil')} value={summaryLoading ? '...' : binUtilPct} unit="%" target="80%" tone="ok" barPct={binUtilPct}/>
         <KPI label={t('warehouse.inventory.kpi.inventoryAccuracy')} value="—" unit="%" target="99.5%" tone="ok"/>
         <KPI label={t('warehouse.inventory.kpi.blockedQA')} value={summaryLoading ? '...' : summaryTotals.blocked} tone="warn"/>
-        <KPI label={t('warehouse.inventory.kpi.expiring')} value={expiring.length} tone="critical"/>
+        <KPI label={t('warehouse.inventory.kpi.expiring')} value={nearExpiryLoading ? '...' : nearExpiryBatches.length} tone="critical"/>
         <KPI label={t('warehouse.inventory.kpi.aged')} value={aged.length} tone="warn"/>
         <KPI label={t('warehouse.inventory.kpi.linesideBelowMin')} value={allLineside.filter((l: any) => l.status === 'Below min').length} tone="critical"/>
       </div>
@@ -267,16 +273,48 @@ const Inventory = () => {
               </tbody>
             </table>
           </Card>
-          <Card title={t('warehouse.inventory.card.expiry')} subtitle="< 30 days · prioritise consumption" eyebrow="MCHA" tight>
-            <table className="tbl">
-              <thead><tr><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.material')}</th><th className="num">Days</th></tr></thead>
-              <tbody>
-                {expiring.map((b: any, i: number) => (
-                  <tr key={i}><td className="mono small">{b.id}</td><td style={{ fontSize: 12 }}>{b.material?.name}</td><td className="num red bold">{b.batchExpiryDays}d</td></tr>
-                ))}
-                {!detailLoading && expiring.length === 0 && <tr><td colSpan={3} className="muted small">No expiring live stock is available for this plant.</td></tr>}
-              </tbody>
-            </table>
+          <Card title={t('warehouse.inventory.card.expiry')} subtitle="≤ 90 days to expiry · prioritise consumption · ordered by soonest" eyebrow="MCHA" tight>
+            <div className="scroll-x">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>{t('warehouse.common.col.material')}</th>
+                    <th>{t('warehouse.common.col.batch')}</th>
+                    <th>Mfg Date</th>
+                    <th>Expiry Date</th>
+                    <th className="num">Days Left</th>
+                    <th className="num">Stock</th>
+                    <th className="num">Days Aged</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expiring.map((b: any, i: number) => (
+                    <tr key={i}>
+                      <td>
+                        <div style={{ fontSize: 12 }}>{b.material_name}</div>
+                        <div className="muted" style={{ fontSize: 11 }}>{b.material_id}</div>
+                      </td>
+                      <td className="mono small">{b.batch_id}</td>
+                      <td className="small">{b.manufacture_date ?? '—'}</td>
+                      <td className="small">{b.expiry_date ?? '—'}</td>
+                      <td className={`num bold ${Number(b.days_to_expiry) < 14 ? 'red' : Number(b.days_to_expiry) < 30 ? 'amber' : ''}`}>
+                        {b.days_to_expiry != null ? `${b.days_to_expiry}d` : '—'}
+                      </td>
+                      <td className="num">{b.total_stock != null ? Math.round(Number(b.total_stock)) : '—'} {b.uom ?? ''}</td>
+                      <td className={`num ${Number(b.aged_days) > 90 ? 'amber' : ''}`}>
+                        {b.aged_days != null ? `${b.aged_days}d` : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                  {!nearExpiryLoading && expiring.length === 0 && (
+                    <tr><td colSpan={7} className="muted small">No batches expiring within 90 days for this plant.</td></tr>
+                  )}
+                  {nearExpiryError && (
+                    <tr><td colSpan={7} className="red small">Unable to load near-expiry batches: {nearExpiryError}</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </Card>
         </div>
       )}

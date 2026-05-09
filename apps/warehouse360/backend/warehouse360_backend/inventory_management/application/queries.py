@@ -68,6 +68,18 @@ async def get_receipt_detail(token: str, po_id: str) -> dict:
     return await inbound_dal.fetch_receipt_detail(token, po_id)
 
 
+async def list_near_expiry_batches(token: str, plant_id: Optional[str] = None) -> list[dict]:
+    """Return batch-level near-expiry stock for the selected plant scope.
+
+    Args:
+        token: Databricks access token forwarded from the proxy.
+        plant_id: Optional plant ID; normalised through :class:`PlantScope`.
+    """
+    scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
+    return await inventory_dal.fetch_near_expiry_batches(token, plant_id=scope.plant_id)
+
+
 async def list_plants(token: str) -> list[dict]:
     """Return Warehouse360 plants visible to the caller."""
 

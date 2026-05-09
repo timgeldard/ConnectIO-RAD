@@ -17,8 +17,11 @@ export function usePlants(materialId: string | null | undefined): UsePlantsResul
     staleTime: 5 * 60_000,
   })
 
+  const sorted = (query.data ?? []).slice().sort(
+    (a, b) => (a.plant_id ?? '').localeCompare(b.plant_id ?? ''),
+  )
   return {
-    plants: materialId ? (query.data ?? []) : [],
+    plants: materialId ? sorted : [],
     loading: query.isLoading || query.isFetching,
     error: query.error ? String(query.error) : null,
   }

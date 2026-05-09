@@ -37,6 +37,7 @@ const normalisePlants = (rows: unknown): Plant[] => {
       plant_name: String(plant['plant_name'] ?? plant['plant_id'] ?? '').trim(),
     }))
     .filter((plant) => plant.plant_id.length > 0)
+    .sort((a, b) => a.plant_id.localeCompare(b.plant_id))
 }
 
 /** Reads the last-used plant id from localStorage (returns null on failure). */
