@@ -20,7 +20,6 @@ from trace2_backend.batch_trace.schemas import (
     TraceRequest,
 )
 from trace2_backend.utils.db import check_warehouse_config
-from trace2_backend.utils.exceptions import TraceNotFound
 from trace2_backend.utils.rate_limit import limiter
 from shared_auth import UserIdentity, require_proxy_user
 from trace2_backend.utils.db import handle_sql_error
@@ -42,8 +41,6 @@ async def trace(
     identity = BatchIdentity.from_strings(body.material_id, body.batch_id)
     try:
         return await get_trace_tree(user.raw_token, identity, request.url.path)
-    except TraceNotFound as exc:
-        raise HTTPException(status_code=404, detail=exc.message)
     except HTTPException:
         raise
     except Exception as exc:
@@ -64,8 +61,6 @@ async def summary(
     identity = BatchOnlyIdentity.from_string(body.batch_id)
     try:
         return await get_summary(user.raw_token, identity, request.url.path)
-    except TraceNotFound as exc:
-        raise HTTPException(status_code=404, detail=exc.message)
     except HTTPException:
         raise
     except Exception as exc:
@@ -83,8 +78,6 @@ async def batch_details(
     identity = BatchIdentity.from_strings(body.material_id, body.batch_id)
     try:
         return await get_batch_details(user.raw_token, identity, request.url.path)
-    except TraceNotFound as exc:
-        raise HTTPException(status_code=404, detail=exc.message)
     except HTTPException:
         raise
     except Exception as exc:
@@ -119,8 +112,6 @@ async def batch_header(
     identity = BatchIdentity.from_strings(body.material_id, body.batch_id)
     try:
         return await get_batch_header(user.raw_token, identity)
-    except TraceNotFound as exc:
-        raise HTTPException(status_code=404, detail=exc.message)
     except HTTPException:
         raise
     except Exception as exc:

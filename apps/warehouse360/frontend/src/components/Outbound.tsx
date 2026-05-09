@@ -5,6 +5,7 @@ import { useApi } from '../hooks/useApi'
 import { Icon, Pill, Progress, RiskDot } from './Primitives'
 import { FilterBar, Card, KPI } from './Shared'
 import { DockSchedule } from './Inbound'
+import { DataTable, type Column } from '@connectio/shared-ui'
 import { fmtTime } from '~/utils/time'
 
 /* Outbound — deliveries, picking, staging, loading, dock view */
@@ -52,6 +53,48 @@ const Outbound = ({ onOpen }: OutboundProps) => {
   }, [allDeliveries]);
 
   const v = (n) => loading ? '...' : n;
+
+  const columns: Column<any>[] = [
+    { header: '', width: 32, render: (d) => <RiskDot risk={d.risk}/> },
+    { header: t('warehouse.common.col.delivery'), key: 'delivery_id', className: 'code' },
+    {
+      header: t('warehouse.common.col.customer'),
+      render: (d) => (
+        <>
+          <div style={{ fontSize: 12, fontWeight: 600 }}>{d.customer_name || '—'}</div>
+          <div className="muted" style={{ fontSize: 11 }}>{d.customer_id}</div>
+        </>
+      )
+    },
+    { header: t('warehouse.outbound.col.carrier'), key: 'carrier', style: { fontSize: 12 } },
+    { header: t('warehouse.outbound.col.giDate'), key: 'planned_gi_date', mono: true, style: { fontSize: 11 } },
+    {
+      header: t('warehouse.ct.col.pick'),
+      align: 'right',
+      width: 90,
+      render: (d) => {
+        const pick = Math.round(d.pick_pct || 0);
+        return (
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
+            <span className="mono" style={{ fontSize: 11 }}>{pick}%</span>
+            <div style={{ width: 30 }}><Progress pct={pick} tone={pick < 70 ? 'red' : pick < 95 ? 'amber' : ''}/></div>
+          </div>
+        )
+      }
+    },
+    { header: t('warehouse.outbound.col.pkg'), align: 'right', key: 'packages' },
+    {
+      header: t('warehouse.common.col.status'),
+      render: (d) => {
+        const status = deliveryStatus(d);
+        return (
+          <Pill tone={status === 'Shipped' ? 'green' : status === 'Staged' ? 'sage' : status === 'Picking' ? 'amber' : 'grey'}>
+            {status}
+          </Pill>
+        )
+      }
+    }
+  ];
 
   return (
     <div className="page">
@@ -108,56 +151,16 @@ const Outbound = ({ onOpen }: OutboundProps) => {
         onChange={(k, val) => setFilters({ ...filters, [k]: val })}
       />
 
-      <Card title={`${rows.length} outbound deliveries`} tight>
-        <div className="scroll-x">
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th></th>
-                <th>{t('warehouse.common.col.delivery')}</th>
-                <th>{t('warehouse.common.col.customer')}</th>
-                <th>{t('warehouse.outbound.col.carrier')}</th>
-                <th>{t('warehouse.outbound.col.giDate')}</th>
-                <th className="num">{t('warehouse.ct.col.pick')}</th>
-                <th className="num">{t('warehouse.outbound.col.pkg')}</th>
-                <th>{t('warehouse.common.col.status')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((d: any) => {
-                const status = deliveryStatus(d);
-                const pick = Math.round(d.pick_pct || 0);
-                return (
-                  <tr key={d.delivery_id} onClick={() => onOpen?.(d)} className={`is-risk-${d.risk}`}>
-                    <td><RiskDot risk={d.risk}/></td>
-                    <td><div className="code">{d.delivery_id}</div></td>
-                    <td>
-                      <div style={{ fontSize: 12, fontWeight: 600 }}>{d.customer_name || '—'}</div>
-                      <div className="muted" style={{ fontSize: 11 }}>{d.customer_id}</div>
-                    </td>
-                    <td style={{ fontSize: 12 }}>{d.carrier || '—'}</td>
-                    <td className="mono small">{d.planned_gi_date || '—'}</td>
-                    <td className="num" style={{ width: 80 }}>
-                      <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
-                        <span className="mono" style={{ fontSize: 11 }}>{pick}%</span>
-                        <div style={{ width: 30 }}><Progress pct={pick} tone={pick < 70 ? 'red' : pick < 95 ? 'amber' : ''}/></div>
-                      </div>
-                    </td>
-                    <td className="num">{d.packages ?? '—'}</td>
-                    <td>
-                      <Pill tone={status === 'Shipped' ? 'green' : status === 'Staged' ? 'sage' : status === 'Picking' ? 'amber' : 'grey'}>
-                        {status}
-                      </Pill>
-                    </td>
-                  </tr>
-                );
-              })}
-              {!loading && rows.length === 0 && (
-                <tr><td colSpan={8} className="muted small">No live outbound deliveries match this plant and filter set.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <Card title={`${rows.length} outbound deliveries`} noPad>
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowKey="delivery_id"
+          onRowClick={onOpen}
+          dense
+          loading={loading}
+          emphasize={(d) => d.risk === 'red'}
+        />
       </Card>
     </div>
   );
@@ -226,7 +229,7 @@ const DeliveryDetail = ({ delivery }: DeliveryDetailProps) => {
         </div>
       </div>
 
-      <Card title="Delivery header" eyebrow="LIKP · LIPS" tight>
+      <Card title="Delivery header" eyebrow="LIKP · LIPS" noPad>
         <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr' }}>
           {[
             ['Delivery',    id],
@@ -244,14 +247,14 @@ const DeliveryDetail = ({ delivery }: DeliveryDetailProps) => {
         </dl>
       </Card>
 
-      <Card title="Delivery lines" subtitle={lineCount != null ? `${lineCount} items` : ''} eyebrow="Lines" tight>
+      <Card title="Delivery lines" subtitle={lineCount != null ? `${lineCount} items` : ''} eyebrow="Lines" noPad>
         <div style={{ padding: '12px 16px', color: 'var(--fg-muted)', fontSize: 13 }}>
           No live delivery-line endpoint is available yet.
         </div>
       </Card>
 
       {timelineSteps.length > 0 && (
-        <Card title="Flow" eyebrow="Timeline" tight>
+        <Card title="Flow" eyebrow="Timeline" noPad>
           <div style={{ padding: 16 }}>
             {timelineSteps.map((s: any, i: number) => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 60px', alignItems: 'center', gap: 12, marginBottom: 10 }}>

@@ -4,6 +4,7 @@ import { useI18n } from '@connectio/shared-frontend-i18n'
 import { useApi } from '../hooks/useApi'
 import { Icon, Pill, Progress } from './Primitives'
 import { Card, KPI } from './Shared'
+import { DataTable, type Column } from '@connectio/shared-ui'
 
 /* Inventory & Bin Health */
 
@@ -39,22 +40,6 @@ const normalizeLineside = (l) => {
   };
 };
 
-/** Sortable column header for the quants table. */
-const QuantSortTh = ({
-  label, sortKey, active, dir, onSort, className,
-}: { label: string; sortKey: string; active: string; dir: 'asc' | 'desc'; onSort: (k: string) => void; className?: string }) => (
-  <th
-    className={className}
-    style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
-    onClick={() => onSort(sortKey)}
-  >
-    {label}
-    {active === sortKey && (
-      <span style={{ marginLeft: 4, fontSize: 10, opacity: 0.75 }}>{dir === 'asc' ? '▲' : '▼'}</span>
-    )}
-  </th>
-)
-
 const Inventory = () => {
   const { t } = useI18n();
   const [tab, setTab] = React.useState('overview');
@@ -64,15 +49,12 @@ const Inventory = () => {
   const [quantsFilter, setQuantsFilter] = React.useState('');
 
   // Summary: per-storage-type aggregates for the overview utilisation card.
-  // No row-count limit — one row per lgtyp (typically < 100 rows).
   const { data: summaryResp, loading: summaryLoading, error: summaryError } = useApi<any>('/api/inventory/bins/summary');
 
-  // All bins (unfiltered by lgtyp) for the quants table — always reflects the
-  // full WM inventory regardless of which storage type is selected in the heatmap.
+  // All bins (unfiltered by lgtyp) for the quants table
   const { data: allBinsResp } = useApi<any>('/api/inventory/bins');
 
   // Detail: bin-level rows for heatmap, quants table, and other tabs.
-  // When a storage type is selected, restricted to that type (still capped at 2000).
   const detailPath = selectedLgtyp
     ? `/api/inventory/bins?lgtyp=${encodeURIComponent(selectedLgtyp)}`
     : '/api/inventory/bins';
@@ -94,7 +76,7 @@ const Inventory = () => {
     }));
   }, [summaryResp]);
 
-  // Totals derived from summary (accurate across all bins, no 2000-row truncation)
+  // Totals derived from summary
   const summaryTotals = React.useMemo(() => ({
     total: summaryTypes.reduce((s, r) => s + r.total, 0),
     occupied: summaryTypes.reduce((s, r) => s + r.occupied, 0),
@@ -150,15 +132,6 @@ const Inventory = () => {
     });
   }, [allWmBins, quantsSortKey, quantsSortDir, quantsFilter]);
 
-  const handleQuantsSort = (key: string) => {
-    if (key === quantsSortKey) {
-      setQuantsSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setQuantsSortKey(key);
-      setQuantsSortDir('asc');
-    }
-  };
-
   const downloadStockSnapshot = () => {
     const rows = allWmBins;
     if (rows.length === 0) return;
@@ -200,6 +173,51 @@ const Inventory = () => {
   const handleTypeClick = (lgtyp: string) => {
     setSelectedLgtyp((prev) => (prev === lgtyp ? null : lgtyp));
   };
+
+  const quantsColumns: Column<any>[] = [
+    {
+      header: t('warehouse.common.col.material'),
+      render: (b) => (
+        <>
+          <div style={{ fontSize: 12 }}>{b.material.name}</div>
+          <div className="muted" style={{ fontSize: 11 }}>{b.material.id}</div>
+        </>
+      ),
+      sortKey: 'materialName'
+    },
+    {
+      header: t('warehouse.common.col.bin'),
+      key: 'id',
+      mono: true,
+      sortKey: 'binId'
+    },
+    {
+      header: t('warehouse.common.col.qty'),
+      align: 'right',
+      render: (b) => `${b.qty != null ? Math.round(b.qty) : Math.round(b.fillPct * 8)} ${b.material.uom}`,
+      sortKey: 'qty'
+    },
+    {
+      header: t('warehouse.common.col.age'),
+      align: 'right',
+      render: (b) => `${b.ageHours}h`,
+      sortKey: 'ageHours'
+    },
+    {
+      header: t('warehouse.inventory.col.expiry'),
+      render: (b) => (
+        <span className={b.batchExpiryDays < 30 ? 'red bold' : ''}>
+          {b.batchExpiryDays < 9999 ? `${b.batchExpiryDays}d` : '—'}
+        </span>
+      ),
+      sortKey: 'batchExpiryDays'
+    },
+    {
+      header: t('warehouse.common.col.status'),
+      render: (b) => <Pill tone={b.status === 'Occupied' ? 'sage' : b.status === 'Blocked' ? 'red' : 'grey'}>{b.status}</Pill>,
+      sortKey: 'status'
+    }
+  ];
 
   return (
     <div className="page">
@@ -295,9 +313,9 @@ const Inventory = () => {
             title={t('warehouse.inventory.card.quants')}
             subtitle="All WM inventory · sorted by volume · top 20"
             eyebrow="LQUA"
-            tight
+            noPad
           >
-            <div style={{ marginBottom: 8 }}>
+            <div style={{ padding: '12px 16px 8px' }}>
               <input
                 type="text"
                 placeholder="Filter by material…"
@@ -312,169 +330,120 @@ const Inventory = () => {
               </span>
             </div>
             <div className="scroll-x">
-              <table className="tbl">
-                <thead>
-                  <tr>
-                    <QuantSortTh label={t('warehouse.common.col.material')} sortKey="materialName" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort}/>
-                    <QuantSortTh label={t('warehouse.common.col.bin')} sortKey="binId" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort}/>
-                    <QuantSortTh label={t('warehouse.common.col.qty')} sortKey="qty" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort} className="num"/>
-                    <QuantSortTh label={t('warehouse.common.col.age')} sortKey="ageHours" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort} className="num"/>
-                    <QuantSortTh label={t('warehouse.inventory.col.expiry')} sortKey="batchExpiryDays" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort}/>
-                    <QuantSortTh label={t('warehouse.common.col.status')} sortKey="status" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort}/>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedQuants.slice(0, 20).map((b: any, i: number) => (
-                    <tr key={i}>
-                      <td><div style={{ fontSize: 12 }}>{b.material.name}</div><div className="muted" style={{ fontSize: 11 }}>{b.material.id}</div></td>
-                      <td className="mono small">{b.id}</td>
-                      <td className="num">{b.qty != null ? Math.round(b.qty) : Math.round(b.fillPct * 8)} {b.material.uom}</td>
-                      <td className="num">{b.ageHours}h</td>
-                      <td><span className={b.batchExpiryDays < 30 ? 'red bold' : ''}>{b.batchExpiryDays < 9999 ? `${b.batchExpiryDays}d` : '—'}</span></td>
-                      <td><Pill tone={b.status === 'Occupied' ? 'sage' : b.status === 'Blocked' ? 'red' : 'grey'}>{b.status}</Pill></td>
-                    </tr>
-                  ))}
-                  {!detailLoading && sortedQuants.length === 0 && (
-                    <tr><td colSpan={6} className="muted small">{quantsFilter ? 'No rows match the filter.' : 'No live quant rows available for this plant.'}</td></tr>
-                  )}
-                  {detailError && (
-                    <tr><td colSpan={6} className="red small">Unable to load live quant rows: {detailError}</td></tr>
-                  )}
-                </tbody>
-              </table>
+              <DataTable
+                columns={quantsColumns}
+                rows={sortedQuants.slice(0, 20)}
+                rowKey={(b, i) => i}
+                dense
+                sortKey={quantsSortKey}
+                sortDir={quantsSortDir}
+                onSort={(key, dir) => {
+                  setQuantsSortKey(key);
+                  setQuantsSortDir(dir);
+                }}
+              />
+              {detailError && (
+                <div style={{ padding: 16, color: 'var(--status-risk)' }}>
+                  Unable to load live quant rows: {detailError}
+                </div>
+              )}
             </div>
           </Card>
         </>
       )}
 
       {tab === 'lineside' && (
-        <Card title={t('warehouse.inventory.card.lineside')} subtitle="Storage type 005 · min/max · replenishment signal" eyebrow="Line side" tight>
-          <table className="tbl">
-            <thead><tr><th>{t('warehouse.common.col.line')}</th><th>{t('warehouse.common.col.material')}</th><th className="num">{t('warehouse.inventory.col.current')}</th><th className="num">{t('warehouse.inventory.col.min')}</th><th className="num">{t('warehouse.inventory.col.max')}</th><th>{t('warehouse.inventory.col.level')}</th><th>{t('warehouse.common.col.status')}</th><th>Action</th></tr></thead>
-            <tbody>
-              {allLineside.map((l: any, i: number) => {
+        <Card title={t('warehouse.inventory.card.lineside')} subtitle="Storage type 005 · min/max · replenishment signal" eyebrow="Line side" noPad>
+          <DataTable
+            columns={[
+              { header: t('warehouse.common.col.line'), render: (l) => <><div style={{ fontWeight: 600, fontSize: 12 }}>{l.line.id}</div><div className="muted" style={{ fontSize: 11 }}>{l.line.name}</div></> },
+              { header: t('warehouse.common.col.material'), render: (l) => <><div style={{ fontSize: 12 }}>{l.material.name}</div><div className="muted" style={{ fontSize: 11 }}>{l.material.id}</div></> },
+              { header: t('warehouse.inventory.col.current'), align: 'right', render: (l) => `${l.current} ${l.material.uom}` },
+              { header: t('warehouse.inventory.col.min'), align: 'right', key: 'min', muted: true },
+              { header: t('warehouse.inventory.col.max'), align: 'right', key: 'max', muted: true },
+              { header: t('warehouse.inventory.col.level'), width: 140, render: (l) => {
                 const pct = Math.min(100, (l.current / l.max) * 100);
                 const belowMin = l.current < l.min;
-                return (
-                  <tr key={i} className={belowMin ? 'is-risk-red' : ''}>
-                    <td><div style={{ fontWeight: 600, fontSize: 12 }}>{l.line.id}</div><div className="muted" style={{ fontSize: 11 }}>{l.line.name}</div></td>
-                    <td><div style={{ fontSize: 12 }}>{l.material.name}</div><div className="muted" style={{ fontSize: 11 }}>{l.material.id}</div></td>
-                    <td className="num">{l.current} {l.material.uom}</td>
-                    <td className="num muted">{l.min}</td>
-                    <td className="num muted">{l.max}</td>
-                    <td style={{ width: 140 }}><Progress pct={pct} tone={belowMin ? 'red' : pct < 40 ? 'amber' : ''}/></td>
-                    <td><Pill tone={l.status === 'Below min' ? 'red' : l.status === 'Near min' ? 'amber' : 'green'}>{l.status}</Pill></td>
-                    <td>{belowMin && <button className="btn btn-xs btn-primary">Replenish</button>}</td>
-                  </tr>
-                );
-              })}
-              {!linesideLoading && allLineside.length === 0 && (
-                <tr><td colSpan={8} className="muted small">No live line-side stock is available for this plant.</td></tr>
-              )}
-              {linesideError && (
-                <tr><td colSpan={8} className="red small">Unable to load live line-side stock: {linesideError}</td></tr>
-              )}
-            </tbody>
-          </table>
+                return <Progress pct={pct} tone={belowMin ? 'red' : pct < 40 ? 'amber' : ''}/>
+              }},
+              { header: t('warehouse.common.col.status'), render: (l) => <Pill tone={l.status === 'Below min' ? 'red' : l.status === 'Near min' ? 'amber' : 'green'}>{l.status}</Pill> },
+              { header: 'Action', render: (l) => l.current < l.min && <button className="btn btn-xs btn-primary">Replenish</button> }
+            ]}
+            rows={allLineside}
+            rowKey={(l, i) => i}
+            dense
+            loading={linesideLoading}
+            emphasize={(l) => l.current < l.min}
+          />
         </Card>
       )}
 
       {tab === 'aged' && (
         <div className="grid-2">
-          <Card title={t('warehouse.inventory.card.aged')} subtitle="> 7 days in bin · consider FEFO rotation" eyebrow="Age" tight>
-            <table className="tbl">
-              <thead><tr><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.material')}</th><th className="num">{t('warehouse.common.col.age')}</th><th className="num">{t('warehouse.common.col.qty')}</th></tr></thead>
-              <tbody>
-                {aged.map((b: any, i: number) => (
-                  <tr key={i}><td className="mono small">{b.id}</td><td style={{ fontSize: 12 }}>{b.material?.name || '—'}</td><td className="num amber bold">{b.ageHours}h</td><td className="num">{b.qty != null ? Math.round(b.qty) : Math.round(b.fillPct * 6)}</td></tr>
-                ))}
-                {!detailLoading && aged.length === 0 && <tr><td colSpan={4} className="muted small">No aged live stock is available for this plant.</td></tr>}
-              </tbody>
-            </table>
+          <Card title={t('warehouse.inventory.card.aged')} subtitle="> 7 days in bin · consider FEFO rotation" eyebrow="Age" noPad>
+            <DataTable
+              columns={[
+                { header: t('warehouse.common.col.bin'), key: 'id', mono: true },
+                { header: t('warehouse.common.col.material'), render: (b) => b.material?.name || '—' },
+                { header: t('warehouse.common.col.age'), align: 'right', render: (b) => <span className="amber bold">{b.ageHours}h</span> },
+                { header: t('warehouse.common.col.qty'), align: 'right', render: (b) => b.qty != null ? Math.round(b.qty) : Math.round(b.fillPct * 6) }
+              ]}
+              rows={aged}
+              rowKey={(b, i) => i}
+              dense
+            />
           </Card>
-          <Card title={t('warehouse.inventory.card.expiry')} subtitle="≤ 90 days to expiry · prioritise consumption · ordered by soonest" eyebrow="MCHA" tight>
-            <div className="scroll-x">
-              <table className="tbl">
-                <thead>
-                  <tr>
-                    <th>{t('warehouse.common.col.material')}</th>
-                    <th>{t('warehouse.common.col.batch')}</th>
-                    <th>Mfg Date</th>
-                    <th>Expiry Date</th>
-                    <th className="num">Days Left</th>
-                    <th className="num">Stock</th>
-                    <th className="num">Days Aged</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {expiring.map((b: any, i: number) => (
-                    <tr key={i}>
-                      <td>
-                        <div style={{ fontSize: 12 }}>{b.material_name}</div>
-                        <div className="muted" style={{ fontSize: 11 }}>{b.material_id}</div>
-                      </td>
-                      <td className="mono small">{b.batch_id}</td>
-                      <td className="small">{b.manufacture_date ?? '—'}</td>
-                      <td className="small">{b.expiry_date ?? '—'}</td>
-                      <td className={`num bold ${Number(b.days_to_expiry) < 14 ? 'red' : Number(b.days_to_expiry) < 30 ? 'amber' : ''}`}>
-                        {b.days_to_expiry != null ? `${b.days_to_expiry}d` : '—'}
-                      </td>
-                      <td className="num">{b.total_stock != null ? Math.round(Number(b.total_stock)) : '—'} {b.uom ?? ''}</td>
-                      <td className={`num ${Number(b.aged_days) > 90 ? 'amber' : ''}`}>
-                        {b.aged_days != null ? `${b.aged_days}d` : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                  {!nearExpiryLoading && expiring.length === 0 && (
-                    <tr><td colSpan={7} className="muted small">No batches expiring within 90 days for this plant.</td></tr>
-                  )}
-                  {nearExpiryError && (
-                    <tr><td colSpan={7} className="red small">Unable to load near-expiry batches: {nearExpiryError}</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+          <Card title={t('warehouse.inventory.card.expiry')} subtitle="≤ 90 days to expiry · prioritise consumption · ordered by soonest" eyebrow="MCHA" noPad>
+            <DataTable
+              columns={[
+                { header: t('warehouse.common.col.material'), render: (b) => <><div style={{ fontSize: 12 }}>{b.material_name}</div><div className="muted" style={{ fontSize: 11 }}>{b.material_id}</div></> },
+                { header: t('warehouse.common.col.batch'), key: 'batch_id', mono: true },
+                { header: 'Mfg Date', key: 'manufacture_date' },
+                { header: 'Expiry Date', key: 'expiry_date' },
+                { header: 'Days Left', align: 'right', render: (b) => <span className={`bold ${Number(b.days_to_expiry) < 14 ? 'red' : Number(b.days_to_expiry) < 30 ? 'amber' : ''}`}>{b.days_to_expiry}d</span> },
+                { header: 'Stock', align: 'right', render: (b) => `${Math.round(Number(b.total_stock))} ${b.uom ?? ''}` },
+                { header: 'Days Aged', align: 'right', render: (b) => <span className={Number(b.aged_days) > 90 ? 'amber' : ''}>{b.aged_days}d</span> }
+              ]}
+              rows={expiring}
+              rowKey={(b, i) => i}
+              dense
+              loading={nearExpiryLoading}
+            />
           </Card>
         </div>
       )}
 
       {tab === 'blocked' && (
-        <Card title={t('warehouse.inventory.card.blocked')} subtitle="Bins under inspection or on hold" eyebrow="ST 010" tight>
-          <table className="tbl">
-            <thead><tr><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.material')}</th><th className="num">{t('warehouse.common.col.qty')}</th><th>{t('warehouse.common.col.status')}</th></tr></thead>
-            <tbody>
-              {blocked.map((b: any, i: number) => (
-                <tr key={i}>
-                  <td className="mono small">{b.id}</td>
-                  <td style={{ fontSize: 12 }}>{b.material?.name || '—'}</td>
-                  <td className="num">{b.qty != null ? Math.round(b.qty) : '—'}</td>
-                  <td><Pill tone="red">Blocked</Pill></td>
-                </tr>
-              ))}
-              {!detailLoading && blocked.length === 0 && <tr><td colSpan={4} className="muted small">No blocked live bins are available for this plant.</td></tr>}
-            </tbody>
-          </table>
+        <Card title={t('warehouse.inventory.card.blocked')} subtitle="Bins under inspection or on hold" eyebrow="ST 010" noPad>
+          <DataTable
+            columns={[
+              { header: t('warehouse.common.col.bin'), key: 'id', mono: true },
+              { header: t('warehouse.common.col.material'), render: (b) => b.material?.name || '—' },
+              { header: t('warehouse.common.col.qty'), align: 'right', render: (b) => b.qty != null ? Math.round(b.qty) : '—' },
+              { header: t('warehouse.common.col.status'), render: () => <Pill tone="red">Blocked</Pill> }
+            ]}
+            rows={blocked}
+            rowKey={(b, i) => i}
+            dense
+          />
         </Card>
       )}
 
       {tab === 'cycle' && (
-        <Card title={t('warehouse.inventory.card.cycleCount')} subtitle="Fast movers, recent discrepancies, bins not counted in 30+ days" eyebrow="ABC" tight>
-          <table className="tbl">
-            <thead><tr><th>{t('warehouse.inventory.col.prio')}</th><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.material')}</th><th className="num">{t('warehouse.inventory.col.lastCount')}</th><th className="num">{t('warehouse.inventory.col.delta')}</th><th>{t('warehouse.inventory.col.assign')}</th></tr></thead>
-            <tbody>
-              {detailBins.slice(0, 16).map((b: any, i: number) => (
-                <tr key={i}>
-                  <td><Pill tone={i < 4 ? 'red' : i < 10 ? 'amber' : 'grey'}>{i < 4 ? 'P1' : i < 10 ? 'P2' : 'P3'}</Pill></td>
-                  <td className="mono small">{b.id}</td>
-                  <td style={{ fontSize: 12 }}>{b.material?.name || '—'}</td>
-                  <td className="num">{[4, 12, 18, 32, 45, 52, 67, 80, 95, 110, 132, 156][i % 12]}d</td>
-                  <td className="num">{i % 3 === 0 ? <span className="red">±{i * 2} kg</span> : <span className="muted">—</span>}</td>
-                  <td><button className="btn btn-xs btn-secondary">{t('warehouse.inventory.col.assign')}</button></td>
-                </tr>
-              ))}
-              {!detailLoading && detailBins.length === 0 && <tr><td colSpan={6} className="muted small">No live bins are available for cycle-count prioritisation.</td></tr>}
-            </tbody>
-          </table>
+        <Card title={t('warehouse.inventory.card.cycleCount')} subtitle="Fast movers, recent discrepancies, bins not counted in 30+ days" eyebrow="ABC" noPad>
+          <DataTable
+            columns={[
+              { header: t('warehouse.inventory.col.prio'), render: (b, i) => <Pill tone={i < 4 ? 'red' : i < 10 ? 'amber' : 'grey'}>{i < 4 ? 'P1' : i < 10 ? 'P2' : 'P3'}</Pill> },
+              { header: t('warehouse.common.col.bin'), key: 'id', mono: true },
+              { header: t('warehouse.common.col.material'), render: (b) => b.material?.name || '—' },
+              { header: t('warehouse.inventory.col.lastCount'), align: 'right', render: (b, i) => `${[4, 12, 18, 32, 45, 52, 67, 80, 95, 110, 132, 156][i % 12]}d` },
+              { header: t('warehouse.inventory.col.delta'), align: 'right', render: (b, i) => i % 3 === 0 ? <span className="red">±{i * 2} kg</span> : <span className="muted">—</span> },
+              { header: t('warehouse.inventory.col.assign'), render: () => <button className="btn btn-xs btn-secondary">{t('warehouse.inventory.col.assign')}</button> }
+            ]}
+            rows={detailBins.slice(0, 16)}
+            rowKey={(b, i) => i}
+            dense
+          />
         </Card>
       )}
     </div>

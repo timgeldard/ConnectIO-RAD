@@ -72,3 +72,31 @@ class PlantScope(ValueObject):
     @property
     def is_global(self) -> bool:
         return not self.authorized_plants
+
+
+class WorkCenterId(str):
+    """
+    Value object for a Work Center or Production Line ID.
+    """
+    def __new__(cls, value: str):
+        if not value or not value.strip():
+            raise BusinessRuleValidationException("WorkCenterId cannot be blank")
+        return super().__new__(cls, value.strip().upper())
+
+
+@dataclass(frozen=True)
+class GoodsMovement(ValueObject):
+    """
+    Represents a movement of material between locations.
+    """
+    material_id: str
+    quantity: Quantity
+    from_location: Optional[str] = None
+    to_location: Optional[str] = None
+    movement_type: Optional[str] = None
+    timestamp: Optional[str] = None
+
+    def __post_init__(self):
+        if not self.material_id:
+            raise BusinessRuleValidationException("Material ID is required for GoodsMovement")
+

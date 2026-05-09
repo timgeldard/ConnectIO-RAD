@@ -22,4 +22,6 @@ __all__ = [
     "PlantId",
     "Quantity",
     "PlantScope",
+    "WorkCenterId",
+    "GoodsMovement",
 ]
