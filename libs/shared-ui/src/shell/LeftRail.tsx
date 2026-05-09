@@ -49,7 +49,7 @@ export function LeftRail({
   }, [pickerOpen])
 
   return (
-    <aside className="connectio-rail">
+    <aside data-testid="left-rail" className="connectio-rail">
       <div className="connectio-rail-logo" title="Kerry">
         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
           <text x="13" y="19" textAnchor="middle" fontFamily="serif" fontWeight="bold" fontSize="20" fill="white">K</text>
@@ -62,6 +62,8 @@ export function LeftRail({
         return (
           <button
             key={m.moduleId}
+            data-testid={`rail-module-${m.moduleId}`}
+            data-module-id={m.moduleId}
             className={'connectio-rail-mod' + (activeModule === m.moduleId ? ' active' : '')}
             onClick={() => onPick(m.moduleId)}
             title={m.displayName}
@@ -87,6 +89,7 @@ export function LeftRail({
         <>
           <button
             ref={addBtnRef}
+            data-testid="rail-add-module"
             className={'connectio-rail-add' + (pickerOpen ? ' open' : '')}
             title="Add module to sidebar"
             onClick={() => setPickerOpen((p) => !p)}
@@ -100,6 +103,7 @@ export function LeftRail({
               {hiddenModules.map((m) => (
                 <button
                   key={m.moduleId}
+                  data-testid={`rail-picker-item-${m.moduleId}`}
                   className="connectio-rail-picker-item"
                   onClick={() => { onModulePin?.(m.moduleId); setPickerOpen(false) }}
                 >

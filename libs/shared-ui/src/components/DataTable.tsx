@@ -36,7 +36,7 @@ export function DataTable<T>({
   const rowPad = dense ? '6px 12px' : '9px 14px'
 
   return (
-    <div className={className} style={{ width: '100%', overflowX: 'auto', ...style }}>
+    <div data-testid="data-table" className={className} style={{ width: '100%', overflowX: 'auto', ...style }}>
       <table style={{
         width: '100%',
         borderCollapse: 'collapse',
@@ -46,7 +46,7 @@ export function DataTable<T>({
         <thead>
           <tr>
             {columns.map((c, i) => (
-              <th key={i} style={{
+              <th key={i} data-testid={`data-table-header${c.key ? `-${String(c.key)}` : ''}`} style={{
                 textAlign: c.align || 'left',
                 padding: rowPad,
                 color: 'var(--text-3)',
@@ -70,6 +70,7 @@ export function DataTable<T>({
             return (
               <tr
                 key={rowKey(r, i)}
+                data-testid="data-table-row"
                 onClick={onRowClick ? () => onRowClick(r, i) : undefined}
                 style={{
                   cursor: onRowClick ? 'pointer' : 'default',
@@ -103,7 +104,7 @@ export function DataTable<T>({
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={columns.length} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-3)' }}>
+              <td data-testid="data-table-empty" colSpan={columns.length} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-3)' }}>
                 No data available.
               </td>
             </tr>
