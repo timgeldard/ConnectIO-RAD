@@ -36,7 +36,7 @@ from shared_db.executors import (
     _CONNECTOR_EXECUTOR,
 )
 from shared_db.freshness import DataFreshnessRuntime
-from shared_db.runtime import SqlRuntime, is_read_only_statement, is_write_statement, sql_cache_key  # noqa: F401
+from shared_db.runtime import SqlRuntime, CachePolicy, is_read_only_statement, is_write_statement, sql_cache_key  # noqa: F401
 
 try:
     from databricks import sql as databricks_sql
@@ -65,7 +65,10 @@ def run_sql(
     return _get_sql_executor().execute(token, statement, params)
 
 
-_sql_runtime = SqlRuntime(run_sql=lambda token, statement, params=None: run_sql(token, statement, params))
+_sql_runtime = SqlRuntime(
+    run_sql=lambda token, statement, params=None: run_sql(token, statement, params),
+    cache_policy=CachePolicy.manufacturing(),
+)
 _SQL_SEMAPHORE = asyncio.Semaphore(int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4")))
 _sql_cache = _sql_runtime.cache
 _sql_cache_lock = _sql_runtime.cache_lock

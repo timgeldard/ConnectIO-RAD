@@ -1,4 +1,8 @@
 {
+  "shared.plant.selector": "Plant",
+  "shared.plant.loading": "Loading plants...",
+  "shared.plant.none": "No plants available",
+  "shared.plant.unavailable": "Plant context unavailable",
   "poh.actionDuplicate": "Duplicate",
   "poh.actionExport": "Export",
   "poh.actionExportBundle": "Export bundle",

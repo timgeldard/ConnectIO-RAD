@@ -68,7 +68,7 @@ function QualityBody({
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 20 }}>
         <KPI label={copy.bottom.batchStatus} value={<StatusPill status={batch.batch_status} />} />
         <KPI label={copy.quality.inspectionLots} value={summary.lot_count || lots.length} />
-        <KPI label={copy.quality.acceptedResults} value={summary.accepted_result_count} tone="good" />
+        <KPI label={copy.quality.acceptedResults} value={summary.accepted_result_count} tone="ok" />
         <KPI label={copy.quality.rejectedResults} value={summary.rejected_result_count} tone={summary.rejected_result_count > 0 ? "bad" : "muted"} />
         <KPI label={copy.common.failedMics} value={summary.failed_mic_count} tone={summary.failed_mic_count > 0 ? "bad" : "good"} />
         <KPI label={copy.quality.latestInspection} value={summary.latest_inspection_date} />

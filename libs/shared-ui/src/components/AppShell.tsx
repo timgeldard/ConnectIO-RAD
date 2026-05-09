@@ -19,6 +19,7 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <div
+      data-testid="app-shell"
       className={className}
       style={{
         display: 'flex',

@@ -1,0 +1,15 @@
+{
+  "chartType": "imr",
+  "points": [
+    { "batch_id": "B-0001", "batch_date": "2026-02-01", "value": "10.2", "excluded": false },
+    { "batch_id": "B-0002", "batch_date": "2026-02-15", "value": "10.5", "excluded": false },
+    { "batch_id": "B-0003", "batch_date": "2026-03-01", "value": "10.1", "excluded": false },
+    { "batch_id": "B-0004", "batch_date": "2026-03-15", "value": "10.8", "excluded": false },
+    { "batch_id": "B-0005", "batch_date": "2026-04-01", "value": "10.3", "excluded": false }
+  ],
+  "ucl": "11.2",
+  "lcl": "9.3",
+  "mean": "10.38",
+  "cpk": "1.24",
+  "pp": "1.31"
+}

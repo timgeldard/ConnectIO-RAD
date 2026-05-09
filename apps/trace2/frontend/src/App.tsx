@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { I18nProvider, LanguageSelector, useI18n } from "@connectio/shared-frontend-i18n";
+import { PlantProvider, PlantContextBar } from "@connectio/shared-app-context";
 import {
   AppShell,
   Sidebar,
@@ -325,18 +326,22 @@ function TraceApp() {
         />
       }
       filterBar={
-        <BatchPicker
-          materialDraft={materialDraft}
-          batchDraft={batchDraft}
-          onMaterialChange={setMaterialDraft}
-          onBatchChange={setBatchDraft}
-          onApply={() => {
-            setLiveMaterialId(materialDraft.trim());
-            setLiveBatchId(batchDraft.trim());
-            setSim(false);
-          }}
-          dirty={materialDraft.trim() !== liveMaterialId || batchDraft.trim() !== liveBatchId}
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: 20, width: "100%" }}>
+          <PlantContextBar />
+          <div style={{ width: 1, height: 24, background: "var(--line-1)" }} />
+          <BatchPicker
+            materialDraft={materialDraft}
+            batchDraft={batchDraft}
+            onMaterialChange={setMaterialDraft}
+            onBatchChange={setBatchDraft}
+            onApply={() => {
+              setLiveMaterialId(materialDraft.trim());
+              setLiveBatchId(batchDraft.trim());
+              setSim(false);
+            }}
+            dirty={materialDraft.trim() !== liveMaterialId || batchDraft.trim() !== liveBatchId}
+          />
+        </div>
       }
     >
       <div style={{ padding: "24px 32px", maxWidth: 1600, margin: "0 auto" }}>
@@ -388,7 +393,9 @@ export default function App() {
       resources={{ en: enResources }}
       loadResource={loadResource}
     >
-      <TraceApp />
+      <PlantProvider appName="trace2">
+        <TraceApp />
+      </PlantProvider>
     </I18nProvider>
   );
 }

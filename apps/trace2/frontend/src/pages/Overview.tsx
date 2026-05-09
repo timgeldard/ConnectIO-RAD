@@ -136,37 +136,37 @@ function OverviewBody({
           label={t("trace.metric.qtyProduced")}
           value={fmtInt(batch.qty_produced)}
           unit={batch.uom}
-          tone="brand"
+          tone="neutral"
         />
         <KPI
           label={t("trace.metric.unrestricted")}
           value={fmtInt(batch.unrestricted)}
           unit={batch.uom}
-          tone="good"
+          tone="ok"
         />
         <KPI
           label={t("trace.metric.qtyShipped")}
           value={fmtInt(batch.qty_shipped)}
           unit={batch.uom}
-          tone="default"
+          tone="neutral"
         />
         <KPI
           label={t("trace.metric.qtyConsumed")}
           value={fmtInt(batch.qty_consumed)}
           unit={batch.uom}
-          tone="default"
+          tone="neutral"
         />
         <KPI
           label={t("trace.metric.customersExposed")}
           value={fmtInt(batch.customers_affected)}
           tone={sim ? "bad" : "warn"}
-          sub={t(batch.countries_affected === 1 ? "trace.metric.country.one" : "trace.metric.country.other", { count: batch.countries_affected })}
+          subtext={t(batch.countries_affected === 1 ? "trace.metric.country.one" : "trace.metric.country.other", { count: batch.countries_affected })}
         />
         <KPI
           label={t("trace.metric.daysToExpiry")}
           value={batch.days_to_expiry >= 0 ? fmtInt(batch.days_to_expiry) : t("trace.metric.expired")}
           tone={batch.days_to_expiry < 0 ? "bad" : batch.days_to_expiry < 30 ? "warn" : "good"}
-          sub={batch.expiry_date}
+          subtext={batch.expiry_date}
         />
       </div>
 

@@ -16,7 +16,6 @@ from trace2_backend.quality_record.schemas import (
     BatchPageRequest,
 )
 from trace2_backend.utils.db import check_warehouse_config
-from trace2_backend.utils.exceptions import TraceNotFound
 from trace2_backend.utils.rate_limit import limiter
 from shared_auth import UserIdentity, require_proxy_user
 from trace2_backend.utils.db import handle_sql_error
@@ -35,8 +34,6 @@ async def coa(
     identity = BatchIdentity.from_strings(body.material_id, body.batch_id)
     try:
         return await get_coa(user.raw_token, identity, request.url.path)
-    except TraceNotFound as exc:
-        raise HTTPException(status_code=404, detail=exc.message)
     except HTTPException:
         raise
     except Exception as exc:
@@ -54,8 +51,6 @@ async def mass_balance(
     identity = BatchIdentity.from_strings(body.material_id, body.batch_id)
     try:
         return await get_mass_balance(user.raw_token, identity, request.url.path)
-    except TraceNotFound as exc:
-        raise HTTPException(status_code=404, detail=exc.message)
     except HTTPException:
         raise
     except Exception as exc:
@@ -73,8 +68,6 @@ async def quality(
     identity = BatchIdentity.from_strings(body.material_id, body.batch_id)
     try:
         return await get_quality(user.raw_token, identity, request.url.path)
-    except TraceNotFound as exc:
-        raise HTTPException(status_code=404, detail=exc.message)
     except HTTPException:
         raise
     except Exception as exc:
@@ -92,8 +85,6 @@ async def production_history(
     identity = BatchIdentity.from_strings(body.material_id, body.batch_id)
     try:
         return await get_production_history(user.raw_token, identity, request.url.path)
-    except TraceNotFound as exc:
-        raise HTTPException(status_code=404, detail=exc.message)
     except HTTPException:
         raise
     except Exception as exc:
@@ -111,8 +102,6 @@ async def batch_compare(
     identity = BatchIdentity.from_strings(body.material_id, body.batch_id)
     try:
         return await get_batch_compare(user.raw_token, identity, request.url.path)
-    except TraceNotFound as exc:
-        raise HTTPException(status_code=404, detail=exc.message)
     except HTTPException:
         raise
     except Exception as exc:

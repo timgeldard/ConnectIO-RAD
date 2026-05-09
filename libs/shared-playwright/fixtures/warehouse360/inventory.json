@@ -1,0 +1,7 @@
+{
+  "bins": [
+    { "material_id": "MAT-001", "description": "Excipient A",  "batch_id": "B-0001", "quantity": "500.0", "uom": "KG", "storage_location": "L01-01", "status": "UNRESTRICTED" },
+    { "material_id": "MAT-002", "description": "API Compound", "batch_id": "B-0002", "quantity": "120.5", "uom": "KG", "storage_location": "L01-02", "status": "QI"           },
+    { "material_id": "MAT-003", "description": "Filler B",     "batch_id": "B-0003", "quantity": "75.0",  "uom": "KG", "storage_location": "L02-01", "status": "UNRESTRICTED" }
+  ]
+}

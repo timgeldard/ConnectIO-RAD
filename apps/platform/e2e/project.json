@@ -1,0 +1,28 @@
+{
+  "name": "platform-e2e",
+  "projectType": "application",
+  "tags": [
+    "scope:platform",
+    "type:e2e"
+  ],
+  "implicitDependencies": [
+    "platform-frontend",
+    "platform-backend"
+  ],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx playwright test --config=apps/platform/e2e/playwright.config.ts",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "e2e-ci": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx playwright test --config=apps/platform/e2e/playwright.config.ts --reporter=blob",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}

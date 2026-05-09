@@ -34,13 +34,16 @@ from shared_db.core import (  # noqa: F401 — re-exported for dal imports
     run_sql as _shared_run_sql,
     sql_param,
 )
-from shared_db.runtime import SqlRuntime
+from shared_db.runtime import SqlRuntime, CachePolicy
 
 POH_CATALOG: str = os.environ.get("POH_CATALOG", "connected_plant_uat")
 POH_SCHEMA: str = os.environ.get("POH_SCHEMA", "csm_process_order_history")
 
 # Standardized SQL Runtime with 300s cache and concurrency control
-_sql_runtime = SqlRuntime(run_sql=lambda token, statement, params=None: _shared_run_sql(token, statement, params))
+_sql_runtime = SqlRuntime(
+    run_sql=lambda token, statement, params=None: _shared_run_sql(token, statement, params),
+    cache_policy=CachePolicy.manufacturing(),
+)
 _SQL_SEMAPHORE = asyncio.Semaphore(int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4")))
 
 

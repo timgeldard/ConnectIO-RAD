@@ -12,6 +12,15 @@
       },
       "inputs": ["tsFiles", "sharedGlobals"],
       "cache": true
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run test",
+        "cwd": "libs/shared-frontend-i18n"
+      },
+      "inputs": ["tsFiles", "sharedGlobals"],
+      "cache": true
     }
   }
 }

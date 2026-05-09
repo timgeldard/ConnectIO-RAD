@@ -31,7 +31,7 @@ export function PageBatchCompare({ batch: headerBatch }: { batch: Batch }) {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
               <KPI label={copy.compare.batchCount} value={batches.length} />
               <KPI label={copy.compare.avgSize} value={fmtN(avgYield, 1)} unit="%" />
-              <KPI label={copy.compare.passCount} value={passCount} tone="good" />
+              <KPI label={copy.compare.passCount} value={passCount} tone="ok" />
               <KPI
                 label={copy.compare.failingBatches}
                 value={failingCount}

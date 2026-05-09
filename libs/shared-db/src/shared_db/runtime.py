@@ -5,6 +5,7 @@ import hashlib
 import inspect
 import json
 import logging
+import os
 import threading
 import time
 from collections.abc import Awaitable
@@ -97,6 +98,41 @@ class CachePolicy:
         if not tiers:
             raise ValueError("CachePolicy.tiered requires at least one cache tier")
         return cls(tuple(tiers))
+
+    @classmethod
+    def manufacturing(cls, *, row_limit: int = 1000) -> "CachePolicy":
+        """
+        Returns the standard tiered cache policy for manufacturing cockpits.
+        Includes tiers for metadata (15m), scorecards (5m), and charts (3m).
+        """
+        return cls.tiered(
+            CacheTier(
+                "metadata",
+                maxsize=500,
+                ttl_seconds=900,
+                row_limit=row_limit,
+                patterns=(
+                    "information_schema.",
+                    "_dim_mv",
+                    "gold_material",
+                    "gold_plant",
+                    "gold_functional_location",
+                ),
+            ),
+            CacheTier(
+                "scorecard",
+                maxsize=200,
+                ttl_seconds=300,
+                row_limit=row_limit,
+                patterns=("_metrics", "_summary", "kpi_"),
+            ),
+            CacheTier(
+                "chart",
+                maxsize=300,
+                ttl_seconds=180,
+                row_limit=row_limit,
+            ),
+        )
 
 
 @dataclass(frozen=True)

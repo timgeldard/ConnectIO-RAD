@@ -10,7 +10,7 @@ interface EChartProps extends BaseProps {
 
 export default function EChart({ ariaLabel, ...props }: EChartProps) {
   return (
-    <div role="img" aria-label={ariaLabel}>
+    <div data-testid="control-chart-svg" role="img" aria-label={ariaLabel}>
       <ReactEChartsCore echarts={echarts} {...props} />
     </div>
   )

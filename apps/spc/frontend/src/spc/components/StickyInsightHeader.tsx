@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { StatusPillStatus } from './StatusPill'
-import StatusPill from './StatusPill'
+import { StatusPill } from '@connectio/shared-ui'
 
 interface KPI {
   label: string

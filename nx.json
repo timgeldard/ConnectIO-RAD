@@ -55,6 +55,22 @@
       "dependsOn": [
         "build"
       ]
+    },
+    "e2e": {
+      "cache": false,
+      "inputs": [
+        "tsFiles",
+        "^tsFiles",
+        "sharedGlobals"
+      ]
+    },
+    "e2e-ci": {
+      "cache": false,
+      "inputs": [
+        "tsFiles",
+        "^tsFiles",
+        "sharedGlobals"
+      ]
     }
   },
   "analytics": false,

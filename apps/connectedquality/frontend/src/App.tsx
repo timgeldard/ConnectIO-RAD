@@ -4,6 +4,7 @@ import { PlatformShell, ContextBar, type CtxState } from '@connectio/shared-ui'
 import { CQ_MODULES, CQ_COMPOSITION } from '~/manifest'
 import { fetchPreferences, savePreferences } from '~/api/preferences'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { PlantProvider } from '@connectio/shared-app-context'
 import enResources from '~/i18n/locales/en.json'
 
 const loadResource = async (lang: string) => {
@@ -95,19 +96,21 @@ export function App() {
       loadResource={loadResource}
     >
       <QueryClientProvider client={queryClient}>
-        <PlatformShell
-          composition={CQ_COMPOSITION}
-          modules={CQ_MODULES}
-          activeModule={activeModule}
-          tabState={tabState}
-          onModuleChange={setActiveModule}
-          onTabChange={handleTabChange}
-          contextBar={contextBar}
-          pinnedModules={pinnedModules}
-          onModulePinToggle={handleModulePinToggle}
-        >
-          <ActivePage mod={activeModule} />
-        </PlatformShell>
+        <PlantProvider appName="connectedquality" apiEndpoint="/api/cq/lab/plants">
+          <PlatformShell
+            composition={CQ_COMPOSITION}
+            modules={CQ_MODULES}
+            activeModule={activeModule}
+            tabState={tabState}
+            onModuleChange={setActiveModule}
+            onTabChange={handleTabChange}
+            contextBar={contextBar}
+            pinnedModules={pinnedModules}
+            onModulePinToggle={handleModulePinToggle}
+          >
+            <ActivePage mod={activeModule} />
+          </PlatformShell>
+        </PlantProvider>
       </QueryClientProvider>
     </I18nProvider>
   )

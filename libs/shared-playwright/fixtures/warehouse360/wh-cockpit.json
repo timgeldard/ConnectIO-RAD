@@ -1,0 +1,7 @@
+{
+  "orders": [
+    { "process_order": "PO-1001", "material_id": "MAT-001", "description": "Tablet Batch Run", "status": "REL", "risk": "red",    "schedule_start": "2026-05-09T06:00:00", "schedule_end": "2026-05-09T14:00:00", "completion_pct": "35" },
+    { "process_order": "PO-1002", "material_id": "MAT-002", "description": "Capsule Fill Run", "status": "REL", "risk": "amber",  "schedule_start": "2026-05-09T08:00:00", "schedule_end": "2026-05-09T16:00:00", "completion_pct": "60" },
+    { "process_order": "PO-1003", "material_id": "MAT-003", "description": "Granulation Step", "status": "REL", "risk": "green",  "schedule_start": "2026-05-09T10:00:00", "schedule_end": "2026-05-09T18:00:00", "completion_pct": "10" }
+  ]
+}

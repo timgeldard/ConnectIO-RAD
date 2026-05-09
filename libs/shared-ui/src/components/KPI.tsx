@@ -40,18 +40,18 @@ export function KPI({
   const color = TONE_COLOR[tone]
 
   return (
-    <div className="card" style={{ padding: 18, position: 'relative', overflow: 'hidden', height: '100%' }}>
+    <div data-testid="kpi-card" data-tone={tone} className="card" style={{ padding: 18, position: 'relative', overflow: 'hidden', height: '100%' }}>
       {tone !== 'neutral' && (
         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: color }} />
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div className="eyebrow">{label}</div>
+        <div data-testid="kpi-label" className="eyebrow">{label}</div>
         {icon && <div style={{ color }}><Icon name={icon} size={14} /></div>}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-        <div style={{
+        <div data-testid="kpi-value" style={{
           fontFamily: 'var(--font-impact)',
           fontWeight: 800,
           fontSize: 40,

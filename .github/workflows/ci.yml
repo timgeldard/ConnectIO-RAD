@@ -112,6 +112,32 @@ jobs:
             apps/*/frontend/coverage/
           retention-days: 14
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # E2E smoke gate — runs @smoke-tagged tests only, with mocked API routes.
+      # APP_ENV=test activates shared-auth dev-mode bypass (no JWKS required).
+      # E2E_USE_FIXTURES=1 is consumed by individual tests that call mockAllApiRoutes.
+      - name: E2E smoke tests (mocked — PR gate)
+        env:
+          APP_ENV: test
+          E2E_USE_FIXTURES: '1'
+        run: |
+          npx nx affected -t e2e \
+            --base=$NX_BASE --head=$NX_HEAD \
+            --parallel=2 \
+            -- --grep "@smoke"
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: |
+            apps/*/e2e/playwright-report/
+            apps/*/e2e/test-results/
+          retention-days: 14
+
       - name: Build affected frontends
         run: npx nx affected -t build --base=$NX_BASE --head=$NX_HEAD --parallel=4
 
@@ -180,6 +206,75 @@ jobs:
         with:
           category: "/language:python,javascript"
           fail-on: high
+
+  # Full E2E suite against live UAT Databricks workspace.
+  # Runs in parallel per-app after ci + security pass on main.
+  # Requires E2E_DATABRICKS_UAT_TOKEN secret in the "uat" GitHub environment.
+  e2e-live:
+    needs: [ci, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: uat
+    strategy:
+      matrix:
+        app: [warehouse360, spc, trace2, platform]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - name: Install Node dependencies
+        run: npm ci
+      - name: Sync Python environments
+        run: uv sync --all-packages
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E — ${{ matrix.app }}
+        env:
+          APP_ENV: test
+          E2E_DATABRICKS_TOKEN: ${{ secrets.E2E_DATABRICKS_UAT_TOKEN }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          PLAYWRIGHT_BLOB_OUTPUT_DIR: apps/${{ matrix.app }}/e2e/blob-report
+        run: |
+          npx playwright test \
+            --config=apps/${{ matrix.app }}/e2e/playwright.config.ts \
+            --reporter=blob
+      - name: Upload blob report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blob-report-${{ matrix.app }}
+          path: apps/${{ matrix.app }}/e2e/blob-report/
+          retention-days: 30
+
+  # Merge all per-app blob reports into a single HTML report.
+  e2e-merge-reports:
+    needs: [e2e-live]
+    if: always() && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          merge-multiple: true
+          path: all-blob-reports
+      - run: npx playwright merge-reports --reporter html ./all-blob-reports
+      - uses: actions/upload-artifact@v4
+        with:
+          name: playwright-merged-report
+          path: playwright-report/
+          retention-days: 30
 
   deploy:
     needs: [ci, security]

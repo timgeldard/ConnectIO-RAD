@@ -90,10 +90,10 @@ function BottomUpBody({
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
-        <KPI label={copy.bottom.daysToExpiry} value={batch.days_to_expiry} unit={copy.common.days} tone="brand" />
+        <KPI label={copy.bottom.daysToExpiry} value={batch.days_to_expiry} unit={copy.common.days} tone="neutral" />
         <KPI label={copy.bottom.shelfLife} value={<StatusPill status={batch.shelf_life_status} />} />
         <KPI label={copy.bottom.batchStatus} value={<StatusPill status={batch.batch_status} />} />
-        <KPI label={copy.bottom.directInputs} value={level1.length} sub={copy.bottom.levelOneMaterials} tone="brand" />
+        <KPI label={copy.bottom.directInputs} value={level1.length} subtext={copy.bottom.levelOneMaterials} tone="neutral" />
         <KPI label={copy.bottom.distinctSuppliers} value={distinctSuppliers} />
       </div>
 

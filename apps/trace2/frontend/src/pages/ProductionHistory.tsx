@@ -128,8 +128,8 @@ export function PageProductionHistory({ batch: headerBatch }: { batch: Batch }) 
             />
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
               <KPI label={copy.production.totalBatches} value={batches.length} />
-              <KPI label={copy.production.avgBatchSize} value={fmtN(avg, 0)} unit={copy.common.kg} sub={copy.production.avgBatchSub} />
-              <KPI label={copy.production.released} value={released} tone="good" />
+              <KPI label={copy.production.avgBatchSize} value={fmtN(avg, 0)} unit={copy.common.kg} subtext={copy.production.avgBatchSub} />
+              <KPI label={copy.production.released} value={released} tone="ok" />
               <KPI label={copy.production.blockedQi} value={flagged} tone={flagged > 0 ? "warn" : "muted"} />
             </div>
             {batches.length === 0 ? (

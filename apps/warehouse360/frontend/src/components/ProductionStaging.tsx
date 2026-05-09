@@ -4,6 +4,7 @@ import { useI18n } from '@connectio/shared-frontend-i18n'
 import { useApi } from '../hooks/useApi'
 import { Icon, Pill, Progress, RiskDot } from './Primitives'
 import { FilterBar, Card, KPI } from './Shared'
+import { DataTable, type Column } from '@connectio/shared-ui'
 import { fmtTime, minutesFromNow, now } from '~/utils/time'
 
 /* Production Staging — primary screen.
@@ -146,6 +147,91 @@ const ProductionStaging = ({ onOpenOrder }: ProductionStagingProps) => {
     green: allOrders.filter((o: any) => o.risk === 'green').length,
   }), [allOrders]);
 
+  const columns: Column<any>[] = [
+    {
+      header: '',
+      width: 36,
+      render: (o) => <RiskDot risk={o.risk}/>
+    },
+    {
+      header: t('warehouse.staging.col.processOrder'),
+      render: (o) => (
+        <>
+          <div className="code">{o.id}</div>
+          <div className="muted" style={{ fontSize: 11 }}>SAP {o.sapOrder}</div>
+        </>
+      )
+    },
+    {
+      header: t('warehouse.staging.col.product'),
+      render: (o) => (
+        <>
+          <div className="primary">{o.product}</div>
+          <div className="muted" style={{ fontSize: 11 }}>{o.material.id}</div>
+        </>
+      )
+    },
+    {
+      header: t('warehouse.staging.col.lineMethod'),
+      render: (o) => (
+        <>
+          <div>{o.line.name}</div>
+          <div className="muted" style={{ fontSize: 11 }}>
+            <StagingMethodChip id={o.method.id}/>
+            {o.dispensaryRequired && <span className="tag tag-forest" style={{ marginLeft: 4 }}>DSP</span>}
+          </div>
+        </>
+      )
+    },
+    {
+      header: t('warehouse.common.col.start'),
+      render: (o) => {
+        const minsToStart = o.start ? minutesFromNow(o.start) : null;
+        return (
+          <>
+            <div className="mono bold" style={{ fontSize: 12 }}>{o.start ? fmtTime(o.start) : '—'}</div>
+            <div className="muted" style={{ fontSize: 11 }}>{minsToStart === null ? '—' : minsToStart < 0 ? Math.abs(minsToStart) + 'm ago' : minsToStart < 60 ? 'in ' + minsToStart + 'm' : 'in ' + (minsToStart / 60).toFixed(1) + 'h'}</div>
+          </>
+        )
+      }
+    },
+    {
+      header: t('warehouse.common.col.staging'),
+      align: 'right',
+      width: 140,
+      render: (o) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+          <span className="mono">{o.stagingPct}%</span>
+          <div style={{ width: 60 }}><Progress pct={o.stagingPct} tone={o.stagingPct < 70 ? 'red' : o.stagingPct < 95 ? 'amber' : ''}/></div>
+        </div>
+      )
+    },
+    {
+      header: t('warehouse.staging.col.pallets'),
+      align: 'right',
+      render: (o) => `${o.palletsStaged}/${o.pallets}`
+    },
+    {
+      header: t('warehouse.staging.col.bom'),
+      align: 'right',
+      render: (o) => `${o.bomPicked}/${o.bomCount}`
+    },
+    {
+      header: t('warehouse.common.col.status'),
+      render: (o) => <Pill tone={o.status === 'Completed' || o.status === 'Staged' ? 'green' : o.status === 'In Production' ? 'slate' : o.status === 'Staging' ? 'amber' : 'grey'}>{o.status}</Pill>
+    },
+    {
+      header: t('warehouse.staging.col.exceptions'),
+      render: (o) => (
+        <>
+          {o.risk === 'red' ? <Pill tone="red" noDot>Critical</Pill> : null}
+          {o.risk === 'amber' ? <Pill tone="amber" noDot>At risk</Pill> : null}
+          {o.notes && <div className="muted" style={{ fontSize: 10, marginTop: 2 }}>{o.notes}</div>}
+        </>
+      )
+    }
+  ];
+
   return (
     <div className="page">
       <div className="page-header">
@@ -224,80 +310,23 @@ const ProductionStaging = ({ onOpenOrder }: ProductionStagingProps) => {
           <button className={`btn btn-xs ${sort.key === 'risk' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setSort({ key: 'risk', dir: 'asc' })}>{t('warehouse.staging.sort.risk')}</button>
           <button className={`btn btn-xs ${sort.key === 'staging' ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setSort({ key: 'staging', dir: 'asc' })}>{t('warehouse.staging.sort.stagingPct')}</button>
         </div>}
-        tight>
+        noPad>
         <div className="scroll-x">
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th style={{ width: 36 }}></th>
-                <th>{t('warehouse.staging.col.processOrder')}</th>
-                <th>{t('warehouse.staging.col.product')}</th>
-                <th>{t('warehouse.staging.col.lineMethod')}</th>
-                <th>{t('warehouse.common.col.start')}</th>
-                <th className="num">{t('warehouse.common.col.staging')}</th>
-                <th className="num">{t('warehouse.staging.col.pallets')}</th>
-                <th className="num">{t('warehouse.staging.col.bom')}</th>
-                <th>{t('warehouse.common.col.status')}</th>
-                <th>{t('warehouse.staging.col.exceptions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.slice(0, 60).map((o: any) => (
-                <StagingRow key={o.id} o={o} onClick={() => onOpenOrder?.(o)}/>
-              ))}
-              {!ordersLoading && rows.length === 0 && (
-                <tr><td colSpan={10} className="muted small">No live production orders match this plant and filter set.</td></tr>
-              )}
-              {ordersError && (
-                <tr><td colSpan={10} className="red small">Unable to load live production orders: {ordersError}</td></tr>
-              )}
-            </tbody>
-          </table>
+          <DataTable
+            columns={columns}
+            rows={rows.slice(0, 60)}
+            rowKey="id"
+            onRowClick={onOpenOrder}
+            dense
+          />
+          {ordersError && (
+            <div style={{ padding: 20, color: 'var(--status-risk)' }}>
+              Unable to load live production orders: {ordersError}
+            </div>
+          )}
         </div>
       </Card>
     </div>
-  );
-};
-
-const StagingRow = ({ o, onClick }) => {
-  const minsToStart = o.start ? minutesFromNow(o.start) : null;
-  return (
-    <tr className={`is-risk-${o.risk}`} onClick={onClick}>
-      <td><RiskDot risk={o.risk}/></td>
-      <td>
-        <div className="code">{o.id}</div>
-        <div className="muted" style={{ fontSize: 11 }}>SAP {o.sapOrder}</div>
-      </td>
-      <td>
-        <div className="primary">{o.product}</div>
-        <div className="muted" style={{ fontSize: 11 }}>{o.material.id}</div>
-      </td>
-      <td>
-        <div>{o.line.name}</div>
-        <div className="muted" style={{ fontSize: 11 }}>
-          <StagingMethodChip id={o.method.id}/>
-          {o.dispensaryRequired && <span className="tag tag-forest" style={{ marginLeft: 4 }}>DSP</span>}
-        </div>
-      </td>
-      <td>
-        <div className="mono bold" style={{ fontSize: 12 }}>{o.start ? fmtTime(o.start) : '—'}</div>
-        <div className="muted" style={{ fontSize: 11 }}>{minsToStart === null ? '—' : minsToStart < 0 ? Math.abs(minsToStart) + 'm ago' : minsToStart < 60 ? 'in ' + minsToStart + 'm' : 'in ' + (minsToStart / 60).toFixed(1) + 'h'}</div>
-      </td>
-      <td className="num" style={{ minWidth: 140 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-          <span className="mono">{o.stagingPct}%</span>
-          <div style={{ width: 60 }}><Progress pct={o.stagingPct} tone={o.stagingPct < 70 ? 'red' : o.stagingPct < 95 ? 'amber' : ''}/></div>
-        </div>
-      </td>
-      <td className="num">{o.palletsStaged}/{o.pallets}</td>
-      <td className="num">{o.bomPicked}/{o.bomCount}</td>
-      <td><Pill tone={o.status === 'Completed' || o.status === 'Staged' ? 'green' : o.status === 'In Production' ? 'slate' : o.status === 'Staging' ? 'amber' : 'grey'}>{o.status}</Pill></td>
-      <td>
-        {o.risk === 'red' ? <Pill tone="red" noDot>Critical</Pill> : null}
-        {o.risk === 'amber' ? <Pill tone="amber" noDot>At risk</Pill> : null}
-        {o.notes && <div className="muted" style={{ fontSize: 10, marginTop: 2 }}>{o.notes}</div>}
-      </td>
-    </tr>
   );
 };
 

@@ -25,9 +25,13 @@ vi.mock('~/api/client', () => ({
   usePlants: () => ({ data: mockPlants })
 }))
 
-vi.mock('~/components/ui/KPI', () => ({
-  default: ({ label, value }: any) => <div data-testid="mock-kpi">{label}: {value}</div>
-}))
+vi.mock('@connectio/shared-ui', async (importOriginal) => {
+  const actual = await importOriginal<any>()
+  return {
+    ...actual,
+    KPI: ({ label, value }: any) => <div data-testid="mock-kpi">{label}: {value}</div>
+  }
+})
 
 describe('GlobalView', () => {
   it('renders title translation key with plant count interpolated and KPI strip', () => {

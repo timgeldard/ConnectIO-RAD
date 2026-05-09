@@ -6,6 +6,7 @@ import { usePlantSelection } from '../context/PlantContext';
 import { Icon, Pill, Progress, RiskDot, Hbar } from './Primitives';
 import { KPI, Card } from './Shared';
 import { StagingTimeline, normalizeOrder } from './ProductionStaging';
+import { DataTable, type Column } from '@connectio/shared-ui'
 import { fmtTime } from '~/utils/time'
 
 /* Control Tower — warehouse manager's landing page */
@@ -61,6 +62,43 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
     return acc;
   }, {})).slice(0, 6);
 
+  const atRiskColumns: Column<any>[] = [
+    { header: '', width: 32, render: (o) => <RiskDot risk={o.risk}/> },
+    { header: t('warehouse.common.col.order'), render: (o) => <><span className="code">{o.id}</span><div className="muted" style={{ fontSize: 11 }}>{o.product.split(' · ')[0]}</div></> },
+    { header: t('warehouse.common.col.line'), key: 'line.id', style: { fontSize: 12 } },
+    { header: t('warehouse.common.col.start'), mono: true, render: (o) => o.start ? fmtTime(o.start) : '—' },
+    { header: t('warehouse.common.col.staging'), align: 'right', width: 120, render: (o) => (
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
+        <span className="mono" style={{ fontSize: 11 }}>{o.stagingPct}%</span>
+        <div style={{ width: 44 }}><Progress pct={o.stagingPct} tone={o.risk === 'red' ? 'red' : 'amber'}/></div>
+      </div>
+    )},
+    { header: '', align: 'right', render: () => <Icon name="chevronRight" size={12} color="var(--fg-muted)"/> }
+  ];
+
+  const inboundColumns: Column<any>[] = [
+    { header: t('warehouse.common.col.type'), render: () => <Pill tone="slate" noDot>PO</Pill> },
+    { header: 'Doc', key: 'po_id', className: 'code' },
+    { header: t('warehouse.ct.col.vendorPlant'), render: (r) => <><div style={{ fontSize: 12 }}>{r.vendor_name || '—'}</div><div className="muted" style={{ fontSize: 11 }}>{r.vendor_id || '—'}</div></> },
+    { header: t('warehouse.common.col.material'), render: (r) => <><div style={{ fontSize: 12 }}>{r.material_name || r.material_id || '—'}</div><div className="muted" style={{ fontSize: 11 }}>{r.ordered_qty ?? '—'} {r.uom ?? ''}</div></> },
+    { header: t('warehouse.ct.col.eta'), key: 'delivery_date', mono: true },
+    { header: t('warehouse.common.col.status'), render: (r) => <Pill tone={r.qa_status === 'inspection' ? 'amber' : r.risk === 'red' ? 'red' : 'green'}>{r.qa_status || r.risk || 'open'}</Pill> }
+  ];
+
+  const outboundColumns: Column<any>[] = [
+    { header: t('warehouse.common.col.delivery'), key: 'delivery_id', className: 'code' },
+    { header: t('warehouse.common.col.customer'), render: (d) => <div style={{ fontSize: 12 }}>{d.customer_name || d.customer_id || '—'}</div> },
+    { header: t('warehouse.ct.col.cutOff'), key: 'planned_gi_date', mono: true },
+    { header: t('warehouse.ct.col.pick'), align: 'right', width: 90, render: (d) => (
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
+        <span className="mono" style={{ fontSize: 11 }}>{Math.round(d.pick_pct ?? 0)}%</span>
+        <div style={{ width: 36 }}><Progress pct={d.pick_pct ?? 0} tone={d.risk === 'red' ? 'red' : d.risk === 'amber' ? 'amber' : ''}/></div>
+      </div>
+    )},
+    { header: t('warehouse.common.col.status'), render: (d) => <Pill tone={d.risk === 'red' ? 'red' : d.risk === 'amber' ? 'amber' : 'green'}>{d.risk || 'open'}</Pill> },
+    { header: t('warehouse.ct.col.dock'), render: () => '—', mono: true }
+  ];
+
   return (
     <div className="page">
       <div className="page-header">
@@ -88,12 +126,12 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
         </div>
       )}
       <div className="kpi-grid">
-        <KPI label={t('warehouse.ct.kpi.ordersAtRisk')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.orders_red ?? '…'} tone={kpisError ? 'warn' : kpis?.orders_red > 0 ? 'critical' : 'ok'}/>
+        <KPI label={t('warehouse.ct.kpi.ordersAtRisk')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.orders_red ?? '…'} tone={kpisError ? 'warn' : kpis?.orders_red > 0 ? 'risk' : 'ok'}/>
         <KPI label={t('warehouse.ct.kpi.ordersAmber')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.orders_amber ?? '…'} tone={kpisError ? 'warn' : kpis?.orders_amber > 0 ? 'warn' : 'ok'}/>
         <KPI label={t('warehouse.ct.kpi.openTOs')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.tos_open ?? '…'} unit={kpisError ? undefined : ' TOs'} tone={kpisError ? 'warn' : 'ok'}/>
         <KPI label={t('warehouse.ct.kpi.deliveriesAtRisk')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.deliveries_at_risk ?? '…'} tone={kpisError ? 'warn' : kpis?.deliveries_at_risk > 0 ? 'warn' : 'ok'}/>
         <KPI label={t('warehouse.ct.kpi.openInbound')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.inbound_open ?? '…'} unit={kpisError ? undefined : ' lines'} tone={kpisError ? 'warn' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.binUtil')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.bin_util_pct ?? '…'} unit={kpisError ? undefined : '%'} tone={kpisError ? 'warn' : kpis?.bin_util_pct > 92 ? 'critical' : kpis?.bin_util_pct > 80 ? 'warn' : 'ok'} barPct={kpisError ? undefined : kpis?.bin_util_pct ?? 0} barTone={kpis?.bin_util_pct > 92 ? 'red' : kpis?.bin_util_pct > 80 ? 'amber' : ''}/>
+        <KPI label={t('warehouse.ct.kpi.binUtil')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.bin_util_pct ?? '…'} unit={kpisError ? undefined : '%'} tone={kpisError ? 'warn' : kpis?.bin_util_pct > 92 ? 'risk' : kpis?.bin_util_pct > 80 ? 'warn' : 'ok'} barPct={kpisError ? undefined : kpis?.bin_util_pct ?? 0} barTone={kpis?.bin_util_pct > 92 ? 'red' : kpis?.bin_util_pct > 80 ? 'amber' : ''}/>
       </div>
 
       {/* Today's run sheet + Critical exceptions */}
@@ -153,33 +191,17 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
         </Card>
 
         <Card title={t('warehouse.ct.card.productionAtRisk')} subtitle={`${redOrders.length} critical · ${amberOrders.length} at risk`} eyebrow="Production staging"
-          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav?.('staging')}>All <Icon name="arrowRight" size={12}/></button>} tight>
-          <table className="tbl">
-            <thead><tr><th></th><th>{t('warehouse.common.col.order')}</th><th>{t('warehouse.common.col.line')}</th><th>{t('warehouse.common.col.start')}</th><th className="num">{t('warehouse.common.col.staging')}</th><th></th></tr></thead>
-            <tbody>
-              {[...redOrders, ...amberOrders].slice(0, 8).map((o: any) => (
-                <tr key={o.id} className={`is-risk-${o.risk}`} onClick={() => onOpenOrder?.(o)}>
-                  <td><RiskDot risk={o.risk}/></td>
-                  <td><span className="code">{o.id}</span><div className="muted" style={{ fontSize: 11 }}>{o.product.split(' · ')[0]}</div></td>
-                  <td style={{ fontSize: 12 }}>{o.line.id}</td>
-                  <td className="mono small">{o.start ? fmtTime(o.start) : '—'}</td>
-                  <td className="num" style={{ width: 120 }}>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
-                      <span className="mono" style={{ fontSize: 11 }}>{o.stagingPct}%</span>
-                      <div style={{ width: 44 }}><Progress pct={o.stagingPct} tone={o.risk === 'red' ? 'red' : 'amber'}/></div>
-                    </div>
-                  </td>
-                  <td><Icon name="chevronRight" size={12} color="var(--fg-muted)"/></td>
-                </tr>
-              ))}
-              {!ordersLoading && redOrders.length + amberOrders.length === 0 && (
-                <tr><td colSpan={6} className="muted small">No live production orders at risk for this plant.</td></tr>
-              )}
-              {ordersError && (
-                <tr><td colSpan={6} className="red small">Unable to load live production orders: {ordersError}</td></tr>
-              )}
-            </tbody>
-          </table>
+          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav?.('staging')}>All <Icon name="arrowRight" size={12}/></button>} noPad>
+          <DataTable
+            columns={atRiskColumns}
+            rows={[...redOrders, ...amberOrders].slice(0, 8)}
+            rowKey="id"
+            onRowClick={onOpenOrder}
+            dense
+            loading={ordersLoading}
+            emphasize={(o) => o.risk === 'red'}
+          />
+          {ordersError && <div style={{ padding: 16, color: 'var(--status-risk)' }}>{ordersError}</div>}
         </Card>
       </div>
 
@@ -187,71 +209,51 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
       <div className="grid-2" style={{ marginBottom: 16 }}>
         <Card title={t('warehouse.ct.card.inboundToday')} subtitle={`${inboundToday.length} live receipts`}
           eyebrow="PO / STO"
-          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav?.('inbound')}>All <Icon name="arrowRight" size={12}/></button>} tight>
-          <table className="tbl">
-            <thead><tr><th>{t('warehouse.common.col.type')}</th><th>Doc</th><th>{t('warehouse.ct.col.vendorPlant')}</th><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.ct.col.eta')}</th><th>{t('warehouse.common.col.status')}</th></tr></thead>
-            <tbody>
-              {inboundToday.map((r: any) => (
-                <tr key={`${r.po_id}-${r.po_item}`} onClick={() => onOpenReceipt?.(r)} className={`is-risk-${r.risk}`}>
-                  <td><Pill tone="slate" noDot>PO</Pill></td>
-                  <td className="code">{r.po_id}</td>
-                  <td><div style={{ fontSize: 12 }}>{r.vendor_name || '—'}</div><div className="muted" style={{ fontSize: 11 }}>{r.vendor_id || '—'}</div></td>
-                  <td><div style={{ fontSize: 12 }}>{r.material_name || r.material_id || '—'}</div><div className="muted" style={{ fontSize: 11 }}>{r.ordered_qty ?? '—'} {r.uom ?? ''}</div></td>
-                  <td className="mono small">{r.delivery_date ?? '—'}</td>
-                  <td><Pill tone={r.qa_status === 'inspection' ? 'amber' : r.risk === 'red' ? 'red' : 'green'}>{r.qa_status || r.risk || 'open'}</Pill></td>
-                </tr>
-              ))}
-              {!inboundLoading && inboundToday.length === 0 && (
-                <tr><td colSpan={6} className="muted small">No live inbound receipts for this plant.</td></tr>
-              )}
-              {inboundError && (
-                <tr><td colSpan={6} className="red small">Unable to load live inbound receipts: {inboundError}</td></tr>
-              )}
-            </tbody>
-          </table>
+          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav?.('inbound')}>All <Icon name="arrowRight" size={12}/></button>} noPad>
+          <DataTable
+            columns={inboundColumns}
+            rows={inboundToday}
+            rowKey={(r) => `${r.po_id}-${r.po_item}`}
+            onRowClick={onOpenReceipt}
+            dense
+            loading={inboundLoading}
+            emphasize={(r) => r.risk === 'red'}
+          />
+          {inboundError && <div style={{ padding: 16, color: 'var(--status-risk)' }}>{inboundError}</div>}
         </Card>
 
         <Card title={t('warehouse.ct.card.outboundToday')} subtitle={`${outboundToday.filter((d: any) => d.risk === 'red').length} cut-off risk`}
           eyebrow="LIKP / LIPS"
-          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav?.('outbound')}>All <Icon name="arrowRight" size={12}/></button>} tight>
-          <table className="tbl">
-            <thead><tr><th>{t('warehouse.common.col.delivery')}</th><th>{t('warehouse.common.col.customer')}</th><th>{t('warehouse.ct.col.cutOff')}</th><th className="num">{t('warehouse.ct.col.pick')}</th><th>{t('warehouse.common.col.status')}</th><th>{t('warehouse.ct.col.dock')}</th></tr></thead>
-            <tbody>
-              {outboundToday.map((d: any) => (
-                <tr key={d.delivery_id} onClick={() => onOpenDelivery?.(d)} className={`is-risk-${d.risk}`}>
-                  <td className="code">{d.delivery_id}</td>
-                  <td><div style={{ fontSize: 12 }}>{d.customer_name || d.customer_id || '—'}</div></td>
-                  <td className="mono small">{d.planned_gi_date ?? '—'}</td>
-                  <td className="num" style={{ width: 90 }}>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
-                      <span className="mono" style={{ fontSize: 11 }}>{Math.round(d.pick_pct ?? 0)}%</span>
-                      <div style={{ width: 36 }}><Progress pct={d.pick_pct ?? 0} tone={d.risk === 'red' ? 'red' : d.risk === 'amber' ? 'amber' : ''}/></div>
-                    </div>
-                  </td>
-                  <td><Pill tone={d.risk === 'red' ? 'red' : d.risk === 'amber' ? 'amber' : 'green'}>{d.risk || 'open'}</Pill></td>
-                  <td className="mono small">—</td>
-                </tr>
-              ))}
-              {!outboundLoading && outboundToday.length === 0 && (
-                <tr><td colSpan={6} className="muted small">No live outbound deliveries for this plant.</td></tr>
-              )}
-              {outboundError && (
-                <tr><td colSpan={6} className="red small">Unable to load live outbound deliveries: {outboundError}</td></tr>
-              )}
-            </tbody>
-          </table>
+          actions={<button className="btn btn-sm btn-ghost" onClick={() => onNav?.('outbound')}>All <Icon name="arrowRight" size={12}/></button>} noPad>
+          <DataTable
+            columns={outboundColumns}
+            rows={outboundToday}
+            rowKey="delivery_id"
+            onRowClick={onOpenDelivery}
+            dense
+            loading={outboundLoading}
+            emphasize={(d) => d.risk === 'red'}
+          />
+          {outboundError && <div style={{ padding: 16, color: 'var(--status-risk)' }}>{outboundError}</div>}
         </Card>
       </div>
 
       {/* Ageing tasks + bin constraints */}
       <div className="grid-2">
-        <Card title={t('warehouse.ct.card.ageingTOs')} subtitle="Open > 2h — redistribute or escalate" eyebrow="LTAK" tight>
-          <table className="tbl">
-            <thead><tr><th>{t('warehouse.ct.col.to')}</th><th>{t('warehouse.common.col.type')}</th><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.ct.col.srcDst')}</th><th className="num">{t('warehouse.common.col.age')}</th><th>{t('warehouse.common.col.operator')}</th></tr></thead>
-            <tbody>
-              <tr><td colSpan={6} className="muted small">No live ageing transfer-order list endpoint is available yet.</td></tr>
-            </tbody>
-          </table>
+        <Card title={t('warehouse.ct.card.ageingTOs')} subtitle="Open > 2h — redistribute or escalate" eyebrow="LTAK" noPad>
+          <DataTable
+            columns={[
+              { header: t('warehouse.ct.col.to'), key: 'id' },
+              { header: t('warehouse.common.col.type'), key: 'type' },
+              { header: t('warehouse.common.col.material'), key: 'material' },
+              { header: t('warehouse.ct.col.srcDst'), key: 'path' },
+              { header: t('warehouse.common.col.age'), key: 'age', align: 'right' },
+              { header: t('warehouse.common.col.operator'), key: 'user' }
+            ]}
+            rows={[]}
+            dense
+            noDataLabel="No live ageing transfer-order list endpoint is available yet."
+          />
         </Card>
 
         <Card title={t('warehouse.ct.card.spaceConstraints')} subtitle="Utilisation by storage type · click to drill" eyebrow="Inventory"

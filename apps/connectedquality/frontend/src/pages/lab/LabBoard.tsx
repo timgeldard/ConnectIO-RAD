@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { Icon } from '~/components/Icon'
+import { Icon } from '@connectio/shared-ui'
 import { useQuery } from '@tanstack/react-query'
 import { fetchJson } from '@connectio/shared-frontend-api'
+import { usePlantSelection } from '@connectio/shared-app-context'
 
 interface FailSpec {
   mat: string
@@ -34,15 +35,8 @@ export function LabBoard() {
   const urlPlantId = params.get('plant_id') ?? params.get('plant')
   const lotType = params.get('lot_type')
 
-  const [selectedPlantId, setSelectedPlantId] = useState<string>(urlPlantId ?? '')
+  const { plants, selectedPlantId, setSelectedPlantId, loading: plantsLoading } = usePlantSelection()
   const plantId = selectedPlantId || null
-
-  const { data: plantsData } = useQuery({
-    queryKey: ['cq', 'lab', 'plants'],
-    enabled: !urlPlantId,
-    queryFn: () => fetchJson<{ plants: PlantOption[] }>('/api/cq/lab/plants'),
-    staleTime: 5 * 60 * 1000,
-  })
 
   const { data, isLoading } = useQuery({
     queryKey: ['cq', 'lab', 'fails', plantId, lotType],
@@ -72,7 +66,6 @@ export function LabBoard() {
   const goPrev = () => { setPage((p) => (p - 1 + pages) % pages); setTick(30) }
   const goNext = () => { setPage((p) => (p + 1) % pages); setTick(30) }
 
-  const plants = (plantsData?.plants ?? []).slice().sort((a, b) => a.plant_id.localeCompare(b.plant_id))
   const selectedPlant = plants.find(p => p.plant_id === selectedPlantId)
   const plantLabel = selectedPlant
     ? (selectedPlant.plant_name && selectedPlant.plant_name !== selectedPlant.plant_id

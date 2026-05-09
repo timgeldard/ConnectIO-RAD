@@ -125,7 +125,7 @@ export function PlatformShell({
         userRole={userRole}
       />
       {hasCtx && contextBar}
-      <div className="connectio-body">
+      <div data-testid="shell-body" className="connectio-body">
         {tabs.length > 0 && (
           <SubNav
             tabs={tabs}

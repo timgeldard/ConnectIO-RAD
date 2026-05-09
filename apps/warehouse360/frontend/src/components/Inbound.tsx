@@ -4,6 +4,7 @@ import { useI18n } from '@connectio/shared-frontend-i18n'
 import { useApi } from '../hooks/useApi'
 import { Icon, Pill, Progress } from './Primitives'
 import { FilterBar, Card, KPI } from './Shared'
+import { DataTable, type Column } from '@connectio/shared-ui'
 import { fmtTime } from '~/utils/time'
 
 /* Inbound — PO + STO receipts, dock schedule, putaway backlog */
@@ -34,6 +35,59 @@ const Inbound = ({ onOpen }: InboundProps) => {
   }), [allReceipts]);
 
   const v = (n) => loading ? '...' : n;
+
+  const columns: Column<any>[] = [
+    {
+      header: t('warehouse.inbound.col.doc'),
+      render: (r) => (
+        <>
+          <div className="code">{r.po_id}</div>
+          <div className="muted" style={{ fontSize: 11 }}>item {r.po_item}</div>
+        </>
+      )
+    },
+    {
+      header: t('warehouse.inbound.col.vendor'),
+      render: (r) => (
+        <>
+          <div style={{ fontSize: 12, fontWeight: 600 }}>{r.vendor_name || '—'}</div>
+          <div className="muted" style={{ fontSize: 11 }}>{r.vendor_id}</div>
+        </>
+      )
+    },
+    {
+      header: t('warehouse.common.col.material'),
+      render: (r) => (
+        <>
+          <div style={{ fontSize: 12 }}>{r.material_name || '—'}</div>
+          <div className="muted" style={{ fontSize: 11 }}>{r.material_id}</div>
+        </>
+      )
+    },
+    {
+      header: t('warehouse.inbound.col.ordered'),
+      align: 'right',
+      render: (r) => `${r.ordered_qty != null ? Number(r.ordered_qty).toLocaleString() : '—'} ${r.uom}`
+    },
+    {
+      header: t('warehouse.inbound.col.received'),
+      align: 'right',
+      render: (r) => r.gr_qty != null ? Number(r.gr_qty).toLocaleString() : '—'
+    },
+    {
+      header: t('warehouse.inbound.col.dueDate'),
+      key: 'delivery_date',
+      mono: true
+    },
+    {
+      header: t('warehouse.inbound.col.qa'),
+      render: (r) => (
+        <Pill tone={r.qa_status === 'inspection' ? 'amber' : r.qa_status === 'released' ? 'green' : 'grey'} noDot>
+          {r.qa_status === 'inspection' ? t('warehouse.inbound.qa.inspection') : r.qa_status === 'released' ? t('warehouse.inbound.qa.released') : t('warehouse.inbound.qa.noLot')}
+        </Pill>
+      )
+    }
+  ];
 
   return (
     <div className="page">
@@ -97,51 +151,15 @@ const Inbound = ({ onOpen }: InboundProps) => {
       />
 
       <Card title={`${rows.length} inbound receipts`} subtitle="Click a row for line detail"
-        eyebrow="EKKO / EKPO" tight>
-        <div className="scroll-x">
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>{t('warehouse.inbound.col.doc')}</th>
-                <th>{t('warehouse.inbound.col.vendor')}</th>
-                <th>{t('warehouse.common.col.material')}</th>
-                <th className="num">{t('warehouse.inbound.col.ordered')}</th>
-                <th className="num">{t('warehouse.inbound.col.received')}</th>
-                <th>{t('warehouse.inbound.col.dueDate')}</th>
-                <th>{t('warehouse.inbound.col.qa')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r: any) => (
-                <tr key={r.po_id + '-' + r.po_item} onClick={() => onOpen?.(r)}>
-                  <td>
-                    <div className="code">{r.po_id}</div>
-                    <div className="muted" style={{ fontSize: 11 }}>item {r.po_item}</div>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: 12, fontWeight: 600 }}>{r.vendor_name || '—'}</div>
-                    <div className="muted" style={{ fontSize: 11 }}>{r.vendor_id}</div>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: 12 }}>{r.material_name || '—'}</div>
-                    <div className="muted" style={{ fontSize: 11 }}>{r.material_id}</div>
-                  </td>
-                  <td className="num">{r.ordered_qty != null ? Number(r.ordered_qty).toLocaleString() : '—'} {r.uom}</td>
-                  <td className="num">{r.gr_qty != null ? Number(r.gr_qty).toLocaleString() : '—'}</td>
-                  <td className="mono small">{r.delivery_date || '—'}</td>
-                  <td>
-                    <Pill tone={r.qa_status === 'inspection' ? 'amber' : r.qa_status === 'released' ? 'green' : 'grey'} noDot>
-                      {r.qa_status === 'inspection' ? t('warehouse.inbound.qa.inspection') : r.qa_status === 'released' ? t('warehouse.inbound.qa.released') : t('warehouse.inbound.qa.noLot')}
-                    </Pill>
-                  </td>
-                </tr>
-              ))}
-              {!loading && rows.length === 0 && (
-                <tr><td colSpan={7} className="muted small">No live inbound receipts match this plant and filter set.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        eyebrow="EKKO / EKPO" noPad>
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowKey={(r) => r.po_id + '-' + r.po_item}
+          onRowClick={onOpen}
+          dense
+          loading={loading}
+        />
       </Card>
     </div>
   );
@@ -242,7 +260,7 @@ const ReceiptDetail = ({ receipt }: ReceiptDetailProps) => {
         </div>
       </div>
 
-      <Card title="Document" eyebrow={docType === 'NB' || docType === 'PO' ? 'EKKO · EKPO' : 'STO · LIKP'} tight>
+      <Card title="Document" eyebrow={docType === 'NB' || docType === 'PO' ? 'EKKO · EKPO' : 'STO · LIKP'} noPad>
         <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr' }}>
           {[
             ['Document',  id],
@@ -260,13 +278,20 @@ const ReceiptDetail = ({ receipt }: ReceiptDetailProps) => {
         </dl>
       </Card>
 
-      <Card title="Putaway tasks" subtitle="Assigned TOs for this receipt" eyebrow="LTAK / LTAP" tight>
-        <table className="tbl">
-          <thead><tr><th>TO</th><th>SSCC</th><th>Src</th><th>Dst bin</th><th>Operator</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr><td colSpan={6} className="muted small">No live putaway transfer-order detail endpoint is available yet.</td></tr>
-          </tbody>
-        </table>
+      <Card title="Putaway tasks" subtitle="Assigned TOs for this receipt" eyebrow="LTAK / LTAP" noPad>
+        <DataTable
+          columns={[
+            { header: 'TO', key: 'id' },
+            { header: 'SSCC', key: 'sscc' },
+            { header: 'Src', key: 'src' },
+            { header: 'Dst bin', key: 'dst' },
+            { header: 'Operator', key: 'user' },
+            { header: 'Status', key: 'status' }
+          ]}
+          rows={[]}
+          dense
+          noDataLabel="No live putaway transfer-order detail endpoint is available yet."
+        />
       </Card>
     </div>
   );

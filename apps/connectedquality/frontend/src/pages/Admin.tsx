@@ -1,6 +1,6 @@
-import { Card } from '~/components/Card'
-import { PageHead } from '~/components/PageHead'
-import { Icon } from '~/components/Icon'
+import { Card } from '@connectio/shared-ui'
+import { PageHead } from '@connectio/shared-ui'
+import { Icon } from '@connectio/shared-ui'
 
 const SECTIONS = [
   { num: '01', title: 'Identity & access', items: ['SSO via Kerry Azure AD', 'Role-based permissions', 'Audit trail · 7y retention'] },

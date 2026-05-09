@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@connectio/shared-frontend-i18n';
 import { useEM } from '~/context/EMContext';
 import { useMics, useHeatmap } from '~/api/client';
-import { Slider, Select, Button, Icon } from '@connectio/shared-ui';
+import { Slider, Select, Button, Icon, GlobalFilterBar, FilterGroup } from '@connectio/shared-ui';
 import type { TimeWindow } from '~/types';
 
 function escapeCsv(val: unknown): string {
@@ -99,7 +99,7 @@ export default function FilterBar() {
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 24px', background: 'var(--surface-1)', borderBottom: '1px solid var(--line-1)', flexWrap: 'wrap', flexShrink: 0 }}>
+    <GlobalFilterBar>
       {/* Time window */}
       <div style={{ width: 140 }}>
         <Select
@@ -197,6 +197,6 @@ export default function FilterBar() {
       >
         CSV
       </Button>
-    </div>
+    </GlobalFilterBar>
   );
 }

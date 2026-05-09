@@ -8,9 +8,11 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from 'react';
+import { usePlantSelection } from '@connectio/shared-app-context';
 import type { HeatmapMode, TimeWindow, ViewState, PersonaId } from '~/types';
 
 interface EMState {
@@ -62,9 +64,31 @@ function readLocalStorage<T>(key: string, fallback: T): T {
 }
 
 export function EMProvider({ children }: { children: React.ReactNode }) {
+  const { selectedPlantId, setSelectedPlantId } = usePlantSelection();
+
   const [view, setViewRaw] = useState<ViewState>(() =>
     readLocalStorage<ViewState>('em_view', { level: 'global', plantId: null, floorId: null }),
   );
+
+  // Sync shared PlantProvider state into EM view state when it changes
+  useEffect(() => {
+    if (selectedPlantId && view.plantId !== selectedPlantId) {
+      setViewRaw(prev => {
+        if (prev.level === 'global') return { level: 'site', plantId: selectedPlantId, floorId: null };
+        return { ...prev, plantId: selectedPlantId };
+      });
+    } else if (!selectedPlantId && view.plantId !== null) {
+       setViewRaw(prev => ({ ...prev, level: 'global', plantId: null, floorId: null }));
+    }
+  }, [selectedPlantId]);
+
+  // Sync EM view state back to shared PlantProvider when user navigates
+  useEffect(() => {
+    if (view.plantId && view.plantId !== selectedPlantId) {
+      setSelectedPlantId(view.plantId);
+    }
+  }, [view.plantId, selectedPlantId, setSelectedPlantId]);
+
   const [personaId, setPersonaIdRaw] = useState<PersonaId>(() =>
     readLocalStorage<PersonaId>('em_persona', 'regional'),
   );

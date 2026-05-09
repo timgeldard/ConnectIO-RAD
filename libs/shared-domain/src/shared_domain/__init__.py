@@ -6,6 +6,7 @@ from .events import DomainEvent, DomainEventHandler, DomainEventPublisher
 from .exceptions import BusinessRuleValidationException, DomainException, EntityNotFoundError
 from .models import AggregateRoot, Entity, ValueObject
 from .repository import Repository
+from .manufacturing import PlantId, Quantity, PlantScope
 
 __all__ = [
     "DomainEvent",
@@ -18,4 +19,7 @@ __all__ = [
     "AggregateRoot",
     "ValueObject",
     "Repository",
+    "PlantId",
+    "Quantity",
+    "PlantScope",
 ]

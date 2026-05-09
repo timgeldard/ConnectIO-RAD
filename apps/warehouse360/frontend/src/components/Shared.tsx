@@ -1,165 +1,127 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
-import { Icon } from './Primitives'
+import { Icon, KPI, Card } from '@connectio/shared-ui'
 import { minutesFromNow } from '~/utils/time'
 
-/* Shared filter bar + drawer + small cards */
+export { KPI, Card }
 
-/** Props for the FilterBar component. */
-interface FilterBarProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  filters: any[]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  values: Record<string, any>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onChange: (key: string, value: any) => void
-  extra?: React.ReactNode
+/** A breadcrumb navigation item. */
+export type CrumbItem = { label: string; onClick?: () => void }
+
+/** Formats an ETA timestamp for display as HH:MM. */
+export const formatETA = (value: Date | string | number): string => {
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return '--'
+  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
-/** Filter bar with chip-group or select-dropdown filter controls. */
-const FilterBar = ({ filters, values, onChange, extra }: FilterBarProps) => (
-  <div className="filter-bar">
-    {filters.map((f: any, i: number) => (
-      <div className="filter-group" key={i}>
-        <span className="filter-label">{f.label}</span>
-        {f.chips ? f.chips.map((c: any) => (
-          <button key={c.value} className={`filter-chip ${values[f.key] === c.value ? 'is-active' : ''}`}
-            onClick={() => onChange(f.key, c.value)}>
-            {c.dot && <span className={`risk-dot ${c.dot}`}/>}
+/** A single filter chip within a FilterBar filter group. */
+interface Chip { value: string; label: string; dot?: string }
+/** A single filter group shown in FilterBar. */
+interface Filter { key: string; label: string; chips: Chip[] }
+/** Props for the shared chip-based FilterBar. */
+interface FilterBarProps {
+  filters: Filter[]
+  values: Record<string, string>
+  onChange: (key: string, value: string) => void
+}
+
+/** Horizontal chip-based filter bar for warehouse cockpit pages. */
+export const FilterBar = ({ filters, values, onChange }: FilterBarProps) => (
+  <div style={{ display: 'flex', gap: 16, padding: '8px 0', flexWrap: 'wrap', alignItems: 'center' }}>
+    {filters.map((f) => (
+      <div key={f.key} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginRight: 4 }}>
+          {f.label}
+        </span>
+        {f.chips.map((c) => (
+          <button
+            key={c.value}
+            onClick={() => onChange(f.key, c.value)}
+            style={{
+              fontSize: 11,
+              padding: '3px 10px',
+              borderRadius: 12,
+              border: '1px solid var(--line-1)',
+              cursor: 'pointer',
+              background: values[f.key] === c.value ? 'var(--surface-3)' : 'var(--surface-1)',
+              color: values[f.key] === c.value ? 'var(--text-1)' : 'var(--text-3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            {c.dot && (
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: c.dot === 'red' ? 'var(--status-risk)' : c.dot === 'amber' ? 'var(--status-warn)' : 'var(--status-ok)',
+                flexShrink: 0,
+              }} />
+            )}
             {c.label}
-            {typeof c.count === 'number' && <span style={{ opacity: 0.6, fontFamily: 'var(--font-mono)', fontSize: 10 }}>{c.count}</span>}
           </button>
-        )) : (
-          <select className="filter-select" value={values[f.key] || ''} onChange={(e) => onChange(f.key, e.target.value)}>
-            {f.options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        )}
+        ))}
       </div>
     ))}
-    <div style={{ marginLeft: 'auto' }}>{extra}</div>
   </div>
-);
+)
 
-/** Props for the Drawer slide-in panel. */
+/** Props for the slide-in Drawer panel. */
 interface DrawerProps {
   open: boolean
   onClose: () => void
   title?: string
   subtitle?: string
-  children?: React.ReactNode
   actions?: React.ReactNode
+  children?: React.ReactNode
 }
 
-/** Slide-in detail drawer with backdrop, header, and body. */
-const Drawer = ({ open, onClose, title, subtitle, children, actions }: DrawerProps) => {
-  if (!open) return null;
+/** Right-side sliding detail drawer for warehouse cockpit pages. */
+export const Drawer = ({ open, onClose, title, subtitle, actions, children }: DrawerProps) => {
+  if (!open) return null
   return (
-    <>
-      <div className="drawer-backdrop" onClick={onClose}/>
-      <aside className="drawer" role="dialog" aria-modal="true">
-        <div className="drawer-header">
-          <div style={{ flex: 1 }}>
-            <div className="drawer-title">{title}</div>
-            {subtitle && <div className="drawer-subtitle">{subtitle}</div>}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50 }}>
+      <div
+        onClick={onClose}
+        style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }}
+      />
+      <div style={{
+        position: 'absolute', top: 0, right: 0, bottom: 0, width: 480,
+        background: 'var(--surface-1)', display: 'flex', flexDirection: 'column',
+        overflow: 'hidden', boxShadow: '-8px 0 32px rgba(0,0,0,0.2)',
+      }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+          padding: '20px 24px', borderBottom: '1px solid var(--line-1)',
+        }}>
+          <div>
+            {title && <div style={{ fontWeight: 600, fontSize: 15 }}>{title}</div>}
+            {subtitle && <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>{subtitle}</div>}
           </div>
-          {actions}
-          <button className="drawer-close" onClick={onClose} aria-label="Close">
-            <Icon name="close" size={18}/>
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {actions}
+            <button
+              onClick={onClose}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text-3)', padding: 4 }}
+            >
+              ×
+            </button>
+          </div>
         </div>
-        <div className="drawer-body">{children}</div>
-      </aside>
-    </>
-  );
-};
-
-/** Props for the KPI metric card. */
-interface KPIProps {
-  label?: React.ReactNode
-  value?: React.ReactNode
-  unit?: string
-  trend?: number
-  trendLabel?: string
-  target?: string
-  tone?: string
-  barPct?: number
-  barTone?: string
-}
-
-/** KPI metric card with optional bar and trend indicator. */
-const KPI = ({ label, value, unit, trend, trendLabel, target, tone = 'ok', barPct, barTone }: KPIProps) => (
-  <div className={`kpi is-${tone}`}>
-    <div className="kpi-label">{label}</div>
-    <div className="kpi-value">{value}{unit && <span className="unit">{unit}</span>}</div>
-    {typeof barPct === 'number' && (
-      <div className="kpi-bar"><div className={`kpi-bar-fill ${barTone ? 'is-' + barTone : ''}`} style={{ width: barPct + '%' }}/></div>
-    )}
-    {(trend !== undefined || target) && (
-      <div className={`kpi-trend ${(trend ?? 0) > 0 ? 'is-up' : (trend ?? 0) < 0 ? 'is-down' : ''}`}>
-        {(trend ?? 0) > 0 && <Icon name="arrowUp" size={12}/>}
-        {(trend ?? 0) < 0 && <Icon name="arrowDown" size={12}/>}
-        {trend !== undefined && <span>{Math.abs(trend)}{trendLabel || ''}</span>}
-        {target && <span style={{ color: 'var(--fg-muted)', marginLeft: 6 }}>Target {target}</span>}
+        <div style={{ flex: 1, overflow: 'auto', padding: 24 }}>{children}</div>
       </div>
-    )}
-  </div>
-);
-
-/** Props for the Card layout component. */
-interface CardProps {
-  title?: React.ReactNode
-  subtitle?: React.ReactNode
-  actions?: React.ReactNode
-  children?: React.ReactNode
-  style?: React.CSSProperties
-  tight?: boolean
-  footer?: React.ReactNode
-  eyebrow?: string
-}
-
-/** Card container with optional header, actions, footer, and eyebrow. */
-const Card = ({ title, subtitle, actions, children, style, tight, footer, eyebrow }: CardProps) => (
-  <div className="card" style={style}>
-    {(title || actions) && (
-      <div className="card-header">
-        <div style={{ flex: 1 }}>
-          {eyebrow && <div className="t-eyebrow" style={{ marginBottom: 2 }}>{eyebrow}</div>}
-          <div className="card-title">{title}</div>
-          {subtitle && <div className="card-subtitle">{subtitle}</div>}
-        </div>
-        {actions}
-      </div>
-    )}
-    <div className={`card-body${tight ? ' tight' : ''}`}>{children}</div>
-    {footer && <div className="card-footer">{footer}</div>}
-  </div>
-);
-
-/** Formats a Date as a relative time string (e.g. "in 23m", "2h ago"). */
-const formatETA = (d: Date) => {
-  const mins = minutesFromNow(d);
-  if (Math.abs(mins) < 60) return (mins < 0 ? mins + 'm ago' : 'in ' + mins + 'm');
-  const hours = Math.round(mins / 60 * 10) / 10;
-  return (hours < 0 ? Math.abs(hours) + 'h ago' : 'in ' + hours + 'h');
-};
-
-/** A single breadcrumb item. */
-interface CrumbItem {
-  label: string
-  onClick?: () => void
+    </div>
+  )
 }
 
 /** Breadcrumb navigation row. */
-const Crumbs = ({ items }: { items: CrumbItem[] }) => (
+export const Crumbs = ({ items }: { items: CrumbItem[] }) => (
   <div className="crumbs">
     {items.map((c: any, i: number) => (
       <React.Fragment key={i}>
-        {i > 0 && <Icon name="chevronRight" size={10}/>}
+        {i > 0 && <Icon name="chevron-right" size={10}/>}
         {c.onClick ? <a onClick={c.onClick} style={{ cursor: 'pointer' }}>{c.label}</a> : <span>{c.label}</span>}
       </React.Fragment>
     ))}
   </div>
-);
-
-
-export { FilterBar, Drawer, KPI, Card, formatETA, Crumbs }
+)

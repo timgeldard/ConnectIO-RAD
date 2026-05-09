@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from './SPCContext'
-import { Icon } from '@connectio/shared-ui'
+import { Icon, GlobalFilterBar, FilterGroup, FilterDivider } from '@connectio/shared-ui'
 import FieldHelp from './components/FieldHelp'
 import { useValidateMaterial } from './hooks/useMaterials'
 import { usePlants } from './hooks/usePlants'
@@ -358,22 +358,15 @@ export default function SPCFilterBar({ embedded = false }: SPCFilterBarProps) {
     const micLabel   = formatMicLabel(state.selectedMIC)
     const matLabel   = state.selectedMaterial?.material_name || state.selectedMaterial?.material_id || ''
     const plantPart  = state.selectedPlant ? ` · ${state.selectedPlant.plant_name || state.selectedPlant.plant_id}` : ''
-    const depthPart  = ` · Lineage U${state.processFlowUpstreamDepth}/D${state.processFlowDownstreamDepth}`
+    const depthPart  = `U${state.processFlowUpstreamDepth}/D${state.processFlowDownstreamDepth}`
     const datePart   = state.dateFrom && state.dateTo
-      ? ` · ${state.dateFrom} → ${state.dateTo}`
+      ? `${state.dateFrom} → ${state.dateTo}`
       : state.dateFrom
-        ? ` · From ${state.dateFrom}`
+        ? `From ${state.dateFrom}`
         : ''
 
     return (
-      <div
-        style={embedded ? undefined : {
-          borderBottom: '1px solid var(--line-1)',
-          background:   'var(--surface-1)',
-          padding:      '0.5rem 1.5rem',
-        }}
-        aria-label="SPC analysis filters (collapsed)"
-      >
+      <GlobalFilterBar style={embedded ? { border: 'none', padding: 0 } : undefined} aria-label="SPC analysis filters (collapsed)">
         <button
           className="btn btn-ghost btn-sm"
           type="button"
@@ -386,22 +379,32 @@ export default function SPCFilterBar({ embedded = false }: SPCFilterBarProps) {
           <span style={{ margin: '0 0.375rem', color: 'var(--line-2)' }}>·</span>
           <span>{micLabel}</span>
           {plantPart && <span style={{ color: 'var(--text-3)' }}>{plantPart}</span>}
-          <span style={{ color: 'var(--text-3)' }}>{depthPart}</span>
-          {datePart  && <span style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginLeft: '0.25rem' }}>{datePart}</span>}
-          <span
-            style={{
-              marginLeft:   '0.75rem',
-              padding:      '0 0.5rem',
-              border:       '1px solid var(--line-1)',
-              borderRadius: '2px',
-              fontSize:     '0.6875rem',
-              color:        'var(--text-3)',
-            }}
-          >
-            Edit
-          </span>
         </button>
-      </div>
+
+        <FilterDivider />
+
+        <FilterGroup label="LINEAGE">
+          <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{depthPart}</span>
+        </FilterGroup>
+
+        {datePart && (
+          <>
+            <FilterDivider />
+            <FilterGroup label="PERIOD">
+              <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{datePart}</span>
+            </FilterGroup>
+          </>
+        )}
+
+        <div style={{ flex: 1 }} />
+        <button
+          className="btn btn-ghost btn-xs"
+          onClick={() => setCollapsed(false)}
+          style={{ border: '1px solid var(--line-1)', color: 'var(--text-3)' }}
+        >
+          Edit filters
+        </button>
+      </GlobalFilterBar>
     )
   }
 

@@ -104,11 +104,11 @@ function RecallReadinessBody({
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 12 }}>
         <KPI label={copy.bottom.batchStatus} value={<StatusPill status={batch.batch_status} />} />
-        <KPI label={copy.bottom.daysToExpiry} value={batch.days_to_expiry} unit={copy.common.days} sub={batch.manufacture_date + " → " + batch.expiry_date} />
-        <KPI label={copy.status.UNRESTRICTED} value={fmtN(batch.unrestricted, 1)} unit={copy.common.kg} tone="good" />
+        <KPI label={copy.bottom.daysToExpiry} value={batch.days_to_expiry} unit={copy.common.days} subtext={batch.manufacture_date + " → " + batch.expiry_date} />
+        <KPI label={copy.status.UNRESTRICTED} value={fmtN(batch.unrestricted, 1)} unit={copy.common.kg} tone="ok" />
         <KPI label={copy.recall.blocked} value={fmtN(batch.blocked, 0)} unit={copy.common.kg} tone={batch.blocked > 0 ? "bad" : "muted"} />
         <KPI label={copy.recall.qi} value={fmtN(batch.qi, 0)} unit={copy.common.kg} tone={batch.qi > 0 ? "warn" : "muted"} />
-        <KPI label={copy.common.processOrder} value={<span style={{ fontFamily: "var(--font-mono)", fontSize: 15 }}>{batch.process_order || "—"}</span>} sub={batch.plant_name} />
+        <KPI label={copy.common.processOrder} value={<span style={{ fontFamily: "var(--font-mono)", fontSize: 15 }}>{batch.process_order || "—"}</span>} subtext={batch.plant_name} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 28 }}>

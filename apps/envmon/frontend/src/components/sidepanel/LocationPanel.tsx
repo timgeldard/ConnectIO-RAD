@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useI18n } from '@connectio/shared-frontend-i18n';
 import { useEM } from '~/context/EMContext';
 import { useLocationSummary } from '~/api/client';
-import StatusPill from '~/components/ui/StatusPill';
+import { StatusPill } from '@connectio/shared-ui';
 import { IconX } from '~/components/ui/Icons';
 import TrendTab from './TrendTab';
 import LotsTab from './LotsTab';
@@ -52,8 +52,7 @@ export default function LocationPanel() {
         </div>
         {recentLot && (
           <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <StatusPill status={recentLot.status} />
-          </div>
+            <StatusPill status={recentLot.status} label={t(`envmon.status.${recentLot.status}`)} />          </div>
         )}
         {summary?.mics && summary.mics.length > 0 && (
           <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>

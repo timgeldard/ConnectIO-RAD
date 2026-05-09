@@ -1,6 +1,6 @@
 import asyncio
 
-from shared_db.runtime import CachePolicy, CacheTier, SqlRuntime
+from shared_db.runtime import CachePolicy, CacheTier, SqlRuntime, is_read_only_statement
 
 
 def test_shared_sql_runtime_supports_spc_tiered_cache_shape():
@@ -23,7 +23,8 @@ def test_shared_sql_runtime_supports_spc_tiered_cache_shape():
     second = asyncio.run(runtime.run_sql_async("token", "SELECT * FROM spc_quality_metrics"))
 
     assert first == second
-    assert calls == ["SELECT * FROM spc_quality_metrics"]
+    assert len(calls) == 1
+    assert "SELECT * FROM spc_quality_metrics" in calls[0]
 
 
 def test_shared_sql_runtime_supports_spc_audit_hook_and_audit_suppression():
@@ -65,8 +66,8 @@ def test_shared_sql_runtime_write_invalidation_matches_spc_cache_requirement():
 
     def run_sql(_token, statement, _params=None):
         calls.append(statement)
-        if statement.startswith("SELECT"):
-            return [{"read": calls.count(statement)}]
+        if is_read_only_statement(statement):
+            return [{"read": sum(1 for c in calls if is_read_only_statement(c))}]
         return [{"write": True}]
 
     runtime = SqlRuntime(run_sql=run_sql)
@@ -77,3 +78,4 @@ def test_shared_sql_runtime_write_invalidation_matches_spc_cache_requirement():
 
     assert first_read == [{"read": 1}]
     assert second_read == [{"read": 2}]
+    assert len(calls) == 3

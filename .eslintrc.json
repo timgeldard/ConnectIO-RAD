@@ -1,0 +1,87 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "@nx"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "*.ts",
+        "*.tsx",
+        "*.js",
+        "*.jsx"
+      ],
+      "rules": {
+        "@nx/enforce-module-boundaries": [
+          "error",
+          {
+            "enforceBuildableLibDependency": true,
+            "allow": [],
+            "depConstraints": [
+              {
+                "sourceTag": "type:frontend",
+                "onlyDependOnLibsWithTags": [
+                  "type:lib",
+                  "type:frontend"
+                ]
+              },
+              {
+                "sourceTag": "type:backend",
+                "onlyDependOnLibsWithTags": [
+                  "type:lib",
+                  "type:backend"
+                ]
+              },
+              {
+                "sourceTag": "scope:shared",
+                "notDependOnLibsWithTags": [
+                  "type:frontend",
+                  "type:backend"
+                ]
+              }
+            ]
+          }
+        ],
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "apps/*/frontend/src/components/*"
+                ],
+                "message": "Cross-app UI component imports are forbidden. Use @connectio/shared-ui instead."
+              },
+              {
+                "group": [
+                  "libs/shared-db/*"
+                ],
+                "importNames": [
+                  "run_sql",
+                  "run_sql_async"
+                ],
+                "message": "Do not import shared-db directly from shared-ui.",
+                "allowImportNames": []
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "apps/*/frontend/src/components/**/*.tsx"
+      ],
+      "rules": {
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExportDefaultDeclaration > FunctionDeclaration, ExportNamedDeclaration > FunctionDeclaration",
+            "message": "Local component creation is blocked. Use @connectio/shared-ui. Add /* eslint-disable no-restricted-syntax -- @allow-local-component */ to bypass."
+          }
+        ]
+      }
+    }
+  ]
+}

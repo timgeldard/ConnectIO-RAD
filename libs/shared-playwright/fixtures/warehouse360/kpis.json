@@ -1,0 +1,10 @@
+{
+  "kpis": [
+    { "label": "Orders Today",        "value": "47",      "unit": "",    "tone": "ok"      },
+    { "label": "At Risk",             "value": "3",       "unit": "",    "tone": "risk"    },
+    { "label": "Inbound GRs",         "value": "12",      "unit": "",    "tone": "ok"      },
+    { "label": "Outbound Deliveries", "value": "8",       "unit": "",    "tone": "ok"      },
+    { "label": "Stock Alerts",        "value": "2",       "unit": "",    "tone": "warn"    },
+    { "label": "Fill Rate",           "value": "96.4",    "unit": "%",   "tone": "ok"      }
+  ]
+}

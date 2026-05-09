@@ -1,5 +1,5 @@
 import { useI18n } from '@connectio/shared-frontend-i18n';
-import KPI from '~/components/ui/KPI';
+import { KPI } from '@connectio/shared-ui';
 import { useFloors } from '~/api/client';
 import type { PlantInfo, FloorInfo } from '~/types';
 
@@ -41,15 +41,15 @@ export default function SiteView({ plant, onOpenFloor, onBack }: Props) {
 
       {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 24 }}>
-        <KPI label={t('envmon.site.kpi.activeFails')} value={kpis.active_fails} accent="fail" delta={t('envmon.site.kpi.activeFails.delta')} />
-        <KPI label={t('envmon.site.kpi.warnings')} value={kpis.warnings} accent="warn" delta={t('envmon.site.kpi.warnings.delta')} />
-        <KPI label={t('envmon.site.kpi.pending')} value={kpis.pending} accent="info" delta={t('envmon.site.kpi.pending.delta')} />
-        <KPI label={t('envmon.site.kpi.passRate')} value={kpis.pass_rate.toFixed(1)} unit="%" accent="ok" />
+        <KPI label={t('envmon.site.kpi.activeFails')} value={kpis.active_fails} tone="risk" delta={t('envmon.site.kpi.activeFails.delta')} />
+        <KPI label={t('envmon.site.kpi.warnings')} value={kpis.warnings} tone="warn" delta={t('envmon.site.kpi.warnings.delta')} />
+        <KPI label={t('envmon.site.kpi.pending')} value={kpis.pending} tone="neutral" delta={t('envmon.site.kpi.pending.delta')} />
+        <KPI label={t('envmon.site.kpi.passRate')} value={kpis.pass_rate.toFixed(1)} unit="%" tone="ok" />
         <KPI
           label={t('envmon.site.kpi.planCompletion')}
           value={kpis.lots_planned > 0 ? Math.round(kpis.lots_tested / kpis.lots_planned * 100) : 100}
           unit="%"
-          accent="info"
+          tone="neutral"
           delta={lotsDelta}
         />
       </div>

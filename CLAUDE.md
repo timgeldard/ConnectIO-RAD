@@ -31,6 +31,7 @@ Every task is only "Done" when:
 3. **Test Coverage**: We enforce a minimum of 75% coverage across all applications in CI. A goal of 100% is encouraged, but 75% is the strict gateway to avoid writing redundant mock tests.
 4. **DDD Frozen Boundaries**: All logic follows the 4-layer context boundaries and passes `scripts/tests/test_ddd_architecture_guardrails.py`.
 5. **Branch Protection**: No direct commits to `main`. All work must be on a branch.
+6. **E2E Regression Gate**: Any PR that modifies a shared library (`libs/shared-*`) or a critical user journey (plant selector, filter bar, trace tree, module navigation) must include or verify at least one passing `@smoke` E2E test covering the affected surface. See `docs/e2e-playwright-plan.md` for the full test strategy.
 
 ---
 

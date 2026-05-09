@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useI18n } from '@connectio/shared-frontend-i18n';
 import { useLots, useLotDetail } from '~/api/client';
 import { useEM } from '~/context/EMContext';
-import StatusPill from '~/components/ui/StatusPill';
+import { StatusPill } from '@connectio/shared-ui';
 import type { InspectionLot } from '~/types';
 
 interface Props { plantId: string | null; funcLocId: string; }
@@ -23,7 +23,7 @@ function LotRow({ plantId, lot }: { plantId: string | null; lot: InspectionLot }
         <td className="num" style={{ fontSize: 11.5, color: 'var(--fg-muted)' }}>
           {lot.inspection_start_date ?? '—'}
         </td>
-        <td><StatusPill status={lot.status} /></td>
+        <td><StatusPill status={lot.status} label={t(`envmon.status.${lot.status}`)} /></td>
         <td>
           <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: '50%', background: valColor, color: lot.status === 'FAIL' || lot.status === 'PASS' ? 'white' : 'var(--forest)', fontSize: 10, fontWeight: 700 }}>
             {valText}

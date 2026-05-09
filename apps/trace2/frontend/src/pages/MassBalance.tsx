@@ -118,21 +118,21 @@ export function PageMassBalance({ batch: headerBatch }: { batch: Batch }) {
               subtitle={copy.mass.subtitle}
             />
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 12 }}>
-              <KPI label={copy.mass.qtyProduced} value={fmtN(batch.qty_produced, 1)} unit={copy.common.kg} tone="good" />
+              <KPI label={copy.mass.qtyProduced} value={fmtN(batch.qty_produced, 1)} unit={copy.common.kg} tone="ok" />
               <KPI label={copy.mass.qtyConsumed} value={fmtN(batch.qty_consumed, 1)} unit={copy.common.kg} />
               <KPI label={copy.mass.qtyShipped} value={fmtN(batch.qty_shipped, 1)} unit={copy.common.kg} />
               <KPI label={copy.mass.qtyAdjusted} value={fmtN(batch.qty_adjusted, 1)} unit={copy.common.kg} tone={batch.qty_adjusted !== 0 ? "warn" : "muted"} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
               <KPI label={copy.mass.balance} value={fmtN(batch.qty_produced, 1)} unit={copy.common.kg} large />
-              <KPI label={copy.mass.currentStock} value={fmtN(batch.current_stock, 1)} unit={copy.common.kg} large tone="good" />
+              <KPI label={copy.mass.currentStock} value={fmtN(batch.current_stock, 1)} unit={copy.common.kg} large tone="ok" />
               <KPI
                 label={copy.mass.variance}
                 value={fmtN(variance, 2)}
                 unit={copy.common.kg}
                 large
                 tone={Math.abs(variance) < 0.01 ? "good" : "bad"}
-                sub={Math.abs(variance) < 0.01 ? copy.mass.reconciled : copy.mass.investigate}
+                subtext={Math.abs(variance) < 0.01 ? copy.mass.reconciled : copy.mass.investigate}
               />
             </div>
             {events.length === 0 ? (

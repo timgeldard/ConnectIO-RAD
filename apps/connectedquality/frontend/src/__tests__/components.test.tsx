@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
-import { Card } from '~/components/Card'
-import { KPI } from '~/components/KPI'
+import { Card } from '@connectio/shared-ui'
+import { KPI } from '@connectio/shared-ui'
 import { Pill } from '~/components/Pill'
-import { PageHead } from '~/components/PageHead'
+import { PageHead } from '@connectio/shared-ui'
 import { GenericOverview } from '~/components/GenericOverview'
 
 describe('Card', () => {
@@ -33,13 +33,13 @@ describe('KPI', () => {
   })
 
   it('renders sub text when provided', () => {
-    render(<KPI label="Cpk" value="1.41" sub="rolling 90D" />)
+    render(<KPI label="Cpk" value="1.41" subtext="rolling 90D" />)
     expect(screen.getByText('rolling 90D')).toBeInTheDocument()
   })
 
-  it('applies tone class on the kpi container', () => {
-    const { container } = render(<KPI label="Fails" value="3" tone="bad" />)
-    expect(container.querySelector('.cq-kpi.bad')).toBeInTheDocument()
+  it('renders without crashing with risk tone', () => {
+    render(<KPI label="Fails" value="3" tone="risk" />)
+    expect(screen.getByText('Fails')).toBeInTheDocument()
   })
 })
 
@@ -77,8 +77,8 @@ describe('GenericOverview', () => {
     title: 'OVERVIEW',
     desc: 'Placeholder overview.',
     kpis: [
-      { label: 'Total', value: '100', tone: 'good' as const },
-      { label: 'Fails', value: '3', tone: 'bad' as const },
+      { label: 'Total', value: '100', tone: 'ok' as const },
+      { label: 'Fails', value: '3', tone: 'risk' as const },
     ],
     panels: [
       { num: '01', title: 'Panel A', meta: 'META', body: 'Panel body text.' },

@@ -18,7 +18,7 @@ export function StatusBadge({ status, label, className }: StatusBadgeProps) {
   const { chipClass, iconName } = STATUS_CONFIG[status]
 
   return (
-    <span className={`${chipClass}${className ? ` ${className}` : ''}`} title={label}>
+    <span data-testid="status-badge" data-status={status} className={`${chipClass}${className ? ` ${className}` : ''}`} title={label}>
       <Icon name={iconName} size={12} />
       {label}
     </span>

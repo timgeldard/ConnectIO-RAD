@@ -138,7 +138,10 @@ def run_sql(
     from .executors import _REST_EXECUTOR
     if endpoint_hint:
         logger.info("sql.execute hint=%s", endpoint_hint)
-    return _REST_EXECUTOR.execute(token, statement, params)
+    
+    app_name = os.environ.get("APP_NAME", "unknown")
+    tagged_statement = f"/* App={app_name}, Module={endpoint_hint or 'unknown'} */\n{statement}"
+    return _REST_EXECUTOR.execute(token, tagged_statement, params)
 
 
 async def run_sql_async(
@@ -177,9 +180,12 @@ async def run_sql_async(
     if endpoint_hint:
         logger.info("sql.execute_async hint=%s", endpoint_hint)
 
+    app_name = os.environ.get("APP_NAME", "unknown")
+    tagged_statement = f"/* App={app_name}, Module={endpoint_hint or 'unknown'} */\n{statement}"
+
     rows = await asyncio.get_running_loop().run_in_executor(
         _sql_executor,
-        lambda: _REST_EXECUTOR.execute(token, statement, params),
+        lambda: _REST_EXECUTOR.execute(token, tagged_statement, params),
     )
 
     if len(rows) <= _SQL_CACHE_ROW_LIMIT:

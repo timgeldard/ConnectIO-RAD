@@ -1,0 +1,13 @@
+{
+  "materials": [
+    { "material_id": "DMAT-01", "description": "Demo Material Alpha" },
+    { "material_id": "DMAT-02", "description": "Demo Material Beta" }
+  ],
+  "mics": [
+    { "mic_id": "MIC-A", "operation_id": "OP-001", "description": "Hardness" },
+    { "mic_id": "MIC-B", "operation_id": "OP-002", "description": "Dissolution" }
+  ],
+  "plants": [
+    { "plant_id": "DEMO_PLANT", "name": "Demo Plant" }
+  ]
+}

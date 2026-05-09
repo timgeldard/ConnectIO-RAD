@@ -2,10 +2,34 @@ import type { HTMLAttributes, ReactNode } from 'react'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'dark'
+  title?: string
+  num?: string
+  meta?: string
+  subtitle?: string
+  action?: ReactNode
+  bodyClass?: string
+  padding?: number
+  noPad?: boolean
   children: ReactNode
 }
 
-export function Card({ className, variant = 'default', children, style, ...props }: CardProps) {
+export function Card({
+  className,
+  variant = 'default',
+  title,
+  num,
+  meta,
+  subtitle,
+  action,
+  bodyClass,
+  padding,
+  noPad,
+  children,
+  style,
+  ...props
+}: CardProps) {
+  const hasHeader = title != null || action != null || num != null || meta != null || subtitle != null
+
   return (
     <div
       className={className}
@@ -16,11 +40,28 @@ export function Card({ className, variant = 'default', children, style, ...props
         border: `1px solid ${variant === 'dark' ? 'var(--line-2)' : 'var(--line-1)'}`,
         color: variant === 'dark' ? '#F4F4E8' : undefined,
         borderRadius: 10,
+        display: 'flex',
+        flexDirection: 'column',
         ...style,
       }}
       {...props}
     >
-      {children}
+      {hasHeader && (
+        <CardHeader style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flex: 1, flexDirection: 'column', gap: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              {num != null && <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, color: 'var(--text-3)' }}>{num}</span>}
+              {title != null && <CardTitle>{title}</CardTitle>}
+              {meta != null && <span style={{ fontSize: 11, color: 'var(--text-3)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{meta}</span>}
+            </div>
+            {subtitle && <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>{subtitle}</div>}
+          </div>
+          {action}
+        </CardHeader>
+      )}
+      <CardContent className={bodyClass} style={noPad ? { padding: 0 } : padding != null ? { padding } : undefined}>
+        {children}
+      </CardContent>
     </div>
   )
 }
@@ -43,7 +84,7 @@ export function CardHeader({ className, children, style, ...props }: HTMLAttribu
 
 export function CardContent({ className, children, style, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={className} style={{ padding: '1.5rem', ...style }} {...props}>
+    <div className={className} style={{ padding: '1.5rem', flex: 1, ...style }} {...props}>
       {children}
     </div>
   )
