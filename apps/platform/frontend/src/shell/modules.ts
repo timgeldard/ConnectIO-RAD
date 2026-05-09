@@ -533,13 +533,12 @@ export const MODULES: ConnectIOModule[] = [
       ],
     },
     contextBarSlot: false,
-    layoutMode: 'fullscreen',
-    routeBase: '/lineside-monitor/',
+    routeBase: '/poh',
     i18nNamespace: 'platform',
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,
-    backendPrefix: '',
+    backendPrefix: '/api',
   },
 
   // ── Warehouse & Supply Chain ──────────────────────────────────────────────

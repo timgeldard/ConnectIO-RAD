@@ -79,7 +79,6 @@ STANDALONE_SLUGS = [
     "maintenance",
     "tpm",
     "pex-e-35",
-    "lineside-monitor",
 ]
 
 

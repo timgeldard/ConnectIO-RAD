@@ -45,7 +45,18 @@ _SQL_SEMAPHORE = asyncio.Semaphore(int(os.environ.get("SQL_CONCURRENCY_LIMIT", "
 
 
 def tbl(name: str) -> str:
-    """Return a fully-qualified backtick-quoted table reference for this app's schema."""
+    """Return a fully-qualified backtick-quoted table reference for this app.
+
+    Args:
+        name: Table or ``schema.table`` reference. Bare names resolve inside
+            ``POH_SCHEMA``; dotted names resolve inside the explicit schema.
+
+    Returns:
+        Fully-qualified Unity Catalog table reference.
+    """
+    if "." in name:
+        schema, table = name.split(".", 1)
+        return f"`{POH_CATALOG}`.`{schema}`.`{table}`"
     return f"`{POH_CATALOG}`.`{POH_SCHEMA}`.`{name}`"
 
 
