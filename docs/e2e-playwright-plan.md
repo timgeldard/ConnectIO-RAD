@@ -1,6 +1,6 @@
 # ConnectIO-RAD: Playwright E2E Integration Plan
 
-> **Status:** Phase 0 — Plan committed, implementation not yet started
+> **Status:** Phase 1 complete — tooling installed, all e2e scaffolding in place
 > **Last updated:** 2026-05-09
 > **Owner:** Tim Geldard
 
@@ -11,7 +11,7 @@
 | Phase | Name | Status | Completed |
 |---|---|---|---|
 | 0 | Plan written and committed | ✅ Done | 2026-05-09 |
-| 1 | Preparation — tooling, scaffold, first Nx target | ⬜ Not started | — |
+| 1 | Preparation — tooling, scaffold, first Nx target | ✅ Done | 2026-05-09 |
 | 2 | Foundation — auth fixture, base config, first green test | ⬜ Not started | — |
 | 3 | Core Coverage — W360 + SPC journeys | ⬜ Not started | — |
 | 4 | Expansion — Trace2, Platform shell, EnvMon, POH | ⬜ Not started | — |

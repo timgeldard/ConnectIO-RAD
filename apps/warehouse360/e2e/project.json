@@ -1,0 +1,22 @@
+{
+  "name": "warehouse360-e2e",
+  "projectType": "application",
+  "tags": ["scope:warehouse360", "type:e2e"],
+  "implicitDependencies": ["warehouse360-frontend", "warehouse360-backend"],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx playwright test --config=apps/warehouse360/e2e/playwright.config.ts",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "e2e-ci": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx playwright test --config=apps/warehouse360/e2e/playwright.config.ts --reporter=blob",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}

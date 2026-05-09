@@ -30,7 +30,9 @@
   "devDependencies": {
     "@nx/eslint-plugin": "^22.7.1",
     "@nx/js": "^22.0.0",
+    "@nx/playwright": "^22.7.1",
     "@nx/vite": "^22.0.0",
+    "@playwright/test": "^1.49.1",
     "@typescript-eslint/eslint-plugin": "^8.59.2",
     "@typescript-eslint/parser": "^8.59.2",
     "eslint": "^10.3.0",

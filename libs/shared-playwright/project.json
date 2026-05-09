@@ -1,0 +1,14 @@
+{
+  "name": "shared-playwright",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:e2e-support"],
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit",
+        "cwd": "libs/shared-playwright"
+      }
+    }
+  }
+}
