@@ -70,6 +70,8 @@ def _display_path(path: Path) -> str:
 
 
 def _domain_files() -> list[Path]:
+    # Scope is intentionally limited to apps/<app>/backend/<app>_backend/ —
+    # e2e/ directories and shared-playwright are TypeScript and are never scanned.
     return sorted(path for app_name, backend in zip(DDD_APP_NAMES, APP_BACKENDS) for path in (backend / f"{app_name}_backend").glob("**/domain/*.py"))
 
 

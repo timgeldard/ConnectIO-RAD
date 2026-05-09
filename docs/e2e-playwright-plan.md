@@ -1,6 +1,6 @@
 # ConnectIO-RAD: Playwright E2E Integration Plan
 
-> **Status:** Phase 5 complete — CI/CD wired: smoke gate on PR, live matrix job on main
+> **Status:** All phases complete — full E2E layer implemented and committed
 > **Last updated:** 2026-05-09
 > **Owner:** Tim Geldard
 
@@ -16,7 +16,7 @@
 | 3 | Core Coverage — W360 + SPC journeys | ✅ Done | 2026-05-09 |
 | 4 | Expansion — Trace2, Platform shell, EnvMon, POH | ✅ Done | 2026-05-09 |
 | 5 | CI/CD Integration — PR smoke gate + live post-merge run | ✅ Done | 2026-05-09 |
-| 6 | Governance & Hardening — DoD update, flake budget | ⬜ Not started | — |
+| 6 | Governance & Hardening — DoD update, flake budget | ✅ Done | 2026-05-09 |
 
 ---
 
