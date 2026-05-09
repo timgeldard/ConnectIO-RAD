@@ -157,6 +157,43 @@ def build_platform_frontend() -> None:
     copy_static(PLATFORM_FRONTEND_DIR / "dist", APP_DIR / "static" / "home")
 
 
+def sync_requirements() -> None:
+    """Rewrite the ./wheels/ lines in requirements.txt to match built wheels.
+
+    Called immediately after build_wheels() so that requirements.txt always
+    references the wheel filenames that will be present in the bundle. This
+    prevents the "file does not exist" pip error that occurs when a package
+    version is bumped in pyproject.toml but the pin in requirements.txt is not
+    updated to match.
+    """
+    req_path = APP_DIR / "requirements.txt"
+    built: dict[str, str] = {
+        whl.name.split("-")[0]: whl.name
+        for whl in WHEELS_DIR.glob("*.whl")
+    }
+    lines = req_path.read_text(encoding="utf-8").splitlines(keepends=True)
+    updated: list[str] = []
+    changes: list[str] = []
+    for line in lines:
+        stripped = line.rstrip("\n").rstrip("\r")
+        if stripped.startswith("./wheels/") and stripped.endswith(".whl"):
+            pkg_name = stripped.split("/")[-1].split("-")[0]
+            if pkg_name in built and f"./wheels/{built[pkg_name]}" != stripped:
+                changes.append(f"  {stripped} → ./wheels/{built[pkg_name]}")
+                updated.append(f"./wheels/{built[pkg_name]}\n")
+            else:
+                updated.append(line)
+        else:
+            updated.append(line)
+    req_path.write_text("".join(updated), encoding="utf-8")
+    if changes:
+        print(f"-> synced {len(changes)} wheel pin(s) in requirements.txt:")
+        for c in changes:
+            print(c)
+    else:
+        print("-> requirements.txt wheel pins up to date")
+
+
 def copy_standalone_apps() -> None:
     """Copy standalone HTML apps from standalone/<slug>/ to static/<slug>/."""
     for slug in STANDALONE_SLUGS:
@@ -171,6 +208,7 @@ def copy_standalone_apps() -> None:
 if __name__ == "__main__":
     remove_legacy_source_copies()
     build_wheels()
+    sync_requirements()
 
     print("-> building CQ frontend (base=/cq/)")
     build_frontend(CQ_DIR / "frontend", "/cq/")
