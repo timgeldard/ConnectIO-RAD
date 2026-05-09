@@ -43,6 +43,9 @@ def is_urgent(status: TaskStatus, mins_to_start: Optional[float]) -> bool:
     A task is urgent when it is not yet completed AND it starts within the
     urgency threshold (30 minutes), or it is already overdue.
 
+    The Databricks SQL connector may return numeric columns as strings;
+    ``mins_to_start`` is coerced to float defensively.
+
     Args:
         status: The canonical task status.
         mins_to_start: Minutes until the task is scheduled to begin.
@@ -57,4 +60,7 @@ def is_urgent(status: TaskStatus, mins_to_start: Optional[float]) -> bool:
         return True
     if mins_to_start is None:
         return False
-    return mins_to_start <= _URGENCY_THRESHOLD_MINS
+    try:
+        return float(mins_to_start) <= _URGENCY_THRESHOLD_MINS
+    except (TypeError, ValueError):
+        return False

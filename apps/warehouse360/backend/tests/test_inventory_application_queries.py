@@ -10,8 +10,8 @@ from warehouse360_backend.inventory_management.router_imwm import _resolve_plant
 async def test_list_bin_stock_normalizes_plant_scope(monkeypatch):
     calls = []
 
-    async def fake_fetch_bin_stock(token, plant_id=None):
-        calls.append((token, plant_id))
+    async def fake_fetch_bin_stock(token, plant_id=None, lgtyp=None):
+        calls.append((token, plant_id, lgtyp))
         return [{"bin_id": "A-01"}]
 
     monkeypatch.setattr(queries.inventory_dal, "fetch_bin_stock", fake_fetch_bin_stock)
@@ -19,7 +19,54 @@ async def test_list_bin_stock_normalizes_plant_scope(monkeypatch):
     rows = await queries.list_bin_stock("token", plant_id=" IE01 ")
 
     assert rows == [{"bin_id": "A-01"}]
+    assert calls == [("token", "IE01", None)]
+
+
+@pytest.mark.asyncio
+async def test_list_bin_stock_passes_lgtyp_filter(monkeypatch):
+    calls = []
+
+    async def fake_fetch_bin_stock(token, plant_id=None, lgtyp=None):
+        calls.append((token, plant_id, lgtyp))
+        return [{"bin_id": "B-01"}]
+
+    monkeypatch.setattr(queries.inventory_dal, "fetch_bin_stock", fake_fetch_bin_stock)
+
+    rows = await queries.list_bin_stock("token", plant_id="IE01", lgtyp="100")
+
+    assert rows == [{"bin_id": "B-01"}]
+    assert calls == [("token", "IE01", "100")]
+
+
+@pytest.mark.asyncio
+async def test_list_bin_stock_summary_normalizes_plant_scope(monkeypatch):
+    calls = []
+
+    async def fake_fetch_summary(token, plant_id=None):
+        calls.append((token, plant_id))
+        return [{"lgtyp": "100", "total_bins": 500, "occupied_bins": 350, "free_bins": 130, "blocked_bins": 20}]
+
+    monkeypatch.setattr(queries.inventory_dal, "fetch_bin_stock_summary", fake_fetch_summary)
+
+    rows = await queries.list_bin_stock_summary("token", plant_id=" IE01 ")
+
+    assert rows[0]["lgtyp"] == "100"
     assert calls == [("token", "IE01")]
+
+
+@pytest.mark.asyncio
+async def test_list_bin_stock_summary_blank_scope_fetches_all(monkeypatch):
+    calls = []
+
+    async def fake_fetch_summary(token, plant_id=None):
+        calls.append((token, plant_id))
+        return []
+
+    monkeypatch.setattr(queries.inventory_dal, "fetch_bin_stock_summary", fake_fetch_summary)
+
+    await queries.list_bin_stock_summary("token", plant_id=" ")
+
+    assert calls == [("token", None)]
 
 
 @pytest.mark.asyncio
@@ -68,6 +115,38 @@ async def test_get_receipt_detail_delegates_to_dal(monkeypatch):
 
     assert detail["receipt"]["po_id"] == "4501"
     assert calls == [("token", "4501")]
+
+
+@pytest.mark.asyncio
+async def test_list_near_expiry_batches_normalizes_plant_scope(monkeypatch):
+    calls = []
+
+    async def fake_fetch_near_expiry(token, plant_id=None):
+        calls.append((token, plant_id))
+        return [{"batch_id": "B001", "days_to_expiry": 14}]
+
+    monkeypatch.setattr(queries.inventory_dal, "fetch_near_expiry_batches", fake_fetch_near_expiry)
+
+    rows = await queries.list_near_expiry_batches("token", plant_id=" IE01 ")
+
+    assert rows == [{"batch_id": "B001", "days_to_expiry": 14}]
+    assert calls == [("token", "IE01")]
+
+
+@pytest.mark.asyncio
+async def test_list_near_expiry_batches_blank_scope_fetches_all(monkeypatch):
+    calls = []
+
+    async def fake_fetch_near_expiry(token, plant_id=None):
+        calls.append((token, plant_id))
+        return []
+
+    monkeypatch.setattr(queries.inventory_dal, "fetch_near_expiry_batches", fake_fetch_near_expiry)
+
+    rows = await queries.list_near_expiry_batches("token", plant_id=" ")
+
+    assert rows == []
+    assert calls == [("token", None)]
 
 
 @pytest.mark.asyncio

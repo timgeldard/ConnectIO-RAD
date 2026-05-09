@@ -65,3 +65,11 @@ class TestIsUrgent:
 
     def test_none_mins_to_start_is_not_urgent_for_open(self) -> None:
         assert is_urgent("OPEN", None) is False
+
+    def test_string_mins_to_start_is_coerced(self) -> None:
+        # Databricks SQL connector may return numeric columns as strings
+        assert is_urgent("OPEN", "25") is True   # type: ignore[arg-type]
+        assert is_urgent("OPEN", "45") is False   # type: ignore[arg-type]
+
+    def test_invalid_mins_to_start_is_not_urgent(self) -> None:
+        assert is_urgent("OPEN", "not-a-number") is False  # type: ignore[arg-type]

@@ -1,4 +1,4 @@
-bundle:
+﻿bundle:
   name: spc
   databricks_cli_version: '>= 0.283.0'
 
@@ -22,21 +22,29 @@ variables:
     default: gold
   locked_limits_migration:
     default: scripts/migrations/000_setup_locked_limits.sql
+  # Workspace-enforced budget policy. Omitting it causes the Terraform provider to
+  # attempt a null-out that the platform rejects with an inconsistent result error.
+  budget_policy_id:
+    default: ""
 
 targets:
   uat:
     default: true
     workspace:
       root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      budget_policy_id: "86045e18-f119-4a18-bc16-b533069ebbec"
   prod:
     workspace:
       root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+    # Set budget_policy_id to the prod workspace policy value before deploying to prod.
 
 resources:
   apps:
     spc:
       name: ${var.app_name}
       description: Statistical Process Control app powered by Databricks
+      budget_policy_id: ${var.budget_policy_id}
       source_code_path: .
       user_api_scopes:
         - sql

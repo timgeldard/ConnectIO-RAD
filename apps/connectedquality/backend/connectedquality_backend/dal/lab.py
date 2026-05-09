@@ -65,3 +65,31 @@ async def fetch_lab_failure_rows(token: str, *, plant_id: str, lot_type: Optiona
         LIMIT 200
     """
     return await run_sql_async(token, query, params)
+
+
+async def fetch_lab_plants(token: str) -> list[dict]:
+    """Return distinct plants that have inspection result data, with names from gold.
+
+    Args:
+        token: Databricks access token forwarded from the request.
+
+    Returns:
+        List of ``{plant_id, plant_name}`` dicts ordered by ``plant_id``.
+    """
+    from connectedquality_backend.db import CQ_CATALOG
+    q = f"""
+        SELECT
+            po.PLANT_ID  AS plant_id,
+            COALESCE(gp.PLANT_NAME, po.PLANT_ID) AS plant_name
+        FROM (
+            SELECT DISTINCT po.PLANT_ID
+            FROM {tbl('vw_gold_process_order')} po
+            JOIN {tbl('vw_gold_inspection_result')} ir
+                ON ir.PROCESS_ORDER_ID = po.PROCESS_ORDER_ID
+            WHERE po.PLANT_ID IS NOT NULL
+        ) po
+        LEFT JOIN `{CQ_CATALOG}`.`gold`.`gold_plant` gp
+            ON gp.PLANT_ID = po.PLANT_ID
+        ORDER BY po.PLANT_ID
+    """
+    return await run_sql_async(token, q)

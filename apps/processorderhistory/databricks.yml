@@ -13,21 +13,27 @@ sync:
 variables:
   app_name:
     default: processorderhistory
+  budget_policy_id:
+    default: ""
 
 targets:
   uat:
     default: true
+    variables:
+      budget_policy_id: "86045e18-f119-4a18-bc16-b533069ebbec"
     workspace:
       root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
   prod:
     workspace:
       root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+    # Set budget_policy_id to the prod workspace policy value before deploying to prod.
 
 resources:
   apps:
     processorderhistory:
       name: ${var.app_name}
       description: Process Order History — Plant-floor view of process order execution, pours, and planning
+      budget_policy_id: ${var.budget_policy_id}
       source_code_path: .
       user_api_scopes:
         - sql

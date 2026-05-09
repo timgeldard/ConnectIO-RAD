@@ -39,45 +39,167 @@ const normalizeLineside = (l) => {
   };
 };
 
+/** Sortable column header for the quants table. */
+const QuantSortTh = ({
+  label, sortKey, active, dir, onSort, className,
+}: { label: string; sortKey: string; active: string; dir: 'asc' | 'desc'; onSort: (k: string) => void; className?: string }) => (
+  <th
+    className={className}
+    style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+    onClick={() => onSort(sortKey)}
+  >
+    {label}
+    {active === sortKey && (
+      <span style={{ marginLeft: 4, fontSize: 10, opacity: 0.75 }}>{dir === 'asc' ? '▲' : '▼'}</span>
+    )}
+  </th>
+)
+
 const Inventory = () => {
   const { t } = useI18n();
   const [tab, setTab] = React.useState('overview');
+  const [selectedLgtyp, setSelectedLgtyp] = React.useState<string | null>(null);
+  const [quantsSortKey, setQuantsSortKey] = React.useState('qty');
+  const [quantsSortDir, setQuantsSortDir] = React.useState<'asc' | 'desc'>('desc');
+  const [quantsFilter, setQuantsFilter] = React.useState('');
 
-  const { data: binsResp, loading: binsLoading, error: binsError } = useApi<any>('/api/inventory/bins');
+  // Summary: per-storage-type aggregates for the overview utilisation card.
+  // No row-count limit — one row per lgtyp (typically < 100 rows).
+  const { data: summaryResp, loading: summaryLoading, error: summaryError } = useApi<any>('/api/inventory/bins/summary');
+
+  // All bins (unfiltered by lgtyp) for the quants table — always reflects the
+  // full WM inventory regardless of which storage type is selected in the heatmap.
+  const { data: allBinsResp } = useApi<any>('/api/inventory/bins');
+
+  // Detail: bin-level rows for heatmap, quants table, and other tabs.
+  // When a storage type is selected, restricted to that type (still capped at 2000).
+  const detailPath = selectedLgtyp
+    ? `/api/inventory/bins?lgtyp=${encodeURIComponent(selectedLgtyp)}`
+    : '/api/inventory/bins';
+  const { data: detailResp, loading: detailLoading, error: detailError } = useApi<any>(detailPath);
+
   const { data: linesideResp, loading: linesideLoading, error: linesideError } = useApi<any>('/api/inventory/lineside');
+  const { data: nearExpiryResp, loading: nearExpiryLoading, error: nearExpiryError } = useApi<any>('/api/inventory/near-expiry');
 
-  const allBins = React.useMemo(() => {
-    const api = binsResp?.bins ?? [];
+  // Summary rows normalised for the storage-util card
+  const summaryTypes = React.useMemo(() => {
+    const rows: any[] = summaryResp?.types ?? [];
+    return rows.map((r) => ({
+      lgtyp: r.lgtyp ?? '—',
+      total: Number(r.total_bins ?? 0),
+      occupied: Number(r.occupied_bins ?? 0),
+      free: Number(r.free_bins ?? 0),
+      blocked: Number(r.blocked_bins ?? 0),
+      pct: Number(r.total_bins ?? 0) > 0 ? (Number(r.occupied_bins ?? 0) / Number(r.total_bins)) * 100 : 0,
+    }));
+  }, [summaryResp]);
+
+  // Totals derived from summary (accurate across all bins, no 2000-row truncation)
+  const summaryTotals = React.useMemo(() => ({
+    total: summaryTypes.reduce((s, r) => s + r.total, 0),
+    occupied: summaryTypes.reduce((s, r) => s + r.occupied, 0),
+    blocked: summaryTypes.reduce((s, r) => s + r.blocked, 0),
+  }), [summaryTypes]);
+
+  const detailBins = React.useMemo(() => {
+    const api: any[] = detailResp?.bins ?? [];
     return api.map(normalizeBin);
-  }, [binsResp]);
+  }, [detailResp]);
 
   const allLineside = React.useMemo(() => {
-    const api = linesideResp?.lineside ?? [];
+    const api: any[] = linesideResp?.lineside ?? [];
     return api.map(normalizeLineside);
   }, [linesideResp]);
 
-  const byType = React.useMemo(() => {
-    const typeMap: Record<string, { type: any; bins: any[] }> = {};
-    for (const b of allBins) {
-      const key = b.storageType.id;
-      if (!typeMap[key]) typeMap[key] = { type: b.storageType, bins: [] };
-      typeMap[key].bins.push(b);
+  const nearExpiryBatches = React.useMemo(() => {
+    const rows: any[] = nearExpiryResp?.batches ?? [];
+    return rows;
+  }, [nearExpiryResp]);
+
+  const allWmBins = React.useMemo(() => {
+    const api: any[] = allBinsResp?.bins ?? [];
+    return api.map(normalizeBin);
+  }, [allBinsResp]);
+
+  // Quants: all WM bins with material, sorted/filtered, top-20 by volume.
+  const sortedQuants = React.useMemo(() => {
+    const filterLc = quantsFilter.toLowerCase();
+    const filtered = allWmBins.filter((b: any) => {
+      if (!b.material) return false;
+      if (!filterLc) return true;
+      return (
+        b.material.name.toLowerCase().includes(filterLc) ||
+        b.material.id.toLowerCase().includes(filterLc)
+      );
+    });
+    return [...filtered].sort((a: any, b: any) => {
+      let av: any;
+      let bv: any;
+      if (quantsSortKey === 'materialName') { av = a.material?.name ?? ''; bv = b.material?.name ?? ''; }
+      else if (quantsSortKey === 'binId') { av = a.id ?? ''; bv = b.id ?? ''; }
+      else if (quantsSortKey === 'qty') { av = Number(a.qty ?? 0); bv = Number(b.qty ?? 0); }
+      else if (quantsSortKey === 'ageHours') { av = a.ageHours ?? 0; bv = b.ageHours ?? 0; }
+      else if (quantsSortKey === 'batchExpiryDays') { av = a.batchExpiryDays ?? 9999; bv = b.batchExpiryDays ?? 9999; }
+      else if (quantsSortKey === 'status') { av = a.status ?? ''; bv = b.status ?? ''; }
+      else { av = ''; bv = ''; }
+      const an = Number(av); const bn = Number(bv);
+      const cmp = Number.isFinite(an) && Number.isFinite(bn)
+        ? an - bn
+        : String(av).localeCompare(String(bv));
+      return quantsSortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [allWmBins, quantsSortKey, quantsSortDir, quantsFilter]);
+
+  const handleQuantsSort = (key: string) => {
+    if (key === quantsSortKey) {
+      setQuantsSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setQuantsSortKey(key);
+      setQuantsSortDir('asc');
     }
-    return Object.values(typeMap).map(({ type, bins }) => {
-      const occ = bins.filter((b: any) => b.status === 'Occupied').length;
-      const free = bins.filter((b: any) => b.status === 'Free').length;
-      const blocked = bins.filter((b: any) => b.status === 'Blocked').length;
-      return { type, bins, occ, free, blocked, pct: bins.length > 0 ? (occ / bins.length) * 100 : 0 };
-    }).sort((a: any, b: any) => a.type.id < b.type.id ? -1 : 1);
-  }, [allBins]);
+  };
 
-  const aged = allBins.filter((b: any) => b.ageHours > 168 && b.status === 'Occupied').slice(0, 12);
-  const expiring = allBins.filter((b: any) => b.batchExpiryDays < 30 && b.status === 'Occupied').slice(0, 10);
-  const blocked = allBins.filter((b: any) => b.status === 'Blocked').slice(0, 8);
+  const downloadStockSnapshot = () => {
+    const rows = allWmBins;
+    if (rows.length === 0) return;
+    const headers = ['Bin', 'Storage Type', 'Material ID', 'Material Name', 'Qty', 'UOM', 'Status', 'Age (days)', 'Days to Expiry'];
+    const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csvLines = [
+      headers.map(escape).join(','),
+      ...rows.map((b: any) => [
+        b.id,
+        b.storageType?.id ?? '',
+        b.material?.id ?? '',
+        b.material?.name ?? '',
+        b.qty != null ? Math.round(Number(b.qty)) : '',
+        b.material?.uom ?? '',
+        b.status,
+        b.ageHours != null ? (b.ageHours / 24).toFixed(1) : '',
+        b.batchExpiryDays < 9999 ? b.batchExpiryDays : '',
+      ].map(escape).join(',')),
+    ];
+    const blob = new Blob([csvLines.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stock-snapshot-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
-  const binUtilPct = allBins.length > 0
-    ? Math.round(allBins.filter((b: any) => b.status === 'Occupied').length / allBins.length * 100)
+  const aged = detailBins.filter((b: any) => b.ageHours > 168 && b.status === 'Occupied').slice(0, 12);
+  const expiring = nearExpiryBatches.slice(0, 30);
+  const blocked = detailBins.filter((b: any) => b.status === 'Blocked').slice(0, 8);
+
+  const binUtilPct = summaryTotals.total > 0
+    ? Math.round(summaryTotals.occupied / summaryTotals.total * 100)
     : 0;
+
+  const handleTypeClick = (lgtyp: string) => {
+    setSelectedLgtyp((prev) => (prev === lgtyp ? null : lgtyp));
+  };
 
   return (
     <div className="page">
@@ -88,16 +210,16 @@ const Inventory = () => {
           <div className="page-desc">Bin occupancy, line-side stock, batch expiry, quality holds and cycle count priorities.</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-secondary"><Icon name="download" size={14}/> {t('warehouse.inventory.btn.stockSnapshot')}</button>
+          <button className="btn btn-secondary" onClick={downloadStockSnapshot} disabled={allWmBins.length === 0} title={allWmBins.length === 0 ? 'Loading…' : `Download ${allWmBins.length.toLocaleString()} bin rows as CSV`}><Icon name="download" size={14}/> {t('warehouse.inventory.btn.stockSnapshot')}</button>
           <button className="btn btn-primary"><Icon name="eye" size={14}/> {t('warehouse.inventory.btn.cycleCountPlan')}</button>
         </div>
       </div>
 
       <div className="kpi-grid">
-        <KPI label={t('warehouse.inventory.kpi.binUtil')} value={binsLoading ? '...' : binUtilPct} unit="%" target="80%" tone="ok" barPct={binUtilPct}/>
+        <KPI label={t('warehouse.inventory.kpi.binUtil')} value={summaryLoading ? '...' : binUtilPct} unit="%" target="80%" tone="ok" barPct={binUtilPct}/>
         <KPI label={t('warehouse.inventory.kpi.inventoryAccuracy')} value="—" unit="%" target="99.5%" tone="ok"/>
-        <KPI label={t('warehouse.inventory.kpi.blockedQA')} value={allBins.filter((b: any) => b.status === 'Blocked').length} tone="warn"/>
-        <KPI label={t('warehouse.inventory.kpi.expiring')} value={expiring.length} tone="critical"/>
+        <KPI label={t('warehouse.inventory.kpi.blockedQA')} value={summaryLoading ? '...' : summaryTotals.blocked} tone="warn"/>
+        <KPI label={t('warehouse.inventory.kpi.expiring')} value={nearExpiryLoading ? '...' : nearExpiryBatches.length} tone="critical"/>
         <KPI label={t('warehouse.inventory.kpi.aged')} value={aged.length} tone="warn"/>
         <KPI label={t('warehouse.inventory.kpi.linesideBelowMin')} value={allLineside.filter((l: any) => l.status === 'Below min').length} tone="critical"/>
       </div>
@@ -117,50 +239,106 @@ const Inventory = () => {
       {tab === 'overview' && (
         <>
           <div className="grid-2" style={{ marginBottom: 16 }}>
-            <Card title={t('warehouse.inventory.card.storageUtil')} subtitle="Occupied · free · blocked bins" eyebrow="LAGP">
+            <Card title={t('warehouse.inventory.card.storageUtil')} subtitle="Click a type to drill into its bins" eyebrow="LAGP">
               <div className="stack-8">
-                {byType.map((typeRow: any) => (
-                  <div key={typeRow.type.id}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--forest)' }}>{typeRow.type.id} · {typeRow.type.name}</span>
-                      <span className="mono small muted">{typeRow.occ}/{typeRow.bins.length} · {Math.round(typeRow.pct)}%</span>
+                {summaryTypes.map((typeRow: any) => {
+                  const isSelected = selectedLgtyp === typeRow.lgtyp;
+                  return (
+                    <div
+                      key={typeRow.lgtyp}
+                      onClick={() => handleTypeClick(typeRow.lgtyp)}
+                      style={{
+                        cursor: 'pointer',
+                        borderRadius: 4,
+                        padding: '4px 6px',
+                        margin: '-4px -6px',
+                        background: isSelected ? 'var(--stone)' : 'transparent',
+                        outline: isSelected ? '1px solid var(--border-strong)' : 'none',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--forest)' }}>
+                          {typeRow.lgtyp}
+                          {isSelected && <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--fg-muted)', marginLeft: 6 }}>· viewing</span>}
+                        </span>
+                        <span className="mono small muted">{typeRow.occupied.toLocaleString()}/{typeRow.total.toLocaleString()} · {Math.round(typeRow.pct)}%</span>
+                      </div>
+                      <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', background: 'var(--stone)' }}>
+                        <div style={{ width: (typeRow.occupied / typeRow.total * 100) + '%', background: typeRow.pct > 92 ? 'var(--sunset)' : typeRow.pct > 80 ? 'var(--sunrise)' : 'var(--valentia-slate)' }}/>
+                        <div style={{ width: (typeRow.blocked / typeRow.total * 100) + '%', background: 'var(--forest)' }}/>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', background: 'var(--stone)' }}>
-                      <div style={{ width: (typeRow.occ / typeRow.bins.length * 100) + '%', background: typeRow.pct > 92 ? 'var(--sunset)' : typeRow.pct > 80 ? 'var(--sunrise)' : 'var(--valentia-slate)' }}/>
-                      <div style={{ width: (typeRow.blocked / typeRow.bins.length * 100) + '%', background: 'var(--forest)' }}/>
-                    </div>
-                  </div>
-                ))}
-                {!binsLoading && byType.length === 0 && <div className="muted small">No live bin stock is available for this plant.</div>}
-                {binsError && <div className="red small">Unable to load live bin stock: {binsError}</div>}
+                  );
+                })}
+                {!summaryLoading && summaryTypes.length === 0 && <div className="muted small">No live bin stock is available for this plant.</div>}
+                {summaryError && <div className="red small">Unable to load live bin stock: {summaryError}</div>}
               </div>
             </Card>
-            <Card title={t('warehouse.inventory.card.binHeatmap')} subtitle="Hover a cell for material & age" eyebrow="Bin map">
-              <BinHeatmap bins={allBins.filter((b: any) => b.storageType.id === '001').slice(0, 200)}/>
+            <Card
+              title={selectedLgtyp ? `Bin map · storage type ${selectedLgtyp}` : 'Bin map'}
+              subtitle={selectedLgtyp ? `Type ${selectedLgtyp} · first 200 bins` : 'Select a storage type to view its bins'}
+              eyebrow="LAGP"
+            >
+              {selectedLgtyp ? (
+                detailLoading
+                  ? <div className="muted small">Loading bins for type {selectedLgtyp}…</div>
+                  : <BinHeatmap bins={detailBins.slice(0, 200)}/>
+              ) : (
+                <div className="muted small" style={{ padding: '24px 0', textAlign: 'center' }}>
+                  Click a storage type on the left to view its bin map.
+                </div>
+              )}
             </Card>
           </div>
 
-          <Card title={t('warehouse.inventory.card.quants')} subtitle="Material · bin · batch · qty · age" eyebrow="LQUA" tight>
+          <Card
+            title={t('warehouse.inventory.card.quants')}
+            subtitle="All WM inventory · sorted by volume · top 20"
+            eyebrow="LQUA"
+            tight
+          >
+            <div style={{ marginBottom: 8 }}>
+              <input
+                type="text"
+                placeholder="Filter by material…"
+                value={quantsFilter}
+                onChange={(e) => setQuantsFilter(e.target.value)}
+                style={{ fontSize: 12, fontFamily: 'var(--font-mono)', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 4, padding: '3px 8px', color: 'var(--text-1)', width: 220 }}
+              />
+              <span style={{ marginLeft: 12, fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+                {sortedQuants.length > 20
+                  ? `Showing top 20 of ${sortedQuants.length.toLocaleString()} matched`
+                  : `${sortedQuants.length.toLocaleString()} rows`}
+              </span>
+            </div>
             <div className="scroll-x">
               <table className="tbl">
-                <thead><tr><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.batch')}</th><th className="num">{t('warehouse.common.col.qty')}</th><th className="num">{t('warehouse.common.col.age')}</th><th>{t('warehouse.inventory.col.expiry')}</th><th>{t('warehouse.common.col.status')}</th></tr></thead>
+                <thead>
+                  <tr>
+                    <QuantSortTh label={t('warehouse.common.col.material')} sortKey="materialName" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort}/>
+                    <QuantSortTh label={t('warehouse.common.col.bin')} sortKey="binId" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort}/>
+                    <QuantSortTh label={t('warehouse.common.col.qty')} sortKey="qty" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort} className="num"/>
+                    <QuantSortTh label={t('warehouse.common.col.age')} sortKey="ageHours" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort} className="num"/>
+                    <QuantSortTh label={t('warehouse.inventory.col.expiry')} sortKey="batchExpiryDays" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort}/>
+                    <QuantSortTh label={t('warehouse.common.col.status')} sortKey="status" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort}/>
+                  </tr>
+                </thead>
                 <tbody>
-                  {allBins.filter((b: any) => b.material).slice(0, 20).map((b: any, i: number) => (
+                  {sortedQuants.slice(0, 20).map((b: any, i: number) => (
                     <tr key={i}>
                       <td><div style={{ fontSize: 12 }}>{b.material.name}</div><div className="muted" style={{ fontSize: 11 }}>{b.material.id}</div></td>
                       <td className="mono small">{b.id}</td>
-                      <td className="mono small">B{String(300000 + i * 13).slice(0, 7)}</td>
                       <td className="num">{b.qty != null ? Math.round(b.qty) : Math.round(b.fillPct * 8)} {b.material.uom}</td>
                       <td className="num">{b.ageHours}h</td>
-                      <td><span className={b.batchExpiryDays < 30 ? 'red bold' : ''}>{b.batchExpiryDays}d</span></td>
+                      <td><span className={b.batchExpiryDays < 30 ? 'red bold' : ''}>{b.batchExpiryDays < 9999 ? `${b.batchExpiryDays}d` : '—'}</span></td>
                       <td><Pill tone={b.status === 'Occupied' ? 'sage' : b.status === 'Blocked' ? 'red' : 'grey'}>{b.status}</Pill></td>
                     </tr>
                   ))}
-                  {!binsLoading && allBins.filter((b: any) => b.material).length === 0 && (
-                    <tr><td colSpan={7} className="muted small">No live quant rows available for this plant.</td></tr>
+                  {!detailLoading && sortedQuants.length === 0 && (
+                    <tr><td colSpan={6} className="muted small">{quantsFilter ? 'No rows match the filter.' : 'No live quant rows available for this plant.'}</td></tr>
                   )}
-                  {binsError && (
-                    <tr><td colSpan={7} className="red small">Unable to load live quant rows: {binsError}</td></tr>
+                  {detailError && (
+                    <tr><td colSpan={6} className="red small">Unable to load live quant rows: {detailError}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -210,20 +388,52 @@ const Inventory = () => {
                 {aged.map((b: any, i: number) => (
                   <tr key={i}><td className="mono small">{b.id}</td><td style={{ fontSize: 12 }}>{b.material?.name || '—'}</td><td className="num amber bold">{b.ageHours}h</td><td className="num">{b.qty != null ? Math.round(b.qty) : Math.round(b.fillPct * 6)}</td></tr>
                 ))}
-                {!binsLoading && aged.length === 0 && <tr><td colSpan={4} className="muted small">No aged live stock is available for this plant.</td></tr>}
+                {!detailLoading && aged.length === 0 && <tr><td colSpan={4} className="muted small">No aged live stock is available for this plant.</td></tr>}
               </tbody>
             </table>
           </Card>
-          <Card title={t('warehouse.inventory.card.expiry')} subtitle="< 30 days · prioritise consumption" eyebrow="MCHA" tight>
-            <table className="tbl">
-              <thead><tr><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.common.col.batch')}</th><th className="num">Days</th></tr></thead>
-              <tbody>
-                {expiring.map((b: any, i: number) => (
-                  <tr key={i}><td className="mono small">{b.id}</td><td style={{ fontSize: 12 }}>{b.material?.name}</td><td className="mono small">B{String(400000 + i).slice(0, 7)}</td><td className="num red bold">{b.batchExpiryDays}d</td></tr>
-                ))}
-                {!binsLoading && expiring.length === 0 && <tr><td colSpan={4} className="muted small">No expiring live stock is available for this plant.</td></tr>}
-              </tbody>
-            </table>
+          <Card title={t('warehouse.inventory.card.expiry')} subtitle="≤ 90 days to expiry · prioritise consumption · ordered by soonest" eyebrow="MCHA" tight>
+            <div className="scroll-x">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>{t('warehouse.common.col.material')}</th>
+                    <th>{t('warehouse.common.col.batch')}</th>
+                    <th>Mfg Date</th>
+                    <th>Expiry Date</th>
+                    <th className="num">Days Left</th>
+                    <th className="num">Stock</th>
+                    <th className="num">Days Aged</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expiring.map((b: any, i: number) => (
+                    <tr key={i}>
+                      <td>
+                        <div style={{ fontSize: 12 }}>{b.material_name}</div>
+                        <div className="muted" style={{ fontSize: 11 }}>{b.material_id}</div>
+                      </td>
+                      <td className="mono small">{b.batch_id}</td>
+                      <td className="small">{b.manufacture_date ?? '—'}</td>
+                      <td className="small">{b.expiry_date ?? '—'}</td>
+                      <td className={`num bold ${Number(b.days_to_expiry) < 14 ? 'red' : Number(b.days_to_expiry) < 30 ? 'amber' : ''}`}>
+                        {b.days_to_expiry != null ? `${b.days_to_expiry}d` : '—'}
+                      </td>
+                      <td className="num">{b.total_stock != null ? Math.round(Number(b.total_stock)) : '—'} {b.uom ?? ''}</td>
+                      <td className={`num ${Number(b.aged_days) > 90 ? 'amber' : ''}`}>
+                        {b.aged_days != null ? `${b.aged_days}d` : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                  {!nearExpiryLoading && expiring.length === 0 && (
+                    <tr><td colSpan={7} className="muted small">No batches expiring within 90 days for this plant.</td></tr>
+                  )}
+                  {nearExpiryError && (
+                    <tr><td colSpan={7} className="red small">Unable to load near-expiry batches: {nearExpiryError}</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </Card>
         </div>
       )}
@@ -231,19 +441,17 @@ const Inventory = () => {
       {tab === 'blocked' && (
         <Card title={t('warehouse.inventory.card.blocked')} subtitle="Bins under inspection or on hold" eyebrow="ST 010" tight>
           <table className="tbl">
-            <thead><tr><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.common.col.batch')}</th><th className="num">{t('warehouse.common.col.qty')}</th><th>{t('warehouse.inventory.col.holdReason')}</th><th>{t('warehouse.inventory.col.owner')}</th></tr></thead>
+            <thead><tr><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.material')}</th><th className="num">{t('warehouse.common.col.qty')}</th><th>{t('warehouse.common.col.status')}</th></tr></thead>
             <tbody>
               {blocked.map((b: any, i: number) => (
                 <tr key={i}>
                   <td className="mono small">{b.id}</td>
                   <td style={{ fontSize: 12 }}>{b.material?.name || '—'}</td>
-                  <td className="mono small">B{String(500000 + i).slice(0, 7)}</td>
-                  <td className="num">{b.qty != null ? Math.round(b.qty) : Math.round(b.fillPct * 5)}</td>
-                  <td>{['QA sampling', 'Customer hold', 'Rework', 'Supplier claim', 'Allergen test', 'Pending release', 'Foreign body check', 'Re-analysis'][i % 8]}</td>
-                  <td><div className="flex items-center gap-6"><span className="avatar sm slate">QA</span><span className="small">Quality Lab</span></div></td>
+                  <td className="num">{b.qty != null ? Math.round(b.qty) : '—'}</td>
+                  <td><Pill tone="red">Blocked</Pill></td>
                 </tr>
               ))}
-              {!binsLoading && blocked.length === 0 && <tr><td colSpan={6} className="muted small">No blocked live bins are available for this plant.</td></tr>}
+              {!detailLoading && blocked.length === 0 && <tr><td colSpan={4} className="muted small">No blocked live bins are available for this plant.</td></tr>}
             </tbody>
           </table>
         </Card>
@@ -254,7 +462,7 @@ const Inventory = () => {
           <table className="tbl">
             <thead><tr><th>{t('warehouse.inventory.col.prio')}</th><th>{t('warehouse.common.col.bin')}</th><th>{t('warehouse.common.col.material')}</th><th className="num">{t('warehouse.inventory.col.lastCount')}</th><th className="num">{t('warehouse.inventory.col.delta')}</th><th>{t('warehouse.inventory.col.assign')}</th></tr></thead>
             <tbody>
-              {allBins.slice(0, 16).map((b: any, i: number) => (
+              {detailBins.slice(0, 16).map((b: any, i: number) => (
                 <tr key={i}>
                   <td><Pill tone={i < 4 ? 'red' : i < 10 ? 'amber' : 'grey'}>{i < 4 ? 'P1' : i < 10 ? 'P2' : 'P3'}</Pill></td>
                   <td className="mono small">{b.id}</td>
@@ -264,7 +472,7 @@ const Inventory = () => {
                   <td><button className="btn btn-xs btn-secondary">{t('warehouse.inventory.col.assign')}</button></td>
                 </tr>
               ))}
-              {!binsLoading && allBins.length === 0 && <tr><td colSpan={6} className="muted small">No live bins are available for cycle-count prioritisation.</td></tr>}
+              {!detailLoading && detailBins.length === 0 && <tr><td colSpan={6} className="muted small">No live bins are available for cycle-count prioritisation.</td></tr>}
             </tbody>
           </table>
         </Card>
@@ -285,7 +493,7 @@ const BinHeatmap = ({ bins }) => {
         else if (b.fillPct > 0.5) cls += 'h3';
         else if (b.fillPct > 0.2) cls += 'h2';
         else cls += 'h1';
-        return <div key={i} className={cls} title={`${b.id} · ${Math.round(b.fillPct)}%`}/>;
+        return <div key={i} className={cls} title={`${b.id} · ${Math.round(b.fillPct * 100)}%`}/>;
       })}
     </div>
   );

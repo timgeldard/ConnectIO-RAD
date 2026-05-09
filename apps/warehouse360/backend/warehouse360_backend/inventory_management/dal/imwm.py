@@ -50,7 +50,7 @@ async def fetch_imwm_stock(token: str, plant_id: Optional[str] = None) -> list[d
         FROM {tbl('imwm_stock_comparison_v')}
         {plant_filter}
         ORDER BY plant_id, material_id, storage_loc
-        LIMIT 2000
+        LIMIT 10000
     """
     return await run_sql_async(token, q, params, endpoint_hint="wh360.imwm_stock")
 
@@ -100,7 +100,7 @@ async def fetch_imwm_exceptions(token: str, plant_id: Optional[str] = None) -> l
         FROM {tbl('imwm_exceptions_v')}
         {plant_filter}
         ORDER BY severity DESC, exception_type
-        LIMIT 2000
+        LIMIT 5000
     """
     return await run_sql_async(token, q, params, endpoint_hint="wh360.imwm_exceptions")
 

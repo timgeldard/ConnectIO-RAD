@@ -3,9 +3,10 @@
 -- Sources: sap.inventorymovement_mseg (MSEG — MKPF fields denormalized)
 --          silver.silver_material_description
 -- Grain : (MBLNR, ZEILE) — one row per material document line
--- Purpose: Recent goods movements for the Overview activity strip
+-- Purpose: Recent IM goods movements for the Movements tab
 -- Notes : MKPF fields (posting date/time/user) are denormalized into MSEG
 --         as BUDAT_MKPF, CPUTM_MKPF, USNAM_MKPF — no JOIN to MKPF needed.
+--         MENGE is signed in the bronze extract (+ve = receipt, -ve = issue).
 --         LIMIT is applied in the DAL (not here) for caller-controlled page size.
 -- Note  : earlier drafts proposed filtering WM-internal movements by BWLVS,
 --         but BWLVS is not extracted into the MSEG bronze table today, so the
@@ -20,6 +21,20 @@ SELECT
   ms.BUDAT_MKPF                                                    AS posting_date,
   ms.CPUTM_MKPF                                                    AS posting_time,
   ms.BWART                                                         AS movement_type,
+  CASE ms.BWART
+    WHEN '101' THEN 'Production'   WHEN '102' THEN 'Production'
+    WHEN '201' THEN 'Consumption'  WHEN '202' THEN 'Consumption'
+    WHEN '261' THEN 'Consumption'  WHEN '262' THEN 'Consumption'
+    WHEN '301' THEN 'Transfer'     WHEN '302' THEN 'Transfer'
+    WHEN '311' THEN 'Transfer'     WHEN '312' THEN 'Transfer'
+    WHEN '321' THEN 'Transfer'     WHEN '322' THEN 'Transfer'
+    WHEN '531' THEN 'Adjustment'   WHEN '532' THEN 'Adjustment'
+    WHEN '601' THEN 'Shipment'     WHEN '602' THEN 'Shipment'
+    WHEN '641' THEN 'STO Transfer' WHEN '642' THEN 'STO Transfer'
+    WHEN '701' THEN 'Adjustment'   WHEN '702' THEN 'Adjustment'
+    WHEN '711' THEN 'Adjustment'   WHEN '712' THEN 'Adjustment'
+    ELSE 'Other'
+  END                                                              AS stock_status,
   ms.MATNR                                                         AS material_id,
   COALESCE(md.MATERIAL_NAME, ms.MATNR)                            AS material_name,
   ms.WERKS                                                         AS plant_id,

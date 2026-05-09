@@ -32,6 +32,7 @@ export function usePlants(days = 30) {
     queryKey: ['plants', days],
     queryFn: () => apiFetch(`/api/em/plants?days=${days}`),
     staleTime: 5 * 60_000,
+    select: (data) => data.slice().sort((a, b) => (a.plant_id ?? '').localeCompare(b.plant_id ?? '')),
   });
 }
 

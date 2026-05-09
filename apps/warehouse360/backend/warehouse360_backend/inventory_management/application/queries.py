@@ -13,12 +13,37 @@ from warehouse360_backend.inventory_management.dal import plants as plants_dal
 from warehouse360_backend.inventory_management.domain.plant_scope import PlantScope
 
 
-async def list_bin_stock(token: str, plant_id: Optional[str] = None) -> list[dict]:
-    """Return warehouse bin stock for the selected plant scope."""
+async def list_bin_stock(
+    token: str,
+    plant_id: Optional[str] = None,
+    lgtyp: Optional[str] = None,
+) -> list[dict]:
+    """Return warehouse bin stock for the selected plant scope.
 
+    Args:
+        token: Databricks access token forwarded from the proxy.
+        plant_id: Optional plant ID; normalised through :class:`PlantScope`.
+        lgtyp: Optional storage-type code for drill-down (e.g. ``"100"``).
+    """
     scope = PlantScope.from_optional(plant_id)
     await assert_plant_authorized(token, scope.plant_id)
-    return await inventory_dal.fetch_bin_stock(token, plant_id=scope.plant_id)
+    return await inventory_dal.fetch_bin_stock(token, plant_id=scope.plant_id, lgtyp=lgtyp)
+
+
+async def list_bin_stock_summary(token: str, plant_id: Optional[str] = None) -> list[dict]:
+    """Return per-storage-type aggregate bin counts for the overview card.
+
+    Args:
+        token: Databricks access token forwarded from the proxy.
+        plant_id: Optional plant ID; normalised through :class:`PlantScope`.
+
+    Returns:
+        List of rows (one per ``lgtyp``) with ``total_bins``, ``occupied_bins``,
+        ``free_bins``, and ``blocked_bins`` tallies.
+    """
+    scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
+    return await inventory_dal.fetch_bin_stock_summary(token, plant_id=scope.plant_id)
 
 
 async def list_lineside_stock(token: str, plant_id: Optional[str] = None) -> list[dict]:
@@ -41,6 +66,18 @@ async def get_receipt_detail(token: str, po_id: str) -> dict:
     """Return inbound receipt detail for one purchase or STO order."""
 
     return await inbound_dal.fetch_receipt_detail(token, po_id)
+
+
+async def list_near_expiry_batches(token: str, plant_id: Optional[str] = None) -> list[dict]:
+    """Return batch-level near-expiry stock for the selected plant scope.
+
+    Args:
+        token: Databricks access token forwarded from the proxy.
+        plant_id: Optional plant ID; normalised through :class:`PlantScope`.
+    """
+    scope = PlantScope.from_optional(plant_id)
+    await assert_plant_authorized(token, scope.plant_id)
+    return await inventory_dal.fetch_near_expiry_batches(token, plant_id=scope.plant_id)
 
 
 async def list_plants(token: str) -> list[dict]:

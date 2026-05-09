@@ -26,6 +26,7 @@ from processorderhistory_backend.manufacturing_analytics.router_adherence import
 from processorderhistory_backend.manufacturing_analytics.router_equipment_insights import router as equipment_insights_router
 from processorderhistory_backend.manufacturing_analytics.router_equipment_insights2 import router as equipment_insights2_router
 from processorderhistory_backend.genie_assist.router_genie import router as genie_router
+from processorderhistory_backend.routers.plants_router import router as plants_router
 
 STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 
@@ -64,6 +65,7 @@ rad_app = ConnectIoApp(
 # Domain Router Registration — must happen BEFORE mount_spa() / fastapi_app
 # access, because the SPA catch-all would otherwise shadow these routes.
 rad_app.include_router(me_router, prefix="/api")
+rad_app.include_router(plants_router, prefix="/api")
 rad_app.include_router(orders_router, prefix="/api")
 rad_app.include_router(order_detail_router, prefix="/api")
 rad_app.include_router(pours_router, prefix="/api")

@@ -99,6 +99,8 @@ POH_ROUTERS: list[RouterEntry] = [
     (_required_router("processorderhistory_backend.order_execution.router_pours"), "/api", None),
     (_required_router("processorderhistory_backend.production_planning.router_planning"), "/api", None),
     (_required_router("processorderhistory_backend.order_execution.router_day_view"), "/api", None),
+    (_required_router("processorderhistory_backend.order_execution.router_lineside_monitor"), "/api", None),
+    (_required_router("processorderhistory_backend.routers.plants_router"), "/api", None),
     (_required_router("processorderhistory_backend.manufacturing_analytics.router_yield"), "/api", None),
     (_required_router("processorderhistory_backend.manufacturing_analytics.router_quality"), "/api", None),
     (_required_router("processorderhistory_backend.manufacturing_analytics.router_downtime"), "/api", None),
