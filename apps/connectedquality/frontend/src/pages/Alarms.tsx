@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchJson } from '@connectio/shared-frontend-api'
-import { Card } from '~/components/Card'
-import { KPI } from '~/components/KPI'
+import { Card } from '@connectio/shared-ui'
+import { KPI } from '@connectio/shared-ui'
 import { Pill } from '~/components/Pill'
-import { PageHead } from '~/components/PageHead'
-import { Icon } from '~/components/Icon'
+import { PageHead } from '@connectio/shared-ui'
+import { Icon } from '@connectio/shared-ui'
 
 const srcColor = (src: string) =>
   src === 'TRACE' ? '#005776' : src === 'ENVMON' ? '#289BA2' : '#F24A00'
@@ -34,11 +34,11 @@ export function Alarms() {
         }
       />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 14 }}>
-        <KPI label="Open" value={isLoading ? '…' : String(open)} tone={open > 0 ? 'bad' : 'good'} />
-        <KPI label="Acknowledged" value={isLoading ? '…' : String(ack)} tone={ack > 0 ? 'warn' : 'good'} />
-        <KPI label="Closed · 24h" value={isLoading ? '…' : String(closed)} tone="good" />
+        <KPI label="Open" value={isLoading ? '…' : String(open)} tone={open > 0 ? 'risk' : 'ok'} />
+        <KPI label="Acknowledged" value={isLoading ? '…' : String(ack)} tone={ack > 0 ? 'warn' : 'ok'} />
+        <KPI label="Closed · 24h" value={isLoading ? '…' : String(closed)} tone="ok" />
         <KPI label="MTTR · 30d" value="42" unit="min" />
-        <KPI label="False positive rate" value="3.2" unit="%" sub="rolling 90D" />
+        <KPI label="False positive rate" value="3.2" unit="%" subtext="rolling 90D" />
       </div>
       <Card title="Signal stream" meta="11 EVENTS · LAST 24H" bodyClass="tight">
         <table className="cq-tbl">

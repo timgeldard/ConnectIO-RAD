@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { Card } from '~/components/Card'
+import { Card } from '@connectio/shared-ui'
 import { Pill } from '~/components/Pill'
-import { Icon } from '~/components/Icon'
+import { Icon } from '@connectio/shared-ui'
 import { fetchJson } from '@connectio/shared-frontend-api'
 
 /**

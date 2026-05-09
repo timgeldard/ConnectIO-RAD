@@ -1,8 +1,9 @@
-import { Card } from '~/components/Card'
-import { KPI } from '~/components/KPI'
-import { PageHead } from '~/components/PageHead'
-import { Icon } from '~/components/Icon'
-import type { KpiTone } from '~/components/KPI'
+import { Card } from '@connectio/shared-ui'
+import { KPI } from '@connectio/shared-ui'
+import { PageHead } from '@connectio/shared-ui'
+import { Icon } from '@connectio/shared-ui'
+
+type KpiTone = 'ok' | 'warn' | 'risk' | 'neutral'
 
 interface KpiSpec {
   label: string
@@ -45,7 +46,7 @@ export function GenericOverview({ eyebrow, title, desc, kpis, panels }: GenericO
       />
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${kpis.length}, 1fr)`, gap: 10, marginBottom: 14 }}>
         {kpis.map((k, i) => (
-          <KPI key={i} label={k.label} value={k.value} unit={k.unit} tone={k.tone} sub={k.sub} />
+          <KPI key={i} label={k.label} value={k.value} unit={k.unit} tone={k.tone} subtext={k.sub} />
         ))}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

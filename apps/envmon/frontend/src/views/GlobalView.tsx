@@ -3,7 +3,7 @@ import { useI18n } from '@connectio/shared-frontend-i18n';
 import EnvMonGlobalMap from '~/map/EnvMonGlobalMap';
 import { usePlantMapData } from '~/map/usePlantMapData';
 import { usePlants } from '~/api/client';
-import KPI from '~/components/ui/KPI';
+import { KPI } from '@connectio/shared-ui';
 import type { PlantInfo } from '~/types';
 
 const PORTFOLIO_WINDOWS = [30, 90, 180, 365, 730] as const;
@@ -97,16 +97,16 @@ export default function GlobalView({ onOpenPlant }: Props) {
       <div
         style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}
       >
-        <KPI label={t('envmon.global.kpi.activeFails')} value={totals.active_fails} accent="fail" />
-        <KPI label={t('envmon.global.kpi.trendingWarn')} value={totals.warnings} accent="warn" />
-        <KPI label={t('envmon.global.kpi.passRate')} value={totals.pass_rate.toFixed(1)} unit="%" accent="ok" />
+        <KPI label={t('envmon.global.kpi.activeFails')} value={totals.active_fails} tone="risk" />
+        <KPI label={t('envmon.global.kpi.trendingWarn')} value={totals.warnings} tone="warn" />
+        <KPI label={t('envmon.global.kpi.passRate')} value={totals.pass_rate.toFixed(1)} unit="%" tone="ok" />
         <KPI
           label={t('envmon.global.kpi.lotsTested')}
           value={totals.lots_tested}
           unit={`/ ${totals.lots_planned}`}
-          accent="info"
+          tone="neutral"
         />
-        <KPI label={t('envmon.global.kpi.pathogenHits')} value={totals.pathogen_hits} accent="fail" />
+        <KPI label={t('envmon.global.kpi.pathogenHits')} value={totals.pathogen_hits} tone="risk" />
       </div>
 
       <div

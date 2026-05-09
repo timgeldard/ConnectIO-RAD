@@ -2,9 +2,9 @@ import { Suspense, lazy, type ComponentType, type LazyExoticComponent, useCallba
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppShell } from '../components/layout'
 import { PlantProvider, usePlantSelection } from '@connectio/shared-app-context'
+import { ErrorBoundary } from '@connectio/shared-ui'
 import { fetchPlants } from '../api/spc'
 import { SPCProvider, useSPCSelector, useSPCDispatch } from './SPCContext'
-import SPCErrorBoundary from './SPCErrorBoundary'
 import { useSPCUrlSync } from './hooks/useSPCUrlSync'
 import { useSPCPreferences } from './hooks/useSPCPreferences'
 import type { SPCState } from './types'
@@ -88,7 +88,7 @@ function SPCContent({ dark = false, onToggleDark }: SPCPageProps) {
       <Suspense fallback={<HeaderLoadingState />}>
         <SPCPageHeader />
       </Suspense>
-      <SPCErrorBoundary key={activeTab}>
+      <ErrorBoundary key={activeTab}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -106,7 +106,7 @@ function SPCContent({ dark = false, onToggleDark }: SPCPageProps) {
             </Suspense>
           </motion.div>
         </AnimatePresence>
-      </SPCErrorBoundary>
+      </ErrorBoundary>
     </AppShell>
   )
 }

@@ -91,7 +91,7 @@ function TopDownBody({
         <KPI label={copy.top.distinctCountries} value={fmtInt(batch.countries_affected)} tone={sim ? "bad" : "default"} />
         <KPI label={copy.top.totalShipped} value={fmtN(batch.total_shipped_kg, 1)} unit={batch.uom} />
         <KPI label={copy.common.deliveries} value={fmtInt(batch.total_deliveries)} />
-        <KPI label={copy.top.outputTiers} value={maxLevel} sub={template(copy.top.outputSub, { count: lineage.length })} tone="brand" />
+        <KPI label={copy.top.outputTiers} value={maxLevel} subtext={template(copy.top.outputSub, { count: lineage.length })} tone="neutral" />
       </div>
 
       {/* Depth toolbar */}

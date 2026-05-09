@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Icon } from '@connectio/shared-ui'
+import { StatusPill } from '@connectio/shared-ui'
 
 export type StatusPillStatus =
   | 'in-control'           // No SPC violations AND Cpk >= threshold
@@ -7,53 +7,6 @@ export type StatusPillStatus =
   | 'out-of-control'       // SPC violation present
   | 'out-of-control-high'  // Violation AND Cpk < threshold
   | 'unknown'              // Insufficient data
-
-interface StatusPillProps {
-  status: StatusPillStatus
-  label?: string
-  compact?: boolean
-}
-
-const STATUS_CONFIG: Record<StatusPillStatus, { chipClass: string; iconName: string; defaultLabel: string }> = {
-  'in-control':          { chipClass: 'chip chip-ok',   iconName: 'check-circle',   defaultLabel: 'In Control'                },
-  'warning':             { chipClass: 'chip chip-warn', iconName: 'alert-triangle', defaultLabel: 'Warning'                   },
-  'out-of-control':      { chipClass: 'chip chip-risk', iconName: 'zap',            defaultLabel: 'Out of Control'            },
-  'out-of-control-high': { chipClass: 'chip chip-risk', iconName: 'x-circle',       defaultLabel: 'Critical — Out of Control' },
-  'unknown':             { chipClass: 'chip',           iconName: 'minus',          defaultLabel: 'Unknown'                   },
-}
-
-export default function StatusPill({ status, label, compact = false }: StatusPillProps) {
-  const { chipClass, iconName, defaultLabel } = STATUS_CONFIG[status]
-  const displayLabel = label ?? defaultLabel
-  const iconSize = compact ? 11 : 13
-
-  if (compact) {
-    return (
-      <span
-        className={chipClass}
-        title={displayLabel}
-        aria-label={displayLabel}
-        style={{ padding: '1px 5px' }}
-      >
-        <Icon name={iconName} size={iconSize} />
-        <span style={{
-          position: 'absolute', width: '1px', height: '1px',
-          padding: 0, margin: '-1px', overflow: 'hidden',
-          clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0,
-        }}>
-          {displayLabel}
-        </span>
-      </span>
-    )
-  }
-
-  return (
-    <span className={chipClass} title={displayLabel}>
-      <Icon name={iconName} size={iconSize} />
-      {displayLabel}
-    </span>
-  )
-}
 
 /** Helper: derive status from SPC + capability values */
 export function deriveStatus(

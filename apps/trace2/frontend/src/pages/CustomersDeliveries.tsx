@@ -86,12 +86,12 @@ function CustomersDeliveriesBody({
           label={copy.top.totalShipped}
           value={fmtN(batch.total_shipped_kg)}
           unit={batch.uom}
-          tone="default"
+          tone="neutral"
         />
         <KPI
           label={copy.customers.totalDeliveries}
           value={fmtInt(batch.total_deliveries)}
-          tone="default"
+          tone="neutral"
         />
       </div>
 

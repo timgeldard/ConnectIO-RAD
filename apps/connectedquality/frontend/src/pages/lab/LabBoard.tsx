@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Icon } from '~/components/Icon'
+import { Icon } from '@connectio/shared-ui'
 import { useQuery } from '@tanstack/react-query'
 import { fetchJson } from '@connectio/shared-frontend-api'
 import { usePlantSelection } from '@connectio/shared-app-context'

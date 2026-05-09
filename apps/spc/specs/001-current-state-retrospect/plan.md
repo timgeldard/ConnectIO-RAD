@@ -48,7 +48,7 @@ Consolidating smartly is essential for:
 
 | Action | Target Library | Effort | Expected Benefit | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| Delete local copies of `Card`, `KPI`, `AppShell`, `Icon`, `StatusPill`, `ErrorBoundary`, `PageHead` and replace with `shared-ui` | `shared-ui` | Medium | Design consistency + smaller bundle sizes | 🟡 In Progress |
+| Delete local copies of `Card`, `KPI`, `AppShell`, `Icon`, `StatusPill`, `ErrorBoundary`, `PageHead` and replace with `shared-ui` | `shared-ui` | Medium | Design consistency + smaller bundle sizes | ✅ Done |
 | Extract `PlantProvider`, `usePlants`, `PlantContextBar`, and workspace context logic | `shared-app-context` (New) | Small | Single source of truth for authorization and cross-app context | ✅ Done |
 | Standardize `GlobalFilterBar` and common table patterns | `shared-ui` + `shared-frontend-api` | Small | Consistent UX across all cockpits | 🟡 In Progress |
 

@@ -10,9 +10,13 @@ vi.mock('~/api/client', () => ({
   })
 }))
 
-vi.mock('~/components/ui/KPI', () => ({
-  default: ({ label, value }: any) => <div data-testid="mock-kpi">{label}: {value}</div>
-}))
+vi.mock('@connectio/shared-ui', async (importOriginal) => {
+  const actual = await importOriginal<any>()
+  return {
+    ...actual,
+    KPI: ({ label, value }: any) => <div data-testid="mock-kpi">{label}: {value}</div>
+  }
+})
 
 describe('SiteView', () => {
   const mockPlant = {
