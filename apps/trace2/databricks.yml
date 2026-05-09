@@ -20,27 +20,31 @@ variables:
     default: connected_plant_uat
   trace_schema:
     default: gold
+  budget_policy_id:
+    default: ""
 
 targets:
   uat:
     default: true
+    variables:
+      budget_policy_id: "86045e18-f119-4a18-bc16-b533069ebbec"
     workspace:
       root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
   prod:
     workspace:
       root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+    # Set budget_policy_id to the prod workspace policy value before deploying to prod.
 
 resources:
   apps:
     trace2:
       name: ${var.app_name}
       description: Batch Traceability app powered by Databricks
+      budget_policy_id: ${var.budget_policy_id}
       source_code_path: .
-      # IMPORTANT: user_api_scopes (["sql"]) cannot be declared here — the DABs
-      # schema does not support this field and bundle deploy resets it to empty.
-      # The `make deploy` target runs scripts/post-deploy.sh after every deploy
-      # to re-apply the scope via `databricks apps update`. Never deploy with
-      # `databricks bundle deploy` directly or the SQL token passthrough breaks.
+      # user_api_scopes is applied via repair_sql_scope=true in deploy.toml, not here.
+      # The deploy flow uses scripts/deploy_app.py (never bundle run), so declaring
+      # user_api_scopes in databricks.yml has no effect on the running app.
       #
       # Configure DATABRICKS_READINESS_TOKEN in each deployed environment if
       # `/api/ready` should perform a real SQL warehouse probe before traffic.

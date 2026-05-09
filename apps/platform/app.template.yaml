@@ -49,6 +49,8 @@ env:
     value: "${TRACE_SCHEMA}"
   - name: WH360_SCHEMA
     value: "${WH360_SCHEMA}"
+  # WARNING: /tmp/ is ephemeral — wiped on container recycle. User preferences are lost
+  # on every cold start. Migrate to a UC Volume or Lakebase for persistence.
   - name: PREFS_DB_PATH
     value: "${PREFS_DB_PATH}"
 
