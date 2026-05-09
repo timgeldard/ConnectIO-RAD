@@ -1,9 +1,9 @@
 """
 Unit tests for spc_backend/utils/db.py helper functions.
 
-These tests cover the pure helper functions only (sql_param, tbl, hostname,
-resolve_token). They do not exercise run_sql or check_warehouse_config because
-those require a live Databricks connection.
+These tests cover SPC-specific database utility logic. Pure shared primitives
+(sql_param, tbl, hostname, etc.) are tested in libs/shared-db and are not
+re-tested here to reduce false coupling.
 """
 
 import os
@@ -11,9 +11,7 @@ import asyncio
 import pytest
 from unittest.mock import patch, AsyncMock
 
-from fastapi import HTTPException
 import spc_backend.utils.db as db_module
-import shared_db.executors as _executors
 
 
 # Provide defaults so the module can be imported without env vars set
@@ -23,133 +21,16 @@ os.environ.setdefault("TRACE_CATALOG", "test_catalog")
 os.environ.setdefault("TRACE_SCHEMA", "test_schema")
 
 from spc_backend.utils.db import (
-    check_warehouse_config,
     get_data_freshness,
-    hostname,
-    resolve_token,
-    sql_param,
-    tbl,
+    run_sql_async,
 )
 
 
-class TestSqlParam:
-    def test_returns_name_value_type(self):
-        result = sql_param("my_param", "my_value")
-        assert result == {"name": "my_param", "value": "my_value", "type": "STRING"}
-
-    def test_converts_non_string_value_to_string(self):
-        result = sql_param("count", 42)
-        assert result["value"] == "42"
-        assert result["type"] == "INT"
-
-    def test_handles_empty_string_value(self):
-        result = sql_param("empty", "")
-        assert result["value"] == ""
-
-    def test_preserves_none_as_sql_null(self):
-        result = sql_param("maybe_null", None)
-        assert result == {"name": "maybe_null", "value": None, "type": "STRING"}
-
-
-class TestTbl:
-    def test_returns_backtick_qualified_name(self):
-        with patch("spc_backend.utils.db.TRACE_CATALOG", "test_catalog"), patch("spc_backend.utils.db.TRACE_SCHEMA", "test_schema"):
-            result = tbl("my_table")
-            assert result == "`test_catalog`.`test_schema`.`my_table`"
-
-    def test_includes_all_three_parts(self):
-        with patch("spc_backend.utils.db.TRACE_CATALOG", "test_catalog"), patch("spc_backend.utils.db.TRACE_SCHEMA", "test_schema"):
-            result = tbl("gold_batch_quality_result_v")
-            assert "test_catalog" in result
-            assert "test_schema" in result
-            assert "gold_batch_quality_result_v" in result
-
-
-class TestHostname:
-    def test_strips_https_scheme(self):
-        result = hostname()
-        assert not result.startswith("https://")
-
-    def test_strips_trailing_slash(self):
-        result = hostname()
-        assert not result.endswith("/")
-
-    def test_returns_bare_hostname(self):
-        with patch("spc_backend.utils.db.DATABRICKS_HOST", "https://adb-test.azuredatabricks.net/"):
-            result = hostname()
-            assert result == "adb-test.azuredatabricks.net"
-
-
-class TestResolveToken:
-    def test_returns_forwarded_token_when_present(self):
-        token = resolve_token("forwarded-token", None)
-        assert token == "forwarded-token"
-
-    def test_extracts_bearer_token_from_authorization(self, monkeypatch):
-        # After the H1 strict-default fix (commit 4258545) the bearer fallback
-        # is dev-mode-only AND only honoured when callers explicitly pass
-        # strict=False. The shared_db.core.resolve_token wrapper SPC normally
-        # uses doesn't expose ``strict``, so for this test we bypass the
-        # wrapper and exercise shared_auth.resolve_token directly — the
-        # behaviour the wrapper inherits when ``strict=False`` is opt-in.
-        from shared_auth.identity import resolve_token as auth_resolve_token
-
-        monkeypatch.setenv("APP_ENV", "test")
-        token = auth_resolve_token(None, "Bearer my-bearer-token", strict=False)
-        assert token == "my-bearer-token"
-
-    def test_prefers_forwarded_over_bearer(self):
-        token = resolve_token("forwarded", "Bearer bearer")
-        assert token == "forwarded"
-
-    def test_raises_401_when_no_token(self):
-        with pytest.raises(HTTPException) as exc_info:
-            resolve_token(None, None)
-        assert exc_info.value.status_code == 401
-
-    def test_raises_401_when_authorization_not_bearer(self):
-        with pytest.raises(HTTPException) as exc_info:
-            resolve_token(None, "Basic dXNlcjpwYXNz")
-        assert exc_info.value.status_code == 401
-
-
-class TestCheckWarehouseConfig:
-    def test_returns_http_path_when_set(self):
-        with patch("spc_backend.utils.db.WAREHOUSE_HTTP_PATH", "/sql/1.0/warehouses/abc123"):
-            result = check_warehouse_config()
-            assert result == "/sql/1.0/warehouses/abc123"
-
-    def test_raises_500_when_not_set(self):
-        with patch("spc_backend.utils.db.WAREHOUSE_HTTP_PATH", ""):
-            with pytest.raises(HTTPException) as exc_info:
-                check_warehouse_config()
-            assert exc_info.value.status_code == 500
-
-
-class TestGetDataFreshness:
-    def test_returns_empty_sources_when_no_safe_views(self):
-        result = get_data_freshness("token", ["bad-view-name"])
-        assert result["sources"] == []
-
-    def test_queries_information_schema_for_safe_views(self):
-        mock_rows = [{"source_view": "gold_batch_quality_result_v", "last_altered_utc": "2026-01-01"}]
-        with patch("spc_backend.utils.db.run_sql", return_value=mock_rows) as mocked_run_sql:
-            result = get_data_freshness("token", ["gold_batch_quality_result_v"])
-            assert result["sources"] == mock_rows
-            mocked_run_sql.assert_called_once()
-
-
 class TestSqlCacheBehavior:
-    def test_statement_prefix_detects_read_only_and_write(self):
-        assert db_module._is_read_only_statement("SELECT 1")
-        assert db_module._is_read_only_statement("  WITH cte AS (SELECT 1) SELECT * FROM cte")
-        assert db_module._is_write_statement("INSERT INTO t VALUES (1)")
-        assert not db_module._is_read_only_statement("INSERT INTO t VALUES (1)")
-
     def test_sql_cache_tier_classifies_known_hot_paths(self):
         assert db_module._sql_cache_tier("SELECT * FROM connected_plant_uat.gold.spc_characteristic_dim_mv") == "metadata"
         assert db_module._sql_cache_tier("SELECT * FROM connected_plant_uat.gold.spc_quality_metrics") == "scorecard"
-        assert db_module._sql_cache_tier("SELECT * FROM connected_plant_uat.gold.spc_batch_dim_mv") == "chart"
+        assert db_module._sql_cache_tier("SELECT * FROM connected_plant_uat.gold.spc_batch_dim_mv") == "metadata"
 
     def test_run_sql_async_clears_cache_after_write(self):
         db_module._clear_sql_cache()
@@ -226,72 +107,6 @@ class TestSqlCacheBehavior:
         asyncio.run(exercise())
         assert captured == []
 
-
-class TestSqlRuntimeTuning:
-    def test_statement_prefix_runtime_constants_are_configurable(self):
-        assert _executors._SQL_MAX_WORKERS >= 1
-        assert _executors._SQL_POLL_MAX_ATTEMPTS >= 1
-        assert _executors._SQL_POLL_INITIAL_DELAY_S >= 1
-        assert _executors._SQL_POLL_MAX_DELAY_S >= _executors._SQL_POLL_INITIAL_DELAY_S
-
-
-class TestSqlExecutorSelection:
-    def test_normalize_statement_for_connector_preserves_parameter_order(self):
-        statement, positional = _executors._normalize_statement_for_connector(
-            "SELECT * FROM t WHERE material_id = :material_id AND plant_id = :plant_id AND material_id <> :material_id",
-            [
-                db_module.sql_param("material_id", "MAT-1"),
-                db_module.sql_param("plant_id", "PLANT-2"),
-            ],
-        )
-
-        assert statement == "SELECT * FROM t WHERE material_id = ? AND plant_id = ? AND material_id <> ?"
-        assert positional == ["MAT-1", "PLANT-2", "MAT-1"]
-
-    def test_normalize_statement_for_connector_rejects_missing_parameter(self):
-        with pytest.raises(RuntimeError, match="Missing SQL parameter 'material_id'"):
-            _executors._normalize_statement_for_connector("SELECT * FROM t WHERE material_id = :material_id", [])
-
-    def test_get_sql_executor_returns_rest_by_default(self):
-        with patch.dict("os.environ", {}, clear=False):
-            executor = db_module._get_sql_executor()
-        assert isinstance(executor, _executors._RestStatementExecutor)
-
-    def test_get_sql_executor_falls_back_to_rest_when_connector_missing(self):
-        with patch.dict("os.environ", {"SPC_SQL_EXECUTOR": "connector"}, clear=False), patch("spc_backend.utils.db.databricks_sql", None):
-            executor = db_module._get_sql_executor()
-        assert isinstance(executor, _executors._RestStatementExecutor)
-
-class TestErrorClassifiers:
-    def test_classify_sql_runtime_error_maps_403(self):
-        exc = Exception("PERMISSION DENIED: Access denied")
-        err = db_module.classify_sql_runtime_error(exc)
-        assert err.status_code == 403
-
-    def test_classify_sql_runtime_error_maps_401(self):
-        exc = Exception("UNAUTHORIZED: Invalid token")
-        err = db_module.classify_sql_runtime_error(exc)
-        assert err.status_code == 401
-
-    def test_classify_sql_runtime_error_maps_503_for_missing_table(self):
-        exc = Exception("TABLE OR VIEW NOT FOUND")
-        err = db_module.classify_sql_runtime_error(exc, missing_table_detail="Init required")
-        assert err.status_code == 503
-        assert err.detail == "Init required"
-
-class TestObservability:
-    def test_increment_observability_counter(self, caplog):
-        with caplog.at_level("INFO"):
-            db_module.increment_observability_counter("test.counter", tags={"t1": "v1"})
-            assert '"event": "metric.increment"' in caplog.text
-            assert '"metric_name": "test.counter"' in caplog.text
-            assert '"t1": "v1"' in caplog.text
-
-    def test_send_operational_alert(self, caplog):
-        with caplog.at_level("ERROR"):
-            db_module.send_operational_alert(subject="Sub", body="Body")
-            assert '"event": "operational_alert"' in caplog.text
-            assert '"subject": "Sub"' in caplog.text
 
 async def test_attach_data_freshness_success():
     payload = {"data": 1}

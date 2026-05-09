@@ -33,6 +33,30 @@ class UnauthorizedPlantAccess(DomainError):
         super().__init__(f"Unauthorized access to plant: {plant_id}", status_code=status.HTTP_403_FORBIDDEN)
 
 
+class ResourceNotFoundError(DomainError):
+    """Raised when a requested resource (e.g. Batch, Order, MIC) is not found."""
+    def __init__(self, resource_type: str, resource_id: str):
+        super().__init__(f"{resource_type} '{resource_id}' not found.", status_code=status.HTTP_404_NOT_FOUND)
+
+
+class ConflictError(DomainError):
+    """Raised when an operation conflicts with the current state of the resource."""
+    def __init__(self, message: str):
+        super().__init__(message, status_code=status.HTTP_409_CONFLICT)
+
+
+class ValidationError(DomainError):
+    """Raised when request data fails validation rules."""
+    def __init__(self, message: str = "Validation failed", detail: Any | None = None):
+        super().__init__(message, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail)
+
+
+class ServiceUnavailableError(DomainError):
+    """Raised when an upstream service (e.g. Genie API) is unavailable."""
+    def __init__(self, service_name: str, detail: str | None = None):
+        super().__init__(f"Service '{service_name}' is currently unavailable.", status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
+
+
 async def safe_global_exception_response(
     request: Request,
     exc: Exception,

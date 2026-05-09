@@ -27,7 +27,7 @@ from shared_db.core import (  # noqa: F401  re-exported for router/dal imports
 )
 from shared_db.executors import _sql_executor
 from shared_db.freshness import DataFreshnessRuntime
-from shared_db.runtime import SqlRuntime, is_read_only_statement, is_write_statement, sql_cache_key  # noqa: F401
+from shared_db.runtime import SqlRuntime, CachePolicy, is_read_only_statement, is_write_statement, sql_cache_key  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,10 @@ def tbl(name: str) -> str:
     return f"`{TRACE_CATALOG}`.`{WH360_SCHEMA}`.`{name}`"
 
 
-_sql_runtime = SqlRuntime(run_sql=lambda token, statement, params=None: run_sql(token, statement, params))
+_sql_runtime = SqlRuntime(
+    run_sql=lambda token, statement, params=None: run_sql(token, statement, params),
+    cache_policy=CachePolicy.manufacturing(),
+)
 _SQL_SEMAPHORE = asyncio.Semaphore(int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4")))
 _sql_cache = _sql_runtime.cache
 _sql_cache_lock = _sql_runtime.cache_lock

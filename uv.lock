@@ -268,7 +268,7 @@ wheels = [
 
 [[package]]
 name = "connectedquality-backend"
-version = "0.1.1"
+version = "0.1.2"
 source = { editable = "apps/connectedquality/backend" }
 dependencies = [
     { name = "cachetools" },
@@ -1133,7 +1133,7 @@ wheels = [
 
 [[package]]
 name = "platform-backend"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "apps/platform/backend" }
 dependencies = [
     { name = "cachetools" },
@@ -1177,7 +1177,7 @@ wheels = [
 
 [[package]]
 name = "processorderhistory-backend"
-version = "0.1.4"
+version = "0.1.6"
 source = { editable = "apps/processorderhistory/backend" }
 dependencies = [
     { name = "cachetools" },
@@ -2019,7 +2019,7 @@ wheels = [
 
 [[package]]
 name = "warehouse360-backend"
-version = "0.1.6"
+version = "0.1.9"
 source = { editable = "apps/warehouse360/backend" }
 dependencies = [
     { name = "cachetools" },

@@ -19,6 +19,7 @@ from .errors import (
 from .runtime import CachePolicy, CacheTier, SqlRuntime, is_read_only_statement, is_write_statement, sql_cache_key
 from .freshness import DataFreshnessRuntime
 from .authorized_scope import fetch_authorized_plants, assert_plant_authorized
+from .query_builder import QueryBuilder
 
 __all__ = [
     "DATABRICKS_HOST", "WAREHOUSE_HTTP_PATH", "TRACE_CATALOG", "TRACE_SCHEMA",
@@ -29,4 +30,5 @@ __all__ = [
     "is_read_only_statement", "is_write_statement", "sql_cache_key",
     "fetch_authorized_plants",
     "assert_plant_authorized",
+    "QueryBuilder",
 ]

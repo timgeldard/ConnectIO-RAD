@@ -201,30 +201,7 @@ async def _spc_query_audit_hook(
 
 _sql_runtime_config = SqlRuntimeConfig(
     run_sql=lambda token, statement, params=None: run_sql(token, statement, params),
-    cache_policy=CachePolicy.tiered(
-        CacheTier(
-            "metadata",
-            maxsize=500,
-            ttl_seconds=900,
-            row_limit=_SQL_CACHE_ROW_LIMIT,
-            patterns=_METADATA_CACHE_PATTERNS,
-        ),
-        CacheTier(
-            "scorecard",
-            maxsize=200,
-            ttl_seconds=300,
-            row_limit=_SQL_CACHE_ROW_LIMIT,
-            prefixes=("SELECT", "WITH"),
-            patterns=_SCORECARD_CACHE_PATTERNS,
-        ),
-        CacheTier(
-            "chart",
-            maxsize=300,
-            ttl_seconds=180,
-            row_limit=_SQL_CACHE_ROW_LIMIT,
-            prefixes=("SELECT", "WITH", "SHOW", "DESCRIBE"),
-        ),
-    ),
+    cache_policy=CachePolicy.manufacturing(row_limit=_SQL_CACHE_ROW_LIMIT),
     audit_hook=_spc_query_audit_hook,
     audit_in_background=True,
 )
