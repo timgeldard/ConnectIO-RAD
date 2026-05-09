@@ -25,7 +25,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_env(app_name: str, target: str) -> dict[str, str]:
-    """Return the merged environment variables for *app_name* / *target*."""
+    """Return the merged environment variables for *app_name* / *target*.
+
+    Reads the global ``[env]`` table from ``deploy.toml``, then overlays the
+    target-specific ``[targets.<target>.env]`` table so target values take
+    precedence.
+
+    Args:
+        app_name: App directory name under ``apps/`` (e.g. ``warehouse360``).
+        target: Deploy target key in ``deploy.toml`` (e.g. ``uat`` or ``prod``).
+
+    Returns:
+        Merged dict of environment variable names to string values.
+    """
     deploy_toml = ROOT / "apps" / app_name / "deploy.toml"
     with deploy_toml.open("rb") as fh:
         manifest = tomllib.load(fh)
@@ -38,7 +50,20 @@ def load_env(app_name: str, target: str) -> dict[str, str]:
 
 
 def render_views(app_name: str, target: str) -> int:
-    """Render all .sql files for *app_name* to ``rendered/<target>/``."""
+    """Render all .sql files for *app_name* to ``rendered/<target>/``.
+
+    Substitutes ``${VAR}`` placeholders in every ``*.sql`` file under
+    ``apps/<app_name>/sql/views/`` using the merged environment from
+    :func:`load_env`, writing output to ``sql/views/rendered/<target>/``.
+    Skips apps that have no ``sql/views/`` directory.
+
+    Args:
+        app_name: App directory name under ``apps/`` (e.g. ``warehouse360``).
+        target: Deploy target key (e.g. ``uat`` or ``prod``).
+
+    Returns:
+        ``0`` on success, ``1`` if any SQL file references an undefined variable.
+    """
     views_dir = ROOT / "apps" / app_name / "sql" / "views"
     if not views_dir.is_dir():
         print(f"No sql/views directory for {app_name!r}; skipping.", file=sys.stderr)

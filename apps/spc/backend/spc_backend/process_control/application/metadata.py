@@ -17,6 +17,14 @@ async def fetch_plants(token: str, material_id: str) -> list[dict]:
 
     Runs both queries in parallel and returns the intersection so the plant picker
     shows only plants the user can access.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+        material_id: SAP material identifier used to filter material-data plants.
+
+    Returns:
+        List of plant dicts (``plant_id``, ``plant_name``) visible to this user
+        that also have SPC data for the requested material.
     """
     material_plants, authorized_ids = await asyncio.gather(
         _dal._fetch_material_plants(token, material_id),
@@ -31,7 +39,16 @@ async def fetch_characteristics(
     material_id: str,
     plant_id: Optional[str] = None,
 ) -> tuple[list[dict], list[dict]]:
-    """Return quantitative and attribute characteristics, enforcing plant authorization."""
+    """Return quantitative and attribute characteristics after verifying plant authorization.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+        material_id: SAP material identifier.
+        plant_id: Optional SAP plant identifier; ``None`` means all authorized plants.
+
+    Returns:
+        Two-tuple of (quantitative_characteristics, attribute_characteristics) dicts.
+    """
     await assert_plant_authorized(token, plant_id)
     return await _dal.fetch_characteristics(token, material_id, plant_id)
 
@@ -41,7 +58,16 @@ async def fetch_attribute_characteristics(
     material_id: str,
     plant_id: Optional[str] = None,
 ) -> list[dict]:
-    """Return attribute characteristics, enforcing plant authorization."""
+    """Return attribute characteristics after verifying plant authorization.
+
+    Args:
+        token: Databricks access token forwarded from the proxy header.
+        material_id: SAP material identifier.
+        plant_id: Optional SAP plant identifier; ``None`` means all authorized plants.
+
+    Returns:
+        List of attribute characteristic dicts from the DAL.
+    """
     await assert_plant_authorized(token, plant_id)
     return await _dal.fetch_attribute_characteristics(token, material_id, plant_id)
 
