@@ -47,6 +47,18 @@ const mismatchTone = (kind?: unknown): string =>
 const severityTone = (severity?: unknown): string =>
   num(severity) >= 4 ? 'red' : num(severity) >= 3 ? 'amber' : 'grey'
 
+/** Map a movement stock_status label to a Pill tone. */
+const stockStatusTone = (status?: unknown): string => {
+  switch (String(status ?? '')) {
+    case 'Production':   return 'green'
+    case 'Consumption':  return 'amber'
+    case 'Shipment':     return 'red'
+    case 'STO Transfer': return 'sage'
+    case 'Transfer':     return 'sage'
+    default:             return 'grey'
+  }
+}
+
 /** Sort comparator: descending by the second tuple element (a count). */
 const byCountDesc = ([, a]: [string, number], [, b]: [string, number]) => b - a
 
@@ -574,31 +586,53 @@ export const IMWMCockpit = () => {
             <table className="tbl">
               <thead>
                 <tr>
-                  <SortTh label="Type"     sortKey="exception_type" activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort}/>
-                  <SortTh label="Severity" sortKey="severity"       activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort} className="num"/>
-                  <SortTh label="SLA"      sortKey="sla_hours"      activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort} className="num"/>
-                  <SortTh label="Material" sortKey="material_id"    activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort}/>
-                  <SortTh label="Plant"    sortKey="plant_id"       activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort}/>
-                  <th>Storage</th>
+                  <SortTh label="Type"        sortKey="exception_type"  activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort}/>
+                  <SortTh label="Sev"         sortKey="severity"        activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort} className="num"/>
+                  <SortTh label="SLA"         sortKey="sla_hours"       activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort} className="num"/>
+                  <SortTh label="Material"    sortKey="material_name"   activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort}/>
+                  <SortTh label="Storage"     sortKey="storage_loc_name" activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort}/>
+                  <SortTh label="Plant"       sortKey="plant_id"        activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort}/>
+                  <SortTh label="Qty"         sortKey="qty"             activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort} className="num"/>
+                  <SortTh label="Value"       sortKey="inventory_value_eur" activeSortKey={excSortKey} activeSortDir={excSortDir} onSort={handleExcSort} className="num"/>
+                  <th>Batch</th>
+                  <th>Bin</th>
                   <th>Detail</th>
-                  <th>Detected</th>
                 </tr>
               </thead>
               <tbody>
-                {excPageRows.map((row, index) => (
-                  <tr key={`${row.exception_type}-${row.material_id}-${excPage}-${index}`} className={num(row.severity) >= 4 ? 'is-risk-red' : ''}>
-                    <td><Pill tone={severityTone(row.severity)}>{String(row.exception_type ?? '—')}</Pill></td>
-                    <td className="num">{String(row.severity ?? '—')}</td>
-                    <td className="num">{String(row.sla_hours ?? '—')}h</td>
-                    <td className="mono small">{String(row.material_id ?? '—')}</td>
-                    <td className="mono small">{String(row.plant_id ?? '—')}</td>
-                    <td className="mono small">{String(row.storage_loc ?? '—')}</td>
-                    <td style={{ fontSize: 12 }}>{String(row.detail_text ?? '—')}</td>
-                    <td className="mono small">{String(row.detected_date ?? '—')}</td>
-                  </tr>
-                ))}
-                {!exceptionsLoading && exceptions.length === 0 && <tr><td colSpan={8} className="muted small">No live IM/WM exceptions are available for this plant.</td></tr>}
-                {exceptionsError && <tr><td colSpan={8} className="red small">Unable to load live IM/WM exceptions: {exceptionsError}</td></tr>}
+                {excPageRows.map((row, index) => {
+                  const stockMatch = row.material_id && row.plant_id && row.storage_loc
+                    ? stock.find(
+                        (s) => s.material_id === row.material_id
+                          && s.plant_id === row.plant_id
+                          && s.storage_loc === row.storage_loc
+                      )
+                    : undefined
+                  const valueEur = stockMatch ? num(stockMatch.inventory_value_eur) : null
+                  return (
+                    <tr key={`${row.exception_type}-${row.material_id}-${excPage}-${index}`} className={num(row.severity) >= 4 ? 'is-risk-red' : ''}>
+                      <td><Pill tone={severityTone(row.severity)}>{String(row.exception_type ?? '—')}</Pill></td>
+                      <td className="num">{String(row.severity ?? '—')}</td>
+                      <td className="num">{row.sla_hours != null ? `${row.sla_hours}h` : '—'}</td>
+                      <td>
+                        <div style={{ fontSize: 12 }}>{String(row.material_name ?? row.material_id ?? '—')}</div>
+                        {row.material_id && <div className="mono muted" style={{ fontSize: 11 }}>{String(row.material_id)}</div>}
+                      </td>
+                      <td>
+                        <div style={{ fontSize: 12 }}>{String(row.storage_loc_name ?? row.storage_loc ?? '—')}</div>
+                        {row.storage_loc && <div className="mono muted" style={{ fontSize: 11 }}>{String(row.storage_loc)}</div>}
+                      </td>
+                      <td className="mono small">{String(row.plant_id ?? '—')}</td>
+                      <td className="num">{row.qty != null ? fmtQty(row.qty) : '—'}</td>
+                      <td className="num">{valueEur != null ? fmtMoney(valueEur) : '—'}</td>
+                      <td className="mono small">{String(row.batch_id ?? '—')}</td>
+                      <td className="mono small">{String(row.bin_id ?? '—')}</td>
+                      <td style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{String(row.detail_text ?? '—')}</td>
+                    </tr>
+                  )
+                })}
+                {!exceptionsLoading && exceptions.length === 0 && <tr><td colSpan={11} className="muted small">No live IM/WM exceptions are available for this plant.</td></tr>}
+                {exceptionsError && <tr><td colSpan={11} className="red small">Unable to load live IM/WM exceptions: {exceptionsError}</td></tr>}
               </tbody>
             </table>
           </div>
@@ -607,25 +641,30 @@ export const IMWMCockpit = () => {
       )}
 
       {tab === 'movements' && (
-        <Card title="Recent movements" subtitle="Material document activity from the last 24 hours" eyebrow="imwm_movements_v" tight>
+        <Card title="Recent IM movements" subtitle="SAP material document activity (MSEG) from the last 24 hours" eyebrow="imwm_movements_v" tight>
           <div className="scroll-x">
             <table className="tbl">
-              <thead><tr><th>Document</th><th>Posting date</th><th>Movement</th><th>Material</th><th>Plant</th><th>Storage</th><th className="num">Qty</th><th>User</th></tr></thead>
+              <thead><tr><th>Document</th><th>Posting date</th><th>Movement</th><th>Status</th><th>Material</th><th>Plant</th><th>Storage</th><th className="num">Qty</th><th>User</th></tr></thead>
               <tbody>
-                {movements.slice(0, 80).map((row, index) => (
-                  <tr key={`${row.document_number}-${index}`}>
-                    <td className="mono small">{String(row.document_number ?? '—')}</td>
-                    <td className="mono small">{String(row.posting_date ?? '—')} {String(row.posting_time ?? '')}</td>
-                    <td><Pill tone="sage">{String(row.movement_type ?? '—')}</Pill></td>
-                    <td><div style={{ fontSize: 12 }}>{String(row.material_name ?? row.material_id ?? '—')}</div><div className="muted mono small">{String(row.material_id ?? '—')}</div></td>
-                    <td className="mono small">{String(row.plant_id ?? '—')}</td>
-                    <td className="mono small">{String(row.storage_loc ?? '—')}</td>
-                    <td className="num">{fmtQty(row.quantity)} {String(row.uom ?? '')}</td>
-                    <td className="mono small">{String(row.username ?? '—')}</td>
-                  </tr>
-                ))}
-                {!movementsLoading && movements.length === 0 && <tr><td colSpan={8} className="muted small">No live IM/WM movements are available for this plant.</td></tr>}
-                {movementsError && <tr><td colSpan={8} className="red small">Unable to load live IM/WM movements: {movementsError}</td></tr>}
+                {movements.slice(0, 200).map((row, index) => {
+                  const qty = num(row.quantity)
+                  const qtyColor = qty > 0 ? 'var(--green)' : qty < 0 ? 'var(--red)' : undefined
+                  return (
+                    <tr key={`${row.document_number}-${index}`}>
+                      <td className="mono small">{String(row.document_number ?? '—')}</td>
+                      <td className="mono small">{String(row.posting_date ?? '—')} {String(row.posting_time ?? '')}</td>
+                      <td><Pill tone="grey">{String(row.movement_type ?? '—')}</Pill></td>
+                      <td><Pill tone={stockStatusTone(row.stock_status)}>{String(row.stock_status ?? '—')}</Pill></td>
+                      <td><div style={{ fontSize: 12 }}>{String(row.material_name ?? row.material_id ?? '—')}</div><div className="muted mono small">{String(row.material_id ?? '—')}</div></td>
+                      <td className="mono small">{String(row.plant_id ?? '—')}</td>
+                      <td className="mono small">{String(row.storage_loc ?? '—')}</td>
+                      <td className="num" style={{ color: qtyColor, fontWeight: qty !== 0 ? 600 : undefined }}>{fmtQty(qty)} {String(row.uom ?? '')}</td>
+                      <td className="mono small">{String(row.username ?? '—')}</td>
+                    </tr>
+                  )
+                })}
+                {!movementsLoading && movements.length === 0 && <tr><td colSpan={9} className="muted small">No live IM movements are available for this plant.</td></tr>}
+                {movementsError && <tr><td colSpan={9} className="red small">Unable to load live IM movements: {movementsError}</td></tr>}
               </tbody>
             </table>
           </div>
