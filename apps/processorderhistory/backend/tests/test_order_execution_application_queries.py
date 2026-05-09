@@ -48,6 +48,20 @@ async def test_get_day_view_delegates_to_dal(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_get_lineside_monitor_delegates_to_dal(monkeypatch):
+    calls = []
+
+    async def fake_fetch_lineside_monitor(token, *, plant_id):
+        calls.append((token, plant_id))
+        return {"lines": []}
+
+    monkeypatch.setattr(queries.lineside_monitor_dal, "fetch_lineside_monitor", fake_fetch_lineside_monitor)
+
+    assert await queries.get_lineside_monitor("token", plant_id="P1") == {"lines": []}
+    assert calls == [("token", "P1")]
+
+
+@pytest.mark.asyncio
 async def test_get_pours_analytics_delegates_to_dal(monkeypatch):
     calls = []
 

@@ -7,6 +7,7 @@ import { OrderDetail } from './pages/OrderDetail'
 import { PlanningBoard } from './pages/PlanningBoard'
 import { PourAnalyticsPage } from './pages/PourAnalytics'
 import { DayView } from './pages/DayView'
+import { LinesideMonitorPage } from './pages/LinesideMonitor'
 import { YieldAnalyticsPage } from './pages/YieldAnalytics'
 import { QualityAnalyticsPage } from './pages/QualityAnalytics'
 import { VesselPlanningAnalyticsPage } from './pages/VesselPlanningAnalytics'
@@ -23,6 +24,7 @@ type View =
   | { name: 'planning' }
   | { name: 'pours' }
   | { name: 'day-view' }
+  | { name: 'lineside-monitor' }
   | { name: 'yield' }
   | { name: 'quality' }
   | { name: 'vessel-planning' }
@@ -47,6 +49,7 @@ function moduleToView(moduleId: string): View {
     case 'quality-analytics':    return { name: 'quality' }
     case 'pours':                return { name: 'pours' }
     case 'day-view':             return { name: 'day-view' }
+    case 'lineside-monitor':     return { name: 'lineside-monitor' }
     case 'yield':                return { name: 'yield' }
     case 'vessel-planning':      return { name: 'vessel-planning' }
     case 'equipment-insights':   return { name: 'equipment-insights' }
@@ -174,6 +177,7 @@ function AppContent() {
       {view.name === 'planning' && <PlanningBoard />}
       {view.name === 'pours' && <PourAnalyticsPage />}
       {view.name === 'day-view' && <DayView />}
+      {view.name === 'lineside-monitor' && <LinesideMonitorPage />}
       {view.name === 'yield' && <YieldAnalyticsPage />}
       {view.name === 'quality' && <QualityAnalyticsPage />}
       {view.name === 'vessel-planning' && <VesselPlanningAnalyticsPage />}

@@ -15,6 +15,7 @@ from processorderhistory_backend.order_execution.router_orders import router as 
 from processorderhistory_backend.order_execution.router_order_detail import router as order_detail_router
 from processorderhistory_backend.order_execution.router_pours import router as pours_router
 from processorderhistory_backend.order_execution.router_day_view import router as day_view_router
+from processorderhistory_backend.order_execution.router_lineside_monitor import router as lineside_monitor_router
 from processorderhistory_backend.production_planning.router_planning import router as planning_router
 from processorderhistory_backend.production_planning.router_vessel_planning import router as vessel_planning_router
 from processorderhistory_backend.manufacturing_analytics.router_yield import router as yield_router
@@ -68,6 +69,7 @@ rad_app.include_router(order_detail_router, prefix="/api")
 rad_app.include_router(pours_router, prefix="/api")
 rad_app.include_router(planning_router, prefix="/api")
 rad_app.include_router(day_view_router, prefix="/api")
+rad_app.include_router(lineside_monitor_router, prefix="/api")
 rad_app.include_router(yield_router, prefix="/api")
 rad_app.include_router(quality_router, prefix="/api")
 rad_app.include_router(downtime_router, prefix="/api")

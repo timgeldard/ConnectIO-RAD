@@ -61,9 +61,11 @@ describe('MODULES manifest', () => {
     expect(trace?.tabs).toHaveLength(6)
   })
 
-  it('lineside-monitor is fullscreen layout', () => {
+  it('lineside-monitor is wired through the POH app', () => {
     const lm = MODULES.find((m) => m.moduleId === 'lineside-monitor')
-    expect(lm?.layoutMode).toBe('fullscreen')
+    expect(lm?.routeBase).toBe('/poh')
+    expect(lm?.backendPrefix).toBe('/api')
+    expect(lm?.layoutMode).toBeUndefined()
   })
 
   it('modules with routeBase have a non-empty backendPrefix', () => {

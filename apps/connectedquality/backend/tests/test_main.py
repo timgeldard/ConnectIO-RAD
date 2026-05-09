@@ -123,11 +123,15 @@ def test_spc_flow_returns_nodes_and_edges(mock_fetch_process_flow):
     assert response.json()["edges"] == [{"id": "mix-pack"}]
 
 
-def test_lab_fails_endpoint():
+@patch("connectedquality_backend.routers.lab.fetch_lab_failures")
+def test_lab_fails_endpoint(mock_fetch_lab_failures):
+    mock_fetch_lab_failures.return_value = {"fails": [{"lot": "L1"}], "data_available": True}
+
     response = client.get("/api/cq/lab/fails?plant_id=CHV")
 
     assert response.status_code == 200
-    assert "fails" in response.json()
+    assert response.json()["fails"] == [{"lot": "L1"}]
+    mock_fetch_lab_failures.assert_called_once_with("test_token", plant_id="CHV", lot_type=None)
 
 
 @patch("connectedquality_backend.routers.trace.fetch_top_down")

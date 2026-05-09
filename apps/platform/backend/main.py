@@ -126,7 +126,7 @@ W360_ROUTERS: list[RouterEntry] = [
 #     the active React apps (CQ, Trace, EnvMon, SPC, POH, W360).
 #   * home is the platform shell SPA served at `/`.
 #   * The remaining "standalone" directories (enzymes / pi-sheet / maintenance /
-#     tpm / pex-e-35 / lineside-monitor) are static HTML
+#     tpm / pex-e-35) are static HTML
 #     micro-apps copied verbatim from `apps/platform/standalone/<slug>/`.
 #     They are mounted but not part of any build pipeline. If you're adding
 #     a real React app, mirror the cq/poh/warehouse360 pattern in build.py
@@ -144,7 +144,6 @@ PI_SHEET_STATIC   = _STATIC / "pi-sheet"
 MAINTENANCE_STATIC = _STATIC / "maintenance"
 TPM_STATIC        = _STATIC / "tpm"
 PEX_E35_STATIC    = _STATIC / "pex-e-35"
-LINESIDE_STATIC   = _STATIC / "lineside-monitor"
 
 app = create_api_app(title="ConnectIO Platform API")
 
@@ -252,9 +251,6 @@ if TPM_STATIC.exists():
 
 if PEX_E35_STATIC.exists():
     app.mount("/pex-e-35", StaticFiles(directory=str(PEX_E35_STATIC), html=True), name="pex-e-35")
-
-if LINESIDE_STATIC.exists():
-    app.mount("/lineside-monitor", StaticFiles(directory=str(LINESIDE_STATIC), html=True), name="lineside-monitor")
 
 # Home SPA — served via the shared `register_spa_routes()` utility instead
 # of a raw StaticFiles mount. This gets us the same path-traversal-safe

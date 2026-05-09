@@ -17,24 +17,24 @@ describe('HomePanel', () => {
       json: async () => ({ name: 'Ops Lead' }),
     } as Response)
 
-    render(<HomePanel onModuleChange={() => {}} />)
+    render(<HomePanel />)
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith('/api/platform/me')
-      expect(screen.getByText('Welcome back, Ops')).toBeTruthy()
+      expect(screen.getByText('Welcome back, Ops Lead')).toBeTruthy()
     })
   })
 
   it('shows plain Welcome when fetch returns a non-ok response', async () => {
     vi.mocked(fetch).mockResolvedValueOnce({ ok: false, json: async () => ({}) } as Response)
-    render(<HomePanel onModuleChange={() => {}} />)
+    render(<HomePanel />)
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/platform/me'))
     expect(screen.getByText('Welcome')).toBeTruthy()
   })
 
   it('shows plain Welcome when fetch rejects', async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new Error('network'))
-    render(<HomePanel onModuleChange={() => {}} />)
+    render(<HomePanel />)
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/platform/me'))
     expect(screen.getByText('Welcome')).toBeTruthy()
   })
