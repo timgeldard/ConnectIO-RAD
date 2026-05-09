@@ -62,13 +62,13 @@ Consolidating smartly is essential for:
 | Centralize error mapping, business exceptions, and API response standards | `shared-api` + `shared-domain` | Small | Consistent error handling and better UX | ✅ Done |
 | Remove unit tests in apps that test shared library internals | — | Small | Reduce false coupling | ✅ Done |
 
-### Phase 3: Domain Model Maturation
+### Phase 3: Domain Model Maturation (Status: 🟡 In Progress)
 *Future / Ongoing*
 
-| Action | Target Library | Effort | Expected Benefit |
-| :--- | :--- | :--- | :--- |
-| Expand `shared-domain` and `shared-trace` with common Value Objects (`PlantScope`, `MaterialId`, `Quantity`, `GoodsMovement`, etc.) | `shared-domain` / `shared-trace` | Medium | Stronger ubiquitous language without over-coupling |
-| Only create `shared-manufacturing` if clear need emerges after Phase 1 & 2 | (Only if justified) | Large | Avoid premature broad libraries |
+| Action | Target Library | Effort | Expected Benefit | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| Expand `shared-domain` and `shared-trace` with common Value Objects (`PlantScope`, `MaterialId`, `Quantity`, `GoodsMovement`, etc.) | `shared-domain` / `shared-trace` | Medium | Stronger ubiquitous language without over-coupling | 🟡 In Progress |
+| Only create `shared-manufacturing` if clear need emerges after Phase 1 & 2 | (Only if justified) | Large | Avoid premature broad libraries | ⏳ Pending |
 
 ## 5. New Shared Libraries Proposed
 
