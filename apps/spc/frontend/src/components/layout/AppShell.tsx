@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { GlobalFilterBar } from './GlobalFilterBar'
+import { GlobalFilterBar } from '@connectio/shared-ui'
 import { SPCHeader } from './SPCHeader'
 import { Sidebar } from './Sidebar'
 

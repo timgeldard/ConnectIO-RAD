@@ -43,24 +43,24 @@ Consolidating smartly is essential for:
 
 ## 4. Consolidation Roadmap
 
-### Phase 1: UI & Context Consolidation (Status: In Progress)
+### Phase 1: UI & Context Consolidation (Status: ✅ Complete)
 *High impact, low risk, immediate developer experience wins.*
 
 | Action | Target Library | Effort | Expected Benefit | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | Delete local copies of `Card`, `KPI`, `AppShell`, `Icon`, `StatusPill`, `ErrorBoundary`, `PageHead` and replace with `shared-ui` | `shared-ui` | Medium | Design consistency + smaller bundle sizes | ✅ Done |
 | Extract `PlantProvider`, `usePlants`, `PlantContextBar`, and workspace context logic | `shared-app-context` (New) | Small | Single source of truth for authorization and cross-app context | ✅ Done |
-| Standardize `GlobalFilterBar` and common table patterns | `shared-ui` + `shared-frontend-api` | Small | Consistent UX across all cockpits | 🟡 In Progress |
+| Standardize `GlobalFilterBar` and common table patterns | `shared-ui` + `shared-frontend-api` | Small | Consistent UX across all cockpits | ✅ Done |
 
-### Phase 2: Backend Performance Foundations
+### Phase 2: Backend Performance Foundations (Status: 🟡 In Progress)
 *Critical for scaling to 500 concurrent users.*
 
-| Action | Target Library | Effort | Expected Benefit |
-| :--- | :--- | :--- | :--- |
-| Migrate tiered caching, TTL logic, and pattern-based cache keys from SPC into core | `shared-db` | Medium | All apps benefit from production-grade caching |
-| Add standardized query builders (pagination, plant filtering, query tagging, Liquid Clustering hints) | `shared-db` | Medium | Better performance, observability, and cost control on Databricks |
-| Centralize error mapping, business exceptions, and API response standards | `shared-api` + `shared-domain` | Small | Consistent error handling and better UX |
-| Remove unit tests in apps that test shared library internals | — | Small | Reduce false coupling |
+| Action | Target Library | Effort | Expected Benefit | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| Migrate tiered caching, TTL logic, and pattern-based cache keys from SPC into core | `shared-db` | Medium | All apps benefit from production-grade caching | 🟡 In Progress |
+| Add standardized query builders (pagination, plant filtering, query tagging, Liquid Clustering hints) | `shared-db` | Medium | Better performance, observability, and cost control on Databricks | 🟡 In Progress |
+| Centralize error mapping, business exceptions, and API response standards | `shared-api` + `shared-domain` | Small | Consistent error handling and better UX | 🟡 In Progress |
+| Remove unit tests in apps that test shared library internals | — | Small | Reduce false coupling | ⏳ Pending |
 
 ### Phase 3: Domain Model Maturation
 *Future / Ongoing*

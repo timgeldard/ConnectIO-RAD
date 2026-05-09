@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n/context'
-import { KPI, Icon, TopBar, Button } from '@connectio/shared-ui'
+import { KPI, Icon, TopBar, Button, GlobalFilterBar, FilterGroup, FilterDivider } from '@connectio/shared-ui'
 import { usePlantSelection } from '@connectio/shared-app-context'
 import { fmt, StatusBadge, Check } from '../ui'
 import { STATUSES } from '../data/mock'
@@ -220,7 +220,7 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
         />
       </div>
 
-      <div className="toolbar" style={{ padding: '12px 32px', borderBottom: '1px solid var(--line-1)', background: 'var(--surface-sunken)', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <GlobalFilterBar style={{ background: 'var(--surface-sunken)' }}>
         <div className="search-box" style={{ position: 'relative', width: 300 }}>
           <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }} />
           <input 
@@ -231,47 +231,50 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
           />
         </div>
 
-        <div style={{ width: 1, height: 24, background: 'var(--line-1)' }} />
+        <FilterDivider />
 
-        <span style={{ fontSize: 11, fontWeight: 'var(--fw-semibold)', color: 'var(--text-3)', textTransform: 'uppercase' }}>{t.statusLabel}</span>
-        {(STATUSES as any[]).map(s => (
-          <button
-            key={s.key}
-            className={`chip ${statusFilter.has(s.key) ? 'active' : ''}`}
-            onClick={() => toggleStatus(s.key)}
-            style={{ padding: '4px 10px', borderRadius: 'var(--r-pill)', border: '1px solid var(--line-1)', background: statusFilter.has(s.key) ? 'var(--surface-0)' : 'transparent', fontSize: 'var(--fs-12)', display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <span className={`dot status-${s.key}`} style={{ width: 8, height: 8, borderRadius: 99 }} />
-            <span>{statusLabel[s.key]}</span>
-          </button>
-        ))}
+        <FilterGroup label={t.statusLabel}>
+          {(STATUSES as any[]).map(s => (
+            <button
+              key={s.key}
+              className={`chip ${statusFilter.has(s.key) ? 'active' : ''}`}
+              onClick={() => toggleStatus(s.key)}
+              style={{ padding: '4px 10px', borderRadius: 'var(--r-pill)', border: '1px solid var(--line-1)', background: statusFilter.has(s.key) ? 'var(--surface-0)' : 'transparent', fontSize: 'var(--fs-12)', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <span className={`dot status-${s.key}`} style={{ width: 8, height: 8, borderRadius: 99 }} />
+              <span>{statusLabel[s.key]}</span>
+            </button>
+          ))}
+        </FilterGroup>
 
-        <div style={{ width: 1, height: 24, background: 'var(--line-1)' }} />
+        <FilterDivider />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-          <Icon name="calendar" size={14} />
-          <input
-            type="date"
-            value={dateFrom}
-            max={dateTo || _today}
-            onChange={e => setDateFrom(e.target.value)}
-            style={{ border: 'none', background: 'transparent', font: 'inherit', cursor: 'pointer' }}
-          />
-          <span style={{ opacity: 0.5 }}>→</span>
-          <input
-            type="date"
-            value={dateTo}
-            min={dateFrom}
-            max={_today}
-            onChange={e => setDateTo(e.target.value)}
-            style={{ border: 'none', background: 'transparent', font: 'inherit', cursor: 'pointer' }}
-          />
-        </div>
+        <FilterGroup>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+            <Icon name="calendar" size={14} />
+            <input
+              type="date"
+              value={dateFrom}
+              max={dateTo || _today}
+              onChange={e => setDateFrom(e.target.value)}
+              style={{ border: 'none', background: 'transparent', font: 'inherit', cursor: 'pointer' }}
+            />
+            <span style={{ opacity: 0.5 }}>→</span>
+            <input
+              type="date"
+              value={dateTo}
+              min={dateFrom}
+              max={_today}
+              onChange={e => setDateTo(e.target.value)}
+              style={{ border: 'none', background: 'transparent', font: 'inherit', cursor: 'pointer' }}
+            />
+          </div>
+        </FilterGroup>
 
         <div style={{ flex: 1 }} />
 
         <Button variant="ghost" onClick={() => window.location.reload()} icon={<Icon name="refresh" />}>{t.refresh}</Button>
-      </div>
+      </GlobalFilterBar>
 
       {selected.size > 0 && (
         <div className="bulk-bar" style={{ padding: '8px 32px', background: 'var(--valentia-slate)', color: 'var(--fg-on-brand)', display: 'flex', alignItems: 'center', gap: 16 }}>

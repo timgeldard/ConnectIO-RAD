@@ -1,10 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchJson } from '@connectio/shared-frontend-api'
-import { Card } from '@connectio/shared-ui'
-import { KPI } from '@connectio/shared-ui'
+import { Card, KPI, PageHead, Icon, DataTable, type Column } from '@connectio/shared-ui'
 import { Pill } from '~/components/Pill'
-import { PageHead } from '@connectio/shared-ui'
-import { Icon } from '@connectio/shared-ui'
 
 const srcColor = (src: string) =>
   src === 'TRACE' ? '#005776' : src === 'ENVMON' ? '#289BA2' : '#F24A00'
@@ -19,6 +16,50 @@ export function Alarms() {
   const open = data?.open ?? rows.filter((row: any) => row.status === 'open').length
   const ack = rows.filter((row: any) => row.status === 'ack').length
   const closed = rows.filter((row: any) => row.status === 'closed').length
+
+  const columns: Column<any>[] = [
+    {
+      header: '',
+      width: 28,
+      render: (r) => {
+        const severity = r.severity ?? r.sev ?? 'info'
+        return (
+          <span style={{ 
+            display: 'inline-block', width: 10, height: 10, borderRadius: 999, 
+            background: severity === 'bad' || severity === 'critical' ? 'var(--cq-bad)' : severity === 'warn' ? 'var(--cq-warn)' : 'var(--cq-info)' 
+          }} />
+        )
+      }
+    },
+    {
+      header: 'Source',
+      render: (r) => {
+        const source = String(r.source ?? r.src ?? '').toUpperCase()
+        return <span style={{ color: srcColor(source), fontFamily: 'var(--font-mono)' }}>{source || '—'}</span>
+      }
+    },
+    { header: 'Rule', render: (r) => r.rule ?? r.title ?? 'Signal' },
+    { header: 'Subject', render: (r) => r.context ?? r.subject ?? '—', muted: true },
+    { header: 'Site', render: (r) => r.plant_id ?? r.site ?? '—', mono: true },
+    { header: 'Owner', render: (r) => r.owner ?? '—', mono: true, muted: true },
+    { header: 'Age', render: (r) => r.age ?? '—', mono: true, num: true },
+    {
+      header: 'Status',
+      render: (r) => {
+        const status = r.status ?? r.st ?? 'open'
+        return (
+          <Pill kind={status === 'open' ? 'bad' : status === 'ack' ? 'warn' : 'muted'}>
+            {status}
+          </Pill>
+        )
+      }
+    },
+    {
+      header: '',
+      align: 'right',
+      render: () => <button className="cq-btn sm ghost"><Icon name="arrow" size={11} /></button>
+    }
+  ]
 
   return (
     <div className="cq-page">
@@ -40,44 +81,23 @@ export function Alarms() {
         <KPI label="MTTR · 30d" value="42" unit="min" />
         <KPI label="False positive rate" value="3.2" unit="%" subtext="rolling 90D" />
       </div>
-      <Card title="Signal stream" meta="11 EVENTS · LAST 24H" bodyClass="tight">
-        <table className="cq-tbl">
-          <thead>
-            <tr>
-              <th style={{ width: 28 }}></th>
-              <th>Source</th><th>Rule</th><th>Subject</th><th>Site</th>
-              <th>Owner</th><th>Age</th><th>Status</th><th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r: any, i: number) => {
+      <Card title="Signal stream" meta={`${rows.length} EVENTS · LAST 24H`} noPad>
+        {isError ? (
+          <div style={{ padding: 24, color: 'var(--status-risk)' }}>
+            Unable to load live alarms: {(error as Error).message}
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            rows={rows}
+            dense
+            rowKey={(r, i) => r.id ?? i}
+            emphasize={(r) => {
               const severity = r.severity ?? r.sev ?? 'info'
-              const source = String(r.source ?? r.src ?? '').toUpperCase()
-              const status = r.status ?? r.st ?? 'open'
-              return (
-              <tr key={r.id ?? i} className={severity === 'bad' || severity === 'critical' ? 'flagged' : ''}>
-                <td>
-                  <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 999, background: severity === 'bad' || severity === 'critical' ? 'var(--cq-bad)' : severity === 'warn' ? 'var(--cq-warn)' : 'var(--cq-info)' }} />
-                </td>
-                <td className="mono" style={{ color: srcColor(source) }}>{source || '—'}</td>
-                <td>{r.rule ?? r.title ?? 'Signal'}</td>
-                <td className="muted">{r.context ?? r.subject ?? '—'}</td>
-                <td className="mono">{r.plant_id ?? r.site ?? '—'}</td>
-                <td className="mono muted">{r.owner ?? '—'}</td>
-                <td className="num mono">{r.age ?? '—'}</td>
-                <td>
-                  <Pill kind={status === 'open' ? 'bad' : status === 'ack' ? 'warn' : 'muted'}>
-                    {status}
-                  </Pill>
-                </td>
-                <td><button className="cq-btn sm ghost"><Icon name="arrow" size={11} /></button></td>
-              </tr>
-            )})}
-            {isLoading && <tr><td colSpan={9} className="muted">Loading live alarms…</td></tr>}
-            {!isLoading && rows.length === 0 && !isError && <tr><td colSpan={9} className="muted">No live alarms for the active context.</td></tr>}
-            {isError && <tr><td colSpan={9} className="muted">Unable to load live alarms: {(error as Error).message}</td></tr>}
-          </tbody>
-        </table>
+              return severity === 'bad' || severity === 'critical'
+            }}
+          />
+        )}
       </Card>
     </div>
   )
