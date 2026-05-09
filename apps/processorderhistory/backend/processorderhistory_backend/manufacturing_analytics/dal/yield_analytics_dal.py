@@ -80,6 +80,7 @@ async def _q_daily30d(token: str) -> list[dict]:
     local-midnight boundaries via ``remap_utc_midnight_to_local_day``.
     """
     query = f"""
+        -- Align day buckets to local midnight so reporting matches plant-local calendar
         SELECT
             CAST(UNIX_TIMESTAMP(production_date) * 1000 AS BIGINT) AS day_ms,
             avg_yield_pct,
@@ -98,6 +99,7 @@ async def _q_hourly24h(token: str, tz: str) -> list[dict]:
     Hour boundaries align to local hour starts in ``tz``.
     """
     query = f"""
+        -- Use plant-specific timezone to align hour buckets for local reporting
         SELECT
             {tz_hour_ms('CAST(last_receipt_ts AS TIMESTAMP)', tz)} AS hour_ms,
             ROUND(AVG(CASE WHEN yield_pct IS NOT NULL THEN yield_pct END), 2) AS avg_yield_pct,

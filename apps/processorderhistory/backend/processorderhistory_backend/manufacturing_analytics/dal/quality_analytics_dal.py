@@ -41,6 +41,15 @@ async def _q_results_range(
 
     Filters by ``decision_date`` (DATE column).  Falls back to last-24h window
     when no dates supplied.
+
+    Args:
+        token: Databricks access token.
+        date_from: ISO date string (YYYY-MM-DD) or None for rolling-window.
+        date_to: ISO date string (YYYY-MM-DD) or None for rolling-window.
+        plant_id: Optional SAP plant identifier.
+
+    Returns:
+        List of raw inspection result dicts from Databricks.
     """
     if date_from and date_to:
         date_clause = "AND decision_date >= :date_from AND decision_date <= :date_to"
@@ -90,6 +99,13 @@ async def _q_daily30d(token: str, plant_id: Optional[str]) -> list[dict]:
     Source: ``metric_quality_daily`` (pre-computed MV).
     Returns UTC-midnight epoch-ms keys; ``_build_daily_series`` remaps them
     to local-midnight boundaries via ``remap_utc_midnight_to_local_day``.
+
+    Args:
+        token: Databricks access token.
+        plant_id: Optional SAP plant identifier.
+
+    Returns:
+        List of dicts with ``day_ms``, ``accepted_count``, and ``rejected_count``.
     """
     plant_clause = "AND PLANT_ID = :plant_id" if plant_id else ""
     params: Optional[list[dict]] = [sql_param("plant_id", plant_id)] if plant_id else None
@@ -275,7 +291,7 @@ async def fetch_quality_analytics(
     Day buckets align to local-midnight boundaries; hour buckets to local hour starts.
 
     If ``date_from`` / ``date_to`` are omitted, results_range defaults to the
-    last-24h window and prior7d is empty.
+    last-24h rolling window and ``prior7d`` is empty.
 
     Args:
         token: Databricks access token forwarded from the request proxy header.
@@ -283,6 +299,10 @@ async def fetch_quality_analytics(
         date_from: ISO date string (YYYY-MM-DD) for the start of the range.
         date_to: ISO date string (YYYY-MM-DD) for the end of the range.
         timezone: IANA timezone name from ``validate_timezone``.
+
+    Returns:
+        Dict with keys: ``now_ms``, ``materials``, ``rows``, ``prior7d``,
+        ``daily30d`` (30-day zero-padded series), and ``hourly24h`` (24h hourly).
     """
     now_ms = int(datetime.now(dt_timezone.utc).timestamp() * 1000)
 

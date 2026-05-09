@@ -162,6 +162,10 @@ async def fetch_downtime_analytics(
         date_from: ISO date string (YYYY-MM-DD) for the start of the range.
         date_to: ISO date string (YYYY-MM-DD) for the end of the range.
         timezone: IANA timezone name from ``validate_timezone``.
+
+    Returns:
+        Dict with keys: ``now_ms`` (int epoch-ms), ``reasons`` (list of
+        coerced pareto rows), and ``daily30d`` (30-day zero-padded series).
     """
     now = datetime.now(dt_timezone.utc)
     now_ms = int(now.timestamp() * 1000)
