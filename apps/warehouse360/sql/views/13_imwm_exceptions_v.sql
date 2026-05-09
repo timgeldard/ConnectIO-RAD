@@ -1,10 +1,10 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.imwm_exceptions_v
+-- View : ${TRACE_CATALOG}.wh360.imwm_exceptions_v
 -- Sources: sap.storagelocationmaterial_mard (MARD)
 --          sap.quant_lqua                   (LQUA)
 --          sap.transferorderobjects_ltak    (LTAK)
---          published_uat.central_services.batches_mcha (MCHA)
---          connected_plant_uat.wh360.imwm_stock_comparison_v (view 11)
+--          ${PUBLISHED_CATALOG}.central_services.batches_mcha (MCHA)
+--          ${TRACE_CATALOG}.wh360.imwm_stock_comparison_v (view 11)
 -- Grain : one row per exception instance
 -- Purpose: Rule-generated exception queue for the Exceptions tab
 -- Notes : QI/blocked aging rules (rules 6–7) use LFGJA/LFMON (fiscal period
@@ -13,7 +13,7 @@
 --         View 11 (imwm_stock_comparison_v) must be deployed before this view.
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.imwm_exceptions_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.imwm_exceptions_v AS
 
 -- Rule 1: Negative IM stock (SEV 4, SLA 2h)
 SELECT
@@ -28,7 +28,7 @@ SELECT
     ' INSME=', COALESCE(CAST(INSME AS STRING), '0')
   )                                                                AS detail_text,
   current_date()                                                   AS detected_date
-FROM connected_plant_uat.sap.storagelocationmaterial_mard
+FROM ${TRACE_CATALOG}.sap.storagelocationmaterial_mard
 WHERE (LVORM IS NULL OR LVORM = '')
   AND WERKS IS NOT NULL
   AND LENGTH(TRIM(WERKS)) > 0
@@ -49,7 +49,7 @@ SELECT
     ' qty=', CAST(GESME AS STRING)
   )                                                                AS detail_text,
   current_date()                                                   AS detected_date
-FROM connected_plant_uat.sap.quant_lqua
+FROM ${TRACE_CATALOG}.sap.quant_lqua
 WHERE WERKS IS NOT NULL
   AND LENGTH(TRIM(WERKS)) > 0
   AND GESME < 0
@@ -69,8 +69,8 @@ SELECT
     '; unrestricted stock=', CAST(m.LABST AS STRING)
   )                                                                AS detail_text,
   current_date()                                                   AS detected_date
-FROM published_uat.central_services.batches_mcha AS mc
-JOIN connected_plant_uat.sap.storagelocationmaterial_mard AS m
+FROM ${PUBLISHED_CATALOG}.central_services.batches_mcha AS mc
+JOIN ${TRACE_CATALOG}.sap.storagelocationmaterial_mard AS m
   ON  m.MATNR = mc.MATNR
   AND m.WERKS = mc.WERKS
 WHERE (mc.LVORM IS NULL OR mc.LVORM = '')
@@ -100,7 +100,7 @@ SELECT
     ' WM=', CAST(ROUND(wm_total_qty, 2) AS STRING), ')'
   )                                                                AS detail_text,
   current_date()                                                   AS detected_date
-FROM connected_plant_uat.wh360.imwm_stock_comparison_v
+FROM ${TRACE_CATALOG}.wh360.imwm_stock_comparison_v
 WHERE mismatch_kind = 'true'
 
 UNION ALL
@@ -118,8 +118,8 @@ SELECT
     ' (', datediff(current_date(), to_date(lk.BDATU, 'yyyy-MM-dd')), 'd)'
   )                                                                AS detail_text,
   current_date()                                                   AS detected_date
-FROM connected_plant_uat.sap.transferorderobjects_ltak AS lk
-JOIN connected_plant_uat.sap.transferorderobjects_ltap AS lt
+FROM ${TRACE_CATALOG}.sap.transferorderobjects_ltak AS lk
+JOIN ${TRACE_CATALOG}.sap.transferorderobjects_ltap AS lt
   ON  lt.LGNUM = lk.LGNUM
   AND lt.TANUM = lk.TANUM
 WHERE (lk.KQUIT = '' OR lk.KQUIT IS NULL)
@@ -146,7 +146,7 @@ SELECT
     ' last movement period ', LFGJA, '/', LFMON
   )                                                                AS detail_text,
   current_date()                                                   AS detected_date
-FROM connected_plant_uat.sap.storagelocationmaterial_mard
+FROM ${TRACE_CATALOG}.sap.storagelocationmaterial_mard
 WHERE (LVORM IS NULL OR LVORM = '')
   AND WERKS IS NOT NULL
   AND LENGTH(TRIM(WERKS)) > 0
@@ -174,7 +174,7 @@ SELECT
     ' last movement period ', LFGJA, '/', LFMON
   )                                                                AS detail_text,
   current_date()                                                   AS detected_date
-FROM connected_plant_uat.sap.storagelocationmaterial_mard
+FROM ${TRACE_CATALOG}.sap.storagelocationmaterial_mard
 WHERE (LVORM IS NULL OR LVORM = '')
   AND WERKS IS NOT NULL
   AND LENGTH(TRIM(WERKS)) > 0

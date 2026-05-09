@@ -1,0 +1,8 @@
+{
+  "apps/spc": "0.0.0",
+  "apps/trace2": "0.0.0",
+  "apps/warehouse360": "0.0.0",
+  "apps/processorderhistory": "0.0.0",
+  "apps/envmon": "0.0.0",
+  "apps/connectedquality": "0.0.0"
+}

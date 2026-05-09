@@ -24,7 +24,7 @@ packages = ["trace2_backend"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-q --cov=trace2_backend --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=64"
+addopts = "-q --cov=trace2_backend --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=70"
 asyncio_mode = "auto"
 filterwarnings = ["ignore::DeprecationWarning"]
 

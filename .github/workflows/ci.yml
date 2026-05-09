@@ -5,6 +5,18 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'uat'
+        type: choice
+        options: [uat, production]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ci:
@@ -148,7 +160,7 @@ jobs:
       # history on push to main (so a sneaky commit is found post-merge too)
       # and against the diff on PRs (faster, scoped to what changed).
       - name: gitleaks (secret scanning)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v2.3.9  # pinned from @v2 (floating major tag)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -167,11 +179,16 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:python,javascript"
+          fail-on: high
 
   deploy:
     needs: [ci, security]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy-${{ github.ref }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -186,7 +203,7 @@ jobs:
         with:
           enable-cache: true
 
-      - uses: databricks/setup-cli@main
+      - uses: databricks/setup-cli@v0.240.0  # pinned from @main — verify SHA against https://github.com/databricks/setup-databricks-cli/releases
 
       - name: Install Node dependencies
         run: npm ci

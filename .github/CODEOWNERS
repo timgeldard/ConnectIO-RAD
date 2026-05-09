@@ -1,6 +1,16 @@
-# Code Ownership — ConnectIO-RAD
-#
-# Single-maintainer baseline; split per-app once the team grows.
-# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# Default — all files require review from the platform owner
+*                              @timgeldard
 
-* @timgeldard
+# Shared libs: any change needs careful review
+libs/                          @timgeldard
+.github/                       @timgeldard
+scripts/                       @timgeldard
+
+# Per-app ownership (add team members here as the team grows)
+apps/spc/                      @timgeldard
+apps/warehouse360/             @timgeldard
+apps/processorderhistory/      @timgeldard
+apps/trace2/                   @timgeldard
+apps/envmon/                   @timgeldard
+apps/connectedquality/         @timgeldard
+apps/platform/                 @timgeldard

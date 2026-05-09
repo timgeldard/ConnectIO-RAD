@@ -1,5 +1,5 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.imwm_movements_v
+-- View : ${TRACE_CATALOG}.wh360.imwm_movements_v
 -- Sources: sap.inventorymovement_mseg (MSEG — MKPF fields denormalized)
 --          silver.silver_material_description
 -- Grain : (MBLNR, ZEILE) — one row per material document line
@@ -14,7 +14,7 @@
 --         is added to the extraction in future.
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.imwm_movements_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.imwm_movements_v AS
 
 SELECT
   ms.BUDAT_MKPF                                                    AS posting_date,
@@ -30,9 +30,9 @@ SELECT
   ms.MBLNR                                                         AS document_number,
   ms.CHARG                                                         AS batch_id
 
-FROM connected_plant_uat.sap.inventorymovement_mseg AS ms
+FROM ${TRACE_CATALOG}.sap.inventorymovement_mseg AS ms
 
-LEFT JOIN connected_plant_uat.silver.silver_material_description AS md
+LEFT JOIN ${TRACE_CATALOG}.silver.silver_material_description AS md
   ON  LPAD(md.MATERIAL_ID, 18, '0') = ms.MATNR
   AND md.LANGUAGE_ID = 'E'
 

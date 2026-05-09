@@ -23,7 +23,7 @@ packages = ["warehouse360_backend"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-q --cov=warehouse360_backend --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=69"
+addopts = "-q --cov=warehouse360_backend --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=72"
 asyncio_mode = "auto"
 filterwarnings = ["ignore::DeprecationWarning"]
 markers = [

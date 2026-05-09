@@ -101,7 +101,12 @@ async def _fetch_mic_chart_overrides(
     return overrides
 
 
-async def fetch_plants(token: str, material_id: str) -> list[dict]:
+async def _fetch_material_plants(token: str, material_id: str) -> list[dict]:
+    """Return plants that have SPC data for the given material.
+
+    Internal — callers should use ``application.metadata.fetch_plants`` which
+    intersects this result with the caller's authorized scope.
+    """
     query = f"""
         SELECT plant_id, plant_name
         FROM {tbl('spc_plant_material_dim_mv')}

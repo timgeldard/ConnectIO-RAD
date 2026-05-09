@@ -124,6 +124,7 @@ Value objects in `chart_config/domain/` validate business invariants at construc
 - **Pagination:** cursor-based keyset pagination on `/chart-data` via `encode_chart_cursor` / `decode_chart_cursor`
 - **Data freshness:** `attach_data_freshness()` appends last-modified timestamps from materialized view metadata to every read response
 - **Rate limiting:** SlowAPI limiter with per-endpoint budgets; write endpoints are tighter (30/min) than read endpoints (60–120/min)
+- **Plant authorization:** All endpoints that accept an optional `plant_id` call `assert_plant_authorized(token, plant_id)` in the application layer before any DAL query. No-op when `plant_id` is None (global scope). `GET /api/spc/plants` additionally intersects the authorized scope with plants that have data for the requested material, so the plant picker shows only relevant, authorized plants. `process_control/dal/authorized_scope.py` is used instead of `shared_db.authorized_scope` so the `gold_plant` query benefits from SPC's 15-minute metadata cache and query audit hook.
 
 ## DDD Layer Boundaries
 

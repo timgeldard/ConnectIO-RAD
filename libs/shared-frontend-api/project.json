@@ -10,5 +10,9 @@
         "cwd": "libs/shared-frontend-api"
       }
     }
-  }
+  },
+  "tags": [
+    "scope:shared",
+    "type:lib"
+  ]
 }
