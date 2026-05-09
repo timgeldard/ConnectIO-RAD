@@ -175,6 +175,15 @@ export const IMWMCockpit = () => {
     { header: 'Status', render: (row) => <Pill tone={mismatchTone(row.mismatch_kind)}>{String(row.mismatch_kind ?? '—')}</Pill>, sortKey: 'mismatch_kind' }
   ];
 
+  const stockLookup = React.useMemo(() => {
+    const map = new Map<string, Row>()
+    stock.forEach((s) => {
+      const k = `${String(s.material_id ?? '')}:${String(s.plant_id ?? '')}:${String(s.storage_loc ?? '')}`
+      map.set(k, s)
+    })
+    return map
+  }, [stock])
+
   const excColumns: Column<Row>[] = [
     { header: 'Type', render: (row) => <Pill tone={severityTone(row.severity)}>{String(row.exception_type ?? '—')}</Pill>, sortKey: 'exception_type' },
     { header: 'Sev', align: 'right', key: 'severity', sortKey: 'severity' },
@@ -184,7 +193,8 @@ export const IMWMCockpit = () => {
     { header: 'Plant', key: 'plant_id', mono: true, sortKey: 'plant_id' },
     { header: 'Qty', align: 'right', render: (row) => row.qty != null ? fmtQty(row.qty) : '—', sortKey: 'qty' },
     { header: 'Value', align: 'right', render: (row) => {
-      const stockMatch = row.material_id && row.plant_id && row.storage_loc ? stock.find(s => s.material_id === row.material_id && s.plant_id === row.plant_id && s.storage_loc === row.storage_loc) : undefined
+      const k = `${String(row.material_id ?? '')}:${String(row.plant_id ?? '')}:${String(row.storage_loc ?? '')}`
+      const stockMatch = row.material_id && row.plant_id && row.storage_loc ? stockLookup.get(k) : undefined
       return stockMatch ? fmtMoney(num(stockMatch.inventory_value_eur)) : '—'
     }, sortKey: 'inventory_value_eur' },
     { header: 'Batch', key: 'batch_id', mono: true },

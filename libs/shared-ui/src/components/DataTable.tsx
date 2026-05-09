@@ -1,8 +1,10 @@
-import type { ReactNode, CSSProperties } from 'react'
+import { useState, type ReactNode, type CSSProperties } from 'react'
 
 export interface Column<T> {
   header: ReactNode
-  key?: keyof T
+  key?: keyof T & string
+  /** Column key used for sort callbacks; falls back to `key` if omitted. */
+  sortKey?: string
   align?: 'left' | 'right' | 'center'
   width?: number | string
   mono?: boolean
@@ -10,6 +12,8 @@ export interface Column<T> {
   muted?: boolean
   wrap?: boolean
   render?: (row: T, i: number) => ReactNode
+  className?: string
+  style?: CSSProperties
 }
 
 interface DataTableProps<T> {
@@ -21,6 +25,16 @@ interface DataTableProps<T> {
   onRowClick?: (row: T, i: number) => void
   className?: string
   style?: CSSProperties
+  /** Shows a skeleton loading row when true. */
+  loading?: boolean
+  /** Column sort key currently active — used to render a sort indicator. */
+  sortKey?: string
+  /** Sort direction for the active column. */
+  sortDir?: 'asc' | 'desc'
+  /** Fires when a sortable header is clicked. Column must have sortKey to opt in. */
+  onSort?: (key: string, dir: 'asc' | 'desc') => void
+  /** When set, renders built-in page controls below the table. */
+  pagination?: { pageSize: number }
 }
 
 export function DataTable<T>({
@@ -32,39 +46,77 @@ export function DataTable<T>({
   onRowClick,
   className,
   style,
+  loading = false,
+  sortKey: activeSortKey,
+  sortDir: activeSortDir = 'asc',
+  onSort,
+  pagination,
 }: DataTableProps<T>) {
+  const [page, setPage] = useState(0)
   const rowPad = dense ? '6px 12px' : '9px 14px'
+
+  const pageSize = pagination?.pageSize ?? rows.length
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
+  const visibleRows = pagination ? rows.slice(page * pageSize, (page + 1) * pageSize) : rows
+
+  const handleHeaderClick = (col: Column<T>) => {
+    const key = col.sortKey ?? (col.key as string | undefined)
+    if (!key || !onSort) return
+    const nextDir = activeSortKey === key && activeSortDir === 'asc' ? 'desc' : 'asc'
+    onSort(key, nextDir)
+  }
 
   return (
     <div data-testid="data-table" className={className} style={{ width: '100%', overflowX: 'auto', ...style }}>
-      <table style={{
-        width: '100%',
-        borderCollapse: 'collapse',
-        fontFamily: 'var(--font-sans)',
-        fontSize: 12.5,
-      }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-sans)', fontSize: 12.5 }}>
         <thead>
           <tr>
-            {columns.map((c, i) => (
-              <th key={i} data-testid={`data-table-header${c.key ? `-${String(c.key)}` : ''}`} style={{
-                textAlign: c.align || 'left',
-                padding: rowPad,
-                color: 'var(--text-3)',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 500,
-                fontSize: 9.5,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                borderBottom: '1px solid var(--line-2)',
-                background: 'var(--surface-0)',
-                whiteSpace: 'nowrap',
-                width: c.width,
-              }}>{c.header}</th>
-            ))}
+            {columns.map((c, i) => {
+              const colSortKey = c.sortKey ?? (c.key as string | undefined)
+              const isSortable = !!colSortKey && !!onSort
+              const isActive = colSortKey === activeSortKey
+              return (
+                <th
+                  key={i}
+                  data-testid={`data-table-header${c.key ? `-${String(c.key)}` : ''}`}
+                  onClick={isSortable ? () => handleHeaderClick(c) : undefined}
+                  style={{
+                    textAlign: c.align || 'left',
+                    padding: rowPad,
+                    color: 'var(--text-3)',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 500,
+                    fontSize: 9.5,
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    borderBottom: '1px solid var(--line-2)',
+                    background: 'var(--surface-0)',
+                    whiteSpace: 'nowrap',
+                    width: c.width,
+                    cursor: isSortable ? 'pointer' : 'default',
+                    userSelect: 'none',
+                  }}
+                >
+                  {c.header}
+                  {isSortable && isActive && (
+                    <span style={{ marginLeft: 4, opacity: 0.7 }}>
+                      {activeSortDir === 'asc' ? '↑' : '↓'}
+                    </span>
+                  )}
+                </th>
+              )
+            })}
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => {
+          {loading && (
+            <tr>
+              <td colSpan={columns.length} style={{ padding: rowPad, textAlign: 'center', color: 'var(--text-3)' }}>
+                Loading…
+              </td>
+            </tr>
+          )}
+          {!loading && visibleRows.map((r, i) => {
             const isEmph = emphasize && emphasize(r, i)
             const baseBg = isEmph ? 'var(--surface-sunken)' : 'transparent'
             return (
@@ -72,37 +124,34 @@ export function DataTable<T>({
                 key={rowKey(r, i)}
                 data-testid="data-table-row"
                 onClick={onRowClick ? () => onRowClick(r, i) : undefined}
-                style={{
-                  cursor: onRowClick ? 'pointer' : 'default',
-                  background: baseBg,
-                  transition: 'background 120ms ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--surface-sunken)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = baseBg
-                }}
+                style={{ cursor: onRowClick ? 'pointer' : 'default', background: baseBg, transition: 'background 120ms ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface-sunken)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = baseBg }}
               >
                 {columns.map((c, j) => (
-                  <td key={j} style={{
-                    textAlign: c.align || 'left',
-                    padding: rowPad,
-                    color: c.muted ? 'var(--text-3)' : 'var(--text-1)',
-                    fontSize: c.mono ? 11.5 : 12.5,
-                    fontFamily: c.mono ? 'var(--font-mono)' : 'inherit',
-                    letterSpacing: c.mono ? '0.01em' : 'normal',
-                    fontVariantNumeric: c.num ? 'tabular-nums' : 'normal',
-                    borderBottom: '1px solid var(--line-1)',
-                    whiteSpace: c.wrap ? 'normal' : 'nowrap',
-                  }}>
+                  <td
+                    key={j}
+                    className={c.className}
+                    style={{
+                      textAlign: c.align || 'left',
+                      padding: rowPad,
+                      color: c.muted ? 'var(--text-3)' : 'var(--text-1)',
+                      fontSize: c.mono ? 11.5 : 12.5,
+                      fontFamily: c.mono ? 'var(--font-mono)' : 'inherit',
+                      letterSpacing: c.mono ? '0.01em' : 'normal',
+                      fontVariantNumeric: c.num ? 'tabular-nums' : 'normal',
+                      borderBottom: '1px solid var(--line-1)',
+                      whiteSpace: c.wrap ? 'normal' : 'nowrap',
+                      ...c.style,
+                    }}
+                  >
                     {c.render ? c.render(r, i) : (c.key ? (r[c.key] as ReactNode) : null)}
                   </td>
                 ))}
               </tr>
             )
           })}
-          {rows.length === 0 && (
+          {!loading && rows.length === 0 && (
             <tr>
               <td data-testid="data-table-empty" colSpan={columns.length} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-3)' }}>
                 No data available.
@@ -111,6 +160,25 @@ export function DataTable<T>({
           )}
         </tbody>
       </table>
+      {pagination && totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, padding: '8px 16px', borderTop: '1px solid var(--line-1)', fontSize: 12, color: 'var(--text-3)' }}>
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            style={{ background: 'none', border: '1px solid var(--line-1)', borderRadius: 4, padding: '2px 8px', cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.4 : 1 }}
+          >
+            ←
+          </button>
+          <span style={{ fontFamily: 'var(--font-mono)' }}>{page + 1} / {totalPages}</span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+            style={{ background: 'none', border: '1px solid var(--line-1)', borderRadius: 4, padding: '2px 8px', cursor: page >= totalPages - 1 ? 'default' : 'pointer', opacity: page >= totalPages - 1 ? 0.4 : 1 }}
+          >
+            →
+          </button>
+        </div>
+      )}
     </div>
   )
 }

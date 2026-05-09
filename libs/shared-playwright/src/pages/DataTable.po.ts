@@ -14,7 +14,7 @@ export class DataTablePO {
     const root = scope ?? page.locator('body')
     this.root = root.locator('[data-testid="data-table"]').first()
     this.rows = this.root.locator('[data-testid="data-table-row"]')
-    this.headers = this.root.locator('[data-testid="data-table-header"]')
+    this.headers = this.root.locator('[data-testid^="data-table-header"]')
     this.emptyState = this.root.locator('[data-testid="data-table-empty"]')
   }
 

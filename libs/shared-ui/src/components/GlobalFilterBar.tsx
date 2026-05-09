@@ -15,6 +15,7 @@ export function GlobalFilterBar({ children, className = '', style }: GlobalFilte
   
   return (
     <div
+      data-testid="filter-bar"
       className={`connectio-filter-bar ${className}`}
       style={{
         display: 'flex',

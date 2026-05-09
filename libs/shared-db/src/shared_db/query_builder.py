@@ -42,24 +42,31 @@ class QueryBuilder:
         return self
 
     def with_order_by(self, order_by: str) -> QueryBuilder:
-        """Sets ORDER BY clause."""
+        """Sets ORDER BY clause. Must be a valid column identifier (letters, digits, underscores, dots)."""
+        if not _IDENTIFIER_RE.match(order_by.replace("`", "")):
+            raise ValueError(f"Invalid ORDER BY identifier: {order_by!r}")
         self.order_by = order_by
         return self
 
     def with_clustering_hint(self, *columns: str) -> QueryBuilder:
-        """Adds Liquid Clustering column hints for Databricks optimization."""
+        """Adds optimizer-hint column names. Each must be a safe identifier."""
+        for col in columns:
+            if not _IDENTIFIER_RE.match(col.replace("`", "")):
+                raise ValueError(f"Invalid clustering column identifier: {col!r}")
         self.clustering_columns.extend(columns)
         return self
 
     def build(self) -> tuple[str, list[dict[str, Any]]]:
         """Returns the SQL statement and parameters."""
+        for col in self.columns:
+            if col != "*" and not _IDENTIFIER_RE.match(col.replace("`", "")):
+                raise ValueError(f"Invalid column identifier: {col!r}")
         cols = ", ".join(self.columns)
-        
-        # Liquid Clustering / Optimization hints (injected as comments or specific syntax if supported)
-        # Note: Databricks Liquid Clustering is a table property, but we can add hints for the optimizer.
+
         hints = ""
         if self.clustering_columns:
-            hints = f"/* CLUSTER BY {', '.join(self.clustering_columns)} */\n"
+            # Advisory comment for query profiling — Databricks ignores this for planning.
+            hints = f"/* clustering_hint: {', '.join(self.clustering_columns)} */\n"
 
         sql = f"{hints}SELECT {cols}\nFROM {self.base_table}"
         

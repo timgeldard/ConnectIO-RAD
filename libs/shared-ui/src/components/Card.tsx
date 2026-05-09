@@ -59,7 +59,7 @@ export function Card({
           {action}
         </CardHeader>
       )}
-      <CardContent className={bodyClass} style={{ padding: noPad ? 0 : padding, ...(hasHeader ? {} : {}) }}>
+      <CardContent className={bodyClass} style={noPad ? { padding: 0 } : padding != null ? { padding } : undefined}>
         {children}
       </CardContent>
     </div>

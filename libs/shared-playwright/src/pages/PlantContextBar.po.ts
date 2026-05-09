@@ -1,27 +1,29 @@
 import type { Page } from '@playwright/test'
 
 /**
- * Page Object for the plant selector present in all ConnectIO apps.
- * Wraps the [data-testid="topbar-plant-selector"] element in TopBar.tsx.
+ * Page Object for the shared PlantContextBar component.
+ * Targets [data-testid="topbar-plant-selector"] on the container div.
+ * The inner <select> has data-testid="plant-selector-dropdown".
+ * Each <option> has a data-plant-id attribute.
  */
 export class PlantContextBarPO {
   constructor(private readonly page: Page) {}
 
-  /** Opens the plant dropdown and clicks the option matching `plantId`. */
+  /** Selects the plant matching `plantId` via the native <select> element. */
   async selectPlant(plantId: string): Promise<void> {
-    await this.page.locator('[data-testid="topbar-plant-selector"]').click()
-    await this.page.locator(`[data-plant-id="${plantId}"]`).click()
-    // Wait for the first successful API response — signals backend warmed up.
+    await this.page
+      .locator('[data-testid="plant-selector-dropdown"]')
+      .selectOption({ value: plantId })
     await this.page.waitForResponse(
       (r) => r.url().includes('/api/') && r.status() < 400,
       { timeout: 15_000 },
     )
   }
 
-  /** Returns the label text of the currently selected plant. */
+  /** Returns the currently selected plant ID from the <select> value. */
   async selectedPlant(): Promise<string> {
     return this.page
-      .locator('[data-testid="topbar-plant-selector"] [data-testid="plant-selected-label"]')
-      .innerText()
+      .locator('[data-testid="plant-selector-dropdown"]')
+      .inputValue()
   }
 }

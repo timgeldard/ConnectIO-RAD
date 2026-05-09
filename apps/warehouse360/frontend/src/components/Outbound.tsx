@@ -155,10 +155,9 @@ const Outbound = ({ onOpen }: OutboundProps) => {
         <DataTable
           columns={columns}
           rows={rows}
-          rowKey="delivery_id"
+          rowKey={(d: any, i: number) => d.delivery_id ?? i}
           onRowClick={onOpen}
           dense
-          loading={loading}
           emphasize={(d) => d.risk === 'red'}
         />
       </Card>

@@ -24,6 +24,7 @@ export function PlantContextBar({ label, style }: PlantContextBarProps) {
 
   return (
     <div
+      data-testid="topbar-plant-selector"
       className="connectio-ctx-bar"
       style={{
         display: 'flex',
@@ -45,6 +46,7 @@ export function PlantContextBar({ label, style }: PlantContextBarProps) {
           {displayLabel}
         </span>
         <select
+          data-testid="plant-selector-dropdown"
           aria-label={displayLabel}
           value={selectedPlantId}
           disabled={loading || plants.length === 0}
@@ -64,7 +66,7 @@ export function PlantContextBar({ label, style }: PlantContextBarProps) {
             </option>
           )}
           {plants.map((plant) => (
-            <option key={plant.plant_id} value={plant.plant_id}>
+            <option key={plant.plant_id} value={plant.plant_id} data-plant-id={plant.plant_id}>
               {plant.plant_name && plant.plant_name !== plant.plant_id
                 ? `${plant.plant_name} · ${plant.plant_id}`
                 : plant.plant_id}

@@ -1,6 +1,6 @@
 import { EMProvider } from '~/context/EMContext';
 import AppShell from '~/components/layout/AppShell';
-import ErrorBoundary from '~/components/common/ErrorBoundary';
+import { ErrorBoundary } from '@connectio/shared-ui';
 import { I18nProvider } from '@connectio/shared-frontend-i18n';
 import { PlantProvider } from '@connectio/shared-app-context';
 import enResources from './i18n/locales/en.json';

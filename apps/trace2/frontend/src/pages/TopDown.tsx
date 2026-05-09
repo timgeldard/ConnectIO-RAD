@@ -87,8 +87,8 @@ function TopDownBody({
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
-        <KPI label={copy.top.distinctCustomers} value={fmtInt(batch.customers_affected)} tone={sim ? "bad" : "default"} />
-        <KPI label={copy.top.distinctCountries} value={fmtInt(batch.countries_affected)} tone={sim ? "bad" : "default"} />
+        <KPI label={copy.top.distinctCustomers} value={fmtInt(batch.customers_affected)} tone={sim ? "risk" : "neutral"} />
+        <KPI label={copy.top.distinctCountries} value={fmtInt(batch.countries_affected)} tone={sim ? "risk" : "neutral"} />
         <KPI label={copy.top.totalShipped} value={fmtN(batch.total_shipped_kg, 1)} unit={batch.uom} />
         <KPI label={copy.common.deliveries} value={fmtInt(batch.total_deliveries)} />
         <KPI label={copy.top.outputTiers} value={maxLevel} subtext={template(copy.top.outputSub, { count: lineage.length })} tone="neutral" />

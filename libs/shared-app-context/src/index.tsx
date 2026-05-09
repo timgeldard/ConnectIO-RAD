@@ -27,13 +27,20 @@ export interface PlantContextValue {
 const PlantContext = createContext<PlantContextValue | null>(null)
 
 /** Normalises raw rows from the API into typed Plant records. */
-const normalisePlants = (rows: any): Plant[] => {
-  const plants = Array.isArray(rows) ? rows : (rows?.plants || [])
-  return (plants as any[])
-    .map((plant) => ({
-      plant_id: String(plant['plant_id'] ?? '').trim(),
-      plant_name: String(plant['plant_name'] ?? plant['plant_id'] ?? '').trim(),
-    }))
+const normalisePlants = (rows: unknown): Plant[] => {
+  const rawArray = Array.isArray(rows)
+    ? rows
+    : (rows != null && typeof rows === 'object' && 'plants' in rows && Array.isArray((rows as Record<string, unknown>).plants))
+      ? (rows as Record<string, unknown>).plants as unknown[]
+      : []
+  return rawArray
+    .map((plant) => {
+      const p = plant as Record<string, unknown>
+      return {
+        plant_id: String(p['plant_id'] ?? '').trim(),
+        plant_name: String(p['plant_name'] ?? p['plant_id'] ?? '').trim(),
+      }
+    })
     .filter((plant) => plant.plant_id.length > 0)
     .sort((a, b) => a.plant_id.localeCompare(b.plant_id))
 }
