@@ -23,8 +23,11 @@ Status mapping (SAP STATUS → Gantt block kind):
   ON HOLD / everything else            → firm
 """
 import asyncio
+import logging
 from datetime import datetime, timezone
 from typing import Optional
+
+_log = logging.getLogger(__name__)
 
 from processorderhistory_backend.db import run_sql_async, sql_param, tbl
 from processorderhistory_backend.production_planning.domain.planning import (
@@ -70,7 +73,13 @@ async def _q_blocks(token: str, plant_id: Optional[str]) -> list[dict]:
           {plant_clause}
         ORDER BY spo.SCHEDULED_START
     """
-    return await run_sql_async(token, query, params or None, endpoint_hint="poh.planning.blocks")
+    try:
+        return await run_sql_async(token, query, params or None, endpoint_hint="poh.planning.blocks")
+    except Exception as exc:
+        # vw_gold_process_order_plan is pending delivery by Data Engineering (DDE-892).
+        # Return empty rows so the planning board degrades to backlog-only rather than 500ing.
+        _log.warning("planning blocks query failed (view may not exist yet): %s", exc)
+        return []
 
 
 async def _q_backlog(token: str, plant_id: Optional[str]) -> list[dict]:
