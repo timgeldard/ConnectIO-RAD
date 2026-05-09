@@ -39,14 +39,37 @@ const normalizeLineside = (l) => {
   };
 };
 
+/** Sortable column header for the quants table. */
+const QuantSortTh = ({
+  label, sortKey, active, dir, onSort, className,
+}: { label: string; sortKey: string; active: string; dir: 'asc' | 'desc'; onSort: (k: string) => void; className?: string }) => (
+  <th
+    className={className}
+    style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+    onClick={() => onSort(sortKey)}
+  >
+    {label}
+    {active === sortKey && (
+      <span style={{ marginLeft: 4, fontSize: 10, opacity: 0.75 }}>{dir === 'asc' ? '▲' : '▼'}</span>
+    )}
+  </th>
+)
+
 const Inventory = () => {
   const { t } = useI18n();
   const [tab, setTab] = React.useState('overview');
   const [selectedLgtyp, setSelectedLgtyp] = React.useState<string | null>(null);
+  const [quantsSortKey, setQuantsSortKey] = React.useState('qty');
+  const [quantsSortDir, setQuantsSortDir] = React.useState<'asc' | 'desc'>('desc');
+  const [quantsFilter, setQuantsFilter] = React.useState('');
 
   // Summary: per-storage-type aggregates for the overview utilisation card.
   // No row-count limit — one row per lgtyp (typically < 100 rows).
   const { data: summaryResp, loading: summaryLoading, error: summaryError } = useApi<any>('/api/inventory/bins/summary');
+
+  // All bins (unfiltered by lgtyp) for the quants table — always reflects the
+  // full WM inventory regardless of which storage type is selected in the heatmap.
+  const { data: allBinsResp } = useApi<any>('/api/inventory/bins');
 
   // Detail: bin-level rows for heatmap, quants table, and other tabs.
   // When a storage type is selected, restricted to that type (still capped at 2000).
@@ -93,6 +116,79 @@ const Inventory = () => {
     return rows;
   }, [nearExpiryResp]);
 
+  const allWmBins = React.useMemo(() => {
+    const api: any[] = allBinsResp?.bins ?? [];
+    return api.map(normalizeBin);
+  }, [allBinsResp]);
+
+  // Quants: all WM bins with material, sorted/filtered, top-20 by volume.
+  const sortedQuants = React.useMemo(() => {
+    const filterLc = quantsFilter.toLowerCase();
+    const filtered = allWmBins.filter((b: any) => {
+      if (!b.material) return false;
+      if (!filterLc) return true;
+      return (
+        b.material.name.toLowerCase().includes(filterLc) ||
+        b.material.id.toLowerCase().includes(filterLc)
+      );
+    });
+    return [...filtered].sort((a: any, b: any) => {
+      let av: any;
+      let bv: any;
+      if (quantsSortKey === 'materialName') { av = a.material?.name ?? ''; bv = b.material?.name ?? ''; }
+      else if (quantsSortKey === 'binId') { av = a.id ?? ''; bv = b.id ?? ''; }
+      else if (quantsSortKey === 'qty') { av = Number(a.qty ?? 0); bv = Number(b.qty ?? 0); }
+      else if (quantsSortKey === 'ageHours') { av = a.ageHours ?? 0; bv = b.ageHours ?? 0; }
+      else if (quantsSortKey === 'batchExpiryDays') { av = a.batchExpiryDays ?? 9999; bv = b.batchExpiryDays ?? 9999; }
+      else if (quantsSortKey === 'status') { av = a.status ?? ''; bv = b.status ?? ''; }
+      else { av = ''; bv = ''; }
+      const an = Number(av); const bn = Number(bv);
+      const cmp = Number.isFinite(an) && Number.isFinite(bn)
+        ? an - bn
+        : String(av).localeCompare(String(bv));
+      return quantsSortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [allWmBins, quantsSortKey, quantsSortDir, quantsFilter]);
+
+  const handleQuantsSort = (key: string) => {
+    if (key === quantsSortKey) {
+      setQuantsSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setQuantsSortKey(key);
+      setQuantsSortDir('asc');
+    }
+  };
+
+  const downloadStockSnapshot = () => {
+    const rows = allWmBins;
+    if (rows.length === 0) return;
+    const headers = ['Bin', 'Storage Type', 'Material ID', 'Material Name', 'Qty', 'UOM', 'Status', 'Age (days)', 'Days to Expiry'];
+    const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csvLines = [
+      headers.map(escape).join(','),
+      ...rows.map((b: any) => [
+        b.id,
+        b.storageType?.id ?? '',
+        b.material?.id ?? '',
+        b.material?.name ?? '',
+        b.qty != null ? Math.round(Number(b.qty)) : '',
+        b.material?.uom ?? '',
+        b.status,
+        b.ageHours != null ? (b.ageHours / 24).toFixed(1) : '',
+        b.batchExpiryDays < 9999 ? b.batchExpiryDays : '',
+      ].map(escape).join(',')),
+    ];
+    const blob = new Blob([csvLines.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stock-snapshot-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const aged = detailBins.filter((b: any) => b.ageHours > 168 && b.status === 'Occupied').slice(0, 12);
   const expiring = nearExpiryBatches.slice(0, 30);
   const blocked = detailBins.filter((b: any) => b.status === 'Blocked').slice(0, 8);
@@ -114,7 +210,7 @@ const Inventory = () => {
           <div className="page-desc">Bin occupancy, line-side stock, batch expiry, quality holds and cycle count priorities.</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-secondary"><Icon name="download" size={14}/> {t('warehouse.inventory.btn.stockSnapshot')}</button>
+          <button className="btn btn-secondary" onClick={downloadStockSnapshot} disabled={allWmBins.length === 0} title={allWmBins.length === 0 ? 'Loading…' : `Download ${allWmBins.length.toLocaleString()} bin rows as CSV`}><Icon name="download" size={14}/> {t('warehouse.inventory.btn.stockSnapshot')}</button>
           <button className="btn btn-primary"><Icon name="eye" size={14}/> {t('warehouse.inventory.btn.cycleCountPlan')}</button>
         </div>
       </div>
@@ -179,9 +275,9 @@ const Inventory = () => {
               </div>
             </Card>
             <Card
-              title={t('warehouse.inventory.card.binHeatmap')}
+              title={selectedLgtyp ? `Bin map · storage type ${selectedLgtyp}` : 'Bin map'}
               subtitle={selectedLgtyp ? `Type ${selectedLgtyp} · first 200 bins` : 'Select a storage type to view its bins'}
-              eyebrow="Bin map"
+              eyebrow="LAGP"
             >
               {selectedLgtyp ? (
                 detailLoading
@@ -197,15 +293,38 @@ const Inventory = () => {
 
           <Card
             title={t('warehouse.inventory.card.quants')}
-            subtitle={selectedLgtyp ? `Type ${selectedLgtyp} · material · bin · qty · age` : 'Material · bin · batch · qty · age'}
+            subtitle="All WM inventory · sorted by volume · top 20"
             eyebrow="LQUA"
             tight
           >
+            <div style={{ marginBottom: 8 }}>
+              <input
+                type="text"
+                placeholder="Filter by material…"
+                value={quantsFilter}
+                onChange={(e) => setQuantsFilter(e.target.value)}
+                style={{ fontSize: 12, fontFamily: 'var(--font-mono)', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 4, padding: '3px 8px', color: 'var(--text-1)', width: 220 }}
+              />
+              <span style={{ marginLeft: 12, fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+                {sortedQuants.length > 20
+                  ? `Showing top 20 of ${sortedQuants.length.toLocaleString()} matched`
+                  : `${sortedQuants.length.toLocaleString()} rows`}
+              </span>
+            </div>
             <div className="scroll-x">
               <table className="tbl">
-                <thead><tr><th>{t('warehouse.common.col.material')}</th><th>{t('warehouse.common.col.bin')}</th><th className="num">{t('warehouse.common.col.qty')}</th><th className="num">{t('warehouse.common.col.age')}</th><th>{t('warehouse.inventory.col.expiry')}</th><th>{t('warehouse.common.col.status')}</th></tr></thead>
+                <thead>
+                  <tr>
+                    <QuantSortTh label={t('warehouse.common.col.material')} sortKey="materialName" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort}/>
+                    <QuantSortTh label={t('warehouse.common.col.bin')} sortKey="binId" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort}/>
+                    <QuantSortTh label={t('warehouse.common.col.qty')} sortKey="qty" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort} className="num"/>
+                    <QuantSortTh label={t('warehouse.common.col.age')} sortKey="ageHours" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort} className="num"/>
+                    <QuantSortTh label={t('warehouse.inventory.col.expiry')} sortKey="batchExpiryDays" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort}/>
+                    <QuantSortTh label={t('warehouse.common.col.status')} sortKey="status" active={quantsSortKey} dir={quantsSortDir} onSort={handleQuantsSort}/>
+                  </tr>
+                </thead>
                 <tbody>
-                  {detailBins.filter((b: any) => b.material).slice(0, 20).map((b: any, i: number) => (
+                  {sortedQuants.slice(0, 20).map((b: any, i: number) => (
                     <tr key={i}>
                       <td><div style={{ fontSize: 12 }}>{b.material.name}</div><div className="muted" style={{ fontSize: 11 }}>{b.material.id}</div></td>
                       <td className="mono small">{b.id}</td>
@@ -215,8 +334,8 @@ const Inventory = () => {
                       <td><Pill tone={b.status === 'Occupied' ? 'sage' : b.status === 'Blocked' ? 'red' : 'grey'}>{b.status}</Pill></td>
                     </tr>
                   ))}
-                  {!detailLoading && detailBins.filter((b: any) => b.material).length === 0 && (
-                    <tr><td colSpan={6} className="muted small">{selectedLgtyp ? `No stock in type ${selectedLgtyp}.` : 'No live quant rows available for this plant.'}</td></tr>
+                  {!detailLoading && sortedQuants.length === 0 && (
+                    <tr><td colSpan={6} className="muted small">{quantsFilter ? 'No rows match the filter.' : 'No live quant rows available for this plant.'}</td></tr>
                   )}
                   {detailError && (
                     <tr><td colSpan={6} className="red small">Unable to load live quant rows: {detailError}</td></tr>
