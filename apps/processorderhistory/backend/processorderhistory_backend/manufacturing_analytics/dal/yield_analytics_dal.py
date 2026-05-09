@@ -1,20 +1,16 @@
-"""DAL for yield analytics — process order yield from goods movements.
+"""DAL for yield analytics — process order yield from pre-computed gold MVs.
 
 Runs 3–4 Databricks queries in parallel (asyncio.gather):
   1. orders_range  — per-order yield for the requested date range.
-                     Block start = latest MT-101 receipt timestamp.
+                     Source: ``metric_yield_per_order`` (pre-computed MV).
                      yield_pct = (qty_received_kg / qty_issued_kg) * 100
                      loss_kg   = qty_issued_kg - qty_received_kg
-                     Only orders with at least one MT-101 receipt in range appear.
-  2. daily30d      — daily avg yield %, last 30 days (always fixed context chart).
-  3. hourly24h     — hourly avg yield %, last 24 hours (always fixed context chart).
+  2. daily30d      — daily avg yield %, last 30 days.
+                     Source: ``metric_yield_daily`` (pre-computed MV).
+  3. hourly24h     — hourly avg yield %, last 24 hours.
+                     Source: ``metric_yield_per_order`` (today's pre-computed rows).
   4. prior7d       — per-order yield for the 7 days before date_from
                      (only when date_from is supplied; used for card-view comparison).
-
-Quantity conversion (mirrors existing orders_dal pattern):
-  UOM = 'EA' → excluded (filtered out before SUM)
-  UOM = 'G'  → QUANTITY / 1000.0  (grams to kilograms)
-  otherwise  → QUANTITY as-is (assumed kg)
 
 TARGET_YIELD_PCT = 95.0
 """
@@ -22,8 +18,12 @@ import asyncio
 from datetime import datetime, timezone as dt_timezone
 from typing import Optional
 
-from processorderhistory_backend.db import run_sql_async, sql_param, tbl, tz_date, tz_day_ms, tz_hour_ms
-from processorderhistory_backend.manufacturing_analytics.domain.series import local_day_buckets, local_hour_buckets
+from processorderhistory_backend.db import gold_tbl, run_sql_async, sql_param, tz_hour_ms
+from processorderhistory_backend.manufacturing_analytics.domain.series import (
+    local_day_buckets,
+    local_hour_buckets,
+    remap_utc_midnight_to_local_day,
+)
 
 TARGET_YIELD_PCT = 95.0
 
@@ -36,244 +36,78 @@ async def _q_orders_range(
     date_from: Optional[str],
     date_to: Optional[str],
     plant_id: Optional[str],
-    tz: str,
 ) -> list[dict]:
-    """Per-order yield for the requested date range using MT-101 receipts and MT-261 issues.
+    """Per-order yield for the requested date range from ``metric_yield_per_order``.
 
-    Two CTEs — ``receipts`` (MT-101) and ``issues`` (MT-261/262) — are joined on
-    PROCESS_ORDER_ID.  Only orders that have at least one MT-101 receipt within
-    the date range are returned.  Falls back to a 24-hour rolling window when no
-    dates are supplied.  Date comparisons use the plant's local calendar date (via ``tz``).
+    Filters by ``receipt_date`` (DATE column in the MV).  Falls back to a
+    24-hour rolling window when no dates are supplied.
     """
     if date_from and date_to:
-        date_clause = (
-            f"AND {tz_date('DATE_TIME_OF_ENTRY', tz)} >= :date_from"
-            f" AND {tz_date('DATE_TIME_OF_ENTRY', tz)} <= :date_to"
-        )
-        params = [sql_param("date_from", date_from), sql_param("date_to", date_to)]
+        date_clause = "AND receipt_date >= :date_from AND receipt_date <= :date_to"
+        params: list[dict] = [sql_param("date_from", date_from), sql_param("date_to", date_to)]
     else:
-        date_clause = "AND DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 24 HOURS"
+        date_clause = "AND last_receipt_ts >= current_timestamp() - INTERVAL 24 HOURS"
         params = []
 
+    plant_clause = "AND PLANT_ID = :plant_id" if plant_id else ""
     if plant_id:
-        plant_clause = "WHERE po.PLANT_ID = :plant_id"
         params.append(sql_param("plant_id", plant_id))
-    else:
-        plant_clause = ""
-
-    params = params if params else None
 
     query = f"""
-        WITH receipts AS (
-            SELECT
-                PROCESS_ORDER_ID,
-                COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '101' THEN
-                        CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END
-                    WHEN MOVEMENT_TYPE = '102' THEN
-                        -(CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END)
-                END), 0.0)
- AS qty_received_kg,
-                MAX(DATE_TIME_OF_ENTRY) AS last_receipt_ts
-            FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE IN ('101', '102')
-              AND UPPER(TRIM(UOM)) != 'EA'
-              {date_clause}
-            GROUP BY PROCESS_ORDER_ID
-        ),
-        issues AS (
-            SELECT
-                PROCESS_ORDER_ID,
-                COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '261' THEN
-                        CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END
-                    WHEN MOVEMENT_TYPE = '262' THEN
-                        -(CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END)
-                END), 0.0)
- AS qty_issued_kg
-            FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE IN ('261', '262')
-              AND UPPER(TRIM(UOM)) != 'EA'
-              {date_clause}
-            GROUP BY PROCESS_ORDER_ID
-        )
         SELECT
-            r.PROCESS_ORDER_ID                                                   AS process_order_id,
-            po.MATERIAL_ID                                                       AS material_id,
-            COALESCE(m.MATERIAL_NAME, po.MATERIAL_DESCRIPTION, po.MATERIAL_ID)  AS material_name,
-            po.PLANT_ID                                                          AS plant_id,
-            ROUND(r.qty_received_kg, 6)                                          AS qty_received_kg,
-            ROUND(COALESCE(i.qty_issued_kg, 0.0), 6)                             AS qty_issued_kg,
-            CASE WHEN COALESCE(i.qty_issued_kg, 0) > 0
-                 THEN ROUND((r.qty_received_kg / i.qty_issued_kg) * 100.0, 2)
-                 ELSE NULL END                                                   AS yield_pct,
-            CASE WHEN COALESCE(i.qty_issued_kg, 0) > 0
-                 THEN ROUND(i.qty_issued_kg - r.qty_received_kg, 3)
-                 ELSE NULL END                                                   AS loss_kg,
-            CAST(UNIX_TIMESTAMP(r.last_receipt_ts) * 1000 AS BIGINT)            AS order_date_ms
-        FROM receipts r
-        JOIN {tbl('vw_gold_process_order')} po ON po.PROCESS_ORDER_ID = r.PROCESS_ORDER_ID
-        LEFT JOIN {tbl('vw_gold_material')} m ON m.MATERIAL_ID = po.MATERIAL_ID AND m.LANGUAGE_ID = 'E'
-        LEFT JOIN issues i ON i.PROCESS_ORDER_ID = r.PROCESS_ORDER_ID
-        {plant_clause}
-        ORDER BY order_date_ms DESC
+            PROCESS_ORDER_ID                                             AS process_order_id,
+            MATERIAL_ID                                                  AS material_id,
+            material_name,
+            PLANT_ID                                                     AS plant_id,
+            qty_received_kg,
+            qty_issued_kg,
+            yield_pct,
+            loss_kg,
+            CAST(UNIX_TIMESTAMP(last_receipt_ts) * 1000 AS BIGINT)      AS order_date_ms
+        FROM {gold_tbl('metric_yield_per_order')}
+        WHERE 1 = 1
+          {date_clause}
+          {plant_clause}
+        ORDER BY last_receipt_ts DESC
     """
-    return await run_sql_async(token, query, params, endpoint_hint="poh.yield.orders_range")
+    return await run_sql_async(token, query, params or None, endpoint_hint="poh.yield.orders_range")
 
 
-async def _q_daily30d(token: str, tz: str) -> list[dict]:
-    """Daily average yield % over the last 30 days bucketed by local calendar day.
+async def _q_daily30d(token: str) -> list[dict]:
+    """Daily average yield % over the last 30 days from ``metric_yield_daily``.
 
-    Two CTEs aggregate MT-101 receipts and MT-261/262 net issues per order per day.
-    The outer query computes avg_yield_pct by summing quantities across orders
-    within each local day bucket.  Day boundaries align to local midnight in ``tz``.
+    Returns UTC-midnight epoch-ms keys; ``_build_daily_series`` remaps them to
+    local-midnight boundaries via ``remap_utc_midnight_to_local_day``.
     """
     query = f"""
-        WITH receipts AS (
-            SELECT
-                {tz_day_ms('DATE_TIME_OF_ENTRY', tz)} AS day_ms,
-                PROCESS_ORDER_ID,
-                COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '101' THEN
-                        CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END
-                    WHEN MOVEMENT_TYPE = '102' THEN
-                        -(CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END)
-                END), 0.0)
- AS qty_received
-            FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE IN ('101', '102')
-              AND UPPER(TRIM(UOM)) != 'EA'
-              AND DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 30 DAYS
-            GROUP BY day_ms, PROCESS_ORDER_ID
-        ),
-        issues AS (
-            SELECT
-                {tz_day_ms('DATE_TIME_OF_ENTRY', tz)} AS day_ms,
-                PROCESS_ORDER_ID,
-                COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '261' THEN
-                        CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END
-                    WHEN MOVEMENT_TYPE = '262' THEN
-                        -(CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END)
-                END), 0.0)
- AS qty_issued
-            FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE IN ('261', '262')
-              AND UPPER(TRIM(UOM)) != 'EA'
-              AND DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 30 DAYS
-            GROUP BY day_ms, PROCESS_ORDER_ID
-        )
+        -- Align day buckets to local midnight so reporting matches plant-local calendar
         SELECT
-            r.day_ms,
-            CASE WHEN SUM(i.qty_issued) > 0
-                 THEN ROUND((SUM(r.qty_received) / SUM(i.qty_issued)) * 100.0, 2)
-                 ELSE NULL END AS avg_yield_pct
-        FROM receipts r
-        LEFT JOIN issues i ON i.PROCESS_ORDER_ID = r.PROCESS_ORDER_ID AND i.day_ms = r.day_ms
-        GROUP BY r.day_ms
-        ORDER BY r.day_ms
+            CAST(UNIX_TIMESTAMP(production_date) * 1000 AS BIGINT) AS day_ms,
+            avg_yield_pct,
+            order_count
+        FROM {gold_tbl('metric_yield_daily')}
+        WHERE production_date >= current_date() - INTERVAL 30 DAYS
+        ORDER BY production_date
     """
     return await run_sql_async(token, query, endpoint_hint="poh.yield.daily30d")
 
 
 async def _q_hourly24h(token: str, tz: str) -> list[dict]:
-    """Hourly average yield % over the last 24 hours bucketed by local calendar hour.
+    """Hourly average yield % over the last 24 hours from ``metric_yield_per_order``.
 
-    Same structure as ``_q_daily30d`` but bucketed by local hour and restricted to the
-    last 24-hour rolling window.  Hour boundaries align to local hour starts in ``tz``.
+    Scans only today's pre-computed rows rather than the full movement table.
+    Hour boundaries align to local hour starts in ``tz``.
     """
     query = f"""
-        WITH receipts AS (
-            SELECT
-                {tz_hour_ms('DATE_TIME_OF_ENTRY', tz)} AS hour_ms,
-                PROCESS_ORDER_ID,
-                COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '101' THEN
-                        CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END
-                    WHEN MOVEMENT_TYPE = '102' THEN
-                        -(CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END)
-                END), 0.0)
- AS qty_received
-            FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE IN ('101', '102')
-              AND UPPER(TRIM(UOM)) != 'EA'
-              AND DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 24 HOURS
-            GROUP BY hour_ms, PROCESS_ORDER_ID
-        ),
-        issues AS (
-            SELECT
-                {tz_hour_ms('DATE_TIME_OF_ENTRY', tz)} AS hour_ms,
-                PROCESS_ORDER_ID,
-                COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '261' THEN
-                        CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END
-                    WHEN MOVEMENT_TYPE = '262' THEN
-                        -(CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END)
-                END), 0.0)
- AS qty_issued
-            FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE IN ('261', '262')
-              AND UPPER(TRIM(UOM)) != 'EA'
-              AND DATE_TIME_OF_ENTRY >= current_timestamp() - INTERVAL 24 HOURS
-            GROUP BY hour_ms, PROCESS_ORDER_ID
-        )
+        -- Use plant-specific timezone to align hour buckets for local reporting
         SELECT
-            r.hour_ms,
-            CASE WHEN SUM(i.qty_issued) > 0
-                 THEN ROUND((SUM(r.qty_received) / SUM(i.qty_issued)) * 100.0, 2)
-                 ELSE NULL END AS avg_yield_pct
-        FROM receipts r
-        LEFT JOIN issues i ON i.PROCESS_ORDER_ID = r.PROCESS_ORDER_ID AND i.hour_ms = r.hour_ms
-        GROUP BY r.hour_ms
-        ORDER BY r.hour_ms
+            {tz_hour_ms('CAST(last_receipt_ts AS TIMESTAMP)', tz)} AS hour_ms,
+            ROUND(AVG(CASE WHEN yield_pct IS NOT NULL THEN yield_pct END), 2) AS avg_yield_pct,
+            COUNT(*) AS order_count
+        FROM {gold_tbl('metric_yield_per_order')}
+        WHERE last_receipt_ts >= current_timestamp() - INTERVAL 24 HOURS
+        GROUP BY {tz_hour_ms('CAST(last_receipt_ts AS TIMESTAMP)', tz)}
+        ORDER BY hour_ms
     """
     return await run_sql_async(token, query, endpoint_hint="poh.yield.hourly24h")
 
@@ -281,88 +115,30 @@ async def _q_hourly24h(token: str, tz: str) -> list[dict]:
 async def _q_prior7d_orders(
     token: str,
     date_from: Optional[str],
-    tz: str,
 ) -> list[dict]:
     """Per-order yield for the 7 days immediately prior to date_from.
 
     Used by the card view to compute comparison baseline averages.
     Returns an empty list immediately when date_from is not supplied (rolling-window mode).
     No plant_id filter — used for cross-plant comparison baseline only.
-    Date comparisons use the plant's local calendar date (via ``tz``).
     """
     if not date_from:
         return []
 
     query = f"""
-        WITH receipts AS (
-            SELECT
-                PROCESS_ORDER_ID,
-                COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '101' THEN
-                        CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END
-                    WHEN MOVEMENT_TYPE = '102' THEN
-                        -(CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END)
-                END), 0.0)
- AS qty_received_kg,
-                MAX(DATE_TIME_OF_ENTRY) AS last_receipt_ts
-            FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE IN ('101', '102')
-              AND UPPER(TRIM(UOM)) != 'EA'
-              AND {tz_date('DATE_TIME_OF_ENTRY', tz)} >= DATE_ADD(CAST(:date_from AS DATE), -7)
-              AND {tz_date('DATE_TIME_OF_ENTRY', tz)} <  CAST(:date_from AS DATE)
-            GROUP BY PROCESS_ORDER_ID
-        ),
-        issues AS (
-            SELECT
-                PROCESS_ORDER_ID,
-                COALESCE(SUM(CASE
-                    WHEN MOVEMENT_TYPE = '261' THEN
-                        CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END
-                    WHEN MOVEMENT_TYPE = '262' THEN
-                        -(CASE
-                            WHEN UPPER(TRIM(UOM)) = 'EA' THEN 0
-                            WHEN UPPER(TRIM(UOM)) = 'G'  THEN QUANTITY / 1000.0
-                            ELSE QUANTITY
-                        END)
-                END), 0.0)
- AS qty_issued_kg
-            FROM {tbl('vw_gold_adp_movement')}
-            WHERE MOVEMENT_TYPE IN ('261', '262')
-              AND UPPER(TRIM(UOM)) != 'EA'
-              AND {tz_date('DATE_TIME_OF_ENTRY', tz)} >= DATE_ADD(CAST(:date_from AS DATE), -7)
-              AND {tz_date('DATE_TIME_OF_ENTRY', tz)} <  CAST(:date_from AS DATE)
-            GROUP BY PROCESS_ORDER_ID
-        )
         SELECT
-            r.PROCESS_ORDER_ID                                                   AS process_order_id,
-            po.MATERIAL_ID                                                       AS material_id,
-            COALESCE(m.MATERIAL_NAME, po.MATERIAL_DESCRIPTION, po.MATERIAL_ID)  AS material_name,
-            po.PLANT_ID                                                          AS plant_id,
-            ROUND(r.qty_received_kg, 6)                                          AS qty_received_kg,
-            ROUND(COALESCE(i.qty_issued_kg, 0.0), 6)                             AS qty_issued_kg,
-            CASE WHEN COALESCE(i.qty_issued_kg, 0) > 0
-                 THEN ROUND((r.qty_received_kg / i.qty_issued_kg) * 100.0, 2)
-                 ELSE NULL END                                                   AS yield_pct,
-            CASE WHEN COALESCE(i.qty_issued_kg, 0) > 0
-                 THEN ROUND(i.qty_issued_kg - r.qty_received_kg, 3)
-                 ELSE NULL END                                                   AS loss_kg,
-            CAST(UNIX_TIMESTAMP(r.last_receipt_ts) * 1000 AS BIGINT)            AS order_date_ms
-        FROM receipts r
-        JOIN {tbl('vw_gold_process_order')} po ON po.PROCESS_ORDER_ID = r.PROCESS_ORDER_ID
-        LEFT JOIN {tbl('vw_gold_material')} m ON m.MATERIAL_ID = po.MATERIAL_ID AND m.LANGUAGE_ID = 'E'
-        LEFT JOIN issues i ON i.PROCESS_ORDER_ID = r.PROCESS_ORDER_ID
+            PROCESS_ORDER_ID                                             AS process_order_id,
+            MATERIAL_ID                                                  AS material_id,
+            material_name,
+            PLANT_ID                                                     AS plant_id,
+            qty_received_kg,
+            qty_issued_kg,
+            yield_pct,
+            loss_kg,
+            CAST(UNIX_TIMESTAMP(last_receipt_ts) * 1000 AS BIGINT)      AS order_date_ms
+        FROM {gold_tbl('metric_yield_per_order')}
+        WHERE receipt_date >= DATE_ADD(CAST(:date_from AS DATE), -7)
+          AND receipt_date <  CAST(:date_from AS DATE)
     """
     params = [sql_param("date_from", date_from)]
     return await run_sql_async(token, query, params, endpoint_hint="poh.yield.prior7d")
@@ -397,16 +173,18 @@ def _coerce_order(row: dict) -> dict:
 def _build_daily_series(daily_rows: list[dict], now_ms: int, tz_name: str = "UTC") -> list[dict]:
     """Build a zero-padded 30-day series of daily average yield percentages.
 
-    Bucket boundaries align to local midnight in ``tz_name``.
-    Returns a list of 30 dicts ``{"date": day_ms, "avg_yield_pct": float | None}``,
-    oldest bucket first.  Buckets with no data carry ``None`` for ``avg_yield_pct``.
+    ``metric_yield_daily`` emits UTC-midnight keys; ``remap_utc_midnight_to_local_day``
+    re-aligns them to local-midnight boundaries so non-UTC timezones match correctly.
+    Returns a list of 30 dicts ``{"date": day_ms, "avg_yield_pct": float | None}``.
     """
     day_buckets = local_day_buckets(now_ms, tz_name)
 
-    lookup: dict[int, Optional[float]] = {
-        int(row["day_ms"]): (float(row["avg_yield_pct"]) if row["avg_yield_pct"] is not None else None)
-        for row in daily_rows
-    }
+    lookup: dict[int, Optional[float]] = {}
+    for row in daily_rows:
+        raw_ms = int(row["day_ms"])
+        local_ms = remap_utc_midnight_to_local_day(raw_ms, tz_name)
+        yp = row.get("avg_yield_pct")
+        lookup[local_ms] = float(yp) if yp is not None else None
 
     return [{"date": d, "avg_yield_pct": lookup.get(d)} for d in day_buckets]
 
@@ -415,13 +193,12 @@ def _build_hourly_series(hourly_rows: list[dict], now_ms: int, tz_name: str = "U
     """Build a zero-padded 24-hour series of hourly average yield percentages.
 
     Bucket boundaries align to local hour starts in ``tz_name``.
-    Returns a list of 24 dicts ``{"hour": hour_ms, "avg_yield_pct": float | None}``,
-    oldest bucket first.  Buckets with no data carry ``None`` for ``avg_yield_pct``.
+    Returns a list of 24 dicts ``{"hour": hour_ms, "avg_yield_pct": float | None}``.
     """
     hour_buckets = local_hour_buckets(now_ms, tz_name)
 
     lookup: dict[int, Optional[float]] = {
-        int(row["hour_ms"]): (float(row["avg_yield_pct"]) if row["avg_yield_pct"] is not None else None)
+        int(row["hour_ms"]): (float(row["avg_yield_pct"]) if row.get("avg_yield_pct") is not None else None)
         for row in hourly_rows
     }
 
@@ -455,6 +232,7 @@ async def fetch_yield_analytics(
         plant_id: Optional SAP plant identifier to filter order results.
         date_from: ISO date string (YYYY-MM-DD) for the start of the range.
         date_to: ISO date string (YYYY-MM-DD) for the end of the range.
+        timezone: IANA timezone name from ``validate_timezone``.
 
     Returns:
         Dict with keys: ``now_ms``, ``target_yield_pct``, ``materials``,
@@ -463,10 +241,10 @@ async def fetch_yield_analytics(
     now_ms = int(datetime.now(dt_timezone.utc).timestamp() * 1000)
 
     orders_rows, daily_rows, hourly_rows, prior7d_rows = await asyncio.gather(
-        _q_orders_range(token, date_from, date_to, plant_id, timezone),
-        _q_daily30d(token, timezone),
+        _q_orders_range(token, date_from, date_to, plant_id),
+        _q_daily30d(token),
         _q_hourly24h(token, timezone),
-        _q_prior7d_orders(token, date_from, timezone),
+        _q_prior7d_orders(token, date_from),
     )
 
     orders = [_coerce_order(r) for r in orders_rows]

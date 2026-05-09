@@ -99,21 +99,22 @@ def test_fetch_downtime_analytics_passes_dates_to_queries(monkeypatch):
     result = asyncio.run(
         dal.fetch_downtime_analytics("token", date_from="2024-01-01", date_to="2024-01-07", plant_id="P001")
     )
-    
+
     assert result["reasons"] == []
     assert len(calls) == 2
-    
-    # Reasons query (first)
+
+    # Reasons query (first) — filters on downtime_date DATE column
     r_query, r_params = calls[0]
-    assert "dt.START_TIME" in r_query
+    assert "downtime_date" in r_query
     assert any(p["name"] == "date_from" and p["value"] == "2024-01-01" for p in r_params)
-    
+
     # Daily query (second)
     d_query, d_params = calls[1]
     assert "INTERVAL 30 DAYS" in d_query
 
 
-def test_fetch_downtime_analytics_no_dates_falls_back_to_24h(monkeypatch):
+def test_fetch_downtime_analytics_no_dates_falls_back_to_rolling_window(monkeypatch):
+    """When no dates supplied, reasons query uses the 1-day rolling window fallback."""
     calls = []
 
     async def recording_mock(token, query, params=None, **kwargs):
@@ -122,9 +123,10 @@ def test_fetch_downtime_analytics_no_dates_falls_back_to_24h(monkeypatch):
 
     monkeypatch.setattr(dal, "run_sql_async", recording_mock)
     result = asyncio.run(dal.fetch_downtime_analytics("token"))
-    
+
     assert result["reasons"] == []
     assert len(calls) == 2
-    
+
     r_query, r_params = calls[0]
-    assert "INTERVAL 24 HOURS" in r_query
+    assert "current_date()" in r_query
+    assert "INTERVAL 1 DAY" in r_query

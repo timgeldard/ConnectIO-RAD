@@ -1,8 +1,15 @@
 """POH-specific database utilities.
 
-Wraps shared_db with a local tbl() that reads POH_CATALOG / POH_SCHEMA
-environment variables instead of TRACE_CATALOG / TRACE_SCHEMA, keeping
-this app's schema reference independent of the trace/SPC apps.
+Wraps shared_db with local table-reference helpers that read POH_CATALOG /
+POH_SCHEMA environment variables instead of TRACE_CATALOG / TRACE_SCHEMA,
+keeping this app's schema reference independent of the trace/SPC apps.
+
+Table reference helpers
+-----------------------
+``tbl(name)``           — ``{POH_CATALOG}.{POH_SCHEMA}.{name}`` (csm_process_order_history)
+``silver_tbl(name)``    — ``{POH_CATALOG}.silver.{name}``
+``gold_tbl(name)``      — ``{POH_CATALOG}.gold.{name}`` (pre-computed metric MVs)
+``instrument_tbl(name)``— ``{POH_CATALOG}.csm_equipment_history.{name}``
 
 Timezone helpers
 ----------------
@@ -45,6 +52,16 @@ def tbl(name: str) -> str:
 def silver_tbl(name: str) -> str:
     """Return a fully-qualified backtick-quoted table reference for the silver schema."""
     return f"`{POH_CATALOG}`.`silver`.`{name}`"
+
+
+def gold_tbl(name: str) -> str:
+    """Return a fully-qualified backtick-quoted table reference for the gold schema.
+
+    Use this for pre-computed metric materialised views (``metric_yield_per_order``,
+    ``metric_yield_daily``, ``metric_downtime_daily``, ``metric_quality_daily``,
+    ``metric_equipment_state_snapshot``, etc.).
+    """
+    return f"`{POH_CATALOG}`.`gold`.`{name}`"
 
 
 def instrument_tbl(name: str) -> str:

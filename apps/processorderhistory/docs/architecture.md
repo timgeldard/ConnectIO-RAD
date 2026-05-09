@@ -35,7 +35,7 @@ frontend/src/pages/PourAnalytics.tsx    Pour trend charts + group-by breakdown +
 frontend/src/pages/YieldAnalytics.tsx   Yield % trend + per-order drill-through
 frontend/src/pages/QualityAnalytics.tsx RFT trend + inspection result cards
 backend/main.py                         FastAPI entry, /api/health + /api/ready + 8 data routers + SPA fallback
-backend/db.py                           SQL helpers: tbl(), silver_tbl(), validate_timezone(), run_sql_async
+backend/db.py                           SQL helpers: tbl(), silver_tbl(), gold_tbl(), instrument_tbl(), validate_timezone(), run_sql_async
 backend/routers/orders.py              POST /api/orders — order list
 backend/routers/order_detail_router.py GET /api/orders/{id} — full order detail
 backend/routers/pours_router.py        POST /api/pours/analytics
@@ -87,9 +87,52 @@ All SQL queries target gold-layer views only (Rule 1.1).  `day_view_dal` and
 not yet promoted to a gold view.
 
 Catalog and schema come from `POH_CATALOG` / `POH_SCHEMA` env vars (rendered
-from `app.template.yaml`).  SQL helpers use `tbl()` for the app schema and
-`silver_tbl()` for the silver layer.  All user-supplied values use `:param`
-named parameters — never f-string interpolation.
+from `app.template.yaml`).  SQL helpers:
+- `tbl(name)` — `{POH_CATALOG}.{POH_SCHEMA}.{name}` (csm_process_order_history schema)
+- `silver_tbl(name)` — `{POH_CATALOG}.silver.{name}`
+- `gold_tbl(name)` — `{POH_CATALOG}.gold.{name}` (pre-computed metric MVs)
+- `instrument_tbl(name)` — `{POH_CATALOG}.csm_equipment_history.{name}`
+
+All user-supplied values use `:param` named parameters — never f-string interpolation.
+
+### Gold Layer Pre-computation
+
+Heavy aggregations are moved into pre-computed objects that the Databricks
+pipeline refreshes on a schedule.  App DALs issue simple SELECTs with WHERE
+filters against these objects rather than re-executing CTEs or multi-table
+JOINs on every user request.
+
+**Materialized Views** (`gold` schema — access via `gold_tbl()`):
+
+| MV | Grain | Replaces | Refresh |
+|---|---|---|---|
+| `metric_yield_per_order` | 1 row / PROCESS_ORDER_ID | yield CTE scan of `vw_gold_adp_movement` | Daily 06:00 UTC |
+| `metric_yield_daily` | (production_date, PLANT_ID) | per-request daily yield aggregation | Daily 06:00 UTC |
+| `metric_downtime_daily` | (downtime_date, PLANT_ID, REASON_CODE, ISSUE_TITLE) | `vw_gold_downtime_and_issues` JOIN + GROUP BY | Daily 06:00 UTC |
+| `metric_quality_daily` | (decision_date, PLANT_ID, MATERIAL_ID) | inspection result JOIN aggregation | Daily 06:00 UTC |
+| `metric_equipment_state_snapshot` | 1 row / INSTRUMENT_ID | ROW_NUMBER window over `vw_gold_equipment_history` | Daily 06:00 UTC |
+
+**Gold Views** (`csm_process_order_history` schema — access via `tbl()`):
+
+| View | Grain | Replaces |
+|---|---|---|
+| `vw_gold_order_summary` | 1 row / PROCESS_ORDER_ID | 3-CTE order list query |
+| `vw_gold_quality_result_enriched` | 1 row / inspection result characteristic | 4-way inspection JOIN |
+| `vw_gold_day_view_blocks` | 1 row / confirmation block | 4-join day-view query |
+
+**DAL mapping** (which source each DAL now uses):
+
+| DAL | Query | Source |
+|---|---|---|
+| `yield_analytics_dal` | `_q_orders_range`, `_q_prior7d_orders` | `metric_yield_per_order` |
+| `yield_analytics_dal` | `_q_daily30d` | `metric_yield_daily` |
+| `yield_analytics_dal` | `_q_hourly24h` | `metric_yield_per_order` |
+| `orders_dal` | `fetch_orders_list` | `vw_gold_order_summary` |
+| `downtime_analytics_dal` | `_q_reasons_range`, `_q_daily30d` | `metric_downtime_daily` |
+| `quality_analytics_dal` | `_q_results_range`, `_q_prior7d_results`, `_q_hourly24h` | `vw_gold_quality_result_enriched` |
+| `quality_analytics_dal` | `_q_daily30d` | `metric_quality_daily` |
+| `equipment_insights_dal` | `_q_current_states` | `metric_equipment_state_snapshot` *(Phase 3a — gated)* |
+| `day_view_dal` | `_q_blocks` | `vw_gold_day_view_blocks` *(Phase 3b — gated)* |
 
 ## i18n
 

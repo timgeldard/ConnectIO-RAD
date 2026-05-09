@@ -228,7 +228,8 @@ def test_fetch_quality_analytics_prior7d_empty_when_no_date_from(monkeypatch):
     assert result["prior7d"] == []
 
 
-def test_trend_queries_count_null_valuations_as_rejected(monkeypatch):
+def test_daily30d_queries_precomputed_mv(monkeypatch):
+    """_q_daily30d queries metric_quality_daily MV — no JOIN, no CASE expressions."""
     queries: list[str] = []
 
     async def recording_mock(_token, query, _params=None, **_kwargs):
@@ -236,11 +237,26 @@ def test_trend_queries_count_null_valuations_as_rejected(monkeypatch):
         return []
 
     monkeypatch.setattr(dal, "run_sql_async", recording_mock)
+    asyncio.run(dal._q_daily30d("token", None))
 
-    asyncio.run(dal._q_daily30d("token", None, "UTC"))
+    assert len(queries) == 1
+    assert "metric_quality_daily" in queries[0]
+    assert "accepted_count" in queries[0]
+    assert "rejected_count" in queries[0]
+
+
+def test_hourly24h_queries_enriched_view_with_judgement(monkeypatch):
+    """_q_hourly24h queries vw_gold_quality_result_enriched using pre-computed judgement column."""
+    queries: list[str] = []
+
+    async def recording_mock(_token, query, _params=None, **_kwargs):
+        queries.append(query)
+        return []
+
+    monkeypatch.setattr(dal, "run_sql_async", recording_mock)
     asyncio.run(dal._q_hourly24h("token", None, "UTC"))
 
-    assert len(queries) == 2
-    for query in queries:
-        assert "ELSE 1" in query
-        assert "INSPECTION_RESULT_VALUATION NOT LIKE" not in query
+    assert len(queries) == 1
+    assert "vw_gold_quality_result_enriched" in queries[0]
+    assert "judgement" in queries[0]
+    assert "INSPECTION_RESULT_VALUATION" not in queries[0]
