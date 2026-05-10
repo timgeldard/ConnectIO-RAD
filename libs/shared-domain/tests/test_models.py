@@ -1,6 +1,25 @@
 import pytest
 from dataclasses import dataclass
-from shared_domain import Entity, AggregateRoot, ValueObject, DomainEvent, DomainEventPublisher
+from decimal import Decimal
+
+from shared_domain import (
+    AuditMixin,
+    AuditStamp,
+    Batch,
+    BatchId,
+    DomainEvent,
+    DomainEventPublisher,
+    Entity,
+    AggregateRoot,
+    Material,
+    MaterialId,
+    Measurement,
+    parse_layered_module_path,
+    PlantId,
+    Specification,
+    ValueObject,
+    is_infrastructure_import,
+)
 
 @dataclass(frozen=True)
 class Address(ValueObject):
@@ -26,6 +45,26 @@ def test_value_object_equality():
     assert a1 != a3
     assert hash(a1) == hash(a2)
     assert hash(a1) != hash(a3)
+
+
+def test_audit_stamp_created_defaults_to_system_actor():
+    stamp = AuditStamp.created(system="unit-test")
+
+    assert stamp.created_by == "unit-test"
+    assert stamp.updated_at is None
+    assert stamp.created_at.tzinfo is not None
+
+
+def test_audit_mixin_records_immutable_trail():
+    class AuditedThing(AuditMixin):
+        pass
+
+    thing = AuditedThing(audit=AuditStamp.created(system="unit-test"))
+    thing.record_audit(actor="qa@example.com", action="reviewed", note="looks good")
+
+    assert thing.audit.created_by == "unit-test"
+    assert thing.audit_trail[0].actor == "qa@example.com"
+    assert thing.audit_trail[0].action == "reviewed"
 
 def test_entity_equality_by_identity():
     u1 = User(identity="user-1")
@@ -99,3 +138,32 @@ def test_domain_event_publisher_publish_all_preserves_order():
     ])
 
     assert seen == ["order-1", "order-2"]
+
+
+def test_manufacturing_measurement_and_specification():
+    measurement = Measurement.now(5.0, "kg")
+    specification = Specification(lower=Decimal("4.5"), upper=Decimal("5.5"), unit="kg")
+
+    assert specification.contains(measurement)
+
+
+def test_manufacturing_identity_objects_normalize_values():
+    material = Material(material_id=MaterialId(" mat-1 "), material_name="Demo material")
+    batch = Batch(batch_id=BatchId(" b-1 "), material_id=material.material_id, plant_id=PlantId(" p001 "))
+
+    assert material.material_id == "MAT-1"
+    assert batch.batch_id == "B-1"
+    assert batch.plant_id == "P001"
+
+
+def test_guardrail_helpers_parse_layered_paths():
+    parsed = parse_layered_module_path(
+        __import__("pathlib").Path("apps/spc/backend/spc_backend/process_control/domain/models.py")
+    )
+
+    assert parsed is not None
+    assert parsed.app_name == "spc"
+    assert parsed.context_name == "process_control"
+    assert parsed.layer == "domain"
+    assert is_infrastructure_import("fastapi") is True
+    assert is_infrastructure_import("shared_domain") is False

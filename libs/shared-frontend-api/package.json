@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/client.ts",
-    "./query": "./src/query.ts"
+    "./hooks": "./src/hooks.ts",
+    "./query": "./src/query.ts",
+    "./types": "./src/types.ts"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.99.0"

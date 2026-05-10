@@ -7,7 +7,15 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DDD_APP_NAMES = ("connectedquality", "envmon", "processorderhistory", "spc", "trace2", "warehouse360")
+DDD_APP_NAMES = (
+    "connectedquality",
+    "envmon",
+    "processorderhistory",
+    "spc",
+    "template",
+    "trace2",
+    "warehouse360",
+)
 APP_BACKENDS = [REPO_ROOT / "apps" / app_name / "backend" for app_name in DDD_APP_NAMES]
 
 DOMAIN_FORBIDDEN_PREFIXES = (
@@ -36,6 +44,7 @@ ALLOWED_CONTEXTS = {
     "processorderhistory": {"order_execution", "manufacturing_analytics", "production_planning", "genie_assist"},
     "spc": {"chart_config", "process_control"},
     "trace2": {"batch_trace", "lineage_analysis", "quality_record"},
+    "template": {"module_template"},
     "warehouse360": {"inventory_management", "dispensary_ops", "order_fulfillment", "operations_control_tower"},
 }
 

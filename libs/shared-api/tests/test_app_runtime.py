@@ -5,7 +5,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
+from shared_api import create_rad_app
 from shared_api.app_factory import create_api_app, register_spa_routes
+from shared_api.databricks import DatabricksSqlRuntime, DatabricksSqlSettings
 from shared_api.errors import safe_global_exception_response
 from shared_api.health import databricks_sql_ready, health_payload
 
@@ -35,6 +37,19 @@ def test_create_api_app_does_not_allow_wildcard_cors_by_default():
 
     assert response.status_code == 200
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_create_api_app_attaches_security_headers():
+    app = create_api_app(title="Test API")
+
+    @app.get("/api/read")
+    async def read():
+        return {"ok": True}
+
+    response = TestClient(app).get("/api/read")
+
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
 
 
 def test_register_spa_routes_uses_dynamic_static_dir(tmp_path):
@@ -191,3 +206,42 @@ def test_safe_global_exception_response_preserves_http_exception_headers():
 
     assert response.status_code == 429
     assert response.headers["retry-after"] == "10"
+
+
+def test_create_rad_app_supports_demo_readiness(monkeypatch):
+    monkeypatch.setenv("DATABRICKS_READINESS_TOKEN", "demo-token")
+    rad_app = create_rad_app(title="Demo API", app_name="demo", demo_mode=True)
+
+    response = TestClient(rad_app.fastapi_app).get("/api/ready")
+
+    assert response.status_code == 200
+    assert response.json()["checks"]["demo_mode"] == "ok"
+    assert hasattr(rad_app.fastapi_app.state, "databricks_sql")
+
+
+def test_create_rad_app_wires_databricks_readiness(monkeypatch):
+    monkeypatch.setenv("DATABRICKS_READINESS_TOKEN", "ready-token")
+
+    async def run_sql(token: str, query: str, *, endpoint_hint: str):
+        return [{"token": token, "query": query, "endpoint_hint": endpoint_hint}]
+
+    rad_app = create_rad_app(
+        title="SQL API",
+        app_name="sql-app",
+        check_warehouse_config=lambda: None,
+        run_sql=run_sql,
+    )
+
+    response = TestClient(rad_app.fastapi_app).get("/api/ready")
+
+    assert response.status_code == 200
+    assert response.json()["checks"]["sql_warehouse"] == "ok"
+
+
+def test_databricks_sql_runtime_is_lazy_without_optional_url(monkeypatch):
+    monkeypatch.delenv("DATABRICKS_SQLALCHEMY_URL", raising=False)
+    runtime = DatabricksSqlRuntime(
+        DatabricksSqlSettings(server_hostname="workspace.cloud.databricks.com", http_path="/sql/1.0/warehouses/abc")
+    )
+
+    assert runtime.create_engine(access_token="token") is None

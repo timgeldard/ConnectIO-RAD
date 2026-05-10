@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/schema",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Kebab-case app name, for example supplier-quality.",
+      "$default": {
+        "$source": "argv",
+        "index": 0
+      }
+    },
+    "domain": {
+      "type": "string",
+      "description": "Platform domain group such as quality, operations, warehouse, or demo.",
+      "default": "quality"
+    },
+    "context": {
+      "type": "string",
+      "description": "Snake-case bounded context folder name. Defaults to the app name converted to snake case."
+    },
+    "displayName": {
+      "type": "string",
+      "description": "Human-readable display name. Defaults to title-cased app name."
+    },
+    "port": {
+      "type": "number",
+      "description": "Backend dev server port.",
+      "default": 8010
+    },
+    "demo": {
+      "type": "boolean",
+      "description": "Generate demo-ready empty-state payloads and placeholder metric values.",
+      "default": true
+    },
+    "skipPlatform": {
+      "type": "boolean",
+      "description": "Skip platform manifest registration.",
+      "default": false
+    }
+  },
+  "required": ["name"]
+}

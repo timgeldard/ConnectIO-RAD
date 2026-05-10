@@ -4,6 +4,7 @@ import { PlantProvider } from '@connectio/shared-app-context'
 import { PlatformShell } from '@connectio/shared-ui/shell'
 import { COMPOSITION } from './shell/composition'
 import { MODULES } from './shell/modules'
+import { getPlatformModules } from './shell/moduleManifest'
 import { useShellState } from './shell/useShellState'
 import { usePinnedModules } from './shell/usePinnedModules'
 import { useBadgeCounts } from './shell/useBadgeCounts'
@@ -15,9 +16,10 @@ import './genie/genie.css'
 /** Platform shell root — wires shell state, module routing, and the Genie AI drawer. */
 export function App() {
   const [state, handlers] = useShellState()
+  const modules = useMemo(() => getPlatformModules(MODULES), [])
   const selectableModuleIds = useMemo(
-    () => MODULES.filter((m) => m.isUserSelectable && !m.isMandatory).map((m) => m.moduleId),
-    [],
+    () => modules.filter((m) => m.isUserSelectable && !m.isMandatory).map((m) => m.moduleId),
+    [modules],
   )
   const [pinned, onPinToggle] = usePinnedModules(selectableModuleIds)
   const badges = useBadgeCounts()
@@ -26,7 +28,7 @@ export function App() {
   return (
     <PlatformShell
       composition={COMPOSITION}
-      modules={MODULES}
+      modules={modules}
       activeModule={state.activeModuleId}
       tabState={state.tabState}
       onModuleChange={handlers.onModuleChange}
@@ -42,7 +44,7 @@ export function App() {
     >
       <ModuleContentPanel
         moduleId={state.activeModuleId}
-        modules={MODULES}
+        modules={modules}
         activeTabId={state.tabState[state.activeModuleId]}
       />
       <GenieDrawer

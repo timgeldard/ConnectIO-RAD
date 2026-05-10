@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse
 from starlette.requests import Request as StarletteRequest
 
 from shared_api.errors import safe_global_exception_response
-from shared_api.middleware import LatencyMiddleware, RequestContextMiddleware
+from shared_api.middleware import LatencyMiddleware, RequestContextMiddleware, SecurityHeadersMiddleware
 from shared_api.rate_limit import RateLimitExceeded, RateLimitMiddleware, rate_limit_handler
 from shared_api.security import SameOriginMiddleware
 from shared_auth.identity import warn_if_jwks_unconfigured
@@ -42,6 +42,7 @@ def create_api_app(
     latency_alert_callback: Callable[[str, int, int, int], Any] | None = None,
     allow_origins: list[str] | None = None,
     enable_rate_limit: bool = True,
+    enable_security_headers: bool = True,
     trust_forwarded_user: bool = False,
     same_origin_middleware: type = SameOriginMiddleware,
 ) -> FastAPI:
@@ -59,6 +60,7 @@ def create_api_app(
         latency_alert_callback: A callback triggered when a request exceeds its latency budget.
         allow_origins: A list of origins allowed for CORS. Defaults to [] if None.
         enable_rate_limit: Whether to enable the built-in rate limiting middleware.
+        enable_security_headers: Whether to attach standard browser security headers.
         trust_forwarded_user: Whether to trust the x-forwarded-preferred-username header for identity.
         same_origin_middleware: The middleware class to use for same-origin enforcement.
 
@@ -99,6 +101,9 @@ def create_api_app(
 
     # Security: Same-Origin
     app.add_middleware(same_origin_middleware)
+
+    if enable_security_headers:
+        app.add_middleware(SecurityHeadersMiddleware)
 
     # Security: CORS
     app.add_middleware(

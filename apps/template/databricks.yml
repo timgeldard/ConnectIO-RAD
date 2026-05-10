@@ -1,0 +1,17 @@
+bundle:
+  name: template
+
+resources:
+  apps:
+    template:
+      name: template
+      source_code_path: .
+      description: Template Module manufacturing analytics module
+      resources:
+        - name: sql_warehouse
+          sql_warehouse:
+            id: ${var.sql_warehouse_id}
+
+variables:
+  sql_warehouse_id:
+    description: Databricks SQL warehouse used by Template Module

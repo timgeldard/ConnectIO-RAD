@@ -159,3 +159,16 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         response.headers["x-request-id"] = request_id
         return response
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Attach conservative security headers to every response."""
+
+    async def dispatch(self, request: Request, call_next):
+        """Attach headers after downstream processing completes."""
+        response = await call_next(request)
+        response.headers.setdefault("x-content-type-options", "nosniff")
+        response.headers.setdefault("x-frame-options", "DENY")
+        response.headers.setdefault("referrer-policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("permissions-policy", "camera=(), microphone=(), geolocation=()")
+        return response

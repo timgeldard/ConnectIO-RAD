@@ -1,0 +1,77 @@
+{
+  "name": "template-backend",
+  "projectType": "application",
+  "tags": [
+    "scope:template",
+    "type:backend"
+  ],
+  "implicitDependencies": [
+    "shared-db",
+    "shared-api",
+    "shared-auth",
+    "shared-domain"
+  ],
+  "targets": {
+    "sync": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync --package template-backend",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --no-sync --package template-backend uvicorn template_backend.main:app --reload --port 8019",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --no-sync --package template-backend python -m pytest",
+        "cwd": "apps/template/backend"
+      },
+      "inputs": [
+        "pyFiles",
+        "^pyFiles",
+        "sharedGlobals"
+      ],
+      "cache": true
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "PYTHONPATH=apps/template:libs/shared-api/src:libs/shared-auth/src:libs/shared-domain/src uv run --no-sync ruff check apps/template/backend",
+        "cwd": "{workspaceRoot}"
+      },
+      "inputs": [
+        "pyFiles",
+        "^pyFiles",
+        "sharedGlobals"
+      ],
+      "cache": true
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --no-sync --package template-backend python -m compileall template_backend",
+        "cwd": "apps/template/backend"
+      },
+      "inputs": [
+        "pyFiles",
+        "^pyFiles",
+        "sharedGlobals"
+      ],
+      "cache": true
+    },
+    "deploy-databricks": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "make deploy PROFILE=uat",
+        "cwd": "apps/template"
+      },
+      "cache": false
+    }
+  }
+}

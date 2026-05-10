@@ -1,6 +1,7 @@
 """Core DDD building blocks for Entities, Value Objects, and Aggregates."""
 from abc import ABC
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, TypeVar, Generic
 
 from .events import DomainEvent
@@ -21,6 +22,71 @@ class ValueObject(ABC):
     """
 
     pass
+
+
+@dataclass(frozen=True)
+class AuditStamp(ValueObject):
+    """
+    Immutable audit metadata for domain snapshots and aggregates.
+
+    The stamp is intentionally infrastructure-free: applications can create it
+    from HTTP identity, SQL metadata, or generated demo data without coupling
+    domain models to any transport or persistence layer.
+    """
+
+    created_at: datetime
+    created_by: str
+    updated_at: datetime | None = None
+    updated_by: str | None = None
+
+    @classmethod
+    def created(cls, *, system: str, at: datetime | None = None) -> "AuditStamp":
+        """
+        Create an audit stamp for newly materialized domain state.
+
+        Args:
+            system: The service or actor materializing the state.
+            at: Optional timestamp override for deterministic tests.
+
+        Returns:
+            An immutable audit stamp.
+        """
+        return cls(created_at=at or datetime.now(timezone.utc), created_by=system)
+
+
+@dataclass(frozen=True)
+class AuditTrailEntry(ValueObject):
+    """One immutable audit-trail entry for a domain object."""
+
+    actor: str
+    action: str
+    occurred_at: datetime
+    note: str | None = None
+
+
+class AuditMixin:
+    """Mixin that records domain-level audit metadata without infrastructure."""
+
+    def __init__(self, *, audit: AuditStamp | None = None) -> None:
+        """Initialize audit state."""
+        self.audit = audit or AuditStamp.created(system="unknown")
+        self._audit_trail: list[AuditTrailEntry] = []
+
+    @property
+    def audit_trail(self) -> tuple[AuditTrailEntry, ...]:
+        """Return immutable audit-trail entries."""
+        return tuple(self._audit_trail)
+
+    def record_audit(self, *, actor: str, action: str, note: str | None = None) -> None:
+        """Record a domain-level audit action."""
+        self._audit_trail.append(
+            AuditTrailEntry(
+                actor=actor,
+                action=action,
+                occurred_at=datetime.now(timezone.utc),
+                note=note,
+            )
+        )
 
 
 class Entity(ABC, Generic[TIdentity]):

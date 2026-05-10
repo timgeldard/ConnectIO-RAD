@@ -17,3 +17,35 @@ export interface DataAvailableResponse {
    */
   reason?: string;
 }
+
+export interface PageRequest {
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PageResponse<T> extends DataAvailableResponse {
+  items: T[];
+  page: number;
+  page_size: number;
+  total: number;
+}
+
+export interface ManufacturingFilters {
+  plantId?: string | null;
+  materialId?: string | null;
+  batchId?: string | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  status?: string | null;
+}
+
+export interface ChartSeriesPoint {
+  x: string | number;
+  y: number;
+  group?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface EntityMutationContext<T> {
+  previous?: T;
+}

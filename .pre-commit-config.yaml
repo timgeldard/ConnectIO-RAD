@@ -46,3 +46,17 @@ repos:
         pass_filenames: false
         files: ^(apps|libs|scripts/tests)/.*\.py$
         stages: [pre-commit]
+      - id: validate-template-app
+        name: Validate generated template app
+        entry: python3 scripts/validate_new_app.py template
+        language: system
+        pass_filenames: false
+        files: ^(apps/template|apps/platform/frontend/src/shell/module-manifest\.json|scripts/validate_new_app\.py)
+        stages: [pre-commit]
+      - id: generator-tests
+        name: Rapid New Module generator tests
+        entry: npm run test:generators
+        language: system
+        pass_filenames: false
+        files: ^(tools/generators|tests/tools/generators|package\.json)
+        stages: [pre-commit]
