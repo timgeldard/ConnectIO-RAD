@@ -4,12 +4,18 @@ import { useI18n } from '@connectio/shared-frontend-i18n'
 import { useApi } from '../hooks/useApi';
 import { usePlantSelection } from '../context/PlantContext';
 import { Icon, Pill, Progress, RiskDot, Hbar } from './Primitives';
-import { KPI, Card } from './Shared';
+import { Card } from './Shared';
+import { KpiCardWidget } from '@connectio/shared-reporting'
+import type { WidgetConfig } from '@connectio/shared-reporting'
 import { StagingTimeline, normalizeOrder } from './ProductionStaging';
 import { DataTable, type Column } from '@connectio/shared-ui'
 import { fmtTime } from '~/utils/time'
 
 /* Control Tower — warehouse manager's landing page */
+
+function makeKpiConfig(id: string, title: string): WidgetConfig {
+  return { id, type: 'kpi', title, props: {}, interactions: [], layout: {} }
+}
 
 /** Props for the ControlTower control-tower landing page. */
 interface ControlTowerProps {
@@ -126,12 +132,30 @@ const ControlTower = ({ onNav, onOpenOrder, onOpenDelivery, onOpenReceipt }: Con
         </div>
       )}
       <div className="kpi-grid">
-        <KPI label={t('warehouse.ct.kpi.ordersAtRisk')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.orders_red ?? '…'} tone={kpisError ? 'warn' : kpis?.orders_red > 0 ? 'risk' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.ordersAmber')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.orders_amber ?? '…'} tone={kpisError ? 'warn' : kpis?.orders_amber > 0 ? 'warn' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.openTOs')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.tos_open ?? '…'} unit={kpisError ? undefined : ' TOs'} tone={kpisError ? 'warn' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.deliveriesAtRisk')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.deliveries_at_risk ?? '…'} tone={kpisError ? 'warn' : kpis?.deliveries_at_risk > 0 ? 'warn' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.openInbound')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.inbound_open ?? '…'} unit={kpisError ? undefined : ' lines'} tone={kpisError ? 'warn' : 'ok'}/>
-        <KPI label={t('warehouse.ct.kpi.binUtil')} value={kpisError ? t('warehouse.ct.error.kpiValue') :kpis?.bin_util_pct ?? '…'} unit={kpisError ? undefined : '%'} tone={kpisError ? 'warn' : kpis?.bin_util_pct > 92 ? 'risk' : kpis?.bin_util_pct > 80 ? 'warn' : 'ok'} barPct={kpisError ? undefined : kpis?.bin_util_pct ?? 0} barTone={kpis?.bin_util_pct > 92 ? 'red' : kpis?.bin_util_pct > 80 ? 'amber' : ''}/>
+        <KpiCardWidget
+          config={makeKpiConfig('orders-at-risk', t('warehouse.ct.kpi.ordersAtRisk'))}
+          props={{ value: kpisError ? t('warehouse.ct.error.kpiValue') : kpis?.orders_red ?? '…', tone: kpisError ? 'warn' : kpis?.orders_red > 0 ? 'risk' : 'ok' }}
+        />
+        <KpiCardWidget
+          config={makeKpiConfig('orders-amber', t('warehouse.ct.kpi.ordersAmber'))}
+          props={{ value: kpisError ? t('warehouse.ct.error.kpiValue') : kpis?.orders_amber ?? '…', tone: kpisError ? 'warn' : kpis?.orders_amber > 0 ? 'warn' : 'ok' }}
+        />
+        <KpiCardWidget
+          config={makeKpiConfig('open-tos', t('warehouse.ct.kpi.openTOs'))}
+          props={{ value: kpisError ? t('warehouse.ct.error.kpiValue') : kpis?.tos_open ?? '…', unit: kpisError ? undefined : ' TOs', tone: kpisError ? 'warn' : 'ok' }}
+        />
+        <KpiCardWidget
+          config={makeKpiConfig('deliveries-at-risk', t('warehouse.ct.kpi.deliveriesAtRisk'))}
+          props={{ value: kpisError ? t('warehouse.ct.error.kpiValue') : kpis?.deliveries_at_risk ?? '…', tone: kpisError ? 'warn' : kpis?.deliveries_at_risk > 0 ? 'warn' : 'ok' }}
+        />
+        <KpiCardWidget
+          config={makeKpiConfig('open-inbound', t('warehouse.ct.kpi.openInbound'))}
+          props={{ value: kpisError ? t('warehouse.ct.error.kpiValue') : kpis?.inbound_open ?? '…', unit: kpisError ? undefined : ' lines', tone: kpisError ? 'warn' : 'ok' }}
+        />
+        <KpiCardWidget
+          config={makeKpiConfig('bin-util', t('warehouse.ct.kpi.binUtil'))}
+          props={{ value: kpisError ? t('warehouse.ct.error.kpiValue') : kpis?.bin_util_pct ?? '…', unit: kpisError ? undefined : '%', tone: kpisError ? 'warn' : kpis?.bin_util_pct > 92 ? 'risk' : kpis?.bin_util_pct > 80 ? 'warn' : 'ok', progressBar: kpisError ? undefined : kpis?.bin_util_pct ?? 0 }}
+        />
       </div>
 
       {/* Today's run sheet + Critical exceptions */}

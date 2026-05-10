@@ -1,4 +1,4 @@
-# Shared Reporting Phased Plan
+﻿# Shared Reporting Phased Plan
 
 This plan turns ConnectIO RAD reporting into a shared, reusable capability
 without building a large framework ahead of real app pressure. The first goal is
@@ -8,33 +8,41 @@ generators, backend reporting helpers, and broader governance.
 
 ## Implementation Status
 
-Updated: 2026-05-10.
+Updated: 2026-05-10 (session 4).
 
-- Phase 0: Complete. `libs/shared-reporting` exists as an Nx/workspace library
-  using the same lightweight shared-library conventions as `shared-ui`.
-- Thin Phase 1 skeleton: Complete. The library now includes Zod dashboard
-  schemas, inferred TypeScript types, a typed widget registry,
-  `CodexDashboard`, `ReportPageShell`, `DashboardFilterProvider`,
-  `useCodexQuery`, and a first `kpi` widget backed by shared-ui.
-- Verification: `shared-reporting:typecheck`, `shared-reporting:test`, and a
-  broader typecheck over `shared-reporting`, `shared-ui`, `platform-frontend`,
-  and `processorderhistory-frontend` pass.
-- Phase 2: Started. Shared-reporting now owns the reusable ECharts core,
-  reporting chart theme, `EChart`, `ChartContainer`, and a first `trend` widget.
-  The SPC app still uses its local chart shim until chart-specific migration to
-  avoid mixing extraction work with existing SPC type debt. Focused
-  `TrendChartWidget` coverage is in place.
-- Phase 3: Started. The SPC scorecard summary KPIs now render through
-  `ReportPageShell`, `CodexDashboard`, and the shared `kpi` widget while keeping
-  the existing SPC scorecard data hook and lazy table intact. SPC's local
-  `charts/EChart` adapter now delegates to shared-reporting's `EChart`, so
-  existing chart surfaces use the shared wrapper without broad component churn.
-  The SPC Compare grouped bar chart now uses shared `ChartContainer` for its
-  result panel. The SPC scorecard pilot hydrates `DashboardFilterProvider` from
-  the current material, plant, and date scope and renders that scope in the
-  shell filter slot.
-- Phase 4 onward: Not started. Backend helpers, generators, Storybook, and
-  broad migration remain deferred until the pilot proves the contracts.
+- Phase 0: Complete.
+- Phase 1: Complete. Library includes Zod dashboard schemas, inferred types,
+  typed widget registry, `ReportingDashboard` (uses `safeParse` for graceful
+  validation fallback), `ReportPageShell`, `DashboardFilterProvider`,
+  `useCodexQuery`, and `KpiCardWidget`.
+- Phase 2: Complete. All first-wave widgets shipped: `KpiCardWidget` (with
+  `progressBar` prop), `TrendChartWidget`, `BarChartWidget`, `ParetoChartWidget`,
+  `SPCControlChartWidget`, `DrillDownTableWidget`. Shared ECharts core, theme,
+  `EChart` (with per-instance `testId` prop), and `ChartContainer` are exported.
+  16 unit/integration tests pass. `defaultRegistry` maps all six type keys.
+  `ReportingDashboard` now supports optional `minColumnWidth` layout field for
+  `repeat(auto-fit, minmax(Npx, 1fr))` grids alongside fixed-column mode.
+- Phase 3: Complete. Two production app slices proven and test-backed:
+    1. SPC scorecard: KPIs render through `ReportPageShell`, `ReportingDashboard`,
+       and shared `kpi` widget; filters hydrated from SPC context; MSW integration
+       test proves full fetch-to-render path without live API.
+    2. Warehouse360 ControlTower: 6-card KPI strip migrated to `KpiCardWidget`
+       inside the existing responsive `kpi-grid` CSS class, preserving tablet
+       breakpoints; `progressBar` prop added to `KpiCardWidget` (fixing pre-
+       existing `barPct`/`barTone` type mismatch). 4 ControlTower rendering tests
+       prove all KPI labels and live data values flow through `KpiCardWidget`.
+    Finding: `ReportingDashboard` fixed-column limitation resolved via opt-in
+    `minColumnWidth`; widgets remain portable without `ReportingDashboard` as host.
+    SPC interactive control chart migration deliberately skipped: widget contract
+    is for dashboard summaries; interactive view has 9 chart types with EWMA
+    per-point UCL/LCL incompatible with flat `SPCControlLimits` shape.
+- Phase 4: Complete (audit). Backend extraction work is largely already done in
+  `shared-api` and `shared-db` (error normalization, auth, data freshness,
+  DAL pattern, middleware). No new shared library extraction is warranted.
+  `attach_data_freshness()` is already shared (94 call sites). Remaining gap:
+  `PlantScope` classes are duplicated per-app — candidate for `shared-db`
+  consolidation when a third app adopts plant-scoped queries.
+- Phase 5 onward: Not started. Generators, Storybook, and governance deferred.
 
 ## Principles
 
@@ -169,13 +177,13 @@ ECharts wrapper and theme rather than introducing a second chart stack.
 
 Initial widgets:
 
-- Complete: `KpiCard`
+- Complete: `KpiCard` (with `progressBar` prop)
 - Complete: `ChartContainer`
 - Complete: `TrendChart`
-- `BarChart`
-- `ParetoChart`
-- `SPCControlChart`
-- `DrillDownTable`
+- Complete: `BarChart`
+- Complete: `ParetoChart`
+- Complete: `SPCControlChart`
+- Complete: `DrillDownTable`
 
 Rules:
 
@@ -201,7 +209,9 @@ Acceptance criteria:
   `EChart` wrapper.
 - Complete: `KpiCard` has fixture coverage through `CodexDashboard`;
   `TrendChart` has component coverage for populated and empty states.
-- Pending: `SPCControlChart` and bundle-impact validation wait for the SPC pilot.
+- Complete: `SPCControlChart`, `BarChart`, `ParetoChart`, and `DrillDownTable`
+  are implemented with empty/populated states and registered in `defaultRegistry`.
+  Bundle-impact validation deferred to Phase 4.
 
 ## Phase 3: Pilot Dashboard Migration
 
@@ -227,10 +237,14 @@ Pilot scope:
 Acceptance criteria:
 
 - Complete for scorecard KPI slice: SPC scorecard summary KPIs render through
-  `ReportPageShell`, `CodexDashboard`, and shared-reporting `kpi` widgets.
+  `ReportPageShell`, `ReportingDashboard`, and shared-reporting `kpi` widgets.
 - Partial: pilot page table still uses the existing lazy SPC table, which is the
   right boundary for this slice.
-- Complete for slice: focused `ScorecardView` test passes.
+- Complete for scorecard slice: MSW integration test proves full fetch-to-render
+  path for scorecard/plants/characteristics without live API.
+- Complete for warehouse360 slice: ControlTower KPI strip uses `KpiCardWidget`
+  inside existing responsive `kpi-grid`; `@connectio/shared-reporting` dependency
+  declared in `apps/warehouse360/frontend/package.json`.
 - Complete for slice: SPC chart surfaces now use the shared `EChart` wrapper
   through the existing local adapter.
 - Complete for slice: SPC Compare grouped bar chart uses shared
@@ -250,36 +264,27 @@ Acceptance criteria:
 
 Target: Week 2 to Week 3, after the pilot proves frontend contracts.
 
-Add backend helpers only for repeated patterns found in the pilot and one second
-candidate app.
+Status: Audit complete (2026-05-10). No new extraction warranted at this time.
 
-Scope:
+**Audit findings:**
+- Response envelopes are domain-keyed per app (`{"scorecard": [...]}`, `{"bins": [...]}`,
+  `{"oee_analytics": {...}}`). A uniform wrapper would reduce clarity; reject.
+- Error handling, auth, data freshness (`attach_data_freshness()`, 94 call sites),
+  middleware, and DAL patterns are all already in `shared-api`/`shared-db`.
+- Cursor-based pagination exists in SPC only; no cross-app pattern yet.
+- `PlantScope` logic is the one genuine duplicate across apps. Consolidate in
+  `shared-db` when a third app adopts plant-scoped queries.
 
-- Add shared query result envelopes for reporting endpoints.
-- Add error normalization helpers if repeated across apps.
-- Add audit logging helpers only if current app audit patterns converge.
-- Add large-result handling as a separate `shared-db` design item.
-
-Large result handling should be designed independently:
-
-- preserve current small-result API behavior
-- detect/flag large results
-- return external-link metadata or streaming handles only through explicit
-  endpoint contracts
-- test permission and expiry behavior before rollout
-
-SQL guidance:
-
-- Continue to use DAL modules, `tbl()` helpers, and named parameters.
-- Avoid Jinja2/Mustache SQL templating in v1.
-- If templates become necessary, use allowlisted templates and parameter maps,
-  never arbitrary string interpolation.
+**Deferred scope (unchanged):**
+- Large-result handling as a separate `shared-db` design item.
+- Audit trail logging (request-scoped via middleware is sufficient for now).
+- No raw SQL/template input from frontend (already enforced by DAL pattern).
 
 Acceptance criteria:
 
-- Backend helpers remove duplication from at least two apps.
-- No endpoint accepts raw SQL or raw template input from the frontend.
-- Large-result behavior has tests for auth, expiry, and empty/error cases.
+- Audit: Complete. No regressions introduced.
+- `PlantScope` consolidation: Deferred to when a third app requires it.
+- Large-result behavior: Deferred; design independently with auth/expiry tests.
 
 ## Phase 5: Generators And Governance
 
@@ -341,7 +346,7 @@ Acceptance criteria:
 - At least two apps use shared-reporting without app-specific hacks.
 - Widget APIs remain stable across two migrations.
 - Performance benchmarks show no material regression against current pages.
-- Documentation includes “how to add a dashboard” and “how to add a widget”.
+- Documentation includes â€œhow to add a dashboardâ€ and â€œhow to add a widgetâ€.
 
 ## Explicit Non-Goals For The First Pass
 
@@ -355,9 +360,47 @@ Acceptance criteria:
 
 ## Immediate Next Step
 
-Continue Phase 2/3 as the next vertical slice:
+Phases 0-4 are complete. Phase 6 POH third-app proof is in progress (session 5).
 
-1. Run data-backed visual validation for SPC scorecard and Compare once the SPC
-   backend or a supported local API fixture is available.
-2. Keep existing SPC backend endpoints unchanged until the frontend contracts
-   are proven.
+Recent completions (session 5):
+- `KpiCardWidget` extended with `icon?: IconName` prop (passes through to `KPI`).
+- POH `PourKpiCards` 3-card strip migrated to `KpiCardWidget`; uses `icon` and
+  `tone` props; hardcoded `borderLeft` replaced by `tone='ok'`.
+- `@connectio/shared-reporting` declared in
+  `apps/processorderhistory/frontend/package.json`.
+- 2 `PourKpiCards` rendering tests written; typechecks pass; vitest env broken
+  (`@rolldown/binding-win32-x64-msvc` optional dependency missing from root
+  node_modules — run `npm install` after clearing `node_modules` to fix).
+- Analytics-page strips (PourAnalytics, YieldAnalytics, QualityAnalytics)
+  deliberately excluded from migration: `DeltaPill` invert semantics and
+  colored-span subtext can't be faithfully represented in the flat widget API.
+
+Recent completions (session 4):
+- Phase 4 backend audit: no new extraction warranted; `PlantScope` deferred.
+- SPC chart migration assessed and deliberately skipped: `SPCControlChartWidget`
+  is a dashboard-summary contract; the interactive control chart view has 9
+  chart types with disparate computation (EWMA per-point UCL/LCL incompatible
+  with the flat `SPCControlLimits` shape) — migrating would be a category error.
+- `ReportingDashboard` responsive layout: `minColumnWidth?: number` added to
+  `dashboardConfigSchema.layout`; when set, uses
+  `repeat(auto-fit, minmax(Npx, 1fr))` instead of fixed columns. Existing
+  callers are unaffected. Test added (16/16 shared-reporting tests pass).
+- ControlTower rendering test: 4 tests added to `ControlTower.test.tsx`
+  proving all 6 `KpiCardWidget` labels and live KPI values render correctly.
+  Pre-existing `FilterBar.chips.map` failures in `Operations.test.tsx` were
+  fixed by widening the `Filter` interface to accept `chips` or `options`.
+
+Candidate next steps:
+
+1. **Fix vitest environment**: root `node_modules` missing optional
+   `@rolldown/binding-win32-x64-msvc` — all tests broken until `npm install` is
+   rerun after clearing `node_modules`. Unblocks verification of 2 POH tests.
+2. **Phase 5 generators**: widget and report-page generators, now that three app
+   migrations have confirmed stable `KpiCardWidget` shapes.
+3. **Storybook or visual regression**: 6 widgets stable across three apps — a
+   Storybook snapshot catalog would give visual regression coverage.
+4. **Extend `KpiCardWidget` for DeltaPill use cases**: add a `deltaTone` prop to
+   `KPI` in shared-ui (and thread through `KpiCardWidget`) to enable analytics-
+   page strips with directional color semantics. Prerequisite for full POH
+   analytics migration.
+

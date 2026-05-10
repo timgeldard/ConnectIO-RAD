@@ -55,5 +55,6 @@ export const dashboardConfigSchema = z.object({
   layout: z.object({
     columns: z.number().int().min(1).max(12).default(12),
     gap: z.number().int().min(0).default(16),
+    minColumnWidth: z.number().int().min(50).optional(),
   }).default({ columns: 12, gap: 16 }),
 })

@@ -15,6 +15,7 @@
   "dependencies": {
     "@connectio/shared-frontend-i18n": "file:../../../libs/shared-frontend-i18n",
     "@connectio/shared-app-context": "file:../../../libs/shared-app-context",
+    "@connectio/shared-reporting": "file:../../../libs/shared-reporting",
     "@connectio/shared-ui": "file:../../../libs/shared-ui",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
