@@ -134,6 +134,21 @@ def test_lab_fails_endpoint(mock_fetch_lab_failures):
     mock_fetch_lab_failures.assert_called_once_with("test_token", plant_id="CHV", lot_type=None)
 
 
+@patch("connectedquality_backend.routers.lab.fetch_lab_plants")
+def test_lab_plants_endpoint(mock_fetch_lab_plants):
+    mock_fetch_lab_plants.return_value = {
+        "plants": [{"plant_id": "CHV", "plant_name": "Charleville"}]
+    }
+
+    response = client.get("/api/cq/lab/plants")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "plants": [{"plant_id": "CHV", "plant_name": "Charleville"}]
+    }
+    mock_fetch_lab_plants.assert_called_once_with("test_token")
+
+
 @patch("connectedquality_backend.routers.trace.fetch_top_down")
 @patch("connectedquality_backend.routers.trace.fetch_bottom_up")
 def test_trace_lineage_merges_upstream_and_downstream(mock_bottom_up, mock_top_down):

@@ -1,7 +1,7 @@
 """Lab Board application service backed by inspection-result gold views."""
 from typing import Optional
 
-from connectedquality_backend.dal.lab import fetch_lab_failure_rows
+from connectedquality_backend.dal.lab import fetch_lab_failure_rows, fetch_lab_plants as fetch_lab_plant_rows
 
 
 def _coerce_fail(row: dict) -> dict:
@@ -53,3 +53,16 @@ async def fetch_lab_failures(token: str, *, plant_id: str, lot_type: Optional[st
         "fails": [_coerce_fail(row) for row in rows],
         "data_available": True,
     }
+
+
+async def fetch_lab_plants(token: str) -> dict:
+    """Return plants that have inspection-result data for the Lab Board.
+
+    Args:
+        token: Databricks access token forwarded from the request.
+
+    Returns:
+        Dictionary containing the ordered list of plant objects expected by the
+        transport layer.
+    """
+    return {"plants": await fetch_lab_plant_rows(token)}

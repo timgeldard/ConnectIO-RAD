@@ -166,6 +166,14 @@ Shared libraries promote code reuse and consistency across applications:
 - **`shared-frontend-api`**: Shared TypeScript clients and models.
 - **`shared-trace`**: Shared domain logic for material and batch traceability.
 
+The shared infrastructure libraries are also the enforcement point for
+cross-cutting trust boundaries that must not leak into bounded contexts. In
+practice, `shared-api`, `shared-auth`, and `shared-db` own request metadata
+sanitization, strict proxy-token handling in production, masked infra probe
+failures, rate-limit identity hashing, and SQL identifier safety. These guards
+live in shared infra specifically so the DDD application/domain boundaries can
+remain frozen while every app inherits the same hardened defaults.
+
 ## 📂 Project Structure
 
 ```text

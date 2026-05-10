@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends
 
 from shared_auth import UserIdentity, require_proxy_user
 
-from processorderhistory_backend.dal.plants_dal import fetch_plants
 from processorderhistory_backend.db import check_warehouse_config
+from processorderhistory_backend.order_execution.application.plant_queries import list_visible_plants
 from processorderhistory_backend.utils.rate_limit import limiter
 
 router = APIRouter()
@@ -18,5 +18,4 @@ async def list_plants(
 ):
     """Return plants visible in POH data with human-readable names."""
     check_warehouse_config()
-    plants = await fetch_plants(user.raw_token)
-    return {"plants": plants}
+    return await list_visible_plants(user.raw_token)

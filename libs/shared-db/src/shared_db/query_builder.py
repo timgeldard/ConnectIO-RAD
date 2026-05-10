@@ -6,7 +6,35 @@ from typing import Any, Optional
 
 from shared_db.core import sql_param
 
-_IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_.]+$")
+_IDENTIFIER_SEGMENT_RE = re.compile(r"^[A-Za-z0-9_]+$")
+
+
+def _is_safe_identifier(identifier: str, *, allow_qualified: bool = True) -> bool:
+    """Return whether an identifier is safely usable in generated SQL.
+
+    Args:
+        identifier: Identifier text to validate.
+        allow_qualified: Whether ``.``-qualified names are accepted.
+
+    Returns:
+        True when the identifier is composed only of safe bare or backtick-quoted
+        segments; otherwise False.
+    """
+    if not identifier or identifier.strip() != identifier:
+        return False
+    if not allow_qualified and "." in identifier:
+        return False
+    parts = identifier.split(".")
+    for part in parts:
+        if not part:
+            return False
+        if part.startswith("`") or part.endswith("`"):
+            if not (part.startswith("`") and part.endswith("`") and part.count("`") == 2):
+                return False
+            part = part[1:-1]
+        if not _IDENTIFIER_SEGMENT_RE.fullmatch(part):
+            return False
+    return True
 
 
 @dataclass
@@ -25,7 +53,7 @@ class QueryBuilder:
     clustering_columns: list[str] = field(default_factory=list)
 
     def __post_init__(self):
-        if not _IDENTIFIER_RE.match(self.base_table.replace("`", "")):
+        if not _is_safe_identifier(self.base_table):
             raise ValueError(f"Invalid base table identifier: {self.base_table!r}")
 
     def with_plant_filter(self, plant_id: Optional[str]) -> QueryBuilder:
@@ -43,7 +71,7 @@ class QueryBuilder:
 
     def with_order_by(self, order_by: str) -> QueryBuilder:
         """Sets ORDER BY clause. Must be a valid column identifier (letters, digits, underscores, dots)."""
-        if not _IDENTIFIER_RE.match(order_by.replace("`", "")):
+        if not _is_safe_identifier(order_by):
             raise ValueError(f"Invalid ORDER BY identifier: {order_by!r}")
         self.order_by = order_by
         return self
@@ -51,7 +79,7 @@ class QueryBuilder:
     def with_clustering_hint(self, *columns: str) -> QueryBuilder:
         """Adds optimizer-hint column names. Each must be a safe identifier."""
         for col in columns:
-            if not _IDENTIFIER_RE.match(col.replace("`", "")):
+            if not _is_safe_identifier(col):
                 raise ValueError(f"Invalid clustering column identifier: {col!r}")
         self.clustering_columns.extend(columns)
         return self
@@ -59,7 +87,7 @@ class QueryBuilder:
     def build(self) -> tuple[str, list[dict[str, Any]]]:
         """Returns the SQL statement and parameters."""
         for col in self.columns:
-            if col != "*" and not _IDENTIFIER_RE.match(col.replace("`", "")):
+            if col != "*" and not _is_safe_identifier(col):
                 raise ValueError(f"Invalid column identifier: {col!r}")
         cols = ", ".join(self.columns)
 

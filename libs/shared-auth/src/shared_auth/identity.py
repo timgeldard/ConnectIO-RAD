@@ -13,6 +13,25 @@ from fastapi import Header, HTTPException, Request
 logger = logging.getLogger(__name__)
 
 
+def _extract_bearer_token(authorization: Optional[str]) -> str | None:
+    """Extract a Bearer token from an Authorization header value.
+
+    Args:
+        authorization: Raw ``Authorization`` header value.
+
+    Returns:
+        The bearer token when the header is well formed, otherwise ``None``.
+    """
+    candidate = (authorization or "").strip()
+    if not candidate:
+        return None
+    scheme, _, token = candidate.partition(" ")
+    if scheme.lower() != "bearer":
+        return None
+    token = token.strip()
+    return token or None
+
+
 @dataclass(frozen=True)
 class UserIdentity:
     """
@@ -66,13 +85,13 @@ def resolve_token(
     token = x_forwarded_access_token
 
     bearer_allowed = (not strict) and _is_dev_mode()
+    bearer_token = _extract_bearer_token(authorization)
     if (
         bearer_allowed
         and token is None
-        and authorization
-        and authorization.startswith("Bearer ")
+        and bearer_token is not None
     ):
-        token = authorization[len("Bearer "):]
+        token = bearer_token
     elif not strict and not _is_dev_mode():
         # Caller asked for non-strict but we're in production — refuse the
         # fallback. Log so operators can find the caller and migrate it.

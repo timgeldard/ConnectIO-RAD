@@ -142,7 +142,7 @@ def _extract_client_identity(request: Request) -> str:
     """Extract a unique identity for the client from request headers."""
     token = request.headers.get("x-forwarded-access-token", "")
     if token:
-        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()[:24]
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
         return f"token:{token_hash}"
 
     forwarded_for = request.headers.get("x-forwarded-for", "")
