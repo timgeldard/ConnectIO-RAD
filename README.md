@@ -1,67 +1,59 @@
-# ConnectIO-RAD
+# 🚀 ConnectIO-RAD
 
-An enterprise-grade monorepo for ConnectIO **Reporting and Dashboarding (RAD)** on the Databricks platform. This repository contains a suite of industrial applications designed for manufacturing, quality, and supply chain operations.
+The industrial-grade monorepo for Kerry's **Reporting and Dashboarding (RAD)** platform on Databricks.
 
-## 📚 Documentation
-
-Comprehensive documentation is available in the `/docs` directory:
-
-- [**Engineering Mandates (DoD)**](./GEMINI.md): Strict standards for documentation, testing, and i18n coverage.
-- [**Monorepo Architecture**](./docs/monorepo-architecture.md): Overview of the system design, shared libraries, and component interactions.
-- [**Development Guide**](./docs/monorepo-development.md): Local setup, toolchain details, and common developer workflows.
-- [**Deployment Guide**](./docs/monorepo-deployment.md): CI/CD pipelines and Databricks deployment strategies.
-- [**Shared Reporting Plan**](./docs/architecture/shared-reporting-phased-plan.md): Phased rollout plan for reusable reporting primitives, widgets, and dashboard migration.
-
-### 🔌 Interactive API Docs (Swagger)
-
-Every application in this monorepo provides an auto-generated, interactive Swagger UI for API exploration and testing. When running locally, these are accessible at:
-
-- **spc**: `http://localhost:8000/api/docs`
-- **envmon**: `http://localhost:8001/api/docs`
-- **trace2**: `http://localhost:8002/api/docs`
-- **processorderhistory**: `http://localhost:8003/api/docs`
-- **warehouse360**: `http://localhost:8004/api/docs`
-- **connectedquality**: `http://localhost:8005/api/docs`
-- **platform**: `http://localhost:8006/api/docs`
+ConnectIO-RAD powers manufacturing visibility, quality excellence, and supply chain efficiency across Kerry's global plant network.
 
 ---
 
-## 🚀 Applications
+## 📖 Central Documentation Hub
 
-The following applications are housed within this monorepo:
+The **[Developer Portal](./docs/INDEX.md)** is your main entry point for the project.
 
-| Application | Description | Documentation |
+### 🐣 Quick Links
+- **[Onboarding Guide](./docs/ONBOARDING.md)**: Set up your environment in <10 minutes.
+- **[Architecture Overview](./ARCHITECTURE.md)**: Bounded contexts, data flows, and design principles.
+- **[API Documentation](./docs/API_STRATEGY.md)**: Strategy for discoverability and OpenAPI standards.
+- **[Engineering Mandates](./GEMINI.md)**: Our strict "Definition of Done" for PRs.
+- **[Testing Strategy](./docs/TESTING_STRATEGY.md)**: Coverage, E2E, and visual regression.
+
+---
+
+## 🏗️ Monorepo Applications
+
+| Application | Domain | Status |
 | :--- | :--- | :--- |
-| **`platform`** | Unified Shell & Portal for all ConnectIO apps | [README](./apps/platform/README.md) |
-| **`connectedquality`** | Cross-domain quality monitoring and alerting | [README](./apps/connectedquality/README.md) |
-| **`envmon`** | Environmental Monitoring Visualisation | [README](./apps/envmon/README.md) |
-| **`spc`** | Statistical Process Control & Traceability | [README](./apps/spc/README.md) |
-| **`trace2`** | Comprehensive Batch Traceability | [README](./apps/trace2/README.md) |
-| **`warehouse360`** | Warehouse Operations Cockpit | [README](./apps/warehouse360/README.md) |
-| **`processorderhistory`** | Plant-floor view of process order execution | [README](./apps/processorderhistory/README.md) |
+| **`platform`** | Unified Shell & Portal | 🟢 Production |
+| **`warehouse360`** | Warehouse & Inventory | 🟢 Production |
+| **`spc`** | Statistical Quality Control | 🟡 UAT |
+| **`trace2`** | Batch Traceability | 🟡 UAT |
+| **`envmon`** | Environmental Monitoring | 🟡 UAT |
+| **`processorderhistory`** | Manufacturing Insights | ⚪ Pilot |
+| **`template`** | New Module Reference | 🔵 Demo |
 
 ---
 
-## 📦 Shared Libraries
+## 🛠️ Stack at a Glance
 
-Common logic and utilities are shared across applications to ensure consistency:
+- **Backend**: Python 3.11+ / FastAPI / Databricks SQL.
+- **Frontend**: React 19 / TypeScript / Vite.
+- **Orchestration**: Nx (Monorepo Tooling).
+- **Data**: Unity Catalog / Medallion Architecture.
 
-- **`libs/shared-api`**: Shared FastAPI app factory, runtime helpers, middleware, and error handling.
-- **`libs/shared-app-context`**: Shared frontend plant/app context primitives.
-- **`libs/shared-auth`**: Authentication and Databricks/OIDC token handling.
-- **`libs/shared-db`**: Database connection management, async SQL execution, caching, and SQL safety helpers.
-- **`libs/shared-domain`**: Shared DDD building blocks for entities, value objects, events, and repositories.
-- **`libs/shared-frontend-api`**: Shared TypeScript clients and data models.
-- **`libs/shared-frontend-i18n`**: Shared i18n logic and validation.
-- **`libs/shared-geo`**: Shared geospatial and postcode enrichment utilities.
-- **`libs/shared-playwright`**: Shared Playwright fixtures and page objects for E2E tests.
-- **`libs/shared-trace`**: Shared domain logic for material traceability.
-- **`libs/shared-ui`**: Kerry design-system tokens, shell primitives, and reusable UI components.
+---
 
-## 🛠️ Tech Stack
+## 🔌 API Discovery (Local)
 
-- **Backend**: Python, FastAPI, Databricks Apps, SQL Warehouse.
-- **Frontend**: React, Vite, TypeScript, Nx.
-- **Orchestration**: Nx (build, test, lint, deploy).
-- **Dependency Management**: `uv` (Python), `npm` (Node.js).
-- **Internationalization**: i18next with 16 standard languages enforced (`en`, `de`, `fr`, `es`, `ja`, `pt`, `id`, `ms`, `ga`, `pl`, `nl`, `uk`, `da`, `vi`, `zh-Hans`, `zh-Hant` — see `scripts/validate_i18n.py`).
+When running locally, explore our interactive Swagger docs:
+- **spc**: `:8000/api/docs`
+- **envmon**: `:8001/api/docs`
+- **trace2**: `:8002/api/docs`
+- **wh360**: `:8004/api/docs`
+
+---
+
+## 🤝 Contributing
+
+We value resilience and precision. Please ensure all contributions follow our **Domain-Driven Design** boundaries and meet our **75% test coverage** requirement.
+
+See **[CONTRIBUTING.md](./CONTRIBUTING.md)** for more details.
