@@ -14,6 +14,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/timgeldard/.ai-dev-kit/repo/.claude-plugin/check_update.sh",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   },
   "permissions": {
