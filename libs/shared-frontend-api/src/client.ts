@@ -60,6 +60,9 @@ export async function fetchJson<T>(input: RequestInfo | URL, init?: RequestInit)
   return body as T;
 }
 
+/**
+ * Configuration options for the API client.
+ */
 export interface ApiClientOptions {
   /** Base URL prefix, for example `/api/spc`. */
   baseUrl?: string;

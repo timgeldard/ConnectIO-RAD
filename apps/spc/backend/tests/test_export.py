@@ -1,5 +1,6 @@
 import json
 from fastapi.testclient import TestClient
+from shared_domain import test_data
 
 import spc_backend.main as main_module
 import spc_backend.routers.export as export_module
@@ -17,10 +18,12 @@ def test_openapi_includes_export_route():
 
 def test_export_scorecard_csv_returns_200(monkeypatch):
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    mic = test_data.mic_id()
+    mat_id = test_data.material_id()
 
     async def fake_fetch_scorecard(_token, _body):
         return [{
-            "mic_id": "MIC-1",
+            "mic_id": mic,
             "mic_name": "Moisture",
             "batch_count": 4,
             "mean_value": 10.1,
@@ -41,7 +44,7 @@ def test_export_scorecard_csv_returns_200(monkeypatch):
         json={
             "export_type": "csv",
             "export_scope": "scorecard",
-            "material_id": "MAT-1",
+            "material_id": mat_id,
         },
     )
 
@@ -50,17 +53,20 @@ def test_export_scorecard_csv_returns_200(monkeypatch):
     assert "attachment; filename=spc_scorecard.csv" == response.headers["content-disposition"]
     body = response.text
     assert "MIC ID,Characteristic" in body
-    assert "MIC-1,Moisture" in body
+    assert f"{mic},Moisture" in body
 
 
 def test_export_attribute_chart_csv_returns_200(monkeypatch):
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    b_id = test_data.batch_id()
 
     async def fake_fetch_attribute_chart_data(_token, body):
         assert body.operation_id == "OP-10"
         assert body.chart_type == "p_chart"
         return [{
-            "batch_id": "B1",
+            "batch_id": b_id,
             "batch_date": "2026-04-01",
             "batch_seq": 1,
             "n_inspected": 24,
@@ -76,8 +82,8 @@ def test_export_attribute_chart_csv_returns_200(monkeypatch):
         json={
             "export_type": "csv",
             "export_scope": "attribute_chart",
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
+            "material_id": mat_id,
+            "mic_id": mic,
             "operation_id": "OP-10",
             "chart_type": "p_chart",
         },
@@ -87,14 +93,18 @@ def test_export_attribute_chart_csv_returns_200(monkeypatch):
     assert response.headers["content-type"].startswith("text/csv")
     assert response.headers["content-disposition"] == "attachment; filename=spc_attribute_chart_data.csv"
     assert "Batch ID,Batch Date,Batch Seq,Inspected,Nonconforming,P Value" in response.text
+    assert f"{b_id}," in response.text
 
 
 def test_export_np_chart_csv_uses_nonconforming_columns(monkeypatch):
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    b_id = test_data.batch_id()
 
     async def fake_fetch_attribute_chart_data(_token, _body):
         return [{
-            "batch_id": "B2",
+            "batch_id": b_id,
             "batch_date": "2026-04-02",
             "batch_seq": 2,
             "n_inspected": 30,
@@ -110,25 +120,28 @@ def test_export_np_chart_csv_uses_nonconforming_columns(monkeypatch):
         json={
             "export_type": "csv",
             "export_scope": "attribute_chart",
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
+            "material_id": mat_id,
+            "mic_id": mic,
             "chart_type": "np_chart",
         },
     )
 
     assert response.status_code == 200
     assert "Batch ID,Batch Date,Batch Seq,Inspected,Nonconforming" in response.text
-    assert "B2,2026-04-02,2,30,3" in response.text
+    assert f"{b_id},2026-04-02,2,30,3" in response.text
     assert "99" not in response.text
 
 
 def test_export_chart_data_forwards_operation_scope(monkeypatch):
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    b_id = test_data.batch_id()
 
     async def fake_fetch_chart_data(_token, body):
         assert body.operation_id == "OP-20"
         return [{
-            "batch_id": "B1",
+            "batch_id": b_id,
             "batch_date": "2026-04-01",
             "batch_seq": 1,
             "sample_seq": 1,
@@ -146,8 +159,8 @@ def test_export_chart_data_forwards_operation_scope(monkeypatch):
         json={
             "export_type": "csv",
             "export_scope": "chart_data",
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
+            "material_id": mat_id,
+            "mic_id": mic,
             "operation_id": "OP-20",
         },
     )
@@ -157,14 +170,16 @@ def test_export_chart_data_forwards_operation_scope(monkeypatch):
 
 
 def test_export_attribute_chart_requires_chart_type():
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     response = client.post(
         "/api/spc/export",
         headers={"x-forwarded-access-token": "not-a-real-jwt"},
         json={
             "export_type": "csv",
             "export_scope": "attribute_chart",
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
+            "material_id": mat_id,
+            "mic_id": mic,
         },
     )
 
@@ -174,10 +189,12 @@ def test_export_attribute_chart_requires_chart_type():
 
 def test_export_scorecard_excel_returns_200(monkeypatch):
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    mic = test_data.mic_id()
+    mat_id = test_data.material_id()
 
     async def fake_fetch_scorecard(_token, _body):
         return [{
-            "mic_id": "MIC-1",
+            "mic_id": mic,
             "mic_name": "Moisture",
             "batch_count": 4,
             "mean_value": 10.1,
@@ -198,7 +215,7 @@ def test_export_scorecard_excel_returns_200(monkeypatch):
         json={
             "export_type": "excel",
             "export_scope": "scorecard",
-            "material_id": "MAT-1",
+            "material_id": mat_id,
         },
     )
 
@@ -211,6 +228,7 @@ def test_export_scorecard_excel_returns_200(monkeypatch):
 
 def test_export_signals_csv_returns_200(monkeypatch):
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    mat_id = test_data.material_id()
 
     signals = [
         {"rule": "1", "chart": "X", "indices": [0], "description": "Rule 1 breach"},
@@ -223,7 +241,7 @@ def test_export_signals_csv_returns_200(monkeypatch):
         json={
             "export_type": "csv",
             "export_scope": "signals",
-            "material_id": "MAT-1",
+            "material_id": mat_id,
             "signals_json": json.dumps(signals),
         },
     )
@@ -236,6 +254,7 @@ def test_export_signals_csv_returns_200(monkeypatch):
 
 def test_export_signals_excel_returns_200(monkeypatch):
     monkeypatch.setattr(export_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    mat_id = test_data.material_id()
 
     signals = [
         {"rule": "1", "chart": "X", "indices": [0], "description": "Rule 1 breach"},
@@ -247,7 +266,7 @@ def test_export_signals_excel_returns_200(monkeypatch):
         json={
             "export_type": "excel",
             "export_scope": "signals",
-            "material_id": "MAT-1",
+            "material_id": mat_id,
             "signals_json": json.dumps(signals),
         },
     )
@@ -258,13 +277,14 @@ def test_export_signals_excel_returns_200(monkeypatch):
 
 
 def test_export_rejects_invalid_scope():
+    mat_id = test_data.material_id()
     response = client.post(
         "/api/spc/export",
         headers={"x-forwarded-access-token": "jwt"},
         json={
             "export_type": "csv",
             "export_scope": "invalid",
-            "material_id": "MAT-1",
+            "material_id": mat_id,
         },
     )
     assert response.status_code == 422
@@ -272,13 +292,14 @@ def test_export_rejects_invalid_scope():
 
 
 def test_export_signals_requires_valid_json():
+    mat_id = test_data.material_id()
     response = client.post(
         "/api/spc/export",
         headers={"x-forwarded-access-token": "jwt"},
         json={
             "export_type": "csv",
             "export_scope": "signals",
-            "material_id": "MAT-1",
+            "material_id": mat_id,
             "signals_json": "not-json",
         },
     )

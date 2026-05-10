@@ -34,15 +34,18 @@ def test_empty_when_no_plants(mock_run_sql):
     assert result == []
 
 
+from shared_domain import test_data
+
 def test_filters_null_plant_ids(mock_run_sql):
     """Rows with a null or empty PLANT_ID are silently dropped."""
+    plant = test_data.PLANTS[0]
     mock_run_sql.return_value = [
-        {"PLANT_ID": "IE01"},
+        {"PLANT_ID": plant},
         {"PLANT_ID": None},
         {"PLANT_ID": ""},
     ]
     result = asyncio.run(fetch_authorized_plants("tok"))
-    assert result == ["IE01"]
+    assert result == [plant]
 
 
 def test_uses_gold_plant_table(mock_run_sql):

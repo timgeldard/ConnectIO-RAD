@@ -22,7 +22,12 @@ class JsonLogFormatter(logging.Formatter):
         for attr in ("request_id", "user_email", "app_name", "path", "method", "status_code"):
             value = getattr(record, attr, None)
             if value is not None:
-                payload[attr] = value
+                if attr == "user_email" and isinstance(value, str) and "@" in value:
+                    # Redact PII: user@domain.com -> u***@domain.com
+                    parts = value.split("@")
+                    payload[attr] = f"{parts[0][0]}***@{parts[1]}"
+                else:
+                    payload[attr] = value
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
         return json.dumps(payload, default=str, separators=(",", ":"))
@@ -76,7 +81,7 @@ def configure_opentelemetry(app: Any, *, service_name: str, enabled: bool = True
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
         from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
-    except Exception:
+    except ImportError:
         logging.getLogger(__name__).debug("opentelemetry.not_installed service=%s", service_name)
         return False
 

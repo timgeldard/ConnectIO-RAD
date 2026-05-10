@@ -2,6 +2,7 @@
 import asyncio
 from datetime import datetime, timedelta, timezone as dt_timezone
 
+from shared_domain import test_data
 from processorderhistory_backend.manufacturing_analytics.dal import oee_analytics_dal as dal
 
 
@@ -96,6 +97,7 @@ def test_build_daily_series_matches_utc_date_rows_to_local_buckets():
 def test_fetch_oee_analytics_passes_to_queries(monkeypatch):
     """Ensure the parameters propagate to the underlying queries."""
     calls = []
+    plant = test_data.PLANTS[0]
 
     async def recording_mock(token, query, params=None, **kwargs):
         calls.append((query, params))
@@ -103,7 +105,7 @@ def test_fetch_oee_analytics_passes_to_queries(monkeypatch):
 
     monkeypatch.setattr(dal, "run_sql_async", recording_mock)
     result = asyncio.run(
-        dal.fetch_oee_analytics("token", date_from="2024-01-01", date_to="2024-01-07", plant_id="P001")
+        dal.fetch_oee_analytics("token", date_from="2024-01-01", date_to="2024-01-07", plant_id=plant)
     )
     
     assert result["lines"] == []
@@ -113,9 +115,9 @@ def test_fetch_oee_analytics_passes_to_queries(monkeypatch):
     r_query, r_params = calls[0]
     assert "PRODUCTION_LINE" in r_query
     assert any(p["name"] == "date_from" and p["value"] == "2024-01-01" for p in r_params)
-    assert any(p["name"] == "plant_id" and p["value"] == "P001" for p in r_params)
+    assert any(p["name"] == "plant_id" and p["value"] == plant for p in r_params)
     
     # Daily query (second)
     d_query, d_params = calls[1]
     assert "INTERVAL 30 DAYS" in d_query
-    assert any(p["name"] == "plant_id" and p["value"] == "P001" for p in d_params)
+    assert any(p["name"] == "plant_id" and p["value"] == plant for p in d_params)

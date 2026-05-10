@@ -3,10 +3,13 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
+from shared_domain import test_data
 from processorderhistory_backend.main import app
 import processorderhistory_backend.order_execution.router_pours as pours_router
 
 client = TestClient(app)
+
+_PO_ID = test_data.process_order()
 
 _ANALYTICS_PAYLOAD = {
     "now_ms": 1700000000000,
@@ -14,7 +17,7 @@ _ANALYTICS_PAYLOAD = {
     "lines": [],
     "events": [
         {
-            "process_order": "PO001",
+            "process_order": _PO_ID,
             "material_name": "Whey Protein",
             "quantity": 250.0,
             "uom": "KG",
@@ -57,8 +60,9 @@ def test_post_pours_analytics_returns_200(mock_analytics):
 
 
 def test_post_pours_analytics_passes_plant_id(mock_analytics):
-    client.post("/api/pours/analytics", json={"plant_id": "P001"})
-    mock_analytics.assert_called_once_with("token", plant_id="P001", date_from=None, date_to=None, timezone="UTC")
+    plant = test_data.PLANTS[0]
+    client.post("/api/pours/analytics", json={"plant_id": plant})
+    mock_analytics.assert_called_once_with("token", plant_id=plant, date_from=None, date_to=None, timezone="UTC")
 
 
 def test_post_pours_analytics_passes_date_range(mock_analytics):

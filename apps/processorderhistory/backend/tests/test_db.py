@@ -47,8 +47,11 @@ def test_run_sql_async_calls_shared(monkeypatch):
     assert result == expected
 
 
+from shared_domain import test_data
+
 def test_run_sql_async_forwards_params(monkeypatch):
-    params = [{"name": "id", "value": "PO-001"}]
+    po_id = test_data.process_order()
+    params = [{"name": "id", "value": po_id}]
     mock = MagicMock(return_value=[])
     monkeypatch.setattr(db, "_shared_run_sql", mock)
     

@@ -17,6 +17,8 @@ from processorderhistory_backend.manufacturing_analytics.dal.equipment_insights2
 )
 
 
+from shared_domain import test_data
+
 # ---------------------------------------------------------------------------
 # Fixtures / helpers
 # ---------------------------------------------------------------------------
@@ -36,7 +38,8 @@ def _event(instrument_id: str, status_to: str, offset_ms: int) -> dict:
 
 
 def _inst(instrument_id: str, eq_type: str = "Vessel") -> dict:
-    return {"INSTRUMENT_ID": instrument_id, "EQUIPMENT_TYPE": eq_type, "EQUIPMENT_SUB_TYPE": "Fixed", "PLANT_ID": "P001"}
+    plant = test_data.PLANTS[0]
+    return {"INSTRUMENT_ID": instrument_id, "EQUIPMENT_TYPE": eq_type, "EQUIPMENT_SUB_TYPE": "Fixed", "PLANT_ID": plant}
 
 
 # ---------------------------------------------------------------------------
@@ -305,9 +308,10 @@ def test_kpis_empty_register():
 @pytest.mark.asyncio
 async def test_fetch_equipment_insights2_smoke():
     """Smoke test: mocked SQL returns the full payload with data_available=True."""
+    plant = test_data.PLANTS[0]
     instruments = [
-        {"INSTRUMENT_ID": "V01", "EQUIPMENT_TYPE": "Vessel", "EQUIPMENT_SUB_TYPE": "Fixed", "PLANT_ID": "P1"},
-        {"INSTRUMENT_ID": "V02", "EQUIPMENT_TYPE": "Vessel", "EQUIPMENT_SUB_TYPE": "Fixed", "PLANT_ID": "P1"},
+        {"INSTRUMENT_ID": "V01", "EQUIPMENT_TYPE": "Vessel", "EQUIPMENT_SUB_TYPE": "Fixed", "PLANT_ID": plant},
+        {"INSTRUMENT_ID": "V02", "EQUIPMENT_TYPE": "Vessel", "EQUIPMENT_SUB_TYPE": "Fixed", "PLANT_ID": plant},
     ]
     state_rows = [
         {"instrument_id": "V01", "status_to": "IN USE"},
@@ -329,7 +333,7 @@ async def test_fetch_equipment_insights2_smoke():
         "processorderhistory_backend.manufacturing_analytics.dal.equipment_insights2_dal._q_event_timeline",
         new=AsyncMock(return_value=event_rows),
     ):
-        result = await fetch_equipment_insights2("mock-token", plant_id="P1")
+        result = await fetch_equipment_insights2("mock-token", plant_id=plant)
 
     assert result["data_available"] is True
     assert len(result["equipment"]) == 2

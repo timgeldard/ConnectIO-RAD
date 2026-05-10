@@ -10,7 +10,7 @@ from template_backend.module_template.application.services import (
 
 
 async def get_module_template_service(
-    user: UserIdentity = Depends(require_proxy_user),
+    _user: UserIdentity = Depends(require_proxy_user),
 ) -> TemplateApplicationService:
-    """Return an application service bound to the forwarded Databricks token."""
-    return create_module_template_service(token=user.raw_token)
+    """Return an application service instance."""
+    return create_module_template_service()

@@ -9,9 +9,17 @@ import {
 import { createApiClient, type ApiClientOptions, type ApiRequestOptions } from './client'
 import type { ChartSeriesPoint, ManufacturingFilters, PageRequest, PageResponse } from './types'
 
+/**
+ * Options for configuring an API resource query.
+ *
+ * @template T - The type of data returned by the API.
+ */
 export interface ResourceQueryOptions<T> {
+  /** API client configuration. */
   client?: ApiClientOptions
+  /** Options for the fetch request. */
   request?: ApiRequestOptions
+  /** Options for the React Query useQuery hook. */
   query?: Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>
 }
 
@@ -86,18 +94,24 @@ export function useEntityMutation<TData, TVariables extends Record<string, unkno
 ) {
   const client = createApiClient(options.client)
   const queryClient = useQueryClient()
+  const { mutation: mutationOptions } = options
+
   return useMutation<TData, Error, TVariables>({
+    ...mutationOptions,
     mutationFn: (variables) => {
       if (method === 'delete') {
         return client.delete<TData>(path, { query: variables as ApiRequestOptions['query'] })
       }
       return client[method]<TData>(path, variables)
     },
-    onSuccess: async (...args) => {
-      await Promise.all((options.invalidate ?? []).map((key) => queryClient.invalidateQueries({ queryKey: key })))
-      await options.mutation?.onSuccess?.(...args)
+    onSuccess: async (data, variables, context) => {
+      await Promise.all(
+        (options.invalidate ?? []).map((key) => queryClient.invalidateQueries({ queryKey: key })),
+      )
+      if (mutationOptions?.onSuccess) {
+        await mutationOptions.onSuccess(data, variables, context)
+      }
     },
-    ...options.mutation,
   })
 }
 

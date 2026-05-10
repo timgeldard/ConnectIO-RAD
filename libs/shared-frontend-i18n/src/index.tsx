@@ -107,7 +107,6 @@ export function I18nProvider({
   
   const [language, setLanguageState] = useState<LanguageCode>(() => detectInitialLanguage(appName, available))
   const [resources, setResources] = useState<LocaleResources>(initialResources)
-  const [isLoading, setIsLoading] = useState(false)
 
   const enabledLanguages = useMemo(
     () => supportedLanguages.filter(option => available.includes(option.code)).map(option => ({ ...option, enabled: true })),
@@ -117,14 +116,11 @@ export function I18nProvider({
   const loadLanguage = useCallback(async (lang: LanguageCode) => {
     if (!loadResource || resources[lang]) return
     
-    setIsLoading(true)
     try {
       const strings = await loadResource(lang)
       setResources(prev => ({ ...prev, [lang]: strings }))
     } catch (err) {
       console.error(`I18nProvider: Failed to load language ${lang}`, err)
-    } finally {
-      setIsLoading(false)
     }
   }, [loadResource, resources])
 

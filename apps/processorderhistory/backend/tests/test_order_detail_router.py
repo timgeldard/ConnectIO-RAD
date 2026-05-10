@@ -3,22 +3,27 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
+from shared_domain import test_data
 from processorderhistory_backend.main import app
 import processorderhistory_backend.order_execution.router_order_detail as detail_router
 
 client = TestClient(app)
 
+_PO_ID = test_data.process_order()
+_MAT_ID = test_data.material_id()
+_PLANT = test_data.PLANTS[0]
+
 _DETAIL_PAYLOAD = {
     "order": {
-        "process_order_id": "PO-001",
+        "process_order_id": _PO_ID,
         "status": "running",
         "raw_status": "IN PROGRESS",
-        "material_id": "MAT-001",
+        "material_id": _MAT_ID,
         "material_name": "Test Product",
         "material_category": "Dairy",
-        "plant_id": "P001",
-        "inspection_lot_id": "LOT-001",
-        "batch_id": "B001",
+        "plant_id": _PLANT,
+        "inspection_lot_id": test_data.inspection_lot(),
+        "batch_id": test_data.batch_id(),
         "supplier_batch_id": None,
         "manufacture_date_ms": 1700000000000,
         "expiry_date_ms": 1710000000000,
@@ -53,14 +58,14 @@ def mock_detail_not_found(monkeypatch):
 
 
 def test_get_order_detail_returns_200(mock_detail):
-    response = client.get("/api/orders/PO-001")
+    response = client.get(f"/api/orders/{_PO_ID}")
     assert response.status_code == 200
     data = response.json()
-    assert data["order"]["process_order_id"] == "PO-001"
+    assert data["order"]["process_order_id"] == _PO_ID
     assert data["order"]["status"] == "running"
     assert "phases" in data
     assert "inspections" in data
-    mock_detail.assert_called_once_with("token", order_id="PO-001")
+    mock_detail.assert_called_once_with("token", order_id=_PO_ID)
 
 
 def test_get_order_detail_passes_decoded_id(mock_detail):

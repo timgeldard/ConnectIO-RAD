@@ -8,30 +8,35 @@ import spc_backend.process_control.router_charts as spc_charts
 from spc_backend.routers import trace
 
 
+from shared_domain import test_data
+from shared_auth import UserIdentity, require_proxy_user
+
 client = TestClient(app)
 
 
 def test_chart_data_returns_401_when_token_missing():
-    from shared_auth import require_proxy_user
     app.dependency_overrides.pop(require_proxy_user, None)
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     try:
         response = client.post(
             "/api/spc/chart-data",
-            json={"material_id": "MAT-1", "mic_id": "MIC-1"},
+            json={"material_id": mat_id, "mic_id": mic},
         )
         assert response.status_code == 401
     finally:
-        from shared_auth import UserIdentity
         app.dependency_overrides[require_proxy_user] = lambda: UserIdentity(user_id="test-user", raw_token="fake-token")
 
 
 def test_chart_data_rejects_invalid_cursor(monkeypatch):
     monkeypatch.setattr(spc_charts, "check_warehouse_config", lambda: None)
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
 
     response = client.post(
         "/api/spc/chart-data?cursor=bad-cursor",
         headers={"x-forwarded-access-token": "token"},
-        json={"material_id": "MAT-1", "mic_id": "MIC-1"},
+        json={"material_id": mat_id, "mic_id": mic},
     )
 
     assert response.status_code == 422
@@ -39,19 +44,22 @@ def test_chart_data_rejects_invalid_cursor(monkeypatch):
 
 
 def test_chart_data_rejects_invalid_stratify_by():
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     response = client.post(
         "/api/spc/chart-data",
         headers={"x-forwarded-access-token": "token"},
-        json={"material_id": "MAT-1", "mic_id": "MIC-1", "stratify_by": "bad_column"},
+        json={"material_id": mat_id, "mic_id": mic, "stratify_by": "bad_column"},
     )
 
     assert response.status_code == 422
 
 
 def test_chart_data_response_shape(monkeypatch):
+    b_id = test_data.batch_id()
     async def fake_fetch_chart_data_page(*_args, **_kwargs):
         return {
-            "data": [{"batch_id": "B1", "batch_seq": 1, "sample_seq": 1, "value": 10.0}],
+            "data": [{"batch_id": b_id, "batch_seq": 1, "sample_seq": 1, "value": 10.0}],
             "next_cursor": None,
             "has_more": False,
         }
@@ -63,17 +71,19 @@ def test_chart_data_response_shape(monkeypatch):
     monkeypatch.setattr(spc_charts, "fetch_chart_data_page", fake_fetch_chart_data_page)
     monkeypatch.setattr(spc_charts, "attach_data_freshness", fake_attach_data_freshness)
 
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     response = client.post(
         "/api/spc/chart-data",
         headers={"x-forwarded-access-token": "token"},
-        json={"material_id": "MAT-1", "mic_id": "MIC-1"},
+        json={"material_id": mat_id, "mic_id": mic},
     )
 
     assert response.status_code == 200
     body = response.json()
     assert sorted(body.keys()) == ["count", "data", "data_truncated", "has_more", "limit", "next_cursor", "normality", "spec_drift", "stratified", "stratify_by"]
     assert body["count"] == 1
-    assert body["data"][0]["batch_id"] == "B1"
+    assert body["data"][0]["batch_id"] == b_id
 
 
 def test_control_limits_response_shape(monkeypatch):
@@ -94,10 +104,12 @@ def test_control_limits_response_shape(monkeypatch):
     monkeypatch.setattr(spc_charts, "fetch_control_limits", fake_fetch_control_limits)
     monkeypatch.setattr(spc_charts, "attach_data_freshness", fake_attach_data_freshness)
 
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     response = client.post(
         "/api/spc/control-limits",
         headers={"x-forwarded-access-token": "token"},
-        json={"material_id": "MAT-1", "mic_id": "MIC-1"},
+        json={"material_id": mat_id, "mic_id": mic},
     )
 
     assert response.status_code == 200
@@ -106,9 +118,10 @@ def test_control_limits_response_shape(monkeypatch):
 
 def test_p_chart_data_uses_attribute_subgroup_freshness(monkeypatch):
     captured = {}
+    b_id = test_data.batch_id()
 
     async def fake_fetch_p_chart_data(*_args, **_kwargs):
-        return [{"batch_id": "B1", "batch_seq": 1, "p_value": 0.2}]
+        return [{"batch_id": b_id, "batch_seq": 1, "p_value": 0.2}]
 
     async def fake_attach_data_freshness(payload, _token, sources, **_kwargs):
         captured["payload"] = payload
@@ -119,10 +132,12 @@ def test_p_chart_data_uses_attribute_subgroup_freshness(monkeypatch):
     monkeypatch.setattr(spc_charts, "fetch_p_chart_data", fake_fetch_p_chart_data)
     monkeypatch.setattr(spc_charts, "attach_data_freshness", fake_attach_data_freshness)
 
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     response = client.post(
         "/api/spc/p-chart-data",
         headers={"x-forwarded-access-token": "token"},
-        json={"material_id": "MAT-1", "mic_id": "MIC-1"},
+        json={"material_id": mat_id, "mic_id": mic},
     )
 
     assert response.status_code == 200
@@ -131,9 +146,10 @@ def test_p_chart_data_uses_attribute_subgroup_freshness(monkeypatch):
 
 def test_count_chart_data_uses_attribute_subgroup_freshness(monkeypatch):
     captured = {}
+    b_id = test_data.batch_id()
 
     async def fake_fetch_count_chart_data(*_args, **_kwargs):
-        return [{"batch_id": "B1", "batch_seq": 1, "defect_count": 2}]
+        return [{"batch_id": b_id, "batch_seq": 1, "defect_count": 2}]
 
     async def fake_attach_data_freshness(payload, _token, sources, **_kwargs):
         captured["payload"] = payload
@@ -144,10 +160,12 @@ def test_count_chart_data_uses_attribute_subgroup_freshness(monkeypatch):
     monkeypatch.setattr(spc_charts, "fetch_count_chart_data", fake_fetch_count_chart_data)
     monkeypatch.setattr(spc_charts, "attach_data_freshness", fake_attach_data_freshness)
 
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     response = client.post(
         "/api/spc/count-chart-data",
         headers={"x-forwarded-access-token": "token"},
-        json={"material_id": "MAT-1", "mic_id": "MIC-1", "chart_subtype": "c"},
+        json={"material_id": mat_id, "mic_id": mic, "chart_subtype": "c"},
     )
 
     assert response.status_code == 200
@@ -155,18 +173,20 @@ def test_count_chart_data_uses_attribute_subgroup_freshness(monkeypatch):
 
 
 def test_trace_rejects_oversized_material_id():
+    b_id = test_data.batch_id()
     response = client.post(
         "/api/trace",
         headers={"x-forwarded-access-token": "token"},
-        json={"material_id": "M" * 41, "batch_id": "BATCH-1"},
+        json={"material_id": "M" * 41, "batch_id": b_id},
     )
 
     assert response.status_code == 422
 
 
 def test_trace_summary_survives_freshness_failure(monkeypatch):
+    b_id = test_data.batch_id()
     async def fake_fetch_summary(*_args, **_kwargs):
-        return {"batch_id": "BATCH-1", "summary": {"actual_stock": 10}}
+        return {"batch_id": b_id, "summary": {"actual_stock": 10}}
 
     async def fake_attach_payload_freshness(payload, *_args, **_kwargs):
         return {**payload, "data_freshness": None, "data_freshness_warning": {"message": "Data freshness lookup failed"}}
@@ -178,12 +198,12 @@ def test_trace_summary_survives_freshness_failure(monkeypatch):
     response = client.post(
         "/api/summary",
         headers={"x-forwarded-access-token": "token"},
-        json={"batch_id": "BATCH-1"},
+        json={"batch_id": b_id},
     )
 
     assert response.status_code == 200
     body = response.json()
-    assert body["batch_id"] == "BATCH-1"
+    assert body["batch_id"] == b_id
     assert body["data_freshness"] is None
     assert body["data_freshness_warning"]["message"] == "Data freshness lookup failed"
 

@@ -1,16 +1,17 @@
 import asyncio
-
+from shared_domain import test_data
 from spc_backend.process_control.dal import metadata as spc_metadata_dal
 
 
 def _characteristic_row(**overrides):
+    mic = test_data.mic_id()
     base = {
-        "mic_id": "MIC-A",
+        "mic_id": mic,
         "operation_id": "OP-1",
         "mic_name": "Viscosity",
         "mic_name_normalized": "VISCOSITY",
         "inspection_method": "GAUGE",
-        "unified_mic_key": "PLANT-1||VISCOSITY||NO_UNIT",
+        "unified_mic_key": f"C351||VISCOSITY||NO_UNIT",
         "is_attribute": 0,
         "has_quantitative": 1,
         "batch_count": 10,
@@ -38,36 +39,44 @@ def _fake_runner(characteristics_rows, override_rows=None, attribute_rows=None):
 def test_fetch_characteristics_applies_heuristic_when_no_override(monkeypatch):
     rows = [_characteristic_row(total_samples=10, batch_count=10)]  # avg_spb=1.0 → imr
     monkeypatch.setattr(spc_metadata_dal, "run_sql_async", _fake_runner(rows, []))
-    chars, _ = asyncio.run(spc_metadata_dal.fetch_characteristics("token", "MAT-1", "PLANT-1"))
+    mat_id = test_data.material_id()
+    plant = test_data.PLANTS[0]
+    chars, _ = asyncio.run(spc_metadata_dal.fetch_characteristics("token", mat_id, plant))
 
     assert chars[0]["chart_type"] == "imr"
     assert chars[0]["chart_type_source"] == "heuristic"
 
 
 def test_fetch_characteristics_prefers_override_over_heuristic(monkeypatch):
-    rows = [_characteristic_row(total_samples=10, batch_count=10)]  # heuristic says imr
+    mic = test_data.mic_id()
+    rows = [_characteristic_row(mic_id=mic, total_samples=10, batch_count=10)]  # heuristic says imr
+    mat_id = test_data.material_id()
+    plant = test_data.PLANTS[0]
     overrides = [
-        {"mic_id": "MIC-A", "chart_type": "xbar_s", "plant_id": "PLANT-1", "material_id": "MAT-1"},
+        {"mic_id": mic, "chart_type": "xbar_s", "plant_id": plant, "material_id": mat_id},
     ]
     monkeypatch.setattr(spc_metadata_dal, "run_sql_async", _fake_runner(rows, overrides))
-    chars, _ = asyncio.run(spc_metadata_dal.fetch_characteristics("token", "MAT-1", "PLANT-1"))
+    chars, _ = asyncio.run(spc_metadata_dal.fetch_characteristics("token", mat_id, plant))
 
     assert chars[0]["chart_type"] == "xbar_s"
     assert chars[0]["chart_type_source"] == "override"
 
 
 def test_fetch_characteristics_more_specific_override_wins(monkeypatch):
-    rows = [_characteristic_row(total_samples=10, batch_count=10)]
+    mic = test_data.mic_id()
+    rows = [_characteristic_row(mic_id=mic, total_samples=10, batch_count=10)]
+    mat_id = test_data.material_id()
+    plant = test_data.PLANTS[0]
     overrides = [
         # Global: would set to xbar_r
-        {"mic_id": "MIC-A", "chart_type": "xbar_r", "plant_id": None, "material_id": None},
+        {"mic_id": mic, "chart_type": "xbar_r", "plant_id": None, "material_id": None},
         # Material-specific: would set to imr
-        {"mic_id": "MIC-A", "chart_type": "imr", "plant_id": None, "material_id": "MAT-1"},
+        {"mic_id": mic, "chart_type": "imr", "plant_id": None, "material_id": mat_id},
         # Plant+material-specific: should WIN with xbar_s
-        {"mic_id": "MIC-A", "chart_type": "xbar_s", "plant_id": "PLANT-1", "material_id": "MAT-1"},
+        {"mic_id": mic, "chart_type": "xbar_s", "plant_id": plant, "material_id": mat_id},
     ]
     monkeypatch.setattr(spc_metadata_dal, "run_sql_async", _fake_runner(rows, overrides))
-    chars, _ = asyncio.run(spc_metadata_dal.fetch_characteristics("token", "MAT-1", "PLANT-1"))
+    chars, _ = asyncio.run(spc_metadata_dal.fetch_characteristics("token", mat_id, plant))
 
     assert chars[0]["chart_type"] == "xbar_s"
     assert chars[0]["chart_type_source"] == "override"
@@ -76,10 +85,12 @@ def test_fetch_characteristics_more_specific_override_wins(monkeypatch):
 def test_fetch_characteristics_ignores_unknown_override_chart_type(monkeypatch):
     rows = [_characteristic_row(total_samples=10, batch_count=10)]
     overrides = [
-        {"mic_id": "MIC-A", "chart_type": "not_a_real_chart", "plant_id": None, "material_id": None},
+        {"mic_id": rows[0]["mic_id"], "chart_type": "not_a_real_chart", "plant_id": None, "material_id": None},
     ]
     monkeypatch.setattr(spc_metadata_dal, "run_sql_async", _fake_runner(rows, overrides))
-    chars, _ = asyncio.run(spc_metadata_dal.fetch_characteristics("token", "MAT-1", "PLANT-1"))
+    mat_id = test_data.material_id()
+    plant = test_data.PLANTS[0]
+    chars, _ = asyncio.run(spc_metadata_dal.fetch_characteristics("token", mat_id, plant))
 
     # Falls back to heuristic when override value is invalid.
     assert chars[0]["chart_type"] == "imr"
@@ -98,15 +109,19 @@ def test_fetch_characteristics_swallows_missing_config_table(monkeypatch):
         return rows
 
     monkeypatch.setattr(spc_metadata_dal, "run_sql_async", _run)
-    chars, _ = asyncio.run(spc_metadata_dal.fetch_characteristics("token", "MAT-1", "PLANT-1"))
+    mat_id = test_data.material_id()
+    plant = test_data.PLANTS[0]
+    chars, _ = asyncio.run(spc_metadata_dal.fetch_characteristics("token", mat_id, plant))
 
     assert chars[0]["chart_type"] == "xbar_r"
     assert chars[0]["chart_type_source"] == "heuristic"
 
 
 def test_fetch_characteristics_override_applies_to_attribute_charts_too(monkeypatch):
+    mic = test_data.mic_id()
+    mat_id = test_data.material_id()
     attr_row = {
-        "mic_id": "MIC-A",
+        "mic_id": mic,
         "operation_id": "OP-1",
         "mic_name": "Viscosity",
         "inspection_method": "GAUGE",
@@ -117,18 +132,20 @@ def test_fetch_characteristics_override_applies_to_attribute_charts_too(monkeypa
         "chart_type": "p_chart",
     }
     overrides = [
-        {"mic_id": "MIC-A", "chart_type": "u_chart", "plant_id": None, "material_id": "MAT-1"},
+        {"mic_id": mic, "chart_type": "u_chart", "plant_id": None, "material_id": mat_id},
     ]
     monkeypatch.setattr(spc_metadata_dal, "run_sql_async", _fake_runner([], overrides, [attr_row]))
-    _, attr_chars = asyncio.run(spc_metadata_dal.fetch_characteristics("token", "MAT-1", "PLANT-1"))
+    _, attr_chars = asyncio.run(spc_metadata_dal.fetch_characteristics("token", mat_id, "PLANT-1"))
 
     assert attr_chars[0]["chart_type"] == "u_chart"
     assert attr_chars[0]["chart_type_source"] == "override"
 
 
 def test_fetch_characteristics_attribute_override_rejects_variable_chart_type(monkeypatch):
+    mic = test_data.mic_id()
+    mat_id = test_data.material_id()
     attr_row = {
-        "mic_id": "MIC-A",
+        "mic_id": mic,
         "operation_id": "OP-1",
         "mic_name": "Viscosity",
         "inspection_method": "GAUGE",
@@ -140,10 +157,10 @@ def test_fetch_characteristics_attribute_override_rejects_variable_chart_type(mo
     }
     overrides = [
         # Nonsense: trying to force an attribute MIC to a variable chart.
-        {"mic_id": "MIC-A", "chart_type": "imr", "plant_id": None, "material_id": "MAT-1"},
+        {"mic_id": mic, "chart_type": "imr", "plant_id": None, "material_id": mat_id},
     ]
     monkeypatch.setattr(spc_metadata_dal, "run_sql_async", _fake_runner([], overrides, [attr_row]))
-    _, attr_chars = asyncio.run(spc_metadata_dal.fetch_characteristics("token", "MAT-1", "PLANT-1"))
+    _, attr_chars = asyncio.run(spc_metadata_dal.fetch_characteristics("token", mat_id, "PLANT-1"))
 
     assert attr_chars[0]["chart_type"] == "p_chart"
     assert attr_chars[0]["chart_type_source"] == "default"
@@ -156,13 +173,15 @@ def test_fetch_attribute_characteristics_collapses_operations_in_sql(monkeypatch
     Without this, a single attribute MIC measured at N operations becomes N
     duplicate rows in the Characteristic dropdown."""
     captured: dict[str, object] = {}
+    mat_id = test_data.material_id()
+    plant = test_data.PLANTS[0]
 
     async def fake_run(_token, query, _params=None, **_kwargs):
         captured["query"] = query
         return []
 
     monkeypatch.setattr(spc_metadata_dal, "run_sql_async", fake_run)
-    asyncio.run(spc_metadata_dal.fetch_attribute_characteristics("token", "MAT-1", "PLANT-1"))
+    asyncio.run(spc_metadata_dal.fetch_attribute_characteristics("token", mat_id, plant))
 
     query = str(captured["query"])
     assert "COUNT(DISTINCT operation_id) = 1" in query
@@ -179,10 +198,13 @@ def test_fetch_characteristics_routing_conflict_uses_mic_id_not_op(monkeypatch):
     """Because attribute rows can come back with operation_id=None (multi-op
     collapse), the variable/attribute overlap check keys on mic_id alone.
     Same mic_id as both attribute and quantitative → flag."""
-    quant = [_characteristic_row(mic_id="MIC-DUAL", operation_id=None,
+    mic = test_data.mic_id()
+    mat_id = test_data.material_id()
+    plant = test_data.PLANTS[0]
+    quant = [_characteristic_row(mic_id=mic, operation_id=None,
                                  total_samples=10, batch_count=10)]
     attr = [{
-        "mic_id": "MIC-DUAL",
+        "mic_id": mic,
         "operation_id": None,  # collapsed because it's used at multiple ops
         "mic_name": "Dual-typed MIC",
         "inspection_method": "GAUGE",
@@ -195,7 +217,7 @@ def test_fetch_characteristics_routing_conflict_uses_mic_id_not_op(monkeypatch):
     monkeypatch.setattr(spc_metadata_dal, "run_sql_async",
                         _fake_runner(quant, [], attr))
     chars, attr_chars = asyncio.run(
-        spc_metadata_dal.fetch_characteristics("token", "MAT-1", "PLANT-1")
+        spc_metadata_dal.fetch_characteristics("token", mat_id, plant)
     )
 
     assert chars[0]["routing_conflict"] is True
@@ -203,9 +225,13 @@ def test_fetch_characteristics_routing_conflict_uses_mic_id_not_op(monkeypatch):
 
 
 def test_fetch_characteristics_no_routing_conflict_when_mic_ids_differ(monkeypatch):
-    quant = [_characteristic_row(mic_id="MIC-Q", total_samples=10, batch_count=10)]
+    mic_q = test_data.mic_id()
+    mic_a = test_data.mic_id()
+    mat_id = test_data.material_id()
+    plant = test_data.PLANTS[0]
+    quant = [_characteristic_row(mic_id=mic_q, total_samples=10, batch_count=10)]
     attr = [{
-        "mic_id": "MIC-A",
+        "mic_id": mic_a,
         "operation_id": None,
         "mic_name": "Attribute only",
         "inspection_method": "GAUGE",
@@ -218,7 +244,7 @@ def test_fetch_characteristics_no_routing_conflict_when_mic_ids_differ(monkeypat
     monkeypatch.setattr(spc_metadata_dal, "run_sql_async",
                         _fake_runner(quant, [], attr))
     chars, attr_chars = asyncio.run(
-        spc_metadata_dal.fetch_characteristics("token", "MAT-1", "PLANT-1")
+        spc_metadata_dal.fetch_characteristics("token", mat_id, plant)
     )
 
     assert chars[0]["routing_conflict"] is False

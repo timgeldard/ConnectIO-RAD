@@ -33,7 +33,18 @@ def _require(path: Path, errors: list[str]) -> None:
 
 
 def validate_app(app_name: str) -> list[str]:
-    """Return validation errors for a generated app."""
+    """
+    Validate that a generated application scaffold meets ConnectIO-RAD standards.
+
+    Checks for required directory structure, backend package naming, DDD layers,
+    i18n locale coverage, and platform registration.
+
+    Args:
+        app_name: The name of the application folder under ``apps/``.
+
+    Returns:
+        A list of validation error messages. An empty list means the app is valid.
+    """
     app_root = REPO_ROOT / "apps" / app_name
     project_name = app_name.replace("-", "")
     backend_pkg = f"{project_name}_backend"

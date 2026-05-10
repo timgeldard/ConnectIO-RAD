@@ -3,10 +3,14 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
+from shared_domain import test_data
 from processorderhistory_backend.main import app
 import processorderhistory_backend.order_execution.router_day_view as day_view_router
 
 client = TestClient(app)
+
+_PO_ID = test_data.process_order()
+_MAT_ID = test_data.material_id()
 
 _DAY_VIEW_PAYLOAD = {
     "day": "2026-04-29",
@@ -15,14 +19,14 @@ _DAY_VIEW_PAYLOAD = {
     "lines": ["LINE-01"],
     "blocks": [
         {
-            "id": "PO001-LINE-01",
-            "poId": "PO001",
+            "id": f"{_PO_ID}-LINE-01",
+            "poId": _PO_ID,
             "lineId": "LINE-01",
             "start": 1745892000000,
             "end": 1745906400000,
             "kind": "completed",
             "label": "Whey Protein",
-            "sublabel": "MAT-001",
+            "sublabel": _MAT_ID,
             "confirmedQty": 980.0,
             "plannedQty": 1000.0,
             "uom": "KG",
@@ -65,8 +69,9 @@ def test_post_dayview_passes_day(mock_day_view):
 
 
 def test_post_dayview_passes_plant_id(mock_day_view):
-    client.post("/api/dayview", json={"plant_id": "P001"})
-    mock_day_view.assert_called_once_with("token", day=None, plant_id="P001")
+    plant = test_data.PLANTS[0]
+    client.post("/api/dayview", json={"plant_id": plant})
+    mock_day_view.assert_called_once_with("token", day=None, plant_id=plant)
 
 
 def test_post_dayview_returns_full_shape(mock_day_view):

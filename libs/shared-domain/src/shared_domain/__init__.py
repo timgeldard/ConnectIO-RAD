@@ -8,6 +8,7 @@ from .models import AggregateRoot, AuditMixin, AuditStamp, AuditTrailEntry, Enti
 from .repository import Repository
 from .manufacturing import Batch, BatchId, Material, MaterialId, Measurement, PlantId, PlantScope, Quantity, Specification
 from .guardrails import LayeredModulePath, is_infrastructure_import, parse_layered_module_path
+from . import test_data
 
 __all__ = [
     "DomainEvent",
@@ -35,4 +36,5 @@ __all__ = [
     "LayeredModulePath",
     "is_infrastructure_import",
     "parse_layered_module_path",
+    "test_data",
 ]

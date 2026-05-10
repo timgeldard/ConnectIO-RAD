@@ -5,16 +5,18 @@ injection pattern (``", ".join(f"'{pid}'" for ...)``). These tests pin both
 the safe SQL fragment shape and the matching named-parameter list.
 """
 
+from shared_domain import test_data
 from envmon_backend.inspection_analysis.dal.plants import _plant_id_in_clause
 
 
 def test_plant_id_in_clause_emits_named_placeholders():
     """Each plant ID becomes a ``:p<i>`` placeholder, never an inlined literal."""
-    in_clause, params = _plant_id_in_clause(["IE01", "DE02", "US03"])
+    plants = test_data.PLANTS[:3]
+    in_clause, params = _plant_id_in_clause(plants)
 
-    assert in_clause == "(:p0, :p1, :p2)"
-    assert [p["name"] for p in params] == ["p0", "p1", "p2"]
-    assert [p["value"] for p in params] == ["IE01", "DE02", "US03"]
+    assert in_clause == f"({', '.join(f':p{i}' for i in range(len(plants)))})"
+    assert [p["name"] for p in params] == [f"p{i}" for i in range(len(plants))]
+    assert [p["value"] for p in params] == plants
     # Type is inferred per-value by sql_param; strings → STRING.
     assert all(p["type"] == "STRING" for p in params)
 

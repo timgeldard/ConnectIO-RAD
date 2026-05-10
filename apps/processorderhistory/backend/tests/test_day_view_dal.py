@@ -3,6 +3,7 @@ import asyncio
 from datetime import timezone, datetime
 
 
+from shared_domain import test_data
 from processorderhistory_backend.order_execution.dal import day_view_dal as dal
 
 _MS_PER_DAY = 86_400_000
@@ -33,13 +34,15 @@ def test_parse_day_defaults_to_today():
 # ---------------------------------------------------------------------------
 
 def _block_row(**overrides):
+    po_id = test_data.process_order()
+    mat_id = test_data.material_id()
     base = {
-        "process_order_id": "PO001",
+        "process_order_id": po_id,
         "line_id": "LINE-01",
         "order_status": "COMPLETED",
         "planned_qty": "1000.0",
         "confirmed_qty": "980.5",
-        "material_id": "MAT-001",
+        "material_id": mat_id,
         "material_name": "Whey Protein",
         "first_ms": str(_DAY_START + 2 * 3_600_000),
         "last_ms": str(_DAY_START + 6 * 3_600_000),
@@ -50,13 +53,15 @@ def _block_row(**overrides):
 
 def test_coerce_block_happy_path():
     row = _block_row()
+    po_id = row["process_order_id"]
+    mat_id = row["material_id"]
     b = dal._coerce_block(row, _DAY_START, _DAY_END)
-    assert b["id"] == "PO001-LINE-01"
-    assert b["poId"] == "PO001"
+    assert b["id"] == f"{po_id}-LINE-01"
+    assert b["poId"] == po_id
     assert b["lineId"] == "LINE-01"
     assert b["kind"] == "completed"
     assert b["label"] == "Whey Protein"
-    assert b["sublabel"] == "MAT-001"
+    assert b["sublabel"] == mat_id
     assert b["confirmedQty"] == 980.5
     assert b["plannedQty"] == 1000.0
     assert b["uom"] == "KG"
@@ -108,8 +113,9 @@ def test_coerce_block_null_qty_defaults_to_zero():
 
 
 def test_coerce_block_falls_back_to_po_id_when_no_material_name():
-    b = dal._coerce_block(_block_row(material_name=None), _DAY_START, _DAY_END)
-    assert b["label"] == "PO001"
+    row = _block_row(material_name=None)
+    b = dal._coerce_block(row, _DAY_START, _DAY_END)
+    assert b["label"] == row["process_order_id"]
 
 
 # ---------------------------------------------------------------------------
@@ -118,7 +124,7 @@ def test_coerce_block_falls_back_to_po_id_when_no_material_name():
 
 def _dt_row(**overrides):
     base = {
-        "process_order_id": "PO001",
+        "process_order_id": test_data.process_order(),
         "line_id": "LINE-01",
         "start_ms": str(_DAY_START + 4 * 3_600_000),
         "duration_s": "1800",
@@ -131,8 +137,9 @@ def _dt_row(**overrides):
 
 
 def test_coerce_downtime_happy_path():
-    d = dal._coerce_downtime(_dt_row(), _DAY_START, _DAY_END)
-    assert d["poId"] == "PO001"
+    row = _dt_row()
+    d = dal._coerce_downtime(row, _DAY_START, _DAY_END)
+    assert d["poId"] == row["process_order_id"]
     assert d["lineId"] == "LINE-01"
     assert d["start"] == _DAY_START + 4 * 3_600_000
     assert d["end"] == _DAY_START + 4 * 3_600_000 + 1_800_000

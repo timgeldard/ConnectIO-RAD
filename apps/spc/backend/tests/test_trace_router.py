@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+from shared_domain import test_data
 from shared_trace.conformance import assert_core_trace_route_contract, install_core_trace_route_stubs
 from spc_backend.main import app
 import spc_backend.routers.trace as trace_router
@@ -18,93 +19,110 @@ def mock_trace_dal(monkeypatch):
     return {}
 
 def test_trace_endpoint_returns_404_when_no_data(mock_trace_dal):
+    mat_id = test_data.material_id()
+    b_id = test_data.batch_id()
     response = client.post(
         "/api/trace",
-        json={"material_id": "MAT1", "batch_id": "B1"}
+        json={"material_id": mat_id, "batch_id": b_id}
     )
     assert response.status_code == 404
     assert "No traceability data found" in response.json()["detail"]
 
 def test_trace_endpoint_returns_200_with_data(monkeypatch, mock_trace_dal):
-    rows = [{"material_id": "MAT1", "batch_id": "B1", "parent_material_id": None, "parent_batch_id": None, "depth": 0}]
+    mat_id = test_data.material_id()
+    b_id = test_data.batch_id()
+    rows = [{"material_id": mat_id, "batch_id": b_id, "parent_material_id": None, "parent_batch_id": None, "depth": 0}]
     monkeypatch.setattr(trace_router, "fetch_trace_tree", AsyncMock(return_value=rows))
     
     response = client.post(
         "/api/trace",
-        json={"material_id": "MAT1", "batch_id": "B1"}
+        json={"material_id": mat_id, "batch_id": b_id}
     )
     assert response.status_code == 200
     assert "tree" in response.json()
     assert response.json()["total_nodes"] == 1
 
 def test_summary_endpoint_returns_404_when_no_data(mock_trace_dal):
+    b_id = test_data.batch_id()
     response = client.post(
         "/api/summary",
-        json={"batch_id": "B1"}
+        json={"batch_id": b_id}
     )
     assert response.status_code == 404
 
 def test_summary_endpoint_returns_200_with_data(monkeypatch, mock_trace_dal):
+    b_id = test_data.batch_id()
     monkeypatch.setattr(trace_router, "fetch_summary", AsyncMock(return_value={"test": "data"}))
     response = client.post(
         "/api/summary",
-        json={"batch_id": "B1"}
+        json={"batch_id": b_id}
     )
     assert response.status_code == 200
     assert response.json() == {"test": "data"}
 
 def test_batch_details_endpoint_returns_404_when_no_summary(mock_trace_dal):
+    mat_id = test_data.material_id()
+    b_id = test_data.batch_id()
     response = client.post(
         "/api/batch-details",
-        json={"material_id": "MAT1", "batch_id": "B1"}
+        json={"material_id": mat_id, "batch_id": b_id}
     )
     assert response.status_code == 404
 
 def test_batch_details_endpoint_returns_200_with_data(monkeypatch, mock_trace_dal):
-    monkeypatch.setattr(trace_router, "fetch_batch_details", AsyncMock(return_value={"summary": {"id": "B1"}}))
+    mat_id = test_data.material_id()
+    b_id = test_data.batch_id()
+    monkeypatch.setattr(trace_router, "fetch_batch_details", AsyncMock(return_value={"summary": {"id": b_id}}))
     response = client.post(
         "/api/batch-details",
-        json={"material_id": "MAT1", "batch_id": "B1"}
+        json={"material_id": mat_id, "batch_id": b_id}
     )
     assert response.status_code == 200
     assert "summary" in response.json()
 
 def test_impact_endpoint_returns_200(mock_trace_dal):
+    b_id = test_data.batch_id()
     response = client.post(
         "/api/impact",
-        json={"batch_id": "B1"}
+        json={"batch_id": b_id}
     )
     assert response.status_code == 200
 
 def test_trace_endpoint_sql_error(monkeypatch, mock_trace_dal):
+    mat_id = test_data.material_id()
+    b_id = test_data.batch_id()
     monkeypatch.setattr(trace_router, "fetch_trace_tree", AsyncMock(side_effect=RuntimeError("SQL Error")))
     response = client.post(
         "/api/trace",
-        json={"material_id": "MAT1", "batch_id": "B1"}
+        json={"material_id": mat_id, "batch_id": b_id}
     )
     assert response.status_code == 500
 
 def test_summary_endpoint_sql_error(monkeypatch, mock_trace_dal):
+    b_id = test_data.batch_id()
     monkeypatch.setattr(trace_router, "fetch_summary", AsyncMock(side_effect=RuntimeError("SQL Error")))
     response = client.post(
         "/api/summary",
-        json={"batch_id": "B1"}
+        json={"batch_id": b_id}
     )
     assert response.status_code == 500
 
 def test_batch_details_endpoint_sql_error(monkeypatch, mock_trace_dal):
+    mat_id = test_data.material_id()
+    b_id = test_data.batch_id()
     monkeypatch.setattr(trace_router, "fetch_batch_details", AsyncMock(side_effect=RuntimeError("SQL Error")))
     response = client.post(
         "/api/batch-details",
-        json={"material_id": "MAT1", "batch_id": "B1"}
+        json={"material_id": mat_id, "batch_id": b_id}
     )
     assert response.status_code == 500
 
 def test_impact_endpoint_sql_error(monkeypatch, mock_trace_dal):
+    b_id = test_data.batch_id()
     monkeypatch.setattr(trace_router, "fetch_impact", AsyncMock(side_effect=RuntimeError("SQL Error")))
     response = client.post(
         "/api/impact",
-        json={"batch_id": "B1"}
+        json={"batch_id": b_id}
     )
     assert response.status_code == 500
 

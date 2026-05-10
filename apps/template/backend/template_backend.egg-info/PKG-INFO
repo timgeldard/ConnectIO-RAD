@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: template-backend
+Version: 0.1.0
+Summary: Template Module backend
+Requires-Python: >=3.11
+Requires-Dist: fastapi>=0.115
+Requires-Dist: uvicorn>=0.30
+Requires-Dist: pydantic>=2
+Requires-Dist: hypothesis>=6.100
+Requires-Dist: shared-api
+Requires-Dist: shared-auth
+Requires-Dist: shared-domain

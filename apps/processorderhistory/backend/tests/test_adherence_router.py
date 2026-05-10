@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
+from shared_domain import test_data
 from processorderhistory_backend.main import app
 import processorderhistory_backend.manufacturing_analytics.router_adherence as adherence_router
 
@@ -36,9 +37,10 @@ def test_post_adherence_analytics_returns_200(mock_adherence):
 
 
 def test_post_adherence_analytics_passes_plant_id(mock_adherence):
-    client.post("/api/adherence", json={"plant_id": "P001"})
+    plant = test_data.PLANTS[0]
+    client.post("/api/adherence", json={"plant_id": plant})
     mock_adherence.assert_called_once_with(
-        "token", plant_id="P001", date_from=None, date_to=None, timezone="UTC"
+        "token", plant_id=plant, date_from=None, date_to=None, timezone="UTC"
     )
 
 

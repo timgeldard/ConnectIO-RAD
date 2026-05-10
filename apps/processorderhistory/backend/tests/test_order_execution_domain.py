@@ -1,6 +1,6 @@
 """Domain tests for process-order execution models."""
 
-from shared_domain import ValueObject
+from shared_domain import ValueObject, test_data
 
 from processorderhistory_backend.order_execution.domain.movements import (
     GoodsMovement,
@@ -20,10 +20,11 @@ def test_movement_quantity_is_value_object_and_normalizes_to_kg():
 
 
 def test_goods_movement_from_row_defaults_missing_quantity():
-    movement = GoodsMovement.from_row({"movement_type": "261", "material_id": "MAT-1"})
+    mat_id = test_data.material_id()
+    movement = GoodsMovement.from_row({"movement_type": "261", "material_id": mat_id})
 
     assert movement.movement_type == "261"
-    assert movement.material_id == "MAT-1"
+    assert movement.material_id == mat_id
     assert movement.quantity_kg == 0.0
 
 
@@ -41,19 +42,23 @@ def test_movement_summary_nets_issue_and_receipt_reversals():
 
 
 def test_derive_materials_excludes_each_and_fully_reversed_components():
+    mat1 = test_data.material_id()
+    mat2 = test_data.material_id()
+    b1 = test_data.batch_id()
+    b2 = test_data.batch_id()
     materials = derive_materials([
         {"movement_type": "261", "material_id": "PACK", "material_name": "Box", "quantity": 10.0, "uom": "EA"},
-        {"movement_type": "261", "material_id": "MAT-1", "material_name": "Sugar", "batch_id": "B1", "quantity": 2_000.0, "uom": "G"},
-        {"movement_type": "262", "material_id": "MAT-1", "material_name": "Sugar", "batch_id": "B1", "quantity": 500.0, "uom": "G"},
-        {"movement_type": "261", "material_id": "MAT-2", "material_name": "Salt", "batch_id": "B2", "quantity": 1.0, "uom": "KG"},
-        {"movement_type": "262", "material_id": "MAT-2", "material_name": "Salt", "batch_id": "B2", "quantity": 1.0, "uom": "KG"},
+        {"movement_type": "261", "material_id": mat1, "material_name": "Sugar", "batch_id": b1, "quantity": 2_000.0, "uom": "G"},
+        {"movement_type": "262", "material_id": mat1, "material_name": "Sugar", "batch_id": b1, "quantity": 500.0, "uom": "G"},
+        {"movement_type": "261", "material_id": mat2, "material_name": "Salt", "batch_id": b2, "quantity": 1.0, "uom": "KG"},
+        {"movement_type": "262", "material_id": mat2, "material_name": "Salt", "batch_id": b2, "quantity": 1.0, "uom": "KG"},
     ])
 
     assert materials == [
         {
-            "material_id": "MAT-1",
+            "material_id": mat1,
             "material_name": "Sugar",
-            "batch_id": "B1",
+            "batch_id": b1,
             "total_qty": 1.5,
             "uom": "KG",
         }

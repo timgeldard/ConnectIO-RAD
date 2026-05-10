@@ -8,6 +8,8 @@ from connectedquality_backend.main import app
 import connectedquality_backend.main as main_module
 from shared_auth.identity import UserIdentity, require_proxy_user
 
+from shared_domain import test_data
+
 def override_require_proxy_user():
     return UserIdentity(user_id="test_user", raw_token="test_token")
 
@@ -53,12 +55,14 @@ def test_cross_origin_mutation_blocked():
 
 @patch("connectedquality_backend.routers.trace.fetch_recall_readiness")
 def test_trace_recall_returns_batch(mock_fetch):
-    mock_fetch.return_value = {"batch": "0008898869", "customers_affected": 11}
-    response = client.get("/api/cq/trace/recall?material=MAT1&batch=B1")
+    mat_id = test_data.material_id()
+    b_id = test_data.batch_id()
+    mock_fetch.return_value = {"batch": b_id, "customers_affected": 11}
+    response = client.get(f"/api/cq/trace/recall?material={mat_id}&batch={b_id}")
 
     assert response.status_code == 200
     data = response.json()
-    assert "batch" in data
+    assert data["batch"] == b_id
     assert "customers_affected" in data
 
 
@@ -66,8 +70,9 @@ def test_trace_recall_returns_batch(mock_fetch):
 @patch("connectedquality_backend.routers.envmon.fetch_plant_metadata")
 @patch("connectedquality_backend.routers.envmon.fetch_plant_kpis")
 def test_envmon_plants_returns_list(mock_fetch_kpis, mock_fetch_meta, mock_fetch_ids):
-    mock_fetch_ids.return_value = ["CHV"]
-    mock_fetch_meta.return_value = [{"PLANT_ID": "CHV", "PLANT_NAME": "Charleville"}]
+    plant = test_data.PLANTS[0]
+    mock_fetch_ids.return_value = [plant]
+    mock_fetch_meta.return_value = [{"PLANT_ID": plant, "PLANT_NAME": "Charleville"}]
     mock_fetch_kpis.return_value = [{"active_fails": 0, "warnings": 0}]
     response = client.get("/api/cq/envmon/plants")
 
@@ -86,14 +91,17 @@ def test_envmon_plants_returns_empty_list(mock_fetch_ids):
 
 
 def test_envmon_history_reports_pending_gold_views():
-    response = client.get("/api/cq/envmon/history?plant_id=CHV&floor=F2")
+    plant = test_data.PLANTS[0]
+    response = client.get(f"/api/cq/envmon/history?plant_id={plant}&floor=F2")
 
     assert response.status_code == 200
     assert response.json()["data_available"] is False
 
 
 def test_spc_charts_endpoint():
-    response = client.get("/api/cq/spc/charts?material=MAT1&char=MIC1")
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    response = client.get(f"/api/cq/spc/charts?material={mat_id}&char={mic}")
 
     assert response.status_code == 200
     assert "data" in response.json()
@@ -101,22 +109,25 @@ def test_spc_charts_endpoint():
 
 @patch("connectedquality_backend.routers.spc.fetch_scorecard")
 def test_spc_scorecard_returns_rows(mock_fetch_scorecard):
-    mock_fetch_scorecard.return_value = [{"mic_id": "M1", "is_stable": True}]
+    mic = test_data.mic_id()
+    mat_id = test_data.material_id()
+    mock_fetch_scorecard.return_value = [{"mic_id": mic, "is_stable": True}]
 
-    response = client.get("/api/cq/spc/scorecard?material=MAT1")
+    response = client.get(f"/api/cq/spc/scorecard?material={mat_id}")
 
     assert response.status_code == 200
-    assert response.json()["rows"] == [{"mic_id": "M1", "is_stable": True}]
+    assert response.json()["rows"] == [{"mic_id": mic, "is_stable": True}]
 
 
 @patch("connectedquality_backend.routers.spc.fetch_process_flow")
 def test_spc_flow_returns_nodes_and_edges(mock_fetch_process_flow):
+    mat_id = test_data.material_id()
     mock_fetch_process_flow.return_value = {
         "nodes": [{"id": "mix"}],
         "edges": [{"id": "mix-pack"}],
     }
 
-    response = client.get("/api/cq/spc/flow?material=MAT1")
+    response = client.get(f"/api/cq/spc/flow?material={mat_id}")
 
     assert response.status_code == 200
     assert response.json()["stages"] == [{"id": "mix"}]
@@ -125,26 +136,29 @@ def test_spc_flow_returns_nodes_and_edges(mock_fetch_process_flow):
 
 @patch("connectedquality_backend.routers.lab.fetch_lab_failures")
 def test_lab_fails_endpoint(mock_fetch_lab_failures):
-    mock_fetch_lab_failures.return_value = {"fails": [{"lot": "L1"}], "data_available": True}
+    plant = test_data.PLANTS[0]
+    lot_id = test_data.inspection_lot()
+    mock_fetch_lab_failures.return_value = {"fails": [{"lot": lot_id}], "data_available": True}
 
-    response = client.get("/api/cq/lab/fails?plant_id=CHV")
+    response = client.get(f"/api/cq/lab/fails?plant_id={plant}")
 
     assert response.status_code == 200
-    assert response.json()["fails"] == [{"lot": "L1"}]
-    mock_fetch_lab_failures.assert_called_once_with("test_token", plant_id="CHV", lot_type=None)
+    assert response.json()["fails"] == [{"lot": lot_id}]
+    mock_fetch_lab_failures.assert_called_once_with("test_token", plant_id=plant, lot_type=None)
 
 
 @patch("connectedquality_backend.routers.lab.fetch_lab_plants")
 def test_lab_plants_endpoint(mock_fetch_lab_plants):
+    plant = test_data.PLANTS[0]
     mock_fetch_lab_plants.return_value = {
-        "plants": [{"plant_id": "CHV", "plant_name": "Charleville"}]
+        "plants": [{"plant_id": plant, "plant_name": "Charleville"}]
     }
 
     response = client.get("/api/cq/lab/plants")
 
     assert response.status_code == 200
     assert response.json() == {
-        "plants": [{"plant_id": "CHV", "plant_name": "Charleville"}]
+        "plants": [{"plant_id": plant, "plant_name": "Charleville"}]
     }
     mock_fetch_lab_plants.assert_called_once_with("test_token")
 
@@ -152,6 +166,8 @@ def test_lab_plants_endpoint(mock_fetch_lab_plants):
 @patch("connectedquality_backend.routers.trace.fetch_top_down")
 @patch("connectedquality_backend.routers.trace.fetch_bottom_up")
 def test_trace_lineage_merges_upstream_and_downstream(mock_bottom_up, mock_top_down):
+    mat_id = test_data.material_id()
+    b_id = test_data.batch_id()
     mock_bottom_up.return_value = {
         "max_depth": 2,
         "nodes": [{"id": "raw"}, {"id": "fg"}],
@@ -163,7 +179,7 @@ def test_trace_lineage_merges_upstream_and_downstream(mock_bottom_up, mock_top_d
         "edges": [{"id": "fg-ship"}],
     }
 
-    response = client.get("/api/cq/trace/lineage?material=MAT1&batch=B1")
+    response = client.get(f"/api/cq/trace/lineage?material={mat_id}&batch={b_id}")
 
     assert response.status_code == 200
     data = response.json()
@@ -175,9 +191,11 @@ def test_trace_lineage_merges_upstream_and_downstream(mock_bottom_up, mock_top_d
 
 @patch("connectedquality_backend.routers.trace.fetch_mass_balance")
 def test_trace_mass_balance_returns_payload(mock_fetch_mass_balance):
+    mat_id = test_data.material_id()
+    b_id = test_data.batch_id()
     mock_fetch_mass_balance.return_value = {"variance_qty": 0}
 
-    response = client.get("/api/cq/trace/mass-balance?material=MAT1&batch=B1")
+    response = client.get(f"/api/cq/trace/mass-balance?material={mat_id}&batch={b_id}")
 
     assert response.status_code == 200
     assert response.json() == {"variance_qty": 0}

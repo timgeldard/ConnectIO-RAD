@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
+from shared_domain import test_data
 from processorderhistory_backend.main import app
 import processorderhistory_backend.manufacturing_analytics.router_oee as oee_router
 
@@ -37,9 +38,10 @@ def test_post_oee_analytics_returns_200(mock_oee):
 
 
 def test_post_oee_analytics_passes_plant_id(mock_oee):
-    client.post("/api/oee/analytics", json={"plant_id": "P001"})
+    plant = test_data.PLANTS[0]
+    client.post("/api/oee/analytics", json={"plant_id": plant})
     mock_oee.assert_called_once_with(
-        "token", plant_id="P001", date_from=None, date_to=None, timezone="UTC"
+        "token", plant_id=plant, date_from=None, date_to=None, timezone="UTC"
     )
 
 

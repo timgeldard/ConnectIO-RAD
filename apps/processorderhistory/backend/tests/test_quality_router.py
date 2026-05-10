@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
+from shared_domain import test_data
 from processorderhistory_backend.main import app
 import processorderhistory_backend.manufacturing_analytics.router_quality as quality_router
 
@@ -38,9 +39,10 @@ def test_post_quality_analytics_returns_200(mock_quality):
 
 
 def test_post_quality_analytics_passes_plant_id(mock_quality):
-    client.post("/api/quality/analytics", json={"plant_id": "P001"})
+    plant = test_data.PLANTS[0]
+    client.post("/api/quality/analytics", json={"plant_id": plant})
     mock_quality.assert_called_once_with(
-        "token", plant_id="P001", date_from=None, date_to=None, timezone="UTC"
+        "token", plant_id=plant, date_from=None, date_to=None, timezone="UTC"
     )
 
 

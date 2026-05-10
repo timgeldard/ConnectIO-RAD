@@ -4,6 +4,7 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 from fastapi import HTTPException
+from shared_domain import test_data
 
 from processorderhistory_backend.genie_assist.application import genie_client
 
@@ -26,26 +27,30 @@ class _FakeResponse:
 
 
 def test_compose_genie_content_prepends_page_context():
+    po_id = test_data.process_order()
+    mat_id = test_data.material_id()
+    plant = test_data.PLANTS[0]
+    b_id = test_data.batch_id()
     content = genie_client.compose_genie_content(
         "Why is this order late?",
         {
-            "selected_process_order": "100123",
-            "selected_material": "MAT-9",
-            "selected_plant": "IE01",
-            "selected_batch": "B-7",
+            "selected_process_order": po_id,
+            "selected_material": mat_id,
+            "selected_plant": plant,
+            "selected_batch": b_id,
             "active_date_range": "2026-04-01 to 2026-04-30",
-            "active_filters": "plant IE01, material MAT-9",
+            "active_filters": f"plant {plant}, material {mat_id}",
             "selected_row_count": 1,
         },
     )
 
     assert "- app: processorderhistory" in content
-    assert "- selected_process_order: 100123" in content
-    assert "- selected_material: MAT-9" in content
-    assert "- selected_plant: IE01" in content
-    assert "- selected_batch: B-7" in content
+    assert f"- selected_process_order: {po_id}" in content
+    assert f"- selected_material: {mat_id}" in content
+    assert f"- selected_plant: {plant}" in content
+    assert f"- selected_batch: {b_id}" in content
     assert "- active_date_range: 2026-04-01 to 2026-04-30" in content
-    assert "- active_filters: plant IE01, material MAT-9" in content
+    assert f"- active_filters: plant {plant}, material {mat_id}" in content
     assert "- selected_row_count: 1" in content
     assert "User question:\nWhy is this order late?" in content
 
@@ -89,16 +94,17 @@ def test_normalize_message_accepts_alternate_id_names():
 
 
 def test_normalize_query_result_maps_columns_to_rows():
+    plant = test_data.PLANTS[0]
     normalized = genie_client.normalize_query_result({
         "statement_response": {
             "manifest": {"schema": {"columns": [{"name": "plant"}, {"name": "orders"}]}},
-            "result": {"data_array": [["IE01", "12"], ["US01", "8"]]},
+            "result": {"data_array": [[plant, "12"], ["US01", "8"]]},
         },
     })
 
     assert normalized["columns"] == ["plant", "orders"]
     assert normalized["rows"] == [
-        {"plant": "IE01", "orders": "12"},
+        {"plant": plant, "orders": "12"},
         {"plant": "US01", "orders": "8"},
     ]
 

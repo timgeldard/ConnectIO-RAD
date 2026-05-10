@@ -1,6 +1,6 @@
 import asyncio
-
 import pytest
+from shared_domain import test_data
 
 from spc_backend.process_control.dal import analysis as spc_analysis_dal
 from spc_backend.process_control.domain.multivariate import compute_hotelling_t2
@@ -8,8 +8,11 @@ from spc_backend.process_control.domain.multivariate import compute_hotelling_t2
 
 def test_compute_hotelling_t2_flags_injected_multivariate_anomaly():
     rows = []
+    target_batch = ""
     for i in range(12):
-        batch_id = f"B-{i:02d}"
+        batch_id = test_data.batch_id()
+        if i == 11:
+            target_batch = batch_id
         base_temp = 50.0 + (i * 0.2)
         base_pressure = 100.0 + (i * 0.3)
         if i == 11:
@@ -39,14 +42,14 @@ def test_compute_hotelling_t2_flags_injected_multivariate_anomaly():
     assert result["correlation"]["pair_count"] == 1
     assert result["anomalies"]
     top = result["anomalies"][0]
-    assert top["batch_id"] == "B-11"
+    assert top["batch_id"] == target_batch
     contributor_ids = [item["mic_id"] for item in top["top_contributors"]]
     assert contributor_ids == ["PRESS", "TEMP"] or contributor_ids == ["TEMP", "PRESS"]
 
 
 def test_fetch_multivariate_rejects_oversized_source_payload(monkeypatch):
     async def fake_run_sql_async(_token, _query, _params=None, **kwargs):
-        return [{"batch_id": f"B-{i}", "batch_date": "2026-01-01", "mic_id": "TEMP", "mic_name": "Temperature", "avg_result": 1.0} for i in range(spc_analysis_dal._MULTIVARIATE_MAX_SOURCE_ROWS + 1)]
+        return [{"batch_id": test_data.batch_id(), "batch_date": "2026-01-01", "mic_id": "TEMP", "mic_name": "Temperature", "avg_result": 1.0} for i in range(spc_analysis_dal._MULTIVARIATE_MAX_SOURCE_ROWS + 1)]
 
     monkeypatch.setattr(spc_analysis_dal, "run_sql_async", fake_run_sql_async)
 
@@ -54,7 +57,7 @@ def test_fetch_multivariate_rejects_oversized_source_payload(monkeypatch):
         asyncio.run(
             spc_analysis_dal.fetch_multivariate(
                 "token",
-                "MAT-1",
+                test_data.material_id(),
                 ["TEMP", "PRESS"],
                 None,
                 None,
