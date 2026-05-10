@@ -39,11 +39,23 @@ export function useApiResource<T>(
   })
 }
 
+/**
+ * Options for specific entity queries (GET /resource/:id).
+ */
 export interface EntityQueryOptions<T> extends ResourceQueryOptions<T> {
+  /** The ID of the entity to fetch. */
   id?: string | number | null
+  /** Whether the query is enabled. */
   enabled?: boolean
 }
 
+/**
+ * Hook to fetch a single entity by ID.
+ * 
+ * @param resource - The resource path (e.g. 'orders')
+ * @param id - The entity ID
+ * @param options - Query configuration
+ */
 export function useEntityQuery<T>(
   resource: string,
   id: string | number | null | undefined,
@@ -63,10 +75,20 @@ export function useEntityQuery<T>(
   )
 }
 
+/**
+ * Options for entity list queries (GET /resource).
+ */
 export interface EntityListOptions<T> extends ResourceQueryOptions<T[]> {
+  /** Manufacturing-specific filters (plant, material, etc.) */
   filters?: ManufacturingFilters
 }
 
+/**
+ * Hook to fetch a list of entities.
+ * 
+ * @param resource - The resource path
+ * @param options - Query configuration including filters
+ */
 export function useEntityListQuery<T>(resource: string, options: EntityListOptions<T> = {}) {
   return useApiResource<T[]>(
     [resource, 'list', options.filters ?? {}],

@@ -309,7 +309,7 @@ from ${n.backendPackageName}.${n.contextName}.routers.router import router as ${
 from shared_api import create_rad_app
 
 
-STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
+STATIC_DIR: Path = Path(__file__).parent.parent.parent / "frontend" / "dist"
 
 rad_app = create_rad_app(
     title="${n.displayName} API",
@@ -1298,8 +1298,8 @@ export function ${n.className}Page() {
 .rad-page {
   min-height: 100vh;
   padding: 32px;
-  background: var(--kerry-bg, #f6f8fa);
-  color: var(--kerry-text, #182026);
+  background: var(--surface-1);
+  color: var(--text-1);
 }
 
 .rad-page__header {
@@ -1314,6 +1314,7 @@ export function ${n.className}Page() {
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0;
+  color: var(--text-3);
 }
 
 .rad-page h1 {
@@ -1328,22 +1329,23 @@ export function ${n.className}Page() {
 }
 
 .rad-metric {
-  border: 1px solid #d9e2e8;
-  border-radius: 8px;
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-md);
   padding: 16px;
-  background: #fff;
+  background: var(--surface-0);
 }
 
 .rad-metric span,
 .rad-metric small {
   display: block;
-  color: #4a5c66;
+  color: var(--text-3);
 }
 
 .rad-metric strong {
   display: block;
   margin: 8px 0;
   font-size: 2rem;
+  color: var(--text-1);
 }
 `);
 
