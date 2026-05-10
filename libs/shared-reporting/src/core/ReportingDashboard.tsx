@@ -45,8 +45,12 @@ export function ReportingDashboard({ config, registry, data = {} }: ReportingDas
     >
       {dashboard.widgets.map((widget) => {
         const Widget = registry.get(widget.type)
-        const colSpan = Math.min(widget.layout.colSpan ?? columns, columns)
-        const style: CSSProperties = { gridColumn: `span ${colSpan}` }
+        // In auto-fit mode colSpan is irrelevant — applying span N would create phantom
+        // implicit columns that overflow the grid. Only set gridColumn in fixed-column mode.
+        const colSpan = minColumnWidth
+          ? undefined
+          : Math.min(widget.layout.colSpan ?? columns, columns)
+        const style: CSSProperties = colSpan != null ? { gridColumn: `span ${colSpan}` } : {}
 
         if (!Widget) {
           return (

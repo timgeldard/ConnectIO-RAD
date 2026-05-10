@@ -41,6 +41,8 @@ class _SqlExecutor(Protocol):
         token: str,
         statement: str,
         params: Optional[list[dict]] = None,
+        *,
+        large_result: bool = False,
     ) -> list[dict]: ...
 
 
@@ -83,6 +85,7 @@ class _RestStatementExecutor:
         *,
         hostname: str = "",
         warehouse_http_path: str = "",
+        large_result: bool = False,
     ) -> list[dict]:
         from .core import hostname as _hostname, WAREHOUSE_HTTP_PATH
         _host = hostname or _hostname()
@@ -94,6 +97,10 @@ class _RestStatementExecutor:
             "statement": statement,
             "wait_timeout": "50s",
         }
+        if large_result:
+            # EXTERNAL_LINKS stores results in cloud storage rather than inline,
+            # bypassing the 25 MB cap. Pre-signed URLs must be fetched without auth.
+            body["disposition"] = "EXTERNAL_LINKS"
         if params:
             body["parameters"] = params
 
@@ -146,8 +153,24 @@ class _RestStatementExecutor:
         all_rows: list[dict] = []
         chunk = result.get("result", {})
         while True:
-            for row_data in chunk.get("data_array", []):
-                all_rows.append(dict(zip(columns, row_data)))
+            if large_result:
+                for link_obj in chunk.get("external_links", []):
+                    link_url = link_obj.get("external_link", "")
+                    if not link_url:
+                        continue
+                    # Pre-signed URLs carry auth in query string — must NOT send Authorization header.
+                    link_req = urllib.request.Request(link_url)
+                    try:
+                        with urllib.request.urlopen(link_req, timeout=60) as link_resp:
+                            row_arrays = json.loads(link_resp.read().decode())
+                    except urllib.error.HTTPError as exc:
+                        body_str = exc.read().decode() if exc.fp else ""
+                        raise RuntimeError(f"SQL external link fetch {exc.code}: {body_str[:1000]}") from exc
+                    for row_data in row_arrays:
+                        all_rows.append(dict(zip(columns, row_data)))
+            else:
+                for row_data in chunk.get("data_array", []):
+                    all_rows.append(dict(zip(columns, row_data)))
             next_chunk_index = chunk.get("next_chunk_index")
             if next_chunk_index is None:
                 break
@@ -173,6 +196,7 @@ class _ConnectorStatementExecutor:
         *,
         hostname: str = "",
         warehouse_http_path: str = "",
+        large_result: bool = False,
     ) -> list[dict]:
         if databricks_sql is None:
             raise RuntimeError("databricks-sql-connector is not installed")

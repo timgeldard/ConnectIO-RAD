@@ -10,12 +10,14 @@ vi.mock('../../hooks/useApi', () => ({
   useApi: useApiMock,
 }))
 
+const MOCK_KPIS = { orders_red: 2, orders_amber: 3, tos_open: 45, deliveries_at_risk: 1, inbound_open: 18671, bin_util_pct: 55.9 }
+
 describe('ControlTower', () => {
   beforeEach(() => {
     useApiMock.mockReset()
     useApiMock.mockImplementation((path: string) => {
       if (path === '/api/kpis') {
-        return { data: { kpis: { orders_red: 2, orders_amber: 3, tos_open: 45, deliveries_at_risk: 1, inbound_open: 18671, bin_util_pct: 55.9 } }, loading: false, error: null }
+        return { data: { kpis: MOCK_KPIS }, loading: false, error: null }
       }
       return { data: null, loading: false, error: null }
     })
@@ -57,9 +59,9 @@ describe('ControlTower', () => {
   it('passes live KPI values through KpiCardWidget props', () => {
     render(<ControlTower />)
 
-    // Specific values from the mock that are unique to the KPI strip
-    expect(screen.getByText('18671')).toBeInTheDocument()  // inbound_open
-    expect(screen.getByText('45')).toBeInTheDocument()     // tos_open
-    expect(screen.getByText('55.9')).toBeInTheDocument()   // bin_util_pct
+    // Driven from MOCK_KPIS so assertions stay in sync with the mock automatically
+    expect(screen.getByText(String(MOCK_KPIS.inbound_open))).toBeInTheDocument()
+    expect(screen.getByText(String(MOCK_KPIS.tos_open))).toBeInTheDocument()
+    expect(screen.getByText(String(MOCK_KPIS.bin_util_pct))).toBeInTheDocument()
   })
 })
