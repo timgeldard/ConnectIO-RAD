@@ -1,6 +1,6 @@
 # ConnectIO-RAD
 
-An enterprise-grade monorepo for Rapid Application Development (RAD) on the Databricks platform. This repository contains a suite of industrial applications designed for manufacturing, quality, and supply chain operations.
+An enterprise-grade monorepo for ConnectIO **Reporting and Dashboarding (RAD)** on the Databricks platform. This repository contains a suite of industrial applications designed for manufacturing, quality, and supply chain operations.
 
 ## 📚 Documentation
 
@@ -36,7 +36,7 @@ The following applications are housed within this monorepo:
 | **`envmon`** | Environmental Monitoring Visualisation | [README](./apps/envmon/README.md) |
 | **`spc`** | Statistical Process Control & Traceability | [README](./apps/spc/README.md) |
 | **`trace2`** | Comprehensive Batch Traceability | [README](./apps/trace2/README.md) |
-| **`warehouse360`** | Warehouse Operations Cockpit (Mockup) | [README](./apps/warehouse360/README.md) |
+| **`warehouse360`** | Warehouse Operations Cockpit | [README](./apps/warehouse360/README.md) |
 | **`processorderhistory`** | Plant-floor view of process order execution | [README](./apps/processorderhistory/README.md) |
 
 ---
@@ -45,12 +45,17 @@ The following applications are housed within this monorepo:
 
 Common logic and utilities are shared across applications to ensure consistency:
 
-- **`libs/shared-api`**: FastAPI utilities and common middleware.
-- **`libs/shared-auth`**: Authentication and security for Databricks environments.
-- **`libs/shared-db`**: Database connection management and async SQL execution.
+- **`libs/shared-api`**: Shared FastAPI app factory, runtime helpers, middleware, and error handling.
+- **`libs/shared-app-context`**: Shared frontend plant/app context primitives.
+- **`libs/shared-auth`**: Authentication and Databricks/OIDC token handling.
+- **`libs/shared-db`**: Database connection management, async SQL execution, caching, and SQL safety helpers.
+- **`libs/shared-domain`**: Shared DDD building blocks for entities, value objects, events, and repositories.
 - **`libs/shared-frontend-api`**: Shared TypeScript clients and data models.
 - **`libs/shared-frontend-i18n`**: Shared i18n logic and validation.
+- **`libs/shared-geo`**: Shared geospatial and postcode enrichment utilities.
+- **`libs/shared-playwright`**: Shared Playwright fixtures and page objects for E2E tests.
 - **`libs/shared-trace`**: Shared domain logic for material traceability.
+- **`libs/shared-ui`**: Kerry design-system tokens, shell primitives, and reusable UI components.
 
 ## 🛠️ Tech Stack
 

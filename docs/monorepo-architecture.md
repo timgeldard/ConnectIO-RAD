@@ -1,6 +1,6 @@
 # Monorepo Architecture Overview
 
-This document provides a high-level overview of the `ConnectIO-RAD` monorepo architecture, technology stack, and component interactions.
+This document provides a high-level overview of the `ConnectIO-RAD` monorepo architecture, technology stack, and component interactions. In this repository name, **RAD** stands for **Reporting and Dashboarding**.
 
 ## 🏗️ High-Level Architecture
 

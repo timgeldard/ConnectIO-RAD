@@ -1,9 +1,9 @@
 # processorderhistory — Process Order History
 
 Databricks App: FastAPI backend + Vite/React/TypeScript frontend providing a
-plant-floor view of process order execution. Six domains cover order execution,
-manufacturing analytics (OEE, downtime, equipment, quality, yield, adherence),
-production planning, Genie Assist, and user preferences.
+plant-floor view of process order execution. Five bounded contexts cover order
+execution, manufacturing analytics (OEE, downtime, equipment, quality, yield,
+adherence), production planning, Genie Assist, and user preferences.
 
 ## 📚 Documentation
 
@@ -20,7 +20,7 @@ backend/
   manufacturing_analytics/            OEE, downtime, equipment insights, quality, yield, adherence
   production_planning/                planning board, vessel planning
   genie_assist/                       Genie natural-language query integration
-  prefs_store.py                      per-user preferences (plant, timezone)
+  user_preferences/                   per-user preferences and pinned-module storage
 frontend/
   src/App.tsx                         layout, sidebar, navigation
   src/pages/                          one directory per domain
