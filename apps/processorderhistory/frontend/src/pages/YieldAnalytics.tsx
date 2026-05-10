@@ -9,13 +9,15 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n/context'
-import { TopBar, Icon, Button, KPI } from '@connectio/shared-ui'
+import { TopBar, Icon, Button, type IconName } from '@connectio/shared-ui'
+import { KpiCardWidget, type WidgetConfig } from '@connectio/shared-reporting'
 import { fetchYieldAnalytics, type YieldData, type YieldOrder, type YieldDaySeries, type YieldHourSeries } from '../api/yield'
 import {
   AnalyticsFilterBar,
   AnalyticsCorrelationPanel,
   ContributorsPanel,
-  DeltaPill,
+  deltaPct,
+  mapTone,
   inBucket,
   useAnalyticsFilters,
   type BucketSelection,
@@ -494,6 +496,10 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
 // YieldAnalyticsPage — full page export
 // ---------------------------------------------------------------------------
 
+function makeKpiConfig(id: string, title: string): WidgetConfig {
+  return { id, type: 'kpi', title, layout: { colSpan: 1 }, props: {}, interactions: [] }
+}
+
 /**
  * Full-page yield analytics view.
  * Fetches yield data on mount and when date range changes.
@@ -596,40 +602,29 @@ export function YieldAnalyticsPage() {
       {!loading && (
         <div style={{ padding: '0 32px 48px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
-                <Icon name="alert-triangle" size={14} />
-                <span>Target yield</span>
-              </div>
-              <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{targetYield.toFixed(0)}%</div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>yield · quality threshold</div>
-            </div>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
-                <Icon name="beaker" size={14} />
-                <span>Average yield</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{avgYield != null ? avgYield.toFixed(1) + '%' : '—'}</div>
-                {filters.compare === 'prior7d' && <DeltaPill current={avgYield} prior={priorAvgYield} />}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>{validOrders.length} orders · selected period</div>
-            </div>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', borderLeft: `4px solid ${yieldTone === 'good' ? 'var(--status-ok)' : yieldTone === 'ok' ? 'var(--status-warn)' : 'var(--status-risk)'}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
-                <Icon name="trending-up" size={14} />
-                <span>Total loss</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{totalLossKg.toFixed(1)} kg</div>
-                {filters.compare === 'prior7d' && <DeltaPill current={totalLossKg} prior={priorLossKg} invert suffix="%" />}
-              </div>
-              {avgYield != null && (
-                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
-                  <span style={{ color: avgYield >= targetYield ? 'var(--status-ok)' : 'var(--status-warn)', fontWeight: 'var(--fw-bold)' }}>{avgYield.toFixed(1)}%</span> avg yield
-                </div>
-              )}
-            </div>
+            <KpiCardWidget
+              config={makeKpiConfig('yield-target', 'Target yield')}
+              props={{ value: `${targetYield.toFixed(0)}%`, icon: 'alert-triangle' as IconName, subtext: 'yield · quality threshold' }}
+            />
+            <KpiCardWidget
+              config={makeKpiConfig('yield-avg', 'Average yield')}
+              props={{
+                value: avgYield != null ? avgYield.toFixed(1) + '%' : '—',
+                icon: 'beaker' as IconName,
+                ...deltaPct(avgYield, priorAvgYield),
+                subtext: `${validOrders.length} orders · selected period`,
+              }}
+            />
+            <KpiCardWidget
+              config={makeKpiConfig('yield-loss', 'Total loss')}
+              props={{
+                value: `${totalLossKg.toFixed(1)} kg`,
+                icon: 'trending-up' as IconName,
+                tone: mapTone(yieldTone),
+                ...deltaPct(totalLossKg, priorLossKg),
+                subtext: avgYield != null ? `${avgYield.toFixed(1)}% avg yield` : undefined,
+              }}
+            />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>

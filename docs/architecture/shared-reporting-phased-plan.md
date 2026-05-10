@@ -22,7 +22,7 @@ Updated: 2026-05-10 (session 4).
   16 unit/integration tests pass. `defaultRegistry` maps all six type keys.
   `ReportingDashboard` now supports optional `minColumnWidth` layout field for
   `repeat(auto-fit, minmax(Npx, 1fr))` grids alongside fixed-column mode.
-- Phase 3: Complete. Two production app slices proven and test-backed:
+- Phase 3: Complete. Three production app slices proven and test-backed:
     1. SPC scorecard: KPIs render through `ReportPageShell`, `ReportingDashboard`,
        and shared `kpi` widget; filters hydrated from SPC context; MSW integration
        test proves full fetch-to-render path without live API.
@@ -360,47 +360,40 @@ Acceptance criteria:
 
 ## Immediate Next Step
 
-Phases 0-4 are complete. Phase 6 POH third-app proof is in progress (session 5).
+Updated: 2026-05-10 (session 6).
+
+Phases 0-4 complete. Phase 6 POH third-app proof complete (sessions 5–6).
+
+Recent completions (session 6):
+- Vitest environment fixed: `@rolldown/binding-win32-x64-msvc@1.0.0-rc.18`
+  installed; all test suites restored (2/2 POH, 49/49 W360, 16/16 shared-reporting).
+- `deltaPct(current, prior)` and `mapTone(t)` pure helpers exported from
+  `analyticsShared.tsx`; replace `DeltaPill` at all three analytics pages without
+  requiring a `deltaTone` prop addition to `KPI` / shared-ui.
+- `PourAnalyticsPage`, `YieldAnalyticsPage`, `QualityAnalyticsPage` KPI strips
+  all migrated to `KpiCardWidget`; `DeltaPill` removed from all three files.
+- 10/10 `AnalyticsKpiStrips.test.tsx` tests pass (5 unit, 5 render).
+- POH frontend typecheck clean.
 
 Recent completions (session 5):
 - `KpiCardWidget` extended with `icon?: IconName` prop (passes through to `KPI`).
-- POH `PourKpiCards` 3-card strip migrated to `KpiCardWidget`; uses `icon` and
-  `tone` props; hardcoded `borderLeft` replaced by `tone='ok'`.
-- `@connectio/shared-reporting` declared in
-  `apps/processorderhistory/frontend/package.json`.
-- 2 `PourKpiCards` rendering tests written; typechecks pass; vitest env broken
-  (`@rolldown/binding-win32-x64-msvc` optional dependency missing from root
-  node_modules — run `npm install` after clearing `node_modules` to fix).
-- Analytics-page strips (PourAnalytics, YieldAnalytics, QualityAnalytics)
-  deliberately excluded from migration: `DeltaPill` invert semantics and
-  colored-span subtext can't be faithfully represented in the flat widget API.
+- POH `PourKpiCards` 3-card strip migrated to `KpiCardWidget`.
+- `@connectio/shared-reporting` declared in POH `package.json`.
+- 2 `PourKpiCards` rendering tests written; typechecks pass.
 
 Recent completions (session 4):
 - Phase 4 backend audit: no new extraction warranted; `PlantScope` deferred.
-- SPC chart migration assessed and deliberately skipped: `SPCControlChartWidget`
-  is a dashboard-summary contract; the interactive control chart view has 9
-  chart types with disparate computation (EWMA per-point UCL/LCL incompatible
-  with the flat `SPCControlLimits` shape) — migrating would be a category error.
-- `ReportingDashboard` responsive layout: `minColumnWidth?: number` added to
-  `dashboardConfigSchema.layout`; when set, uses
-  `repeat(auto-fit, minmax(Npx, 1fr))` instead of fixed columns. Existing
-  callers are unaffected. Test added (16/16 shared-reporting tests pass).
-- ControlTower rendering test: 4 tests added to `ControlTower.test.tsx`
-  proving all 6 `KpiCardWidget` labels and live KPI values render correctly.
-  Pre-existing `FilterBar.chips.map` failures in `Operations.test.tsx` were
-  fixed by widening the `Filter` interface to accept `chips` or `options`.
+- SPC chart migration deliberately skipped: `SPCControlChartWidget` is a
+  dashboard-summary contract incompatible with the interactive control chart view.
+- `ReportingDashboard` responsive layout: `minColumnWidth?: number` added.
+- ControlTower: 4 `KpiCardWidget` rendering tests pass.
 
 Candidate next steps:
 
-1. **Fix vitest environment**: root `node_modules` missing optional
-   `@rolldown/binding-win32-x64-msvc` — all tests broken until `npm install` is
-   rerun after clearing `node_modules`. Unblocks verification of 2 POH tests.
-2. **Phase 5 generators**: widget and report-page generators, now that three app
-   migrations have confirmed stable `KpiCardWidget` shapes.
-3. **Storybook or visual regression**: 6 widgets stable across three apps — a
+1. **Phase 5 generators**: widget and report-page generators, now that three app
+   migrations (SPC, W360 ControlTower, POH) have confirmed stable `KpiCardWidget`
+   shapes.
+2. **Storybook or visual regression**: 6 widgets stable across three apps — a
    Storybook snapshot catalog would give visual regression coverage.
-4. **Extend `KpiCardWidget` for DeltaPill use cases**: add a `deltaTone` prop to
-   `KPI` in shared-ui (and thread through `KpiCardWidget`) to enable analytics-
-   page strips with directional color semantics. Prerequisite for full POH
-   analytics migration.
+3. **ConnectedQuality migration**: Phase 6 item 4 — CQ dashboard pages remain.
 

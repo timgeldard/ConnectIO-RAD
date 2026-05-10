@@ -19,7 +19,8 @@ import {
   AnalyticsFilterBar,
   AnalyticsCorrelationPanel,
   ContributorsPanel,
-  DeltaPill,
+  deltaPct,
+  mapTone,
   inBucket,
   useAnalyticsFilters,
   type BucketSelection,
@@ -687,39 +688,24 @@ export function PourAnalyticsPage() {
       {!loading && (
         <div style={{ padding: '0 32px 48px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
-                <Icon name="alert-triangle" size={14} />
-                <span>Target</span>
-              </div>
-              <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{target.toLocaleString()}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
-                {days === 1 ? `pours · ${DAILY_TARGET}/day` : `pours · ${DAILY_TARGET}/day × ${days} days`}
-              </div>
-            </div>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
-                <Icon name="calendar" size={14} />
-                <span>Planned</span>
-              </div>
-              <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{planned != null ? planned.toLocaleString() : '—'}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>scheduled goods-issues</div>
-            </div>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', borderLeft: `4px solid ${planVsActualPct && planVsActualPct >= 95 ? 'var(--status-ok)' : 'var(--status-warn)'}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
-                <Icon name="trending-up" size={14} />
-                <span>Actual</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{actual.toLocaleString()}</div>
-                {filters.compare === 'prior7d' && <DeltaPill current={actual} prior={priorActual} />}
-              </div>
-              {planVsActualPct != null && (
-                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
-                  <span style={{ color: planVsActualPct >= 95 ? 'var(--status-ok)' : 'var(--status-warn)', fontWeight: 'var(--fw-bold)' }}>{planVsActualPct}%</span> of plan
-                </div>
-              )}
-            </div>
+            <KpiCardWidget
+              config={makeKpiConfig('pour-page-target', 'Target')}
+              props={{ value: target.toLocaleString(), icon: 'alert-triangle' as IconName, subtext: days === 1 ? `pours · ${DAILY_TARGET}/day` : `pours · ${DAILY_TARGET}/day × ${days} days` }}
+            />
+            <KpiCardWidget
+              config={makeKpiConfig('pour-page-planned', 'Planned')}
+              props={{ value: planned != null ? planned.toLocaleString() : '—', icon: 'calendar' as IconName, subtext: 'scheduled goods-issues' }}
+            />
+            <KpiCardWidget
+              config={makeKpiConfig('pour-page-actual', 'Actual')}
+              props={{
+                value: actual.toLocaleString(),
+                icon: 'trending-up' as IconName,
+                tone: planVsActualPct != null && planVsActualPct >= 95 ? 'ok' : 'warn',
+                ...deltaPct(actual, priorActual),
+                subtext: planVsActualPct != null ? `${planVsActualPct}% of plan` : undefined,
+              }}
+            />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
