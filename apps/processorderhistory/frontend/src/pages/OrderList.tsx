@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useT } from '../i18n/context'
 import { KPI, Icon, TopBar, Button, GlobalFilterBar, FilterGroup, FilterDivider } from '@connectio/shared-ui'
 import { usePlantSelection } from '@connectio/shared-app-context'
+import { useQuery } from '@tanstack/react-query'
 import { fmt, StatusBadge, Check } from '../ui'
 import { STATUSES } from '../data/mock'
 import { fetchOrders } from '../api/orders'
@@ -23,6 +24,7 @@ function toISODate(d: Date): string {
 
 const _today = toISODate(new Date())
 const _sevenAgo = toISODate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+const PAGE_SIZE = 50
 
 interface OrderListProps {
   onOpen: (order: any) => void
@@ -41,28 +43,22 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [sortBy, setSortBy] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'start', dir: 'desc' })
   const [page, setPage] = useState(1)
-  const PAGE_SIZE = 14
 
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
-  const [fetchError, setFetchError] = useState<string | null>(null)
-  const [_poursToday, setPoursToday] = useState<number | null>(null)
+  const { data: ordersData, isLoading: loading, error: fetchError } = useQuery({
+    queryKey: ['poh', 'orders', selectedPlantId],
+    queryFn: () => fetchOrders({ plantId: selectedPlantId || undefined, limit: 2000 }),
+    staleTime: 30_000,
+  })
 
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    setFetchError(null)
-    fetchOrders({ plantId: selectedPlantId || undefined, limit: 2000 })
-      .then(res => { if (!cancelled) { setOrders(res.orders); setLoading(false) } })
-      .catch(err => { if (!cancelled) { setFetchError(String(err?.message ?? err)); setLoading(false) } })
-    return () => { cancelled = true }
-  }, [selectedPlantId])
+  const orders = ordersData?.orders ?? []
 
-  useEffect(() => {
-    fetchPoursAnalytics({ dateFrom: _today, dateTo: _today })
-      .then(data => setPoursToday(data.events.length))
-      .catch(() => {})
-  }, [])
+  const { data: poursData } = useQuery({
+    queryKey: ['poh', 'pours', 'today'],
+    queryFn: () => fetchPoursAnalytics({ dateFrom: _today, dateTo: _today }),
+    staleTime: 60_000,
+  })
+
+  const poursToday = poursData?.events.length ?? null
 
   const categories = useMemo(
     () => [...new Set(orders.map(o => o.product.category).filter(Boolean))].sort() as string[],
@@ -161,7 +157,7 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
         <TopBar breadcrumbs={[{ label: t.operations }, { label: t.crumbManufacturing }, { label: t.crumbOrders }]} />
         <div style={{ padding: '48px 32px', color: 'var(--status-risk)', display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="alert-triangle" />
-          <span>Failed to load orders: {fetchError}</span>
+          <span>Failed to load orders: {(fetchError as Error).message}</span>
         </div>
       </div>
     )

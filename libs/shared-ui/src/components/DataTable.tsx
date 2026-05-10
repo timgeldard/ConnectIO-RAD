@@ -1,4 +1,4 @@
-import { useState, type ReactNode, type CSSProperties } from 'react'
+import { memo, useState, type ReactNode, type CSSProperties } from 'react'
 
 export interface Column<T> {
   /** Column header content. */
@@ -47,6 +47,57 @@ interface DataTableProps<T> {
   /** When set, renders built-in page controls below the table. */
   pagination?: { pageSize: number }
 }
+
+/** Internal Row component to allow for React.memo optimization. */
+const DataTableRow = memo(function DataTableRow<T>({
+  row,
+  index,
+  columns,
+  rowPad,
+  emphasize,
+  onRowClick,
+}: {
+  row: T
+  index: number
+  columns: Column<T>[]
+  rowPad: string
+  emphasize?: (row: T, i: number) => boolean
+  onRowClick?: (row: T, i: number) => void
+}) {
+  const isEmph = emphasize && emphasize(row, index)
+  const baseBg = isEmph ? 'var(--surface-sunken)' : 'transparent'
+  
+  return (
+    <tr
+      data-testid="data-table-row"
+      onClick={onRowClick ? () => onRowClick(row, index) : undefined}
+      style={{ cursor: onRowClick ? 'pointer' : 'default', background: baseBg, transition: 'background 120ms ease' }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface-sunken)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = baseBg }}
+    >
+      {columns.map((c, j) => (
+        <td
+          key={j}
+          className={c.className}
+          style={{
+            textAlign: c.align || 'left',
+            padding: rowPad,
+            color: c.muted ? 'var(--text-3)' : 'var(--text-1)',
+            fontSize: c.mono ? 11.5 : 12.5,
+            fontFamily: c.mono ? 'var(--font-mono)' : 'inherit',
+            letterSpacing: c.mono ? '0.01em' : 'normal',
+            fontVariantNumeric: c.num ? 'tabular-nums' : 'normal',
+            borderBottom: '1px solid var(--line-1)',
+            whiteSpace: c.wrap ? 'normal' : 'nowrap',
+            ...c.style,
+          }}
+        >
+          {c.render ? c.render(row, index) : (c.key ? (row[c.key] as ReactNode) : null)}
+        </td>
+      ))}
+    </tr>
+  )
+})
 
 export function DataTable<T>({
   columns,
@@ -127,41 +178,17 @@ export function DataTable<T>({
               </td>
             </tr>
           )}
-          {!loading && visibleRows.map((r, i) => {
-            const isEmph = emphasize && emphasize(r, i)
-            const baseBg = isEmph ? 'var(--surface-sunken)' : 'transparent'
-            return (
-              <tr
-                key={rowKey(r, i)}
-                data-testid="data-table-row"
-                onClick={onRowClick ? () => onRowClick(r, i) : undefined}
-                style={{ cursor: onRowClick ? 'pointer' : 'default', background: baseBg, transition: 'background 120ms ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface-sunken)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = baseBg }}
-              >
-                {columns.map((c, j) => (
-                  <td
-                    key={j}
-                    className={c.className}
-                    style={{
-                      textAlign: c.align || 'left',
-                      padding: rowPad,
-                      color: c.muted ? 'var(--text-3)' : 'var(--text-1)',
-                      fontSize: c.mono ? 11.5 : 12.5,
-                      fontFamily: c.mono ? 'var(--font-mono)' : 'inherit',
-                      letterSpacing: c.mono ? '0.01em' : 'normal',
-                      fontVariantNumeric: c.num ? 'tabular-nums' : 'normal',
-                      borderBottom: '1px solid var(--line-1)',
-                      whiteSpace: c.wrap ? 'normal' : 'nowrap',
-                      ...c.style,
-                    }}
-                  >
-                    {c.render ? c.render(r, i) : (c.key ? (r[c.key] as ReactNode) : null)}
-                  </td>
-                ))}
-              </tr>
-            )
-          })}
+          {!loading && visibleRows.map((r, i) => (
+            <DataTableRow
+              key={rowKey(r, i)}
+              row={r}
+              index={i}
+              columns={columns}
+              rowPad={rowPad}
+              emphasize={emphasize}
+              onRowClick={onRowClick}
+            />
+          ))}
           {!loading && rows.length === 0 && (
             <tr>
               <td data-testid="data-table-empty" colSpan={columns.length} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-3)' }}>

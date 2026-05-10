@@ -1,6 +1,12 @@
 import importlib
-
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def bypass_rate_limiter(monkeypatch):
+    """Disable the rate limiter for all tests."""
+    from warehouse360_backend.utils.rate_limit import limiter
+    monkeypatch.setattr(limiter, "limit", lambda *args, **kwargs: lambda f: f)
 
 
 @pytest.fixture(autouse=True)

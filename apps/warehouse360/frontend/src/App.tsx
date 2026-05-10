@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { I18nProvider } from '@connectio/shared-frontend-i18n'
 import { PlatformShell } from '@connectio/shared-ui'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { W360_MODULES, W360_COMPOSITION } from '~/manifest'
 import { PlantProvider } from '~/context/PlantContext'
 import { PlantContextBar } from '~/components/PlantContextBar'
@@ -122,20 +123,33 @@ function WarehouseApp() {
 }
 
 /** Root component — provides i18n and plant context to the entire app. */
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: 5 * 60_000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    }
+  }
+})
+
 export default function App() {
   const loadResource = async (lang: string) => {
     return (await import(`./i18n/locales/${lang}.json`)).default
   }
 
   return (
-    <I18nProvider
-      appName="warehouse360"
-      resources={{ en: enResources }}
-      loadResource={loadResource}
-    >
-      <PlantProvider>
-        <WarehouseApp />
-      </PlantProvider>
-    </I18nProvider>
+    <QueryClientProvider client={queryClient}>
+      <I18nProvider
+        appName="warehouse360"
+        resources={{ en: enResources }}
+        loadResource={loadResource}
+      >
+        <PlantProvider>
+          <WarehouseApp />
+        </PlantProvider>
+      </I18nProvider>
+    </QueryClientProvider>
   )
 }
