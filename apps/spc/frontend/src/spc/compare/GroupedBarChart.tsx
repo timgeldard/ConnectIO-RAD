@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { ChartContainer } from '@connectio/shared-reporting'
 import EChart from '../charts/EChart'
 import type { CompareScorecardMaterial, EventParamLike } from '../types'
 
@@ -94,19 +95,35 @@ export default function GroupedBarChart({ materials, commonMics }: GroupedBarCha
     }
   }, [materials, commonMics])
 
-  if (!option) return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '180px',
-      border: '1px dashed var(--line-2)',
-      borderRadius: 8,
-      color: 'var(--text-3)',
-    }}>
-      <p style={{ margin: 0 }}>No common characteristics to compare.</p>
-    </div>
-  )
+  if (!option) {
+    return (
+      <ChartContainer
+        title="Capability comparison"
+        description="Ppk by common characteristic across selected materials."
+        height={220}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '180px',
+          border: '1px dashed var(--line-2)',
+          borderRadius: 8,
+          color: 'var(--text-3)',
+        }}>
+          <p style={{ margin: 0 }}>No common characteristics to compare.</p>
+        </div>
+      </ChartContainer>
+    )
+  }
 
-  return <EChart option={option} style={{ height: 380, width: '100%' }} theme="spc" notMerge ariaLabel="Grouped comparison bar chart — capability across materials" />
+  return (
+    <ChartContainer
+      title="Capability comparison"
+      description="Ppk by common characteristic across selected materials."
+      height={380}
+    >
+      <EChart option={option} style={{ height: 380, width: '100%' }} theme="spc" notMerge ariaLabel="Grouped comparison bar chart — capability across materials" />
+    </ChartContainer>
+  )
 }

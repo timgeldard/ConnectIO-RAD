@@ -1,11 +1,21 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
+import { Suspense, lazy } from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
+import {
+  CodexDashboard,
+  DashboardFilterProvider,
+  ReportPageShell,
+  createDefaultReportingRegistry,
+  useDashboardFilters,
+  type DashboardConfig,
+  type DashboardFilters,
+  type FilterConfig,
+} from '@connectio/shared-reporting'
 import '../charts/ensureEChartsTheme'
-import { shallowEqual, useSPCDispatch, useSPCSelector } from '../SPCContext'
+import { shallowEqual, useSPCSelector } from '../SPCContext'
 import { useSPCScorecard } from '../hooks/useSPCScorecard'
-import KPICard from '../overview/KPICard'
 
 const ScorecardTable = lazy(() => import('./ScorecardTable'))
+const scorecardRegistry = createDefaultReportingRegistry()
 
 function ScorecardSkeleton() {
   return (
@@ -27,8 +37,23 @@ function ScorecardSkeleton() {
   )
 }
 
+function ScorecardFilterSummary({ labels }: { labels: Record<string, string> }) {
+  const { filters } = useDashboardFilters()
+  const timeRange = filters.timeRange
+  const timeLabel = typeof timeRange === 'object' && timeRange != null && !Array.isArray(timeRange)
+    ? `${timeRange.from ?? '...'} to ${timeRange.to ?? '...'}`
+    : labels.timeRange
+
+  return (
+    <div aria-label="Scorecard scope" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      <span className="chip">Material: {labels.material}</span>
+      <span className="chip">Plant: {labels.plant}</span>
+      <span className="chip">Date: {timeLabel}</span>
+    </div>
+  )
+}
+
 export default function ScorecardView() {
-  const dispatch = useSPCDispatch()
   const { t } = useI18n()
   const state = useSPCSelector(
     current => ({
@@ -103,47 +128,106 @@ export default function ScorecardView() {
   const withSignals = scorecard.filter(r => (r.ooc_rate ?? 0) > 0).length
 
   const materialLabel = state.selectedMaterial.material_name ?? state.selectedMaterial.material_id
+  const plantLabel = state.selectedPlant?.plant_name ?? state.selectedPlant?.plant_id ?? 'All plants'
+  const reportingFilters: FilterConfig[] = [
+    {
+      id: 'material',
+      label: 'Material',
+      kind: 'material',
+      defaultValue: state.selectedMaterial.material_id,
+    },
+    {
+      id: 'plant',
+      label: 'Plant',
+      kind: 'plant',
+      defaultValue: state.selectedPlant?.plant_id ?? null,
+    },
+    {
+      id: 'timeRange',
+      label: 'Date',
+      kind: 'timeRange',
+      defaultValue: { from: state.dateFrom, to: state.dateTo },
+    },
+  ]
+  const reportingFilterValues: DashboardFilters = {
+    material: state.selectedMaterial.material_id,
+    plant: state.selectedPlant?.plant_id ?? null,
+    timeRange: { from: state.dateFrom, to: state.dateTo },
+  }
+  const reportingFilterKey = `${reportingFilterValues.material}:${reportingFilterValues.plant ?? 'all'}:${state.dateFrom}:${state.dateTo}`
+  const dashboardConfig: DashboardConfig = {
+    id: 'spc-scorecard-summary',
+    title: t('spc.scorecard.eyebrow'),
+    filters: reportingFilters,
+    layout: { columns: 12, gap: 14 },
+    widgets: [
+      {
+        id: 'characteristics',
+        type: 'kpi',
+        title: t('spc.scorecard.kpi.characteristics'),
+        props: {
+          value: scorecard.length,
+          unit: t('spc.scorecard.kpi.characteristics.unit'),
+          tone: 'neutral',
+          delta: t('spc.scorecard.kpi.characteristics.delta'),
+        },
+        interactions: [],
+        layout: { colSpan: 3 },
+      },
+      {
+        id: 'capable',
+        type: 'kpi',
+        title: t('spc.scorecard.kpi.capable'),
+        props: {
+          value: capable,
+          unit: t('spc.scorecard.kpi.capable.unit', { total: scorecard.length }),
+          tone: 'ok',
+          delta: t('spc.scorecard.kpi.capable.delta'),
+        },
+        interactions: [],
+        layout: { colSpan: 3 },
+      },
+      {
+        id: 'marginal',
+        type: 'kpi',
+        title: t('spc.scorecard.kpi.marginal'),
+        props: {
+          value: marginal,
+          tone: 'warn',
+          delta: t('spc.scorecard.kpi.marginal.delta'),
+        },
+        interactions: [],
+        layout: { colSpan: 3 },
+      },
+      {
+        id: 'signals-open',
+        type: 'kpi',
+        title: t('spc.scorecard.kpi.signalsOpen'),
+        props: {
+          value: withSignals,
+          tone: withSignals > 0 ? 'risk' : 'ok',
+          delta: withSignals > 0 ? t('spc.scorecard.kpi.signalsOpen.delta.ooc') : t('spc.scorecard.kpi.signalsOpen.delta.clear'),
+        },
+        interactions: [],
+        layout: { colSpan: 3 },
+      },
+    ],
+  }
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }} className="fade-in">
-      {/* KPI row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-        <KPICard
-          label={t('spc.scorecard.kpi.characteristics')}
-          value={scorecard.length}
-          unit={t('spc.scorecard.kpi.characteristics.unit')}
-          tone="neutral"
-          icon="beaker"
-          delta={t('spc.scorecard.kpi.characteristics.delta')}
-        />
-        <KPICard
-          label={t('spc.scorecard.kpi.capable')}
-          value={capable}
-          unit={t('spc.scorecard.kpi.capable.unit', { total: scorecard.length })}
-          tone="ok"
-          icon="check-circle"
-          delta={t('spc.scorecard.kpi.capable.delta')}
-        />
-        <KPICard
-          label={t('spc.scorecard.kpi.marginal')}
-          value={marginal}
-          tone="warn"
-          icon="alert-triangle"
-          delta={t('spc.scorecard.kpi.marginal.delta')}
-        />
-        <KPICard
-          label={t('spc.scorecard.kpi.signalsOpen')}
-          value={withSignals}
-          tone={withSignals > 0 ? 'risk' : 'ok'}
-          icon="flag"
-          delta={withSignals > 0 ? t('spc.scorecard.kpi.signalsOpen.delta.ooc') : t('spc.scorecard.kpi.signalsOpen.delta.clear')}
-        />
-      </div>
-
-      {/* Scorecard table */}
-      <Suspense fallback={<ScorecardSkeleton />}>
-        <ScorecardTable rows={scorecard} material={materialLabel} />
-      </Suspense>
+      <DashboardFilterProvider key={reportingFilterKey} filters={reportingFilters} initialValues={reportingFilterValues}>
+        <ReportPageShell
+          title={t('spc.scorecard.eyebrow')}
+          description={materialLabel}
+          filters={<ScorecardFilterSummary labels={{ material: materialLabel, plant: plantLabel, timeRange: `${state.dateFrom} to ${state.dateTo}` }} />}
+        >
+          <CodexDashboard config={dashboardConfig} registry={scorecardRegistry} />
+          <Suspense fallback={<ScorecardSkeleton />}>
+            <ScorecardTable rows={scorecard} material={materialLabel} />
+          </Suspense>
+        </ReportPageShell>
+      </DashboardFilterProvider>
     </div>
   )
 }

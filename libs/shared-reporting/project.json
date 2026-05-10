@@ -1,0 +1,28 @@
+{
+  "name": "shared-reporting",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/shared-reporting/src",
+  "root": "libs/shared-reporting",
+  "tags": ["scope:shared", "type:frontend"],
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p tsconfig.json",
+        "cwd": "libs/shared-reporting"
+      },
+      "inputs": ["tsFiles", "sharedGlobals"],
+      "cache": true
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run",
+        "cwd": "libs/shared-reporting"
+      },
+      "inputs": ["tsFiles", "sharedGlobals"],
+      "cache": true
+    }
+  }
+}

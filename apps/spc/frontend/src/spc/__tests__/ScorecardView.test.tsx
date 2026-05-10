@@ -29,14 +29,17 @@ vi.mock('../hooks/useSPCScorecard', () => ({
   }))
 }))
 
-vi.mock('../overview/KPICard', () => ({ default: ({ label, value }: any) => <div data-testid="mock-kpi">{label}: {value}</div> }))
 vi.mock('../scorecard/ScorecardTable', () => ({ default: () => <div data-testid="mock-table" /> }))
 
 describe('ScorecardView', () => {
   it('renders KPIs and table when data is ready', async () => {
     renderWithI18n(<ScorecardView />)
-    expect(screen.getByText('Characteristics: 2')).toBeInTheDocument()
-    expect(screen.getByText('Capable: 1')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Scorecard' })).toBeInTheDocument()
+    expect(screen.getByText('Mat 1')).toBeInTheDocument()
+    expect(screen.getByText('Characteristics')).toBeInTheDocument()
+    expect(screen.getByText('Capable')).toBeInTheDocument()
+    expect(screen.getByText('Marginal')).toBeInTheDocument()
+    expect(screen.getByText('Signals open')).toBeInTheDocument()
     expect(await screen.findByTestId('mock-table')).toBeInTheDocument()
   })
 })
