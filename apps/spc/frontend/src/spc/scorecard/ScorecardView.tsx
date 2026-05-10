@@ -37,7 +37,14 @@ function ScorecardSkeleton() {
   )
 }
 
-function ScorecardFilterSummary({ labels }: { labels: Record<string, string> }) {
+interface ScorecardFilterLabels {
+  material: string
+  plant: string
+  timeRange: string
+}
+
+function ScorecardFilterSummary({ labels }: { labels: ScorecardFilterLabels }) {
+  const { t } = useI18n()
   const { filters } = useDashboardFilters()
   const timeRange = filters.timeRange
   const timeLabel = typeof timeRange === 'object' && timeRange != null && !Array.isArray(timeRange)
@@ -46,9 +53,9 @@ function ScorecardFilterSummary({ labels }: { labels: Record<string, string> }) 
 
   return (
     <div aria-label="Scorecard scope" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-      <span className="chip">Material: {labels.material}</span>
-      <span className="chip">Plant: {labels.plant}</span>
-      <span className="chip">Date: {timeLabel}</span>
+      <span className="chip">{t('spc.scorecard.filter.material')}: {labels.material}</span>
+      <span className="chip">{t('spc.scorecard.filter.plant')}: {labels.plant}</span>
+      <span className="chip">{t('spc.scorecard.filter.date')}: {timeLabel}</span>
     </div>
   )
 }
@@ -132,19 +139,19 @@ export default function ScorecardView() {
   const reportingFilters: FilterConfig[] = [
     {
       id: 'material',
-      label: 'Material',
+      label: t('spc.scorecard.filter.material'),
       kind: 'material',
       defaultValue: state.selectedMaterial.material_id,
     },
     {
       id: 'plant',
-      label: 'Plant',
+      label: t('spc.scorecard.filter.plant'),
       kind: 'plant',
       defaultValue: state.selectedPlant?.plant_id ?? null,
     },
     {
       id: 'timeRange',
-      label: 'Date',
+      label: t('spc.scorecard.filter.date'),
       kind: 'timeRange',
       defaultValue: { from: state.dateFrom, to: state.dateTo },
     },

@@ -10,7 +10,7 @@ import {
   VisualMapComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import { REPORTING_ECHARTS_THEME } from './echartsTheme'
+import { buildReportingEChartsTheme } from './echartsTheme'
 
 echarts.use([
   BarChart,
@@ -29,13 +29,16 @@ echarts.use([
 
 let registered = false
 
+/**
+ * Registers the Connectio reporting ECharts theme once.
+ * Call explicitly from each app's chart initialisation module rather than
+ * relying on module-level side effects.
+ */
 export function ensureReportingEChartsTheme(themeName = 'connectio-reporting'): void {
   if (!registered) {
-    echarts.registerTheme(themeName, REPORTING_ECHARTS_THEME)
+    echarts.registerTheme(themeName, buildReportingEChartsTheme())
     registered = true
   }
 }
-
-ensureReportingEChartsTheme()
 
 export { echarts }

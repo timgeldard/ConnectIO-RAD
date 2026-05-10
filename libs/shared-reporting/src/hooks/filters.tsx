@@ -12,8 +12,8 @@ const DashboardFilterContext = createContext<DashboardFilterContextValue | null>
 function filtersFromConfig(configs: FilterConfig[]): DashboardFilters {
   return Object.fromEntries(
     configs
-      .filter((filter) => filter.defaultValue !== undefined)
-      .map((filter) => [filter.id, filter.defaultValue ?? null])
+      .filter((filter): filter is FilterConfig & { defaultValue: FilterValue } => filter.defaultValue !== undefined)
+      .map((filter) => [filter.id, filter.defaultValue])
   )
 }
 

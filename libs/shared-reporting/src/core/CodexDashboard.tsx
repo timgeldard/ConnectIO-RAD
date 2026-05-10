@@ -3,12 +3,24 @@ import { dashboardConfigSchema } from '../schema/config'
 import type { DashboardConfig } from './types'
 import type { WidgetRegistry } from './registry'
 
+/**
+ * Props for the CodexDashboard layout component.
+ * @property config - Declarative dashboard configuration (layout, widgets, filters).
+ * @property registry - Widget registry mapping type keys to renderable components.
+ * @property data - Per-widget data payload keyed by widget id.
+ */
 export interface CodexDashboardProps {
   config: DashboardConfig
   registry: WidgetRegistry
   data?: Record<string, unknown>
 }
 
+/**
+ * Renders a responsive CSS grid dashboard from a declarative config, resolving
+ * each widget type against the provided registry.
+ * @returns A grid section with one article per widget; unknown types render a
+ *          live-region fallback rather than throwing.
+ */
 export function CodexDashboard({ config, registry, data = {} }: CodexDashboardProps) {
   const dashboard = dashboardConfigSchema.parse(config)
   const columns = dashboard.layout.columns

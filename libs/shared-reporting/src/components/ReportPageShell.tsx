@@ -1,5 +1,24 @@
 import type { ReactNode } from 'react'
 
+/** Translated overrides for the built-in state messages. */
+export interface ReportPageShellMessages {
+  loading?: string
+  empty?: string
+  error?: string
+  permission?: string
+}
+
+/**
+ * Props for ReportPageShell.
+ * @property title - Report heading.
+ * @property description - Optional subtitle rendered beneath the heading.
+ * @property filters - Filter summary bar rendered in the header.
+ * @property actions - Action controls rendered top-right.
+ * @property state - Current render state; defaults to 'ready'.
+ * @property stateMessage - Explicit state message; overrides both messages and defaults.
+ * @property messages - Translated overrides for built-in state strings.
+ * @property children - Report body rendered when state is 'ready'.
+ */
 export interface ReportPageShellProps {
   title: string
   description?: string
@@ -7,6 +26,7 @@ export interface ReportPageShellProps {
   actions?: ReactNode
   state?: 'ready' | 'loading' | 'empty' | 'error' | 'permission'
   stateMessage?: string
+  messages?: ReportPageShellMessages
   children: ReactNode
 }
 
@@ -18,6 +38,13 @@ const DEFAULT_MESSAGES: Record<NonNullable<ReportPageShellProps['state']>, strin
   permission: 'You do not have permission to view this report.',
 }
 
+/**
+ * Shared page shell for report views: renders a header with title, description,
+ * filters, and actions, then either the children (ready state) or a localised
+ * status message for loading / empty / error / permission states.
+ * @returns A grid-layout div with an accessible alert or status region for
+ *          non-ready states.
+ */
 export function ReportPageShell({
   title,
   description,
@@ -25,9 +52,10 @@ export function ReportPageShell({
   actions,
   state = 'ready',
   stateMessage,
+  messages,
   children,
 }: ReportPageShellProps) {
-  const message = stateMessage ?? DEFAULT_MESSAGES[state]
+  const message = stateMessage ?? messages?.[state as keyof ReportPageShellMessages] ?? DEFAULT_MESSAGES[state]
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>

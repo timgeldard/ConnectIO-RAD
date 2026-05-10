@@ -20,6 +20,7 @@ export function useCodexQuery<TData>(
 ): CodexQueryState<TData> {
   const query = useQuery(options)
   const data = query.data
+  // Arrays are empty when length is 0; scalar responses are empty when null/undefined.
   const isEmpty = Array.isArray(data) ? data.length === 0 : data == null
 
   return {

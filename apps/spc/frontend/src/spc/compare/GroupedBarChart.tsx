@@ -95,13 +95,15 @@ export default function GroupedBarChart({ materials, commonMics }: GroupedBarCha
     }
   }, [materials, commonMics])
 
-  if (!option) {
-    return (
-      <ChartContainer
-        title="Capability comparison"
-        description="Ppk by common characteristic across selected materials."
-        height={220}
-      >
+  return (
+    <ChartContainer
+      title="Capability comparison"
+      description="Ppk by common characteristic across selected materials."
+      height={option ? 380 : 220}
+    >
+      {option ? (
+        <EChart option={option} style={{ height: 380, width: '100%' }} theme="spc" notMerge ariaLabel="Grouped comparison bar chart — capability across materials" />
+      ) : (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -113,17 +115,7 @@ export default function GroupedBarChart({ materials, commonMics }: GroupedBarCha
         }}>
           <p style={{ margin: 0 }}>No common characteristics to compare.</p>
         </div>
-      </ChartContainer>
-    )
-  }
-
-  return (
-    <ChartContainer
-      title="Capability comparison"
-      description="Ppk by common characteristic across selected materials."
-      height={380}
-    >
-      <EChart option={option} style={{ height: 380, width: '100%' }} theme="spc" notMerge ariaLabel="Grouped comparison bar chart — capability across materials" />
+      )}
     </ChartContainer>
   )
 }
