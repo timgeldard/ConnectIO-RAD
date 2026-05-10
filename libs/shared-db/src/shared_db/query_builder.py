@@ -25,8 +25,6 @@ def _is_safe_identifier(identifier: str, *, allow_qualified: bool = True) -> boo
     if not allow_qualified and "." in identifier:
         return False
     parts = identifier.split(".")
-    if not allow_qualified and len(parts) != 1:
-        return False
     for part in parts:
         if not part:
             return False
