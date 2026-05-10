@@ -1,6 +1,6 @@
 # Monorepo Development Guide
 
-This guide covers the local development setup, toolchain, and common workflows for the `ConnectIO-RAD` monorepo.
+This guide covers the local development setup, toolchain, and common workflows for the `ConnectIO-RAD` monorepo. In this context, **RAD** means **Reporting and Dashboarding**.
 
 ## 🛠️ Prerequisites
 

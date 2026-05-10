@@ -6,38 +6,39 @@ Core backend infrastructure for ConnectIO-RAD FastAPI applications.
 
 ### 🚀 Standardized App Lifecycle
 - **Unified App Factory**: Initialize apps via `create_api_app` with pre-configured security, middleware, and exception handling.
+- **Framework Wrapper**: Use `ConnectIoApp` to register standard probes, debug endpoints, and SPA mounting consistently across apps.
 - **SPA Routing**: Easy registration of frontend static assets via `register_spa_routes`.
 - **Health & Readiness**: Standardized endpoints and Databricks SQL connectivity probes.
 
 ### 🛡️ Security & Middleware
 - **Same-Origin Enforcement**: `SameOriginMiddleware` rejection of cross-origin mutations.
-- **Token Resolution**: `require_token` dependency for consistent Databricks/OIDC token extraction.
+- **Token Dependencies**: `require_token` and `require_user` integration points for consistent Databricks/OIDC request auth.
 - **In-process Rate Limiting**: `RateLimitMiddleware` with configurable per-route limits.
+- **Request Context**: `RequestContextMiddleware` standardizes `request_id` and trusted forwarded user metadata.
 - **Latency Monitoring**: `LatencyMiddleware` with configurable budgets and operational alert callbacks.
 
-### 📊 Database & Caching
-- **Cached Query Decorator**: `@cached_query` (Planned/In-progress) scaffold for future integration with `shared-db` tiered caching.
-- **SQLAlchemy Support**: (Planned) Standard session management dependencies.
-
 ### 👁️ Observability
-- **Standardized Error Responses**: Global exception mapping for both `HTTPException` and custom `DomainError` types.
-- **Contextual Logging**: `RequestContextMiddleware` for injecting `request_id` and `user_email` into request state.
+- **Standardized Error Responses**: `safe_global_exception_response` maps `HTTPException` and custom `DomainError` types to stable JSON shapes.
+- **Operational Hooks**: Readiness probes and latency callbacks can surface correlation IDs and alerts without exposing internal errors to clients.
 
 ## Usage
 
 ```python
-from shared_api import create_api_app, register_spa_routes
+from pathlib import Path
+
+from shared_api import ConnectIoApp
 from shared_db.errors import send_operational_alert
 
-app = create_api_app(
-    title="My Industrial App",
+rad_app = ConnectIoApp(
+    title="My Industrial App API",
+    static_dir=Path("frontend/dist"),
     latency_budgets_ms={"/api/heavy-endpoint": 5000},
     latency_alert_callback=lambda path, dur, bud, status: send_operational_alert(...)
 )
 
-# Include your routers...
-# app.include_router(my_router)
+# Include your routers before serving the SPA.
+# rad_app.include_router(my_router, prefix="/api")
+# rad_app.mount_spa()
 
-# Serve the frontend
-register_spa_routes(app, static_dir_getter=lambda: Path("frontend/dist"))
+app = rad_app.fastapi_app
 ```
