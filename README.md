@@ -10,6 +10,7 @@ Comprehensive documentation is available in the `/docs` directory:
 - [**Monorepo Architecture**](./docs/monorepo-architecture.md): Overview of the system design, shared libraries, and component interactions.
 - [**Development Guide**](./docs/monorepo-development.md): Local setup, toolchain details, and common developer workflows.
 - [**Deployment Guide**](./docs/monorepo-deployment.md): CI/CD pipelines and Databricks deployment strategies.
+- [**Shared Reporting Plan**](./docs/architecture/shared-reporting-phased-plan.md): Phased rollout plan for reusable reporting primitives, widgets, and dashboard migration.
 
 ### 🔌 Interactive API Docs (Swagger)
 
