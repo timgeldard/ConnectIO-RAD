@@ -20,7 +20,8 @@ import {
 } from 'react'
 import { useT } from './i18n/context'
 import { STRINGS } from './i18n/context'
-import { KPI, Icon, TopBar as SharedTopBar, Button, StatusPill, DataTable, LanguageSelector } from '@connectio/shared-ui'
+import { KPI, Icon, TopBar as SharedTopBar, Button, StatusPill, DataTable } from '@connectio/shared-ui'
+import { LanguageSelector } from '@connectio/shared-frontend-i18n'
 
 export { KPI, Icon, Button, DataTable }
 
