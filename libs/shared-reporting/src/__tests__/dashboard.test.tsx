@@ -68,4 +68,21 @@ describe('shared-reporting dashboard skeleton', () => {
       'repeat(auto-fit, minmax(200px, 1fr))',
     )
   })
+
+  it('does not apply gridColumn span on widget articles in auto-fit mode', () => {
+    const config = dashboardConfigSchema.parse({
+      id: 'responsive',
+      title: 'Responsive dashboard',
+      layout: { minColumnWidth: 200 },
+      widgets: [{ id: 'w1', type: 'kpi', title: 'KPI', props: { value: 1 }, layout: { colSpan: 3 } }],
+    })
+
+    const { container } = render(
+      <ReportingDashboard config={config} registry={createDefaultReportingRegistry()} />,
+    )
+
+    const article = container.querySelector('article')
+    // gridColumn must not be set: applying span N in auto-fit creates phantom implicit columns
+    expect((article as HTMLElement).style.gridColumn).toBe('')
+  })
 })

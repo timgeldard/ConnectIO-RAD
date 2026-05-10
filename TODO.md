@@ -33,15 +33,11 @@
 - [x] **`app.yaml` files** — Review before pushing to a public remote.
 - [x] **shared-auth** — Robust JWT extraction and UserIdentity model implemented.
 - [x] **Full SPC suite pass** — Full suite run via current repo-standard command path.
-- [ ] **`shared_db` EXTERNAL_LINKS disposition support** — the Databricks SQL Statement
-  API has a 25 MB cap on inline results. Today's IMWM smoke test surfaced this for
-  un-scoped `/api/wh/imwm/stock`. Mitigated for now with `LIMIT 2000` on each W360
-  DAL function (matches existing convention in `fetch_bin_stock` etc.), but a real
-  fix would teach `shared_db.executors._RestStatementExecutor` to (a) request
-  `disposition=EXTERNAL_LINKS` for queries the caller marks as potentially-large,
-  (b) follow the returned cloud-storage URLs to download chunks, (c) stream rather
-  than buffer if the result is genuinely large. Affects all apps; warrants its own
-  session.
+- [x] **`shared_db` EXTERNAL_LINKS disposition support** — implemented in `libs/shared-db`:
+  `_RestStatementExecutor.execute(large_result=True)` sets `disposition=EXTERNAL_LINKS`,
+  follows pre-signed URLs without auth headers, and handles multi-chunk results.
+  Exposed as `run_sql_large` / `run_sql_large_async` (no-cache). Streaming is not
+  implemented; callers still buffer the full result set in memory.
 
 - [ ] **M6 — `databricks.yml` workspace permissions** — every deploy emits a warning
   that `/Workspace/Shared/.bundle/platform/{uat,prod}` is writable by all workspace

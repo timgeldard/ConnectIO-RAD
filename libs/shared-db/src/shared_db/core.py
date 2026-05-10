@@ -193,3 +193,69 @@ async def run_sql_async(
             _sql_cache[cache_key] = rows
 
     return rows
+
+
+def run_sql_large(
+    token: str,
+    statement: str,
+    params: Optional[list[dict]] = None,
+    *,
+    endpoint_hint: Optional[str] = None,
+) -> list[dict]:
+    """
+    Execute a SQL statement synchronously using EXTERNAL_LINKS disposition.
+
+    Stores results in cloud storage (pre-signed URLs) rather than inline,
+    bypassing the 25 MB inline result cap. Results are never cached.
+
+    Args:
+        token: Databricks access token.
+        statement: The SQL query to execute.
+        params: Optional list of parameter dicts for the query.
+        endpoint_hint: Optional logic name of the calling endpoint for logging.
+
+    Returns:
+        List of dictionaries representing the query result rows.
+    """
+    from .executors import _REST_EXECUTOR
+    if endpoint_hint:
+        logger.info("sql.execute_large hint=%s", endpoint_hint)
+
+    app_name = os.environ.get("APP_NAME", "unknown")
+    tagged_statement = f"/* App={app_name}, Module={endpoint_hint or 'unknown'} */\n{statement}"
+    return _REST_EXECUTOR.execute(token, tagged_statement, params, large_result=True)
+
+
+async def run_sql_large_async(
+    token: str,
+    statement: str,
+    params: Optional[list[dict]] = None,
+    *,
+    endpoint_hint: Optional[str] = None,
+) -> list[dict]:
+    """
+    Execute a SQL statement asynchronously using EXTERNAL_LINKS disposition.
+
+    Stores results in cloud storage (pre-signed URLs) rather than inline,
+    bypassing the 25 MB inline result cap. Results are never cached.
+
+    Args:
+        token: Databricks access token.
+        statement: The SQL query to execute.
+        params: Optional list of parameter dicts for the query.
+        endpoint_hint: Optional logic name of the calling endpoint for logging.
+
+    Returns:
+        List of dictionaries representing the query result rows.
+    """
+    from .executors import _sql_executor, _REST_EXECUTOR
+    if endpoint_hint:
+        logger.info("sql.execute_large_async hint=%s", endpoint_hint)
+
+    app_name = os.environ.get("APP_NAME", "unknown")
+    tagged_statement = f"/* App={app_name}, Module={endpoint_hint or 'unknown'} */\n{statement}"
+
+    return await asyncio.get_running_loop().run_in_executor(
+        _sql_executor,
+        lambda: _REST_EXECUTOR.execute(token, tagged_statement, params, large_result=True),
+    )
