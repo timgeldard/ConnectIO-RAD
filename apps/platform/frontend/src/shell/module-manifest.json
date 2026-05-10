@@ -1,0 +1,51 @@
+{
+  "modules": [
+    {
+      "moduleId": "template",
+      "displayName": "Template Module",
+      "shortName": "TEMPLATE",
+      "tagline": "Template Module demo module",
+      "domain": "demo",
+      "iconSet": "shared-ui",
+      "icon": "chart",
+      "color": "#289BA2",
+      "sidebarGroup": "quality",
+      "sidebarOrder": 90,
+      "defaultTab": "overview",
+      "tabs": [
+        {
+          "id": "overview",
+          "label": "Overview",
+          "num": "01"
+        }
+      ],
+      "landingCard": {
+        "tag": "Template Module · demo-ready",
+        "desc": "Generated bounded context shell. Ready for demo data first, then Databricks SQL wiring.",
+        "stats": [
+          {
+            "value": "3",
+            "label": "Demo signals"
+          },
+          {
+            "value": "98.5%",
+            "label": "Coverage",
+            "tone": "good"
+          },
+          {
+            "value": "1",
+            "label": "Open actions",
+            "tone": "warn"
+          }
+        ]
+      },
+      "contextBarSlot": false,
+      "routeBase": "/template/",
+      "i18nNamespace": "template",
+      "isUserSelectable": true,
+      "isPinnedByDefault": false,
+      "isMandatory": false,
+      "backendPrefix": "/api/module-template"
+    }
+  ]
+}

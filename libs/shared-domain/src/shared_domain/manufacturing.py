@@ -4,8 +4,9 @@ Common Value Objects for Manufacturing and Supply Chain domains.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Optional
 
 from .models import ValueObject
 from .exceptions import BusinessRuleValidationException
@@ -23,6 +24,24 @@ class PlantId(str):
         if len(stripped) > 10:
             raise BusinessRuleValidationException("PlantId exceeds maximum length of 10 characters")
         return super().__new__(cls, stripped)
+
+
+class MaterialId(str):
+    """Value object for material identifiers."""
+
+    def __new__(cls, value: str):
+        if not value or not value.strip():
+            raise BusinessRuleValidationException("MaterialId cannot be blank")
+        return super().__new__(cls, value.strip().upper())
+
+
+class BatchId(str):
+    """Value object for batch or lot identifiers."""
+
+    def __new__(cls, value: str):
+        if not value or not value.strip():
+            raise BusinessRuleValidationException("BatchId cannot be blank")
+        return super().__new__(cls, value.strip().upper())
 
 
 @dataclass(frozen=True)
@@ -52,6 +71,72 @@ class Quantity(ValueObject):
                 f"Cannot add quantities with different units: {self.uom} and {other.uom}"
             )
         return Quantity(self.value + other.value, self.uom)
+
+
+@dataclass(frozen=True)
+class Measurement(ValueObject):
+    """Observed measurement for a material, batch, or process characteristic."""
+
+    value: Decimal
+    unit: str
+    measured_at: datetime
+
+    def __post_init__(self) -> None:
+        """Validate measurement invariants."""
+        if not self.unit.strip():
+            raise BusinessRuleValidationException("Measurement unit is required")
+
+    @classmethod
+    def now(cls, value: float | Decimal, unit: str) -> Measurement:
+        """Create a measurement timestamped with current UTC time."""
+        return cls(value=Decimal(str(value)), unit=unit, measured_at=datetime.now(timezone.utc))
+
+
+@dataclass(frozen=True)
+class Specification(ValueObject):
+    """Inclusive lower/upper specification limits for a measurement."""
+
+    lower: Decimal | None = None
+    upper: Decimal | None = None
+    unit: str = ""
+
+    def __post_init__(self) -> None:
+        """Validate specification limit ordering."""
+        if self.lower is None and self.upper is None:
+            raise BusinessRuleValidationException("Specification requires at least one limit")
+        if self.lower is not None and self.upper is not None and self.lower > self.upper:
+            raise BusinessRuleValidationException("Specification lower limit cannot exceed upper limit")
+        if not self.unit.strip():
+            raise BusinessRuleValidationException("Specification unit is required")
+
+    def contains(self, measurement: Measurement) -> bool:
+        """Return True when a measurement is within specification."""
+        if measurement.unit != self.unit:
+            raise BusinessRuleValidationException(
+                f"Measurement unit {measurement.unit} does not match specification unit {self.unit}"
+            )
+        if self.lower is not None and measurement.value < self.lower:
+            return False
+        if self.upper is not None and measurement.value > self.upper:
+            return False
+        return True
+
+
+@dataclass(frozen=True)
+class Material(ValueObject):
+    """Material identity and optional display name."""
+
+    material_id: MaterialId
+    material_name: str | None = None
+
+
+@dataclass(frozen=True)
+class Batch(ValueObject):
+    """Batch identity anchored to material and plant."""
+
+    batch_id: BatchId
+    material_id: MaterialId
+    plant_id: PlantId
 
 
 @dataclass(frozen=True)
@@ -99,4 +184,3 @@ class GoodsMovement(ValueObject):
     def __post_init__(self):
         if not self.material_id:
             raise BusinessRuleValidationException("Material ID is required for GoodsMovement")
-

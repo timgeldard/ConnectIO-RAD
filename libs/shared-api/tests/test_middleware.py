@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
-from shared_api.middleware import RequestContextMiddleware
+from shared_api.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
 
 
 def _make_app(*, trust_forwarded_user: bool) -> FastAPI:
@@ -69,3 +69,18 @@ def test_request_context_drops_invalid_forwarded_user(caplog) -> None:
     assert response.status_code == 200
     assert response.json()["user_email"] == "anonymous"
     assert any("invalid_forwarded_user" in record.message for record in caplog.records)
+
+
+def test_security_headers_middleware_sets_defaults() -> None:
+    """Browser security headers are attached to every response."""
+    app = FastAPI()
+    app.add_middleware(SecurityHeadersMiddleware)
+
+    @app.get("/ok")
+    async def ok():
+        return {"ok": True}
+
+    response = TestClient(app).get("/ok")
+
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["referrer-policy"] == "strict-origin-when-cross-origin"

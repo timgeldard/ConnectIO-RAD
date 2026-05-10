@@ -83,6 +83,32 @@ router → application → dal → domain
 Import violations fail CI via `scripts/tests/test_ddd_architecture_guardrails.py`.
 They also run as a pre-commit hook.
 
+## Add New Module
+
+Use the Rapid New Module generator for every new bounded context, including demo-first apps.
+
+```bash
+npx nx g ./tools/generators:bounded-context --name=supplier-quality --domain=quality
+```
+
+After `npm install` refreshes workspace package links, the package alias is also available:
+
+```bash
+npx nx g @connectio/rad:bounded-context --name=supplier-quality --domain=quality
+```
+
+The generator creates `backend`, `frontend`, and `e2e` projects; Databricks deployment files; `.ai-dev-kit` guidance; 16 i18n locale stubs; Nx targets; uv workspace registration; DDD guardrail registration; and platform manifest registration.
+
+Validate the scaffold before adding domain-specific logic:
+
+```bash
+python3 scripts/validate_new_app.py supplier-quality
+python3 -m pytest scripts/tests/test_ddd_architecture_guardrails.py scripts/tests/test_validate_new_app.py
+npm run test:generators
+```
+
+For demo apps, keep generated repository data until the Databricks gold views exist. Replace only the `dal/` implementation when live data is ready; routers must stay thin and must not import `dal` directly.
+
 ## Deploying
 
 ```bash

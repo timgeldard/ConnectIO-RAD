@@ -6,7 +6,7 @@
     "typecheck": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "tsc --noEmit --allowImportingTsExtensions --moduleResolution bundler --module ESNext --target ES2022 src/client.ts src/query.ts",
+        "command": "tsc --noEmit --allowImportingTsExtensions --moduleResolution bundler --module ESNext --target ES2022 --jsx react-jsx src/client.ts src/query.ts src/hooks.ts",
         "cwd": "libs/shared-frontend-api"
       }
     }

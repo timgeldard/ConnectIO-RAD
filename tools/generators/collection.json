@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/nx-generators",
+  "name": "@connectio/rad",
+  "generators": {
+    "bounded-context": {
+      "factory": "./bounded-context/index",
+      "schema": "./bounded-context/schema.json",
+      "description": "Scaffold a ConnectIO-RAD manufacturing app with backend, frontend, e2e, Databricks, DDD, i18n, and platform manifest wiring."
+    },
+    "app": {
+      "factory": "./bounded-context/index",
+      "schema": "./bounded-context/schema.json",
+      "description": "Alias for bounded-context."
+    }
+  }
+}

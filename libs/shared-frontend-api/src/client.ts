@@ -60,6 +60,96 @@ export async function fetchJson<T>(input: RequestInfo | URL, init?: RequestInit)
   return body as T;
 }
 
+export interface ApiClientOptions {
+  /** Base URL prefix, for example `/api/spc`. */
+  baseUrl?: string;
+  /** Default credentials mode. Databricks Apps should normally include cookies. */
+  credentials?: RequestCredentials;
+  /** Headers attached to every request. */
+  headers?: HeadersInit;
+}
+
+export interface ApiRequestOptions extends RequestInit {
+  /** Query-string parameters. Undefined/null values are omitted. */
+  query?: Record<string, string | number | boolean | null | undefined>;
+}
+
+function joinUrl(baseUrl: string, path: string, query?: ApiRequestOptions['query']): string {
+  const normalizedBase = baseUrl.replace(/\/$/, '');
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `${normalizedBase}${normalizedPath}`;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query ?? {})) {
+    if (value !== undefined && value !== null && value !== '') {
+      params.set(key, String(value));
+    }
+  }
+  const queryString = params.toString();
+  return queryString ? `${url}?${queryString}` : url;
+}
+
+function mergeHeaders(defaultHeaders?: HeadersInit, requestHeaders?: HeadersInit): Headers {
+  const headers = new Headers(defaultHeaders);
+  const request = new Headers(requestHeaders);
+  request.forEach((value, key) => headers.set(key, value));
+  return headers;
+}
+
+/**
+ * Create a typed JSON API client with ConnectIO-RAD defaults.
+ *
+ * The client keeps generated app code small while preserving correlation IDs,
+ * cookie/token passthrough, and standard ApiError handling from fetchJson().
+ */
+export function createApiClient(options: ApiClientOptions = {}) {
+  const baseUrl = options.baseUrl ?? '';
+  const credentials = options.credentials ?? 'include';
+
+  return {
+    get<T>(path: string, request?: ApiRequestOptions): Promise<T> {
+      return fetchJson<T>(joinUrl(baseUrl, path, request?.query), {
+        ...request,
+        method: 'GET',
+        credentials: request?.credentials ?? credentials,
+        headers: mergeHeaders(options.headers, request?.headers),
+      });
+    },
+
+    post<T>(path: string, body: unknown, request?: ApiRequestOptions): Promise<T> {
+      const headers = mergeHeaders(options.headers, request?.headers);
+      headers.set('Content-Type', 'application/json');
+      return fetchJson<T>(joinUrl(baseUrl, path, request?.query), {
+        ...request,
+        method: 'POST',
+        credentials: request?.credentials ?? credentials,
+        headers,
+        body: JSON.stringify(body),
+      });
+    },
+
+    patch<T>(path: string, body: unknown, request?: ApiRequestOptions): Promise<T> {
+      const headers = mergeHeaders(options.headers, request?.headers);
+      headers.set('Content-Type', 'application/json');
+      return fetchJson<T>(joinUrl(baseUrl, path, request?.query), {
+        ...request,
+        method: 'PATCH',
+        credentials: request?.credentials ?? credentials,
+        headers,
+        body: JSON.stringify(body),
+      });
+    },
+
+    delete<T>(path: string, request?: ApiRequestOptions): Promise<T> {
+      return fetchJson<T>(joinUrl(baseUrl, path, request?.query), {
+        ...request,
+        method: 'DELETE',
+        credentials: request?.credentials ?? credentials,
+        headers: mergeHeaders(options.headers, request?.headers),
+      });
+    },
+  };
+}
+
 /**
  * Helper for POSTing JSON data.
  * Automatically sets Content-Type header and stringifies the body.

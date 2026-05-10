@@ -1,0 +1,21 @@
+{
+  "name": "template-e2e",
+  "projectType": "application",
+  "tags": [
+    "scope:template",
+    "type:e2e"
+  ],
+  "implicitDependencies": [
+    "template-frontend"
+  ],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx playwright test",
+        "cwd": "apps/template/e2e"
+      },
+      "cache": false
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@connectio/rad",
+  "version": "0.0.0",
+  "private": true,
+  "generators": "./collection.json",
+  "type": "commonjs",
+  "dependencies": {
+    "@nx/devkit": "^22.7.1"
+  }
+}

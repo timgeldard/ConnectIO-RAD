@@ -1,0 +1,5 @@
+[app]
+name = "template"
+display_name = "Template Module"
+backend_project = "template-backend"
+frontend_project = "template-frontend"

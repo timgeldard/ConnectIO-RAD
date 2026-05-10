@@ -1,13 +1,17 @@
 from shared_api.app_factory import create_api_app, register_spa_routes
+from shared_api.databricks import DatabricksSqlRuntime, DatabricksSqlSettings
 from shared_api.errors import safe_global_exception_response
-from shared_api.framework import ConnectIoApp
+from shared_api.framework import ConnectIoApp, create_rad_app
 from shared_api.health import databricks_sql_ready, health_payload, not_ready
 from shared_api.security import SameOriginMiddleware
 
 __all__ = [
     "ConnectIoApp",
+    "DatabricksSqlRuntime",
+    "DatabricksSqlSettings",
     "SameOriginMiddleware",
     "create_api_app",
+    "create_rad_app",
     "databricks_sql_ready",
     "health_payload",
     "not_ready",

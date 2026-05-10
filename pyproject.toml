@@ -13,6 +13,7 @@ members = [
   "apps/warehouse360/backend",
   "apps/processorderhistory/backend",
   "apps/platform/backend",
+  "apps/template/backend",
   "libs/shared-api",
   "libs/shared-auth",
   "libs/shared-db",
@@ -34,6 +35,7 @@ warehouse360-backend = { workspace = true }
 envmon-backend = { workspace = true }
 spc-backend = { workspace = true }
 trace2-backend = { workspace = true }
+template-backend = { workspace = true }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

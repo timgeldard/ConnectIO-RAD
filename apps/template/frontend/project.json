@@ -1,0 +1,82 @@
+{
+  "name": "template-frontend",
+  "projectType": "application",
+  "tags": [
+    "scope:template",
+    "type:frontend"
+  ],
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite",
+        "cwd": "apps/template/frontend"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run build",
+        "cwd": "apps/template/frontend"
+      },
+      "inputs": [
+        "tsFiles",
+        "^tsFiles",
+        "sharedGlobals"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ],
+      "cache": true
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run typecheck",
+        "cwd": "apps/template/frontend"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run lint",
+        "cwd": "apps/template/frontend"
+      },
+      "inputs": [
+        "tsFiles",
+        "^tsFiles",
+        "sharedGlobals"
+      ],
+      "cache": true
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run test:ci",
+        "cwd": "apps/template/frontend"
+      },
+      "inputs": [
+        "tsFiles",
+        "^tsFiles",
+        "sharedGlobals"
+      ],
+      "cache": true
+    },
+    "test:coverage": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run test:coverage",
+        "cwd": "apps/template/frontend"
+      },
+      "inputs": [
+        "tsFiles",
+        "^tsFiles",
+        "sharedGlobals"
+      ],
+      "outputs": [
+        "{projectRoot}/coverage"
+      ],
+      "cache": true
+    }
+  }
+}

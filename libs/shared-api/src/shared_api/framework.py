@@ -11,13 +11,16 @@ import logging
 import os
 import uuid
 from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 
 from shared_api.app_factory import create_api_app, register_spa_routes
-from shared_api.health import health_payload, readiness_token_from_env
+from shared_api.databricks import DatabricksSqlRuntime, DatabricksSqlSettings
+from shared_api.health import CheckWarehouseConfig, RunSql, databricks_sql_ready, health_payload, readiness_token_from_env
+from shared_api.observability import configure_json_logging, configure_opentelemetry
 from shared_auth import UserIdentity, require_user
 
 ReadinessCheck = Callable[[], Awaitable[dict[str, Any]]]
@@ -43,12 +46,16 @@ class ConnectIoApp:
         debug_config: DebugConfigCallback | None = None,
         test_query_runner: TestQueryRunner | None = None,
         enable_debug_endpoints: bool | None = None,
+        lifespan: Any | None = None,
+        trust_forwarded_user: bool = False,
     ):
         self.app = create_api_app(
             title=title,
             version=version,
             latency_budgets_ms=latency_budgets_ms,
             latency_alert_callback=latency_alert_callback,
+            lifespan=lifespan,
+            trust_forwarded_user=trust_forwarded_user,
         )
         self.static_dir = static_dir
         self.readiness_checks = readiness_checks or []
@@ -207,3 +214,122 @@ class ConnectIoApp:
         if not self._spa_mounted:
             self.mount_spa()
         return self.app
+
+
+def create_rad_app(
+    *,
+    title: str,
+    app_name: str,
+    version: str = "0.1.0",
+    static_dir: Path | None = None,
+    check_warehouse_config: CheckWarehouseConfig | None = None,
+    run_sql: RunSql | None = None,
+    readiness_checks: list[ReadinessCheck] | None = None,
+    latency_budgets_ms: dict[str, int] | None = None,
+    latency_alert_callback: Callable[[str, int, int, int], Any] | None = None,
+    debug_config: DebugConfigCallback | None = None,
+    test_query_runner: TestQueryRunner | None = None,
+    demo_mode: bool = False,
+    enable_debug_endpoints: bool | None = None,
+    trust_forwarded_user: bool = False,
+    enable_json_logging: bool = True,
+    enable_opentelemetry: bool | None = None,
+    databricks_sql_settings: DatabricksSqlSettings | None = None,
+    databricks_sql_runtime: DatabricksSqlRuntime | None = None,
+    lifespan: Any | None = None,
+) -> ConnectIoApp:
+    """
+    Create a production-standard ConnectIO-RAD FastAPI application.
+
+    This is the preferred factory for new bounded contexts. It wires the
+    shared FastAPI runtime, correlation IDs, safe exception masking, readiness
+    probes, rate limiting hooks, same-origin protection, and optional
+    Databricks SQL connectivity checks behind one stable entrypoint.
+
+    Args:
+        title: Human-readable API title.
+        app_name: Stable app identifier used in logs and readiness metadata.
+        version: API version string.
+        static_dir: Optional built frontend directory for SPA serving.
+        check_warehouse_config: Optional Databricks SQL config validator.
+        run_sql: Optional async/sync SQL runner used by readiness checks.
+        readiness_checks: Additional app-specific readiness checks.
+        latency_budgets_ms: Per-path latency budgets.
+        latency_alert_callback: Hook called when a request exceeds its budget.
+        debug_config: Optional development debug endpoint callback.
+        test_query_runner: Optional authenticated SQL smoke-test callback.
+        demo_mode: If true, readiness stays green before live SQL is wired.
+        enable_debug_endpoints: Override development-only debug endpoint gating.
+        trust_forwarded_user: Trust Databricks forwarded identity headers.
+        enable_json_logging: Configure root logging as JSON for Databricks logs.
+        enable_opentelemetry: Instrument FastAPI when optional OTel packages exist.
+        databricks_sql_settings: Optional Databricks SQL pool settings.
+        databricks_sql_runtime: Optional runtime for pooled async SQLAlchemy.
+        lifespan: Optional app-specific lifespan context manager.
+
+    Returns:
+        A configured :class:`ConnectIoApp`.
+    """
+    checks = list(readiness_checks or [])
+    if enable_json_logging:
+        configure_json_logging(app_name=app_name)
+
+    sql_runtime = databricks_sql_runtime or DatabricksSqlRuntime(databricks_sql_settings)
+
+    @asynccontextmanager
+    async def _rad_lifespan(app: FastAPI):
+        """Run shared Databricks runtime cleanup around caller lifespan."""
+        app.state.databricks_sql = sql_runtime
+        if lifespan is not None:
+            async with lifespan(app):
+                yield
+        else:
+            yield
+        await sql_runtime.dispose()
+
+    if check_warehouse_config is not None and run_sql is not None:
+        async def _warehouse_ready() -> dict[str, Any]:
+            return await databricks_sql_ready(
+                check_warehouse_config=check_warehouse_config,
+                run_sql=run_sql,
+                endpoint_hint=f"{app_name}.ready",
+            )
+
+        checks.insert(0, _warehouse_ready)
+    elif demo_mode:
+        async def _demo_ready() -> dict[str, Any]:
+            return {
+                "status": "ready",
+                "checks": {"demo_mode": "ok"},
+                "app_name": app_name,
+            }
+
+        checks.insert(0, _demo_ready)
+
+    rad_app = ConnectIoApp(
+        title=title,
+        version=version,
+        static_dir=static_dir,
+        latency_budgets_ms=latency_budgets_ms,
+        latency_alert_callback=latency_alert_callback,
+        readiness_checks=checks,
+        debug_config=debug_config,
+        test_query_runner=test_query_runner,
+        enable_debug_endpoints=enable_debug_endpoints,
+        lifespan=_rad_lifespan,
+        trust_forwarded_user=trust_forwarded_user,
+    )
+    rad_app.app.state.databricks_sql = sql_runtime
+
+    should_enable_otel = (
+        os.environ.get("OTEL_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
+        if enable_opentelemetry is None
+        else enable_opentelemetry
+    )
+    rad_app.app.state.opentelemetry_enabled = configure_opentelemetry(
+        rad_app.app,
+        service_name=app_name,
+        enabled=should_enable_otel,
+    )
+
+    return rad_app
