@@ -4,8 +4,6 @@ This router is a stub.  All endpoints return empty data until the gold views
 for TTC, FTR, calibration, and anomaly detection are created in Unity Catalogue.
 See ``equipment_insights2_dal.py`` for the full TODO list.
 """
-from typing import Optional
-
 from fastapi import APIRouter, Depends
 from shared_auth import UserIdentity, require_proxy_user
 

@@ -3,8 +3,7 @@
 from fastapi import APIRouter, Depends, Query
 from shared_auth.identity import UserIdentity, require_proxy_user
 
-from connectedquality_backend.application.lab import fetch_lab_failures
-from connectedquality_backend.dal.lab import fetch_lab_plants
+from connectedquality_backend.application.lab import fetch_lab_failures, fetch_lab_plants
 
 router = APIRouter()
 
@@ -41,5 +40,4 @@ async def lab_plants(
     Returns:
         List of plant objects with plant_id and plant_name.
     """
-    plants = await fetch_lab_plants(user.raw_token)
-    return {"plants": plants}
+    return await fetch_lab_plants(user.raw_token)

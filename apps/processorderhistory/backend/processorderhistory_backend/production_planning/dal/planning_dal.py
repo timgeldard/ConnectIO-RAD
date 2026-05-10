@@ -27,8 +27,6 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-_log = logging.getLogger(__name__)
-
 from processorderhistory_backend.db import run_sql_async, sql_param, tbl
 from processorderhistory_backend.production_planning.domain.planning import (
     DEFAULT_BLOCK_HRS,
@@ -37,6 +35,8 @@ from processorderhistory_backend.production_planning.domain.planning import (
     coerce_backlog as domain_coerce_backlog,
     coerce_block as domain_coerce_block,
 )
+
+_log = logging.getLogger(__name__)
 
 _MS_PER_DAY = MS_PER_DAY
 _DEFAULT_BLOCK_HRS = DEFAULT_BLOCK_HRS
