@@ -55,14 +55,14 @@ rad_app = ConnectIoApp(
 
 # Domain Router Registration — must happen BEFORE mount_spa() / fastapi_app
 # access, because the SPA catch-all would otherwise shadow these routes.
-rad_app.include_router(process_orders_router, prefix="/api")
-rad_app.include_router(deliveries_router, prefix="/api")
-rad_app.include_router(inbound_router, prefix="/api")
-rad_app.include_router(inventory_router, prefix="/api")
+rad_app.include_router(process_orders_router, prefix="/api/wh360")
+rad_app.include_router(deliveries_router, prefix="/api/wh360")
+rad_app.include_router(inbound_router, prefix="/api/wh360")
+rad_app.include_router(inventory_router, prefix="/api/wh360")
 rad_app.include_router(imwm_router, prefix="/api/wh360")
-rad_app.include_router(dispensary_router, prefix="/api")
-rad_app.include_router(kpis_router, prefix="/api")
-rad_app.include_router(plants_router, prefix="/api")
+rad_app.include_router(dispensary_router, prefix="/api/wh360")
+rad_app.include_router(kpis_router, prefix="/api/wh360")
+rad_app.include_router(plants_router, prefix="/api/wh360")
 
 rad_app.mount_spa()
 app = rad_app.fastapi_app

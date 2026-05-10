@@ -20,7 +20,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': { target: 'http://localhost:8004', changeOrigin: true },
+      '/api/wh360': { target: 'http://localhost:8004', changeOrigin: true },
     },
   },
   build: {

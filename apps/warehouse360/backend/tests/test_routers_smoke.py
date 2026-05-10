@@ -50,22 +50,22 @@ def mock_dals(monkeypatch):
 
 
 def test_inbound_router_smoke(mock_dals):
-    assert client.get("/api/inbound").status_code == 200
-    assert client.get("/api/inbound/4501").status_code == 200
+    assert client.get("/api/wh360/inbound").status_code == 200
+    assert client.get("/api/wh360/inbound/4501").status_code == 200
 
 
 def test_process_orders_router_smoke(mock_dals):
-    assert client.get("/api/wh-cockpit").status_code == 200
-    assert client.get("/api/wh-cockpit/1001").status_code == 200
+    assert client.get("/api/wh360/wh-cockpit").status_code == 200
+    assert client.get("/api/wh360/wh-cockpit/1001").status_code == 200
 
 
 def test_deliveries_router_smoke(mock_dals):
-    assert client.get("/api/deliveries").status_code == 200
-    assert client.get("/api/deliveries/8001").status_code == 200
+    assert client.get("/api/wh360/deliveries").status_code == 200
+    assert client.get("/api/wh360/deliveries/8001").status_code == 200
 
 
 def test_inventory_router_smoke(mock_dals):
-    assert client.get("/api/inventory/bins").status_code == 200
-    assert client.get("/api/inventory/bins/summary").status_code == 200
-    assert client.get("/api/inventory/lineside").status_code == 200
-    assert client.get("/api/inventory/near-expiry").status_code == 200
+    assert client.get("/api/wh360/inventory/bins").status_code == 200
+    assert client.get("/api/wh360/inventory/bins/summary").status_code == 200
+    assert client.get("/api/wh360/inventory/lineside").status_code == 200
+    assert client.get("/api/wh360/inventory/near-expiry").status_code == 200

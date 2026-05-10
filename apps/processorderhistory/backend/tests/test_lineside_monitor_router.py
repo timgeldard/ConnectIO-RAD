@@ -25,7 +25,7 @@ def test_post_lineside_monitor_returns_summary(monkeypatch):
     })
     monkeypatch.setattr(lineside_router.order_queries, "get_lineside_monitor", mock)
 
-    response = client.post("/api/lineside-monitor/summary", json={"plant_id": "CHV"})
+    response = client.post("/api/poh/lineside-monitor/summary", json={"plant_id": "CHV"})
 
     assert response.status_code == 200
     assert response.json()["kpis"]["lines_active"] == 1

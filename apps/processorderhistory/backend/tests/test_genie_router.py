@@ -25,7 +25,7 @@ def test_genie_start_composes_context_and_proxies(monkeypatch):
 
     monkeypatch.setattr(genie_router, "start_conversation", fake_start)
 
-    response = client.post("/api/genie/start", json={
+    response = client.post("/api/poh/genie/start", json={
         "prompt": "What happened?",
         "pageContext": {
             "selected_process_order": po_id,
@@ -56,7 +56,7 @@ def test_genie_followup_reuses_conversation(monkeypatch):
 
     monkeypatch.setattr(genie_router, "create_followup", fake_followup)
 
-    response = client.post("/api/genie/followup", json={
+    response = client.post("/api/poh/genie/followup", json={
         "conversationId": "conv-1",
         "prompt": "And the next one?",
         "pageContext": {"selected_plant": plant},
@@ -84,8 +84,8 @@ def test_genie_message_and_query_result_proxy(monkeypatch):
         },
     })
 
-    message = client.get("/api/genie/message?conversationId=conv-1&messageId=msg-1")
-    result = client.get("/api/genie/query-result?conversationId=conv-1&messageId=msg-1&attachmentId=att-1")
+    message = client.get("/api/poh/genie/message?conversationId=conv-1&messageId=msg-1")
+    result = client.get("/api/poh/genie/query-result?conversationId=conv-1&messageId=msg-1&attachmentId=att-1")
 
     assert message.status_code == 200
     assert message.json()["answer"] == "Done"

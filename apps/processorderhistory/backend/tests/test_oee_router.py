@@ -26,7 +26,7 @@ def mock_oee(monkeypatch):
 
 
 def test_post_oee_analytics_returns_200(mock_oee):
-    response = client.post("/api/oee/analytics", json={})
+    response = client.post("/api/poh/oee/analytics", json={})
     assert response.status_code == 200
     data = response.json()
     assert "now_ms" in data
@@ -39,21 +39,21 @@ def test_post_oee_analytics_returns_200(mock_oee):
 
 def test_post_oee_analytics_passes_plant_id(mock_oee):
     plant = test_data.PLANTS[0]
-    client.post("/api/oee/analytics", json={"plant_id": plant})
+    client.post("/api/poh/oee/analytics", json={"plant_id": plant})
     mock_oee.assert_called_once_with(
         "token", plant_id=plant, date_from=None, date_to=None, timezone="UTC"
     )
 
 
 def test_post_oee_analytics_passes_date_range(mock_oee):
-    client.post("/api/oee/analytics", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
+    client.post("/api/poh/oee/analytics", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
     mock_oee.assert_called_once_with(
         "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07", timezone="UTC"
     )
 
 
 def test_post_oee_analytics_passes_timezone(mock_oee):
-    client.post("/api/oee/analytics", json={"timezone": "Europe/London"})
+    client.post("/api/poh/oee/analytics", json={"timezone": "Europe/London"})
     mock_oee.assert_called_once_with(
         "token", plant_id=None, date_from=None, date_to=None, timezone="Europe/London"
     )

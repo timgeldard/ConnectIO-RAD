@@ -25,7 +25,7 @@ def mock_adherence(monkeypatch):
 
 
 def test_post_adherence_analytics_returns_200(mock_adherence):
-    response = client.post("/api/adherence", json={})
+    response = client.post("/api/poh/adherence", json={})
     assert response.status_code == 200
     data = response.json()
     assert "now_ms" in data
@@ -38,21 +38,21 @@ def test_post_adherence_analytics_returns_200(mock_adherence):
 
 def test_post_adherence_analytics_passes_plant_id(mock_adherence):
     plant = test_data.PLANTS[0]
-    client.post("/api/adherence", json={"plant_id": plant})
+    client.post("/api/poh/adherence", json={"plant_id": plant})
     mock_adherence.assert_called_once_with(
         "token", plant_id=plant, date_from=None, date_to=None, timezone="UTC"
     )
 
 
 def test_post_adherence_analytics_passes_date_range(mock_adherence):
-    client.post("/api/adherence", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
+    client.post("/api/poh/adherence", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
     mock_adherence.assert_called_once_with(
         "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07", timezone="UTC"
     )
 
 
 def test_post_adherence_analytics_passes_timezone(mock_adherence):
-    client.post("/api/adherence", json={"timezone": "Europe/London"})
+    client.post("/api/poh/adherence", json={"timezone": "Europe/London"})
     mock_adherence.assert_called_once_with(
         "token", plant_id=None, date_from=None, date_to=None, timezone="Europe/London"
     )

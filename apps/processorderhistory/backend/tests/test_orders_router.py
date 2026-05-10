@@ -27,7 +27,7 @@ def mock_orders(monkeypatch):
 
 
 def test_post_orders_returns_200(mock_orders):
-    response = client.post("/api/orders", json={})
+    response = client.post("/api/poh/orders", json={})
     assert response.status_code == 200, response.json()
     data = response.json()
     assert "orders" in data
@@ -38,25 +38,25 @@ def test_post_orders_returns_200(mock_orders):
 
 
 def test_post_orders_total_matches_row_count(mock_orders):
-    response = client.post("/api/orders", json={})
+    response = client.post("/api/poh/orders", json={})
     data = response.json()
     assert data["total"] == len(data["orders"])
 
 
 def test_post_orders_passes_plant_id(mock_orders):
     plant = test_data.PLANTS[0]
-    client.post("/api/orders", json={"plant_id": plant})
+    client.post("/api/poh/orders", json={"plant_id": plant})
     mock_orders.assert_called_once_with("token", plant_id=plant, limit=2000)
 
 
 def test_post_orders_passes_limit(mock_orders):
-    client.post("/api/orders", json={"limit": 100})
+    client.post("/api/poh/orders", json={"limit": 100})
     mock_orders.assert_called_once_with("token", plant_id=None, limit=100)
 
 
 def test_post_orders_returns_empty_list(mock_orders):
     mock_orders.return_value = []
-    response = client.post("/api/orders", json={})
+    response = client.post("/api/poh/orders", json={})
     data = response.json()
     assert data["orders"] == []
     assert data["total"] == 0

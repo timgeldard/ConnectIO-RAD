@@ -143,7 +143,9 @@ class SqlRuntimeConfig:
     cache_policy: CachePolicy | None = None
     audit_hook: AuditHook | None = None
     audit_in_background: bool = False
-    mutable_cache: bool = False
+    # If True, returned rows from cache are NOT deepcopied. 
+    # Use only if callers treat result sets as immutable.
+    allow_mutable_cache: bool = False
 
     def build(self) -> "SqlRuntime":
         return SqlRuntime(
@@ -154,7 +156,7 @@ class SqlRuntimeConfig:
             cache_policy=self.cache_policy,
             audit_hook=self.audit_hook,
             audit_in_background=self.audit_in_background,
-            mutable_cache=self.mutable_cache,
+            allow_mutable_cache=self.allow_mutable_cache,
         )
 
 
@@ -169,7 +171,7 @@ class SqlRuntime:
         cache_policy: CachePolicy | None = None,
         audit_hook: AuditHook | None = None,
         audit_in_background: bool = False,
-        mutable_cache: bool = False,
+        allow_mutable_cache: bool = False,
     ) -> None:
         self._run_sql = run_sql
         self.cache_policy = cache_policy or CachePolicy.single(
@@ -185,7 +187,7 @@ class SqlRuntime:
         self.cache_lock = threading.Lock()
         self.cache_row_limit = self.cache_policy.tiers[0].row_limit
         self.audit_in_background = audit_in_background
-        self.mutable_cache = mutable_cache
+        self.allow_mutable_cache = allow_mutable_cache
 
     def clear_cache(self) -> None:
         with self.cache_lock:
@@ -302,7 +304,8 @@ class SqlRuntime:
             with self.cache_lock:
                 cached_rows = cache.get(cache_key)
             if cached_rows is not None:
-                return deepcopy(cached_rows) if self.mutable_cache else cached_rows
+                # Safe by default: deepcopy on read to prevent cross-request corruption
+                return deepcopy(cached_rows) if not self.allow_mutable_cache else cached_rows
 
             loop = asyncio.get_running_loop()
             started_at = time.monotonic()
@@ -310,7 +313,8 @@ class SqlRuntime:
             duration_ms = int((time.monotonic() - started_at) * 1000)
             if len(rows) <= tier.row_limit:
                 with self.cache_lock:
-                    cache[cache_key] = deepcopy(rows) if self.mutable_cache else rows
+                    # Defensive copy on write to ensure the cache itself is never modified in-place
+                    cache[cache_key] = deepcopy(rows)
             if audit:
                 await self._emit_audit(
                     token=token,

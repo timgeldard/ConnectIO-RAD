@@ -52,7 +52,7 @@ def mock_day_view(monkeypatch):
 
 
 def test_post_dayview_returns_200(mock_day_view):
-    response = client.post("/api/dayview", json={})
+    response = client.post("/api/poh/dayview", json={})
     assert response.status_code == 200
     data = response.json()
     assert "day" in data
@@ -64,18 +64,18 @@ def test_post_dayview_returns_200(mock_day_view):
 
 
 def test_post_dayview_passes_day(mock_day_view):
-    client.post("/api/dayview", json={"day": "2026-04-29"})
+    client.post("/api/poh/dayview", json={"day": "2026-04-29"})
     mock_day_view.assert_called_once_with("token", day="2026-04-29", plant_id=None)
 
 
 def test_post_dayview_passes_plant_id(mock_day_view):
     plant = test_data.PLANTS[0]
-    client.post("/api/dayview", json={"plant_id": plant})
+    client.post("/api/poh/dayview", json={"plant_id": plant})
     mock_day_view.assert_called_once_with("token", day=None, plant_id=plant)
 
 
 def test_post_dayview_returns_full_shape(mock_day_view):
-    response = client.post("/api/dayview", json={})
+    response = client.post("/api/poh/dayview", json={})
     data = response.json()
     for key in ("day", "day_start_ms", "day_end_ms", "lines", "blocks", "downtime", "kpis"):
         assert key in data, f"Missing key: {key}"

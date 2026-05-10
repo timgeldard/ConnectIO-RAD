@@ -39,12 +39,6 @@ class TemplateRepository:
         TODO: replace demo metrics with aggregation over the module_template
         gold view once the Databricks contract is available.
         """
-        if token and self._run_sql:
-            await self._run_sql(
-                token,
-                "SELECT 1 AS ready -- TODO: replace with module_template KPI query",
-                [],
-            )
         metrics = [
             TemplateMetric(TemplateMetricName("signals"), TemplateMetricValue(3, "count")),
             TemplateMetric(TemplateMetricName("coverage"), TemplateMetricValue(98.5, "percent")),

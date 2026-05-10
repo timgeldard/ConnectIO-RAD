@@ -44,22 +44,24 @@ def mock_dals(monkeypatch):
 
 
 def test_batch_trace_router_smoke(mock_dals):
-    assert client.post("/api/trace", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
-    assert client.post("/api/summary", json={"batch_id": "B1"}).status_code == 200
-    assert client.post("/api/batch-details", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
-    assert client.post("/api/impact", json={"batch_id": "B1"}).status_code == 200
+    assert client.post("/api/t2/trace", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
+    assert client.post("/api/t2/summary", json={"batch_id": "B1"}).status_code == 200
+    assert client.post("/api/t2/batch-details", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
+    assert client.post("/api/t2/impact", json={"batch_id": "B1"}).status_code == 200
 
 
 def test_lineage_router_smoke(mock_dals):
-    assert client.post("/api/recall-readiness", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
-    assert client.post("/api/bottom-up", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
-    assert client.post("/api/top-down", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
-    assert client.post("/api/supplier-risk", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
+    assert client.post("/api/t2/recall-readiness", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
+    assert client.post("/api/t2/bottom-up", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
+    assert client.post("/api/t2/top-down", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
+    assert client.post("/api/t2/supplier-risk", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
 
 
 def test_quality_router_smoke(mock_dals):
-    assert client.post("/api/coa", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
-    assert client.post("/api/mass-balance", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
-    assert client.post("/api/quality", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
-    assert client.post("/api/production-history", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
-    assert client.post("/api/batch-compare", json={"material_id": "M1", "batch_id": "B1"}).status_code == 200
+    payload = {"material_id": "M1", "batch_id": "B1"}
+    assert client.post("/api/t2/coa", json=payload).status_code == 200
+    assert client.post("/api/t2/mass-balance", json=payload).status_code == 200
+    assert client.post("/api/t2/quality", json=payload).status_code == 200
+    assert client.post("/api/t2/production-history", json=payload).status_code == 200
+    assert client.post("/api/t2/batch-compare", json=payload).status_code == 200
+

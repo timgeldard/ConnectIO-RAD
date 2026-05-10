@@ -4,8 +4,22 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from datetime import datetime, timezone
 from typing import Any
+
+# Pattern for simple email redaction
+EMAIL_PATTERN = re.compile(r"([a-zA-Z0-9_.+-]+)@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")
+
+def redact_pii(text: str) -> str:
+    """Mask email addresses in a string: u***@domain.com."""
+    def mask(match: re.Match) -> str:
+        local = match.group(1)
+        # Handle cases like @domain.com or single char names
+        prefix = local[0] if local else ""
+        domain = match.group(0).split("@")[-1]
+        return f"{prefix}***@{domain}"
+    return EMAIL_PATTERN.sub(mask, text)
 
 
 class JsonLogFormatter(logging.Formatter):
@@ -13,19 +27,18 @@ class JsonLogFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         """Return a structured JSON log line."""
+        message = record.getMessage()
         payload: dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "logger": record.name,
-            "message": record.getMessage(),
+            "message": redact_pii(message),
         }
         for attr in ("request_id", "user_email", "app_name", "path", "method", "status_code"):
             value = getattr(record, attr, None)
             if value is not None:
-                if attr == "user_email" and isinstance(value, str) and "@" in value:
-                    # Redact PII: user@domain.com -> u***@domain.com
-                    parts = value.split("@")
-                    payload[attr] = f"{parts[0][0]}***@{parts[1]}"
+                if attr == "user_email" and isinstance(value, str):
+                    payload[attr] = redact_pii(value)
                 else:
                     payload[attr] = value
         if record.exc_info:

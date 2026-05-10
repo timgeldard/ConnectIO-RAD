@@ -58,7 +58,7 @@ def mock_detail_not_found(monkeypatch):
 
 
 def test_get_order_detail_returns_200(mock_detail):
-    response = client.get(f"/api/orders/{_PO_ID}")
+    response = client.get(f"/api/poh/orders/{_PO_ID}")
     assert response.status_code == 200
     data = response.json()
     assert data["order"]["process_order_id"] == _PO_ID
@@ -70,19 +70,19 @@ def test_get_order_detail_returns_200(mock_detail):
 
 def test_get_order_detail_passes_decoded_id(mock_detail):
     """Starlette decodes %20 in path segments before handing to the handler."""
-    client.get("/api/orders/PO%20001")
+    client.get("/api/poh/orders/PO%20001")
     args, kwargs = mock_detail.call_args
     assert kwargs["order_id"] == "PO 001"
 
 
 def test_get_order_detail_returns_404_when_not_found(mock_detail_not_found):
-    response = client.get("/api/orders/NOPE")
+    response = client.get("/api/poh/orders/NOPE")
     assert response.status_code == 404
     assert "NOPE" in response.json()["detail"]
 
 
 def test_get_order_detail_returns_full_shape(mock_detail):
-    response = client.get("/api/orders/PO-001")
+    response = client.get("/api/poh/orders/PO-001")
     data = response.json()
     for key in ("order", "time_summary", "movement_summary", "phases",
                 "materials", "movements", "comments", "downtime",

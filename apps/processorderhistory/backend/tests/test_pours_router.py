@@ -47,7 +47,7 @@ def mock_analytics(monkeypatch):
 
 
 def test_post_pours_analytics_returns_200(mock_analytics):
-    response = client.post("/api/pours/analytics", json={})
+    response = client.post("/api/poh/pours/analytics", json={})
     assert response.status_code == 200
     data = response.json()
     assert data["planned_24h"] is None
@@ -61,24 +61,24 @@ def test_post_pours_analytics_returns_200(mock_analytics):
 
 def test_post_pours_analytics_passes_plant_id(mock_analytics):
     plant = test_data.PLANTS[0]
-    client.post("/api/pours/analytics", json={"plant_id": plant})
+    client.post("/api/poh/pours/analytics", json={"plant_id": plant})
     mock_analytics.assert_called_once_with("token", plant_id=plant, date_from=None, date_to=None, timezone="UTC")
 
 
 def test_post_pours_analytics_passes_date_range(mock_analytics):
-    client.post("/api/pours/analytics", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
+    client.post("/api/poh/pours/analytics", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
     mock_analytics.assert_called_once_with(
         "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07", timezone="UTC"
     )
 
 
 def test_post_pours_analytics_passes_timezone(mock_analytics):
-    client.post("/api/pours/analytics", json={"timezone": "Australia/Sydney"})
+    client.post("/api/poh/pours/analytics", json={"timezone": "Australia/Sydney"})
     mock_analytics.assert_called_once_with("token", plant_id=None, date_from=None, date_to=None, timezone="Australia/Sydney")
 
 
 def test_post_pours_analytics_returns_full_shape(mock_analytics):
-    response = client.post("/api/pours/analytics", json={})
+    response = client.post("/api/poh/pours/analytics", json={})
     data = response.json()
     for key in ("now_ms", "planned_24h", "lines", "events", "prior7d", "daily30d", "hourly24h"):
         assert key in data, f"Missing key: {key}"

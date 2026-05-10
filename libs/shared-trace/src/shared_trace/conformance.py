@@ -75,43 +75,42 @@ def assert_core_trace_route_contract(
     freshness_calls: list[dict[str, Any]],
     *,
     assert_response: Callable[[str, dict[str, Any]], None] | None = None,
+    path_prefix: str = "/api",
 ) -> None:
     page_req = {"material_id": "MAT1", "batch_id": "B1"}
     cases = [
         (
-            "/api/trace",
+            f"{path_prefix}/trace",
             {"material_id": "MAT1", "batch_id": "B1"},
             "trace",
             lambda body: body["tree"]["name"] == "MAT1" and body["total_nodes"] == 1,
         ),
         (
-            "/api/summary",
+            f"{path_prefix}/summary",
             {"batch_id": "B1"},
             "summary",
             lambda body: body["batch_id"] == "B1",
         ),
         (
-            "/api/batch-details",
+            f"{path_prefix}/batch-details",
             {"material_id": "MAT1", "batch_id": "B1"},
             "batch_details",
             lambda body: body["summary"]["batch_id"] == "B1",
         ),
         (
-            "/api/impact",
+            f"{path_prefix}/impact",
             {"batch_id": "B1"},
             "impact",
             lambda body: body["downstream"] == [],
         ),
-        ("/api/coa", page_req, "coa", lambda b: b["header"]["material_id"] == "MAT1"),
-        ("/api/mass-balance", page_req, "mass_balance", lambda b: b["header"]["material_id"] == "MAT1"),
-        ("/api/quality", page_req, "quality", lambda b: b["header"]["material_id"] == "MAT1"),
-        ("/api/production-history", page_req, "production_history", lambda b: b["header"]["material_id"] == "MAT1"),
-        ("/api/batch-compare", page_req, "batch_compare", lambda b: b["header"]["material_id"] == "MAT1"),
-        ("/api/bottom-up", page_req, "bottom_up", lambda b: b["header"]["material_id"] == "MAT1"),
-        ("/api/top-down", page_req, "top_down", lambda b: b["header"]["material_id"] == "MAT1"),
-        ("/api/supplier-risk", page_req, "supplier_risk", lambda b: b["header"]["material_id"] == "MAT1"),
-        # recall-readiness has a slightly different freshness source key structure in the router but uses it.
-        # We check freshness for it separately if needed or add to TRACE2_PAGE_FRESHNESS_SOURCES
+        (f"{path_prefix}/coa", page_req, "coa", lambda b: b["header"]["material_id"] == "MAT1"),
+        (f"{path_prefix}/mass-balance", page_req, "mass_balance", lambda b: b["header"]["material_id"] == "MAT1"),
+        (f"{path_prefix}/quality", page_req, "quality", lambda b: b["header"]["material_id"] == "MAT1"),
+        (f"{path_prefix}/production-history", page_req, "production_history", lambda b: b["header"]["material_id"] == "MAT1"),
+        (f"{path_prefix}/batch-compare", page_req, "batch_compare", lambda b: b["header"]["material_id"] == "MAT1"),
+        (f"{path_prefix}/bottom-up", page_req, "bottom_up", lambda b: b["header"]["material_id"] == "MAT1"),
+        (f"{path_prefix}/top-down", page_req, "top_down", lambda b: b["header"]["material_id"] == "MAT1"),
+        (f"{path_prefix}/supplier-risk", page_req, "supplier_risk", lambda b: b["header"]["material_id"] == "MAT1"),
     ]
 
     for path, payload, source_key, predicate in cases:
