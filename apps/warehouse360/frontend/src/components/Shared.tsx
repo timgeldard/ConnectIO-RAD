@@ -18,7 +18,14 @@ export const formatETA = (value: Date | string | number): string => {
 /** A single filter chip within a FilterBar filter group. */
 interface Chip { value: string; label: string; dot?: string }
 /** A single filter group shown in FilterBar. */
-interface Filter { key: string; label: string; chips?: Chip[]; options?: Chip[] }
+interface Filter {
+  key: string
+  label: string
+  /** Preferred chips array. */
+  chips?: Chip[]
+  /** Backward-compat alias for `chips`; used by callers that pre-date the `chips` rename. */
+  options?: Chip[]
+}
 /** Props for the shared chip-based FilterBar. */
 interface FilterBarProps {
   filters: Filter[]

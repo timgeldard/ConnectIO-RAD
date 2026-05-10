@@ -13,6 +13,7 @@ import { fmtTime } from '~/utils/time'
 
 /* Control Tower — warehouse manager's landing page */
 
+/** Builds a minimal WidgetConfig for a standalone KpiCardWidget (no ReportingDashboard host). */
 function makeKpiConfig(id: string, title: string): WidgetConfig {
   return { id, type: 'kpi', title, props: {}, interactions: [], layout: {} }
 }

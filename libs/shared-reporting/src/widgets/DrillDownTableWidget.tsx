@@ -2,17 +2,27 @@ import type { CSSProperties } from 'react'
 import { ChartContainer } from '../components/ChartContainer'
 import type { WidgetRenderProps } from '../core/types'
 
+/** Column descriptor for DrillDownTableWidget. */
 export interface DrillDownColumn {
+  /** Row data key used to look up the cell value. */
   key: string
+  /** Column header text. */
   label: string
+  /** Fixed column width in pixels. */
   width?: number
+  /** Cell text alignment; defaults to `'left'`. */
   align?: 'left' | 'right' | 'center'
 }
 
+/** Props for DrillDownTableWidget; all optional and merged with runtime data. */
 export interface DrillDownTableWidgetProps extends Record<string, unknown> {
+  /** Column definitions controlling layout and alignment. */
   columns?: DrillDownColumn[]
+  /** Row data; each object is keyed by column `key`. */
   rows?: Record<string, unknown>[]
+  /** Message shown when there are no rows. */
   emptyMessage?: string
+  /** Max table body height in pixels before scrolling. */
   maxHeight?: number
 }
 

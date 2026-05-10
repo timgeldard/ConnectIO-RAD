@@ -4,8 +4,11 @@ import { echarts } from './echartsCore'
 
 type BaseProps = ComponentProps<typeof ReactEChartsCore>
 
+/** Props for the shared EChart wrapper. Extends all ReactEChartsCore props. */
 export interface EChartProps extends BaseProps {
+  /** Accessible label applied to the wrapping `role="img"` div. */
   ariaLabel?: string
+  /** `data-testid` for the wrapping div; set per-instance to keep test IDs unique. */
   testId?: string
 }
 

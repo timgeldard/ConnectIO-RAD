@@ -1,4 +1,4 @@
-﻿# Shared Reporting Phased Plan
+# Shared Reporting Phased Plan
 
 This plan turns ConnectIO RAD reporting into a shared, reusable capability
 without building a large framework ahead of real app pressure. The first goal is
@@ -346,7 +346,7 @@ Acceptance criteria:
 - At least two apps use shared-reporting without app-specific hacks.
 - Widget APIs remain stable across two migrations.
 - Performance benchmarks show no material regression against current pages.
-- Documentation includes â€œhow to add a dashboardâ€ and â€œhow to add a widgetâ€.
+- Documentation includes "how to add a dashboard" and "how to add a widget".
 
 ## Explicit Non-Goals For The First Pass
 

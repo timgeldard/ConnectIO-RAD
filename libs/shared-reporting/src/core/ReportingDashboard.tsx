@@ -3,13 +3,20 @@ import { dashboardConfigSchema } from '../schema/config'
 import type { DashboardConfig } from './types'
 import type { WidgetRegistry } from './registry'
 
+/** Props for the ReportingDashboard grid renderer. */
 export interface ReportingDashboardProps {
+  /** Validated dashboard configuration including layout and widget list. */
   config: DashboardConfig
+  /** Widget registry mapping type keys to render components. */
   registry: WidgetRegistry
+  /** Keyed data bag passed to individual widgets by their `id`. */
   data?: Record<string, unknown>
 }
 
-/** Renders a responsive CSS grid dashboard from a declarative config. */
+/**
+ * Renders a validated `DashboardConfig` as a responsive CSS-grid dashboard.
+ * Uses `safeParse` to surface invalid config as an inline error rather than throwing.
+ */
 export function ReportingDashboard({ config, registry, data = {} }: ReportingDashboardProps) {
   const result = dashboardConfigSchema.safeParse(config)
 

@@ -303,6 +303,7 @@ export function PourLineFilter({ value, onChange, lines }: PourLineFilterProps) 
 // PourKpiCards — exported for Order List header usage
 // ---------------------------------------------------------------------------
 
+/** Builds a minimal WidgetConfig for a standalone KpiCardWidget (no ReportingDashboard host). */
 function makeKpiConfig(id: string, title: string): WidgetConfig {
   return { id, type: 'kpi', title, layout: { colSpan: 1 }, props: {}, interactions: [] }
 }

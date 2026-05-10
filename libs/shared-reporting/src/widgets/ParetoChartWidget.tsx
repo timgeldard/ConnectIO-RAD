@@ -4,18 +4,27 @@ import type { WidgetRenderProps } from '../core/types'
 import { EChart } from '../charts/EChart'
 import { REPORTING_CHART_GRID } from '../charts/echartsTheme'
 
+/** A single category/value pair for Pareto analysis. */
 export interface ParetoItem {
+  /** Category label shown on the x-axis. */
   label: string
+  /** Contribution value; items are sorted descending automatically. */
   value: number
 }
 
+/** Props for ParetoChartWidget; all optional and merged with runtime data. */
 export interface ParetoChartWidgetProps extends Record<string, unknown> {
+  /** Unsorted list of Pareto items; the widget sorts them. */
   items?: ParetoItem[]
+  /** Label for the primary value axis. */
   valueLabel?: string
+  /** Label for the secondary cumulative percentage axis. */
   cumulativeLabel?: string
+  /** Chart height in pixels; defaults to 280. */
   height?: number
 }
 
+/** Renders a Pareto bar+line chart with a cumulative percentage overlay. */
 export function ParetoChartWidget({ config, props, data }: WidgetRenderProps<ParetoChartWidgetProps>) {
   const source = typeof data === 'object' && data != null ? data as Partial<ParetoChartWidgetProps> : {}
   const merged = { ...props, ...source }

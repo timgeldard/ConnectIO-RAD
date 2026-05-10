@@ -4,20 +4,31 @@ import type { WidgetRenderProps } from '../core/types'
 import { EChart } from '../charts/EChart'
 import { REPORTING_CHART_GRID } from '../charts/echartsTheme'
 
+/** A single data series rendered as a bar group. */
 export interface BarSeries {
+  /** Series name shown in the legend and tooltip. */
   name: string
+  /** Values aligned to the `categories` array. */
   data: number[]
+  /** Optional hex/CSS colour override for this series. */
   color?: string
 }
 
+/** Props for BarChartWidget; all optional and merged with runtime data. */
 export interface BarChartWidgetProps extends Record<string, unknown> {
+  /** Category axis labels. */
   categories?: string[]
+  /** One or more data series to render. */
   series?: BarSeries[]
+  /** When true, renders a horizontal bar chart. */
   horizontal?: boolean
+  /** Label for the value axis. */
   valueLabel?: string
+  /** Chart height in pixels; defaults to 280. */
   height?: number
 }
 
+/** Renders a vertical or horizontal bar chart via ECharts. */
 export function BarChartWidget({ config, props, data }: WidgetRenderProps<BarChartWidgetProps>) {
   const source = typeof data === 'object' && data != null ? data as Partial<BarChartWidgetProps> : {}
   const merged = { ...props, ...source }

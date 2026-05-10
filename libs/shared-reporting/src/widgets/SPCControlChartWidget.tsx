@@ -4,17 +4,25 @@ import type { WidgetRenderProps } from '../core/types'
 import { EChart } from '../charts/EChart'
 import { REPORTING_CHART_GRID } from '../charts/echartsTheme'
 
+/** A single plotted measurement on the control chart. */
 export interface SPCDataPoint {
+  /** X-axis label (e.g. sample ID or timestamp string). */
   label: string
+  /** Measured value. */
   value: number
+  /** When true the point is rendered in muted colour and excluded from limit calculations. */
   excluded?: boolean
   /** True if this point triggered a control rule violation. */
   signal?: boolean
 }
 
+/** Western Electric / Nelson control limits for the chart reference lines. */
 export interface SPCControlLimits {
+  /** Upper control limit. */
   ucl?: number
+  /** Centre line (process mean). */
   cl?: number
+  /** Lower control limit. */
   lcl?: number
   /** 1-sigma boundary above the centre line. */
   sigma1?: number
@@ -22,10 +30,15 @@ export interface SPCControlLimits {
   sigma2?: number
 }
 
+/** Props for SPCControlChartWidget; all optional and merged with runtime data. */
 export interface SPCControlChartWidgetProps extends Record<string, unknown> {
+  /** Ordered list of measurement points. */
   points?: SPCDataPoint[]
+  /** Control limits to render as reference lines and sigma bands. */
   limits?: SPCControlLimits
+  /** Label for the value (y) axis. */
   valueLabel?: string
+  /** Chart height in pixels; defaults to 320. */
   height?: number
 }
 
