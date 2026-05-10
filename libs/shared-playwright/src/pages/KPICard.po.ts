@@ -25,6 +25,11 @@ export class KPICardPO {
       .innerText()
   }
 
+  /** Returns an array of all visible KPI labels. */
+  async labels(): Promise<string[]> {
+    return this.root.locator('[data-testid="kpi-label"]').allInnerTexts()
+  }
+
   /** Returns the tone class applied to the card (ok | warn | risk | neutral). */
   async getTone(cardLocator?: Locator): Promise<string | null> {
     return (cardLocator ?? this.root.first()).getAttribute('data-tone')

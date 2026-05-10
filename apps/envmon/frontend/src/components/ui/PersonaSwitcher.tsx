@@ -70,7 +70,7 @@ export default function PersonaSwitcher({ personaId, onChange }: Props) {
   }, [open]);
 
   return (
-    <div className="persona-switcher" onClick={(e) => e.stopPropagation()}>
+    <div className="persona-switcher" data-testid="persona-switcher" onClick={(e) => e.stopPropagation()}>
       <button className="btn" onClick={() => setOpen((v) => !v)}>
         <span className="avatar">{current.initials}</span>
         <span className="who">
@@ -88,6 +88,7 @@ export default function PersonaSwitcher({ personaId, onChange }: Props) {
           {PERSONAS.map((p) => (
             <button
               key={p.id}
+              data-testid={`persona-option-${p.id}`}
               className={`item${p.id === personaId ? ' active' : ''}`}
               onClick={() => { onChange(p.id); setOpen(false); }}
             >

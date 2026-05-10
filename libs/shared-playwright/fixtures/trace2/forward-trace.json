@@ -1,13 +1,13 @@
 {
-  "batch_id": "BATCH-E2E-001",
+  "batch_id": "0008898869",
   "direction": "forward",
   "nodes": [
-    { "id": "BATCH-E2E-001", "type": "batch", "material_id": "MAT-001", "plant_id": "DEMO_PLANT", "depth": 0 },
-    { "id": "BATCH-E2E-002", "type": "batch", "material_id": "MAT-002", "plant_id": "DEMO_PLANT", "depth": 1 },
-    { "id": "BATCH-E2E-003", "type": "batch", "material_id": "MAT-003", "plant_id": "DEMO_PLANT", "depth": 1 }
+    { "id": "0008898869", "type": "batch", "material_id": "20582002", "plant_id": "C351", "depth": 0 },
+    { "id": "0009900001", "type": "batch", "material_id": "30001234", "plant_id": "C351", "depth": 1 },
+    { "id": "0009900002", "type": "batch", "material_id": "50009876", "plant_id": "C351", "depth": 1 }
   ],
   "edges": [
-    { "source": "BATCH-E2E-001", "target": "BATCH-E2E-002", "quantity": "120.0", "uom": "KG" },
-    { "source": "BATCH-E2E-001", "target": "BATCH-E2E-003", "quantity": "80.0",  "uom": "KG" }
+    { "source": "0008898869", "target": "0009900001", "quantity": "120.0", "uom": "KG" },
+    { "source": "0008898869", "target": "0009900002", "quantity": "80.0",  "uom": "KG" }
   ]
 }

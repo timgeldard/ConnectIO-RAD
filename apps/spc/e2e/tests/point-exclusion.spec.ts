@@ -5,10 +5,10 @@ test.describe('Point exclusion', () => {
   test.beforeEach(async ({ page }) => {
     const filterBar = new SPCFilterBarPO(page)
     await page.goto('/')
-    await filterBar.selectPlant('DEMO_PLANT')
-    await filterBar.typeMaterial('DMAT-01')
+    await filterBar.selectPlant('C351')
+    await filterBar.typeMaterial('20582002')
     await filterBar.confirmMaterial()
-    await filterBar.selectMIC('MIC-A')
+    await filterBar.selectMIC('Viscosity')
     await filterBar.setDatePreset('90d')
     await filterBar.commit()
     await waitForChart(page, 'control-chart-svg', 25_000)

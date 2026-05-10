@@ -1,0 +1,24 @@
+{
+  "name": "envmon-e2e",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/envmon/e2e/tests",
+  "tags": ["scope:envmon", "type:e2e"],
+  "implicitDependencies": ["envmon-frontend", "envmon-backend"],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx playwright test --config=apps/envmon/e2e/playwright.config.ts",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "e2e-ci": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx playwright test --config=apps/envmon/e2e/playwright.config.ts --reporter=blob",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}

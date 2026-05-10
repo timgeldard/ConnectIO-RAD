@@ -1,13 +1,13 @@
 {
   "materials": [
-    { "material_id": "DMAT-01", "description": "Demo Material Alpha" },
-    { "material_id": "DMAT-02", "description": "Demo Material Beta" }
+    { "material_id": "20582002", "description": "PRT1519 PRE-COOK NUGGET 25KG" },
+    { "material_id": "30001234", "description": "FINISHED PRODUCT A" }
   ],
   "mics": [
-    { "mic_id": "MIC-A", "operation_id": "OP-001", "description": "Hardness" },
-    { "mic_id": "MIC-B", "operation_id": "OP-002", "description": "Dissolution" }
+    { "mic_id": "VISC_001", "operation_id": "OP-10", "description": "Viscosity" },
+    { "mic_id": "PH_001", "operation_id": "OP-10", "description": "pH" }
   ],
   "plants": [
-    { "plant_id": "DEMO_PLANT", "name": "Demo Plant" }
+    { "plant_id": "C351", "name": "Kerry Global UAT" }
   ]
 }

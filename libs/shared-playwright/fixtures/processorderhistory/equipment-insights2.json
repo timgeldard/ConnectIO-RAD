@@ -1,0 +1,22 @@
+{
+  "summary": {
+    "total_count": 24,
+    "active_count": 18,
+    "alert_count": 2,
+    "avg_oee": 84.5,
+    "avg_ftr": 92.0
+  },
+  "equipment": [
+    {
+      "id": "TK-101",
+      "name": "Mixing Tank 101",
+      "type": "Vessel",
+      "status": "in_use",
+      "oee": 88.0,
+      "ftr": 95.0,
+      "last_event_ms": 1745884800000
+    }
+  ],
+  "states": [],
+  "types": []
+}

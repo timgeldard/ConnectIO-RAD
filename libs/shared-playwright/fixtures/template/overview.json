@@ -1,0 +1,10 @@
+{
+  "identity": "template:demo",
+  "plant_id": "demo",
+  "data_available": true,
+  "metrics": [
+    { "name": "signals", "value": 3, "unit": "count" },
+    { "name": "coverage", "value": 98.5, "unit": "percent" },
+    { "name": "open_actions", "value": 1, "unit": "count" }
+  ]
+}

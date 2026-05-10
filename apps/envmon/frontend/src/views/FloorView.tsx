@@ -32,10 +32,11 @@ export default function FloorView({ plantId, floorId, personaId, onBack, onBackT
         <span style={{ color: 'var(--stroke)' }}>/</span>
         <span style={{ fontSize: 13, fontWeight: 600 }}>{currentFloor?.floor_name ?? floorId}</span>
         <div style={{ flex: 1 }} />
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 4 }} data-testid="floor-selector">
           {floors.map((f) => (
             <button
               key={f.floor_id}
+              data-testid={`floor-chip-${f.floor_id}`}
               className={`chip${f.floor_id === floorId ? ' active' : ''}`}
               style={{ fontSize: 11, padding: '3px 10px' }}
               onClick={() => onChangeFloor(f.floor_id)}
