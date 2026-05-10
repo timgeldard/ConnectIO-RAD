@@ -58,6 +58,7 @@
     "yaml": "^2.8.4"
   },
   "dependencies": {
+    "@rolldown/binding-win32-x64-msvc": "^1.0.0-rc.18",
     "esbuild": "^0.28.0",
     "zod": "^4.4.3"
   }

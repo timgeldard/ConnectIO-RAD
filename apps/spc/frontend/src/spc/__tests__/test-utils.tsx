@@ -1,4 +1,5 @@
 import { render, type RenderOptions } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { I18nProvider } from '@connectio/shared-frontend-i18n'
 import type { ReactElement } from 'react'
 import enResources from '../../i18n/locales/en.json'
@@ -18,6 +19,22 @@ export function renderWithI18n(ui: ReactElement, options?: RenderOptions) {
     <I18nProvider appName="spc" resources={{ en: enResources }} availableLanguages={['en']}>
       {ui}
     </I18nProvider>,
+    options,
+  )
+}
+
+/** Renders with I18nProvider + a fresh QueryClientProvider for integration tests that use real hooks. */
+export function renderWithProviders(ui: ReactElement, options?: RenderOptions) {
+  try { localStorage.clear() } catch { /* environment doesn't support Storage.clear() */ }
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <I18nProvider appName="spc" resources={{ en: enResources }} availableLanguages={['en']}>
+        {ui}
+      </I18nProvider>
+    </QueryClientProvider>,
     options,
   )
 }

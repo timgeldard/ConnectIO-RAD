@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
 import {
-  CodexDashboard,
+  ReportingDashboard,
   DashboardFilterProvider,
   ReportPageShell,
   createDefaultReportingRegistry,
@@ -229,7 +229,7 @@ export default function ScorecardView() {
           description={materialLabel}
           filters={<ScorecardFilterSummary labels={{ material: materialLabel, plant: plantLabel, timeRange: `${state.dateFrom} to ${state.dateTo}` }} />}
         >
-          <CodexDashboard config={dashboardConfig} registry={scorecardRegistry} />
+          <ReportingDashboard config={dashboardConfig} registry={scorecardRegistry} />
           <Suspense fallback={<ScorecardSkeleton />}>
             <ScorecardTable rows={scorecard} material={materialLabel} />
           </Suspense>

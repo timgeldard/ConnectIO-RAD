@@ -13,12 +13,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n/context'
 import { TopBar, Icon, Button, type IconName } from '@connectio/shared-ui'
+import { KpiCardWidget, type WidgetConfig } from '@connectio/shared-reporting'
 import { fetchPoursAnalytics, type PoursData, type PourEvent, type DaySeries, type HourSeries } from '../api/pours'
 import {
   AnalyticsFilterBar,
   AnalyticsCorrelationPanel,
   ContributorsPanel,
-  DeltaPill,
+  deltaPct,
+  mapTone,
   inBucket,
   useAnalyticsFilters,
   type BucketSelection,
@@ -301,6 +303,11 @@ export function PourLineFilter({ value, onChange, lines }: PourLineFilterProps) 
 // PourKpiCards — exported for Order List header usage
 // ---------------------------------------------------------------------------
 
+/** Builds a minimal WidgetConfig for a standalone KpiCardWidget (no ReportingDashboard host). */
+function makeKpiConfig(id: string, title: string): WidgetConfig {
+  return { id, type: 'kpi', title, layout: { colSpan: 1 }, props: {}, interactions: [] }
+}
+
 interface PourKpiCardsProps {
   lineFilter: string
 }
@@ -336,27 +343,18 @@ export function PourKpiCards({ lineFilter: _lineFilter }: PourKpiCardsProps) {
         </button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-        <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 8 }}>
-            <Icon name="alert-triangle" size={14} />
-            <span>Target / 24h</span>
-          </div>
-          <div style={{ fontSize: 'var(--fs-24)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{DAILY_TARGET.toLocaleString()}</div>
-        </div>
-        <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 8 }}>
-            <Icon name="calendar" size={14} />
-            <span>Planned / 24h</span>
-          </div>
-          <div style={{ fontSize: 'var(--fs-24)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{planned != null ? planned.toLocaleString() : '—'}</div>
-        </div>
-        <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', borderLeft: '4px solid var(--status-ok)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 8 }}>
-            <Icon name="trending-up" size={14} />
-            <span>Actual / 24h</span>
-          </div>
-          <div style={{ fontSize: 'var(--fs-24)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{actual.toLocaleString()}</div>
-        </div>
+        <KpiCardWidget
+          config={makeKpiConfig('pour-target', 'Target / 24h')}
+          props={{ value: DAILY_TARGET.toLocaleString(), icon: 'alert-triangle' as IconName }}
+        />
+        <KpiCardWidget
+          config={makeKpiConfig('pour-planned', 'Planned / 24h')}
+          props={{ value: planned != null ? planned.toLocaleString() : '—', icon: 'calendar' as IconName }}
+        />
+        <KpiCardWidget
+          config={makeKpiConfig('pour-actual', 'Actual / 24h')}
+          props={{ value: actual.toLocaleString(), tone: 'ok', icon: 'trending-up' as IconName }}
+        />
       </div>
     </div>
   )
@@ -691,39 +689,24 @@ export function PourAnalyticsPage() {
       {!loading && (
         <div style={{ padding: '0 32px 48px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
-                <Icon name="alert-triangle" size={14} />
-                <span>Target</span>
-              </div>
-              <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{target.toLocaleString()}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
-                {days === 1 ? `pours · ${DAILY_TARGET}/day` : `pours · ${DAILY_TARGET}/day × ${days} days`}
-              </div>
-            </div>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
-                <Icon name="calendar" size={14} />
-                <span>Planned</span>
-              </div>
-              <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{planned != null ? planned.toLocaleString() : '—'}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>scheduled goods-issues</div>
-            </div>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', borderLeft: `4px solid ${planVsActualPct && planVsActualPct >= 95 ? 'var(--status-ok)' : 'var(--status-warn)'}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
-                <Icon name="trending-up" size={14} />
-                <span>Actual</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{actual.toLocaleString()}</div>
-                {filters.compare === 'prior7d' && <DeltaPill current={actual} prior={priorActual} />}
-              </div>
-              {planVsActualPct != null && (
-                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
-                  <span style={{ color: planVsActualPct >= 95 ? 'var(--status-ok)' : 'var(--status-warn)', fontWeight: 'var(--fw-bold)' }}>{planVsActualPct}%</span> of plan
-                </div>
-              )}
-            </div>
+            <KpiCardWidget
+              config={makeKpiConfig('pour-page-target', 'Target')}
+              props={{ value: target.toLocaleString(), icon: 'alert-triangle' as IconName, subtext: days === 1 ? `pours · ${DAILY_TARGET}/day` : `pours · ${DAILY_TARGET}/day × ${days} days` }}
+            />
+            <KpiCardWidget
+              config={makeKpiConfig('pour-page-planned', 'Planned')}
+              props={{ value: planned != null ? planned.toLocaleString() : '—', icon: 'calendar' as IconName, subtext: 'scheduled goods-issues' }}
+            />
+            <KpiCardWidget
+              config={makeKpiConfig('pour-page-actual', 'Actual')}
+              props={{
+                value: actual.toLocaleString(),
+                icon: 'trending-up' as IconName,
+                tone: planVsActualPct != null && planVsActualPct >= 95 ? 'ok' : 'warn',
+                ...deltaPct(actual, priorActual),
+                subtext: planVsActualPct != null ? `${planVsActualPct}% of plan` : undefined,
+              }}
+            />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>

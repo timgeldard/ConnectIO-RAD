@@ -11,12 +11,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n/context'
 import { TopBar, Icon, Button, type IconName } from '@connectio/shared-ui'
+import { KpiCardWidget, type WidgetConfig } from '@connectio/shared-reporting'
 import { fetchQualityAnalytics, type QualityData, type QualityResultRow, type QualityDaySeries, type QualityHourSeries } from '../api/quality'
 import {
   AnalyticsFilterBar,
   AnalyticsCorrelationPanel,
   ContributorsPanel,
-  DeltaPill,
+  deltaPct,
+  mapTone,
   inBucket,
   useAnalyticsFilters,
   type BucketSelection,
@@ -54,6 +56,10 @@ function periodLabel(dateFrom: string, dateTo: string): string {
 // ---------------------------------------------------------------------------
 // Chart components
 // ---------------------------------------------------------------------------
+
+function makeKpiConfig(id: string, title: string): WidgetConfig {
+  return { id, type: 'kpi', title, layout: { colSpan: 1 }, props: {}, interactions: [] }
+}
 
 /** Quality chart with range toggle and hover tooltip.
  * Renders a bar chart (total inspections, coloured by RFT%) for 7 d / 30 d and
@@ -581,41 +587,33 @@ export function QualityAnalyticsPage() {
       {!loading && (
         <div style={{ padding: '0 32px 48px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)', borderLeft: `4px solid ${qualityTone === 'good' ? 'var(--status-ok)' : qualityTone === 'ok' ? 'var(--status-warn)' : 'var(--status-risk)'}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
-                <Icon name="check" size={14} />
-                <span>Accepted results</span>
-              </div>
-              <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{accepted.toLocaleString()}</div>
-              {rftPct != null && (
-                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
-                  <span style={{ color: qualityTone === 'good' ? 'var(--status-ok)' : 'var(--status-warn)', fontWeight: 'var(--fw-bold)' }}>{rftPct.toFixed(1)}% RFT</span>
-                </div>
-              )}
-            </div>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
-                <Icon name="trending-up" size={14} />
-                <span>Right first time</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)' }}>{rftPct != null ? rftPct.toFixed(1) + '%' : '—'}</div>
-                {filters.compare === 'prior7d' && <DeltaPill current={rftPct} prior={priorRftPct} />}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>{total.toLocaleString()} results inspected</div>
-            </div>
-            <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-md)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 'var(--fw-bold)', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
-                <Icon name="alert-triangle" size={14} />
-                <span>Rejected results</span>
-              </div>
-              <div style={{ fontSize: 'var(--fs-32)', fontWeight: 'var(--fw-extrabold)', fontFamily: 'var(--font-mono)', color: rejected > 0 ? 'var(--status-risk)' : 'inherit' }}>{rejected.toLocaleString()}</div>
-              {rejectPct != null && (
-                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
-                  <span style={{ color: rejectPct > 5 ? 'var(--status-risk)' : 'var(--status-ok)', fontWeight: 'var(--fw-bold)' }}>{rejectPct.toFixed(1)}%</span> reject rate
-                </div>
-              )}
-            </div>
+            <KpiCardWidget
+              config={makeKpiConfig('quality-accepted', 'Accepted results')}
+              props={{
+                value: accepted.toLocaleString(),
+                icon: 'check' as IconName,
+                tone: mapTone(qualityTone),
+                subtext: rftPct != null ? `${rftPct.toFixed(1)}% RFT` : undefined,
+              }}
+            />
+            <KpiCardWidget
+              config={makeKpiConfig('quality-rft', 'Right first time')}
+              props={{
+                value: rftPct != null ? rftPct.toFixed(1) + '%' : '—',
+                icon: 'trending-up' as IconName,
+                ...deltaPct(rftPct, priorRftPct),
+                subtext: `${total.toLocaleString()} results inspected`,
+              }}
+            />
+            <KpiCardWidget
+              config={makeKpiConfig('quality-rejected', 'Rejected results')}
+              props={{
+                value: rejected.toLocaleString(),
+                icon: 'alert-triangle' as IconName,
+                tone: rejected > 0 ? 'risk' : 'neutral',
+                subtext: rejectPct != null ? `${rejectPct.toFixed(1)}% reject rate` : undefined,
+              }}
+            />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>

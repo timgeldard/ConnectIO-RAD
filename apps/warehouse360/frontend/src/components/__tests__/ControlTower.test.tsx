@@ -39,4 +39,27 @@ describe('ControlTower', () => {
     expect(screen.getByText(/Unable to determine live critical KPI signals/i)).toBeInTheDocument()
     expect(screen.queryByText('No live critical KPI signals for this plant.')).not.toBeInTheDocument()
   })
+
+  it('renders all six KpiCardWidget labels from the KPI strip', () => {
+    render(<ControlTower />)
+
+    // Labels unique to the KPI strip
+    expect(screen.getByText('Orders amber')).toBeInTheDocument()
+    expect(screen.getByText('Open TOs')).toBeInTheDocument()
+    expect(screen.getByText('Open inbound')).toBeInTheDocument()
+    expect(screen.getByText('Bin utilisation')).toBeInTheDocument()
+
+    // These also appear in the exception signals panel when values > 0
+    expect(screen.getAllByText('Orders at risk').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Deliveries at risk').length).toBeGreaterThan(0)
+  })
+
+  it('passes live KPI values through KpiCardWidget props', () => {
+    render(<ControlTower />)
+
+    // Specific values from the mock that are unique to the KPI strip
+    expect(screen.getByText('18671')).toBeInTheDocument()  // inbound_open
+    expect(screen.getByText('45')).toBeInTheDocument()     // tos_open
+    expect(screen.getByText('55.9')).toBeInTheDocument()   // bin_util_pct
+  })
 })
