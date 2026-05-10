@@ -7,5 +7,16 @@
         "model": "gemma3-1b-gpu-custom"
       }
     }
+  },
+  "mcpServers": {
+    "databricks": {
+      "command": "/Users/timgeldard/.ai-dev-kit/.venv/bin/python",
+      "args": [
+        "/Users/timgeldard/.ai-dev-kit/repo/databricks-mcp-server/run_server.py"
+      ],
+      "env": {
+        "DATABRICKS_CONFIG_PROFILE": "DEFAULT"
+      }
+    }
   }
 }
