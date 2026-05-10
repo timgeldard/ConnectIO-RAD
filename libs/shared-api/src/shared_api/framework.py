@@ -7,7 +7,9 @@ boilerplate across the monorepo applications.
 """
 from __future__ import annotations
 
+import logging
 import os
+import uuid
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
@@ -21,6 +23,7 @@ from shared_auth import UserIdentity, require_user
 ReadinessCheck = Callable[[], Awaitable[dict[str, Any]]]
 DebugConfigCallback = Callable[[UserIdentity], Awaitable[dict[str, Any]]]
 TestQueryRunner = Callable[[UserIdentity], Awaitable[dict[str, Any]]]
+logger = logging.getLogger(__name__)
 
 
 class ConnectIoApp:
@@ -107,12 +110,20 @@ class ConnectIoApp:
                 except HTTPException:
                     raise
                 except Exception as exc:
+                    error_id = str(uuid.uuid4())
+                    check_name = getattr(check, "__name__", check.__class__.__name__)
+                    logger.exception(
+                        "readiness_check.failed error_id=%s check=%s",
+                        error_id,
+                        check_name,
+                    )
                     raise HTTPException(
                         status_code=503,
                         detail={
                             "status": "not_ready",
                             "reason": "internal_check_failed",
-                            "message": str(exc),
+                            "message": "A readiness check failed. See error_id for correlation.",
+                            "error_id": error_id,
                         },
                     ) from exc
 

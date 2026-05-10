@@ -114,6 +114,23 @@ def test_resolve_token_strict_false_allows_bearer_in_dev(monkeypatch):
     assert resolve_token(None, "Bearer dev-token", strict=False) == "dev-token"
 
 
+def test_resolve_token_strict_false_allows_case_insensitive_bearer_in_dev(monkeypatch):
+    """Bearer parsing is case-insensitive so local tooling can vary header casing."""
+    monkeypatch.setenv("APP_ENV", "local")
+
+    assert resolve_token(None, "bearer dev-token", strict=False) == "dev-token"
+
+
+def test_resolve_token_rejects_blank_bearer_token(monkeypatch):
+    """A Bearer scheme without a token is treated as missing auth."""
+    monkeypatch.setenv("APP_ENV", "local")
+
+    with pytest.raises(HTTPException) as exc:
+        resolve_token(None, "Bearer   ", strict=False)
+
+    assert exc.value.status_code == 401
+
+
 def test_resolve_token_strict_false_ignored_in_production(monkeypatch, caplog):
     """Outside dev mode, strict=False is downgraded to strict and a warning is logged.
 

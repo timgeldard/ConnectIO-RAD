@@ -89,3 +89,20 @@ Every code change must adhere to the **10/10 Documentation Standard** defined in
 - **Python (PEP 257)**: Every function, class, and module must have a multi-line docstring. Complex logic requires `Args:`, `Returns:`, and `Raises:` sections.
 - **TypeScript/React (JSDoc)**: Every exported interface, type, component, and custom hook must have `/** ... */` JSDoc annotations. Component props must be individually documented.
 - **Why over What**: Non-obvious algorithms or business logic must have inline comments explaining the "why" behind the implementation.
+
+### 🔐 Shared Infrastructure Hardening
+
+Shared backend infrastructure (`libs/shared-api`, `libs/shared-auth`,
+`libs/shared-db`) carries the repo-wide trust-boundary safeguards. When
+hardening these layers:
+
+- Keep the changes inside the shared infra libraries; do not move the logic into
+  app/application/domain packages because the DDD boundaries are frozen.
+- Treat forwarded headers as untrusted until validated or sanitized.
+- Keep production authentication proxy-first: `x-forwarded-access-token` remains
+  the canonical credential path, with Bearer fallback limited to local/test
+  workflows.
+- Mask internal readiness and infra failures in client responses and use
+  correlation IDs for operator follow-up.
+- Accept only safe SQL identifiers in shared query-building helpers so app DALs
+  inherit the same constraints automatically.

@@ -9,8 +9,6 @@ contract so that regression cannot return silently.
 """
 from __future__ import annotations
 
-import os
-
 import pytest
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
@@ -202,3 +200,24 @@ def test_api_routes_take_precedence_over_spa_when_registered_first(tmp_path):
     health_response = client.get("/api/health")
     assert health_response.status_code == 200
     assert health_response.json() == {"status": "ok"}
+
+
+def test_ready_masks_internal_check_failure_details(caplog):
+    """Readiness failures must expose a correlation ID, not raw exception text."""
+
+    async def failing_check():
+        raise RuntimeError("warehouse password leaked")
+
+    rad = ConnectIoApp(title="t", readiness_checks=[failing_check])
+    client = TestClient(rad.app)
+
+    with caplog.at_level("ERROR", logger="shared_api.framework"):
+        response = client.get("/api/ready")
+
+    assert response.status_code == 503
+    detail = response.json()["detail"]
+    assert detail["reason"] == "internal_check_failed"
+    assert detail["message"] == "A readiness check failed. See error_id for correlation."
+    assert "error_id" in detail
+    assert "warehouse password leaked" not in response.text
+    assert any("readiness_check.failed" in record.message for record in caplog.records)
