@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { setupServer } from 'msw/node'
 import { spcHandlers } from './spcHandlers'
 

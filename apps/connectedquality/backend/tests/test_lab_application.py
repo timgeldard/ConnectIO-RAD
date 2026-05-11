@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from connectedquality_backend.application import lab
 
 

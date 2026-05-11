@@ -56,7 +56,7 @@ scripts/tests/test_ddd_architecture_guardrails.py — 3 passed in 0.18s
 ### Shared libraries
 
 ```
-shared-domain  —  8 passed
+shared-ddd / shared-manufacturing  —  8 passed
 shared-trace   — 17 passed
 ```
 

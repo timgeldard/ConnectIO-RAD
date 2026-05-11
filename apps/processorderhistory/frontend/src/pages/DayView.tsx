@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n/context'
 import { TopBar, Icon, Button, KPI } from '@connectio/shared-ui'

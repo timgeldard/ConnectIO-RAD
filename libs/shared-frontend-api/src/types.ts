@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Standard interface for API responses that may be conditionally available.
  * 

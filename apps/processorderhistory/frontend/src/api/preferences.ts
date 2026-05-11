@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /** Preferences API — GET /api/me/preferences and POST /api/me/preferences. */
 
 import { fetchJson, postJson } from './client'

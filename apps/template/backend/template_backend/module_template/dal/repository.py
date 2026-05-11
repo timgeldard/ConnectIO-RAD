@@ -16,7 +16,8 @@ from template_backend.module_template.domain.value_objects import (
     TemplateMetricValue,
     TemplateScope,
 )
-from shared_domain import AuditStamp, PlantId
+from shared_ddd import AuditStamp
+from shared_manufacturing import PlantId
 
 SqlRunner = Callable[[str, str, list[dict] | None], Awaitable[list[dict]]]
 

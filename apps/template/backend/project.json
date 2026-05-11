@@ -9,7 +9,8 @@
     "shared-db",
     "shared-api",
     "shared-auth",
-    "shared-domain"
+    "shared-ddd",
+    "shared-manufacturing"
   ],
   "targets": {
     "sync": {
@@ -29,20 +30,13 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run --no-sync --package template-backend python -m pytest",
-        "cwd": "apps/template/backend"
-      },
-      "inputs": [
-        "pyFiles",
-        "^pyFiles",
-        "sharedGlobals"
-      ],
-      "cache": true
+        "command": "uv run --no-sync --package template-backend python -m pytest"
+      }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=apps/template:libs/shared-api/src:libs/shared-auth/src:libs/shared-domain/src uv run --no-sync ruff check apps/template/backend",
+        "command": "PYTHONPATH=apps/template:libs/shared-api/src:libs/shared-auth/src:libs/shared-ddd/src:libs/shared-manufacturing/src uv run --no-sync ruff check apps/template/backend",
         "cwd": "{workspaceRoot}"
       },
       "inputs": [

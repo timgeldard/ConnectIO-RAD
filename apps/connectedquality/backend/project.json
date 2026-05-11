@@ -1,8 +1,14 @@
 {
   "name": "connectedquality-backend",
   "projectType": "application",
-  "tags": ["scope:connectedquality", "type:backend"],
-  "implicitDependencies": ["shared-db", "shared-api"],
+  "tags": [
+    "scope:connectedquality",
+    "type:backend"
+  ],
+  "implicitDependencies": [
+    "shared-db",
+    "shared-api"
+  ],
   "targets": {
     "sync": {
       "executor": "nx:run-commands",
@@ -21,11 +27,8 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run --no-sync --package connectedquality-backend python -m pytest",
-        "cwd": "apps/connectedquality/backend"
-      },
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
-      "cache": true
+        "command": "uv run --no-sync --package connectedquality-backend python -m pytest"
+      }
     },
     "lint": {
       "executor": "nx:run-commands",
@@ -33,7 +36,11 @@
         "command": "uv run --no-sync ruff check apps/connectedquality/backend",
         "cwd": "{workspaceRoot}"
       },
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "inputs": [
+        "pyFiles",
+        "^pyFiles",
+        "sharedGlobals"
+      ],
       "cache": true
     },
     "deploy": {

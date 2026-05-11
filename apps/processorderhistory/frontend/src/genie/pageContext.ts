@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { GeniePageContext } from '../api/genie'
 
 function qp(name: string): string | null {

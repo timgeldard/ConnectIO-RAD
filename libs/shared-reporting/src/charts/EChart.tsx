@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { ComponentProps } from 'react'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
 import { echarts } from './echartsCore'

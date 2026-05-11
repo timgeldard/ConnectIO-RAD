@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useQuery } from '@tanstack/react-query'
 import { fetchDataQuality, type DataQualitySummary } from '../../api/spc'
 import { spcQueryKeys } from '../queryKeys'

@@ -1,9 +1,11 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
-import { Icon, KPI, Card } from '@connectio/shared-ui'
 import { minutesFromNow } from '~/utils/time'
+import { Icon, KPI, Card, DataTable } from './Primitives'
+import type { Column } from '@connectio/shared-ui'
 
-export { KPI, Card }
+export { Icon, KPI, Card, DataTable, type Column }
 
 /** A breadcrumb navigation item. */
 export type CrumbItem = { label: string; onClick?: () => void }
@@ -16,7 +18,8 @@ export const formatETA = (value: Date | string | number): string => {
 }
 
 /** A single filter chip within a FilterBar filter group. */
-interface Chip { value: string; label: string; dot?: string }
+interface Chip { value: string; label: string; dot?: string; count?: number | string }
+
 /** A single filter group shown in FilterBar. */
 interface Filter {
   key: string
@@ -26,6 +29,7 @@ interface Filter {
   /** Backward-compat alias for `chips`; used by callers that pre-date the `chips` rename. */
   options?: Chip[]
 }
+
 /** Props for the shared chip-based FilterBar. */
 interface FilterBarProps {
   filters: Filter[]

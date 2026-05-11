@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from trace2_backend.batch_trace.router import router as batch_trace_router

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { fetchJson, postJson } from './client'
 
 export interface GeniePageContext {

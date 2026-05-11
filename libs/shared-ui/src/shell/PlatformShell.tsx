@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useMemo, type ReactNode } from 'react'
 import { LeftRail } from './LeftRail'
 import { ShellTopBar } from './ShellTopBar'

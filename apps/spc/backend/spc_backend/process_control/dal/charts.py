@@ -16,9 +16,6 @@ from typing import Optional
 
 from spc_backend.process_control.dal._chart_coercion import (
     _apply_chart_row_formatting,
-    _coerce_chart_float,
-    _coerce_chart_int,
-    _format_chart_row_error,
 )
 from spc_backend.process_control.dal._chart_cursor import (
     _assign_batch_sequence,
@@ -26,18 +23,13 @@ from spc_backend.process_control.dal._chart_cursor import (
     encode_chart_cursor,
 )
 from spc_backend.process_control.dal._chart_filters import (
-    _ALLOWED_STRATIFY_COLUMNS,
     ChartFilterSpec,
-    _build_batch_dates_cte_sql,
     _build_chart_filters,
     _build_chart_page_query,
     _build_chart_values_query,
-    _build_quality_data_cte_sql,
-    _where_clause,
 )
 from spc_backend.utils.db import TRACE_CATALOG, TRACE_SCHEMA, run_sql_async, sql_param, tbl
 from spc_backend.utils.schema_contract import detect_optional_columns
-from shared_trace import schema
 
 logger = logging.getLogger(__name__)
 

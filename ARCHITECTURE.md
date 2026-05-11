@@ -77,7 +77,7 @@ We follow strict **Domain-Driven Design (DDD)**. Each application is partitioned
 | `shared-db` | DAL | Connection pools, async SQL, and safe identifier mapping. |
 | `shared-auth` | Infra | OIDC/Databricks token validation and persona resolution. |
 | `shared-ui` | UI | Kerry Design System tokens and Kerry-specific shell. |
-| `shared-domain` | Domain | Base classes: `AggregateRoot`, `ValueObject`, `Entity`. |
+| `shared-ddd / shared-manufacturing` | Domain | Base classes: `AggregateRoot`, `ValueObject`, `Entity`. |
 
 ---
 
@@ -87,3 +87,4 @@ To prevent "Spaghetti Code," we enforce the following boundaries via `scripts/va
 - **Domain Isolation**: Domain packages MUST NOT import from `fastapi`, `pydantic` (transport), or `sql` (infra).
 - **One-Way Dependencies**: App layers can only depend on layers below them: `Router → Application → Domain`.
 - **Context Integrity**: Bounded contexts cannot import from sibling contexts; communication must be cross-app or via shared libraries.
+- **AI-First Standards**: See [docs/AI_AGENT_STANDARDS.md](docs/AI_AGENT_STANDARDS.md) for agent-specific conventions and patterns.

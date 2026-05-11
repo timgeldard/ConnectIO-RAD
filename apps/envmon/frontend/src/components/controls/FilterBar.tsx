@@ -1,8 +1,9 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@connectio/shared-frontend-i18n';
 import { useEM } from '~/context/EMContext';
 import { useMics, useHeatmap } from '~/api/client';
-import { Slider, Select, Button, Icon, GlobalFilterBar, FilterGroup } from '@connectio/shared-ui';
+import { Slider, Select, Button, Icon, GlobalFilterBar } from '@connectio/shared-ui';
 import type { TimeWindow } from '~/types';
 
 function escapeCsv(val: unknown): string {

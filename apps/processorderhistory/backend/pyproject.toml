@@ -12,7 +12,7 @@ dependencies = [
   "shared-api",
   "shared-auth",
   "shared-db",
-  "shared-domain",
+  "shared-ddd", "shared-manufacturing",
 ]
 
 [build-system]

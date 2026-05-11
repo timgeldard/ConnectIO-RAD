@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '@connectio/shared-ui'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from '../SPCContext'

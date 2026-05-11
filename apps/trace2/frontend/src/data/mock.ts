@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 // Mock data for Meridian Ingredients batch traceability
 // Fictional F&B ingredients manufacturer — recreated from schema of provided dashboard JSON.
 

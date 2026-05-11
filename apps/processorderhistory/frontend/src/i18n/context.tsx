@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { I18nProvider, useI18n, type LanguageCode } from '@connectio/shared-frontend-i18n'
 import type { LangCode, Strings } from './dictionary'

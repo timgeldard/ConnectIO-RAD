@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Genie contextual assistant drawer for the ConnectIO platform.
  *

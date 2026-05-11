@@ -2,7 +2,7 @@ import pytest
 import math
 import json
 import os
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from spc_backend.process_control.domain.msa import compute_grr, compute_grr_anova, _is_number
 from spc_backend.process_control.domain.multivariate import compute_hotelling_t2, _round_float
 

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import './ensureEChartsTheme'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from '../SPCContext'

@@ -1,6 +1,7 @@
 """Domain tests for Warehouse360 inventory management."""
 
-from shared_domain import ValueObject, test_data
+from shared_ddd import ValueObject
+from shared_manufacturing import test_data
 from warehouse360_backend.inventory_management.domain.plant_scope import PlantScope
 
 

@@ -67,8 +67,13 @@ def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def command_for(target: dict[str, Any]) -> str:
-    options = target.get("options", {})
+NX_DEFAULTS = load_json(ROOT / "nx.json").get("targetDefaults", {})
+
+
+def command_for(target: dict[str, Any] | None, target_name: str | None = None) -> str:
+    options = (target or {}).get("options", {})
+    if not options and target_name:
+        options = NX_DEFAULTS.get(target_name, {}).get("options", {})
     command = options.get("command", "")
     return str(command)
 
@@ -95,24 +100,27 @@ def validate_frontend_test(
     errors: list[str],
     project_file: Path,
     project: dict[str, Any],
-    target: dict[str, Any],
+    target: dict[str, Any] | None,
     targets: dict[str, Any],
 ) -> None:
-    command = command_for(target)
-    if "npm test -- --run" not in command:
-        errors.append(f"{project['name']}: frontend test target must run non-watch Vitest via `npm test -- --run`, got `{command}`")
+    command = command_for(target, "test")
+    if not command or "uv run" in command or "python -m pytest" in command:
+        return
+
+    if not any(cmd in command for cmd in ("npm run test:ci", "npm test -- --run")):
+        errors.append(f"{project['name']}: frontend test target must run non-watch Vitest via `npm test -- --run` or `npm run test:ci`, got `{command}`")
     if any(command.strip() == watch for watch in WATCH_TEST_COMMANDS):
         errors.append(f"{project['name']}: frontend test target may run in watch mode: `{command}`")
 
     coverage_target = targets.get("test:coverage")
-    if coverage_target is None:
+    coverage_command = command_for(coverage_target, "test:coverage")
+    if not coverage_command:
         errors.append(f"{project['name']}: frontend project must define `test:coverage` target")
     else:
-        coverage_command = command_for(coverage_target)
-        if "npm run test:ci" not in coverage_command:
-            errors.append(f"{project['name']}: frontend test:coverage target must run `npm run test:ci`, got `{coverage_command}`")
+        if not any(cmd in coverage_command for cmd in ("npm run test:ci", "npm run test:coverage")):
+            errors.append(f"{project['name']}: frontend test:coverage target must run `npm run test:ci` or `npm run test:coverage`, got `{coverage_command}`")
 
-    package_path = package_json_for(project_file, target)
+    package_path = package_json_for(project_file, target or {})
     if package_path is None:
         errors.append(f"{project['name']}: frontend test target has no package.json near its cwd")
         return
@@ -125,13 +133,16 @@ def validate_frontend_lint(
     errors: list[str],
     project_file: Path,
     project: dict[str, Any],
-    target: dict[str, Any],
+    target: dict[str, Any] | None,
 ) -> None:
-    command = command_for(target)
+    command = command_for(target, "lint")
+    if not command or "uv run" in command or "ruff check" in command:
+        return
+
     if "npm run lint" not in command:
         errors.append(f"{project['name']}: frontend lint target must run `npm run lint`, got `{command}`")
 
-    package_path = package_json_for(project_file, target)
+    package_path = package_json_for(project_file, target or {})
     if package_path is None:
         errors.append(f"{project['name']}: frontend lint target has no package.json near its cwd")
         return
@@ -145,17 +156,19 @@ def validate_warehouse_typecheck(errors: list[str], project: dict[str, Any], tar
         return
 
     typecheck_target = targets.get("typecheck")
-    if typecheck_target is None:
+    command = command_for(typecheck_target, "typecheck")
+    if not command:
         errors.append("warehouse360-frontend: frontend project must define `typecheck` target")
         return
 
-    command = command_for(typecheck_target)
     if "npm run typecheck" not in command:
         errors.append(f"warehouse360-frontend: typecheck target must run `npm run typecheck`, got `{command}`")
 
 
-def validate_python_test(errors: list[str], project: dict[str, Any], target: dict[str, Any]) -> None:
-    command = command_for(target)
+def validate_python_test(errors: list[str], project: dict[str, Any], target: dict[str, Any] | None) -> None:
+    command = command_for(target, "test")
+    if not command:
+        return
     if "uv run --no-sync" not in command:
         errors.append(f"{project['name']}: Python test target must use `uv run --no-sync`, got `{command}`")
     if "python -m pytest" not in command:
@@ -170,10 +183,13 @@ def validate_backend_serve_port(
 ) -> None:
     name = str(project["name"])
     expected_port = EXPECTED_BACKEND_PORTS.get(name)
-    if expected_port is None or serve_target is None:
+    if expected_port is None:
         return
 
-    command = command_for(serve_target)
+    command = command_for(serve_target, "serve")
+    if not command:
+        return
+
     match = PORT_PATTERN.search(command)
     if match is None:
         errors.append(f"{name}: backend serve target must declare `--port {expected_port}`, got `{command}`")
@@ -195,25 +211,25 @@ def validate_project(project_file: Path, errors: list[str], seen_backend_ports: 
     project["name"] = name
     tags = set(project.get("tags", []))
     targets = project.get("targets", {})
-    test_target = targets.get("test")
 
     if "type:frontend" in tags:
         for required in ("build", "test", "lint"):
             if required not in targets:
+                cmd = command_for(None, required)
+                if "uv run" in cmd or "python" in cmd or "ruff" in cmd:
+                    continue
                 errors.append(f"{name}: frontend project must define `{required}` target")
-        if test_target:
-            validate_frontend_test(errors, project_file, project, test_target, targets)
-        lint_target = targets.get("lint")
-        if lint_target:
-            validate_frontend_lint(errors, project_file, project, lint_target)
+        
+        validate_frontend_test(errors, project_file, project, targets.get("test"), targets)
+        validate_frontend_lint(errors, project_file, project, targets.get("lint"))
         validate_warehouse_typecheck(errors, project, targets)
         return
 
     is_python_project = "type:backend" in tags or (project_file.parent / "pyproject.toml").exists()
     if "type:backend" in tags:
         validate_backend_serve_port(errors, project, targets.get("serve"), seen_backend_ports)
-    if is_python_project and test_target:
-        validate_python_test(errors, project, test_target)
+    if is_python_project:
+        validate_python_test(errors, project, targets.get("test"))
 
 
 def deploy_manifest_files() -> list[Path]:

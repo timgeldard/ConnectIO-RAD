@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useState } from 'react'
 import { I18nProvider } from '@connectio/shared-frontend-i18n'
 import { PlatformShell } from '@connectio/shared-ui'

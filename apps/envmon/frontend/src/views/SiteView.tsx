@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useI18n } from '@connectio/shared-frontend-i18n';
 import { KPI } from '@connectio/shared-ui';
 import { useFloors } from '~/api/client';

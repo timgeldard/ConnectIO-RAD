@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Icon, Pill, Progress } from './Primitives'
 import { Card } from './Shared'

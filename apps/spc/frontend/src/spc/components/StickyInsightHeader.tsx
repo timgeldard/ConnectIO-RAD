@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { ReactNode } from 'react'
 import type { StatusPillStatus } from './StatusPill'
 import { StatusPill } from '@connectio/shared-ui'

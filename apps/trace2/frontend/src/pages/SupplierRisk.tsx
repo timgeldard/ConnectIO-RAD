@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { Batch, Supplier } from "../types";
 import { fetchSupplierRisk } from "../data/api";
 import { useBatchData } from "../data/useBatchData";

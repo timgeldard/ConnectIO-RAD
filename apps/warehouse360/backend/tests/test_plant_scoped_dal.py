@@ -1,5 +1,5 @@
 import pytest
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 from warehouse360_backend.order_fulfillment.dal import deliveries, process_orders
 from warehouse360_backend.inventory_management.dal import inbound, inventory

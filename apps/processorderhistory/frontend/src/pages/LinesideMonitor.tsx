@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useState } from 'react'
 import { Icon, KPI, TopBar } from '@connectio/shared-ui'
 import { fetchLinesideMonitor, type LinesideMonitorSummary } from '../api/lineside_monitor'

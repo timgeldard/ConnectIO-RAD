@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Integration smoke test: proves the scorecard API round-trip through MSW fixtures
  * without a live Databricks connection. Exercises fetchScorecard → TanStack Query

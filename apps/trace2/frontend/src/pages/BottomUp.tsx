@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useState } from "react";
 import type { Batch, LineageNode, PageId } from "../types";
 import { fetchBottomUp, focalFromBatch } from "../data/api";

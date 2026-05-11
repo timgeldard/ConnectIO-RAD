@@ -1,5 +1,5 @@
 import asyncio
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from spc_backend.process_control.dal import metadata as spc_metadata_dal
 
 
@@ -11,7 +11,7 @@ def _characteristic_row(**overrides):
         "mic_name": "Viscosity",
         "mic_name_normalized": "VISCOSITY",
         "inspection_method": "GAUGE",
-        "unified_mic_key": f"C351||VISCOSITY||NO_UNIT",
+        "unified_mic_key": "C351||VISCOSITY||NO_UNIT",
         "is_attribute": 0,
         "has_quantitative": 1,
         "batch_count": 10,

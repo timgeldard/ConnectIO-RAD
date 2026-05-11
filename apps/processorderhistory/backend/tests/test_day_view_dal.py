@@ -3,7 +3,7 @@ import asyncio
 from datetime import timezone, datetime
 
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from processorderhistory_backend.order_execution.dal import day_view_dal as dal
 
 _MS_PER_DAY = 86_400_000

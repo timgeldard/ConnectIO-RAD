@@ -12,6 +12,7 @@
     "tools/generators"
   ],
   "scripts": {
+    "rad": "python3 scripts/rad.py",
     "dev:spc": "nx run spc-frontend:dev",
     "dev:envmon": "nx run envmon-frontend:dev",
     "dev:trace2": "nx run trace2-frontend:dev",
@@ -42,6 +43,7 @@
     "@typescript-eslint/eslint-plugin": "^8.59.2",
     "@typescript-eslint/parser": "^8.59.2",
     "eslint": "^10.3.0",
+    "eslint-plugin-jsdoc": "^62.9.0",
     "nx": "^22.0.0",
     "typescript": "~5.6.3"
   },

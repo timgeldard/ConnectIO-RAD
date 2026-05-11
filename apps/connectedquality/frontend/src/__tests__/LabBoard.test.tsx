@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, act } from '@testing-library/react'
+/* eslint-disable jsdoc/require-jsdoc */
+import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { LabBoard } from '../pages/lab/LabBoard'
 import { fetchJson } from '@connectio/shared-frontend-api'

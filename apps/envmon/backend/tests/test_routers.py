@@ -292,7 +292,7 @@ def test_lot_status_pass_and_fail():
 
 def test_location_coordinate_valid():
     """Valid coordinate values construct without error."""
-    from shared_domain import ValueObject
+    from shared_ddd import ValueObject
     from envmon_backend.spatial_config.domain.coordinate import LocationCoordinate
 
     coord = LocationCoordinate(func_loc_id="LOC1", floor_id="F1", x_pct=50.0, y_pct=25.0)

@@ -331,7 +331,8 @@ app = rad_app.fastapi_app
   write(tree, `${contextRoot}/domain/value_objects.py`, `"""Value objects for the ${n.contextName} bounded context."""
 from dataclasses import dataclass
 
-from shared_domain import PlantId, ValueObject
+from shared_ddd import ValueObject
+from shared_manufacturing import PlantId
 
 
 @dataclass(frozen=True)
@@ -374,7 +375,7 @@ class ${n.className}Scope(ValueObject):
   write(tree, `${contextRoot}/domain/events.py`, `"""Domain events for the ${n.contextName} bounded context."""
 from dataclasses import dataclass
 
-from shared_domain import DomainEvent
+from shared_ddd import DomainEvent
 
 
 @dataclass(frozen=True)
@@ -395,7 +396,8 @@ class ${n.className}SignalStatusChanged(DomainEvent):
   write(tree, `${contextRoot}/domain/entities.py`, `"""Entities for the ${n.contextName} bounded context."""
 from dataclasses import dataclass
 
-from shared_domain import AggregateRoot, AuditStamp, PlantId
+from shared_ddd import AggregateRoot, AuditStamp
+from shared_manufacturing import PlantId
 
 from ${n.backendPackageName}.${n.contextName}.domain.events import (
     ${n.className}OverviewViewed,
@@ -730,7 +732,8 @@ from ${n.backendPackageName}.${n.contextName}.domain.value_objects import (
     ${n.className}MetricValue,
     ${n.className}Scope,
 )
-from shared_domain import AuditStamp, PlantId
+from shared_ddd import AuditStamp
+from shared_manufacturing import PlantId
 
 SqlRunner = Callable[[str, str, list[dict] | None], Awaitable[list[dict]]]
 
@@ -1579,15 +1582,72 @@ function updatePlatformManifest(tree, n, skipPlatform) {
 
 async function boundedContextGenerator(tree, options) {
   const n = toNames(options);
-  createBackendFiles(tree, n);
-  createFrontendFiles(tree, n);
+
+  if (options.minimal) {
+    createMinimalBackendFiles(tree, n);
+    createMinimalFrontendFiles(tree, n);
+  } else {
+    createBackendFiles(tree, n);
+    createFrontendFiles(tree, n);
+  }
+
   createE2eFiles(tree, n);
   updatePythonWorkspace(tree, n);
   updatePackageWorkspace(tree);
   updateNxConstraints(tree, n);
-  updateDddGuardrail(tree, n);
+  if (!options.minimal) {
+    updateDddGuardrail(tree, n);
+  }
   updatePlatformManifest(tree, n, Boolean(options.skipPlatform));
   await formatFiles(tree);
+}
+
+function createMinimalBackendFiles(tree, n) {
+  const root = `apps/${n.appName}`;
+  const pkgRoot = `${root}/backend/${n.backendPackageName}`;
+
+  write(
+    tree,
+    `${root}/README.md`,
+    `# ${n.displayName} (Minimal Concept)\n\nThis is a minimal concept module.`
+  );
+  write(tree, `${root}/databricks.yml`, `bundle:\n  name: ${n.projectName}`);
+  write(
+    tree,
+    `${root}/deploy.toml`,
+    `[app]\nname = "${n.appName}"\nbackend_project = "${n.projectName}-backend"\nfrontend_project = "${n.projectName}-frontend"`
+  );
+
+  write(tree, `${root}/backend/project.json`, JSON.stringify({
+    name: `${n.projectName}-backend`,
+    projectType: "application",
+    tags: [`scope:${n.projectName}`, "type:backend"],
+    targets: {
+      sync: { executor: "nx:run-commands", options: { command: `uv sync --package ${n.backendDistName}`, cwd: "{workspaceRoot}" } },
+      serve: { executor: "nx:run-commands", options: { command: `uv run --no-sync --package ${n.backendDistName} uvicorn ${n.backendPackageName}.main:app --reload --port ${n.port}`, cwd: "{workspaceRoot}" } },
+    },
+  }, null, 2));
+
+  write(tree, `${root}/backend/pyproject.toml`, `[project]\nname = "${n.backendDistName}"\nversion = "0.1.0"\ndependencies = ["fastapi", "shared-api", "shared-auth", "shared-manufacturing"]\n\n[tool.hatch.build.targets.wheel]\npackages = ["${n.backendPackageName}"]`);
+
+  write(tree, `${pkgRoot}/__init__.py`, "");
+  write(tree, `${pkgRoot}/main.py`, `from fastapi import APIRouter\nfrom shared_api import create_rad_app\n\nrouter = APIRouter()\n\n@router.get("/overview")\nasync def overview():\n    return {"status": "ok", "module": "${n.appName}"}\n\napp = create_rad_app(title="${n.displayName} API", app_name="${n.projectName}").fastapi_app\napp.include_router(router, prefix="/api/${n.appName}")\n`);
+
+  write(tree, `${pkgRoot}/routers/__init__.py`, `from .module import router\n\nPLATFORM_ROUTERS = [(router, "/api/${n.appName}", ["${n.displayName}"])]`);
+  write(tree, `${pkgRoot}/routers/module.py`, `from fastapi import APIRouter\nrouter = APIRouter()\n@router.get("/overview")\nasync def overview():\n    return {"status": "ok", "module": "${n.appName}"}`);
+}
+
+function createMinimalFrontendFiles(tree, n) {
+  const root = `apps/${n.appName}`;
+  write(tree, `${root}/frontend/package.json`, JSON.stringify({
+    name: `${n.projectName}-frontend`,
+    version: "0.1.0",
+    scripts: { dev: "vite", build: "vite build" },
+    dependencies: { react: "^18", "react-dom": "^18", "@connectio/shared-ui": "file:../../../libs/shared-ui" }
+  }, null, 2));
+
+  write(tree, `${root}/frontend/src/App.tsx`, `import { ${n.className}Page } from './Page'\nexport function Root() { return <${n.className}Page /> }`);
+  write(tree, `${root}/frontend/src/Page.tsx`, `export function ${n.className}Page() { return <h1>${n.displayName} Concept</h1> }`);
 }
 
 module.exports = boundedContextGenerator;

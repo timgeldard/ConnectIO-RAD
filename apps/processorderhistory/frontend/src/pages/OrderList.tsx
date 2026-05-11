@@ -1,12 +1,12 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useMemo, useState, useEffect } from 'react'
 import { useT } from '../i18n/context'
-import { KPI, Icon, TopBar, Button, GlobalFilterBar, FilterGroup, FilterDivider } from '@connectio/shared-ui'
+import { KPI, Icon, TopBar, Button, GlobalFilterBar, FilterGroup, FilterDivider, type Column } from '@connectio/shared-ui'
 import { usePlantSelection } from '@connectio/shared-app-context'
 import { useQuery } from '@tanstack/react-query'
-import { fmt, StatusBadge, Check } from '../ui'
+import { fmt, StatusBadge, DataTable } from '../ui'
 import { STATUSES } from '../data/mock'
 import { fetchOrders } from '../api/orders'
-import type { Order } from '../api/orders'
 import { fetchPoursAnalytics } from '../api/pours'
 
 function isToday(ms: number | null): boolean {
@@ -32,6 +32,23 @@ interface OrderListProps {
   setLineFilter?: (value: string) => void
 }
 
+interface Order {
+  id: string
+  lot?: string | null
+  status: string
+  line?: string | null
+  shift?: string | null
+  actualQty?: number | null
+  yieldPct?: number | null
+  start?: number | null
+  end?: number | null
+  product: {
+    name: string
+    sku: string
+    category: string
+  }
+}
+
 export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
   const { t } = useT()
   const { selectedPlantId } = usePlantSelection()
@@ -51,6 +68,28 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
   })
 
   const orders = ordersData?.orders ?? []
+
+  const totalRunning = useMemo(() => orders.filter(o => o.status === 'running').length, [orders])
+  const onHold = useMemo(() => orders.filter(o => o.status === 'onhold' || o.status === 'failed').length, [orders])
+  const ordersThisMonth = orders.length
+  const avgYield = useMemo(() => {
+    const valid = orders.filter(o => o.yieldPct != null)
+    if (valid.length === 0) return null
+    return Math.round(valid.reduce((acc, o) => acc + (o.yieldPct || 0), 0) / valid.length)
+  }, [orders])
+
+  const statusLabel = useMemo(() => {
+    const map: Record<string, string> = {
+      running: t.statusRunning,
+      completed: t.statusCompleted,
+      closed: t.statusClosed || 'Closed',
+      released: t.statusReleased,
+      onhold: t.statusOnhold,
+      cancelled: t.statusCancelled,
+      failed: t.statusFailed,
+    }
+    return map
+  }, [t])
 
   const { data: poursData } = useQuery({
     queryKey: ['poh', 'pours', 'today'],

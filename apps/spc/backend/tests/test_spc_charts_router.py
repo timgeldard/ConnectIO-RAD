@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from spc_backend.main import app
 import spc_backend.process_control.router_charts as charts_router
 import spc_backend.chart_config.router as chart_config_router

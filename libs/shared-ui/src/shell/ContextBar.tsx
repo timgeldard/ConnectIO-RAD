@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { Icon } from '../components/Icon'
 import type { CtxState } from './types'
 

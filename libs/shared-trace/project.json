@@ -1,7 +1,10 @@
 {
   "name": "shared-trace",
   "projectType": "library",
-  "tags": ["scope:shared", "type:backend"],
+  "tags": [
+    "scope:shared",
+    "type:backend"
+  ],
   "targets": {
     "lint": {
       "executor": "nx:run-commands",
@@ -9,7 +12,10 @@
         "command": "uv run --no-sync ruff check .",
         "cwd": "libs/shared-trace"
       },
-      "inputs": ["pyFiles", "sharedGlobals"],
+      "inputs": [
+        "pyFiles",
+        "sharedGlobals"
+      ],
       "cache": true
     },
     "test": {
@@ -18,8 +24,10 @@
         "command": "PYTHONPATH=libs/shared-trace/src uv run --no-sync --package shared-trace python -m pytest libs/shared-trace/tests",
         "cwd": "{workspaceRoot}"
       },
-      "inputs": ["pyFiles", "sharedGlobals"],
-      "cache": true
+      "inputs": [
+        "pyFiles",
+        "sharedGlobals"
+      ]
     }
   }
 }

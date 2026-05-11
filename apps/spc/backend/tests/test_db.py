@@ -8,11 +8,10 @@ re-tested here to reduce false coupling.
 
 import os
 import asyncio
-import pytest
 from unittest.mock import patch, AsyncMock
 
 import spc_backend.utils.db as db_module
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 
 # Provide defaults so the module can be imported without env vars set
@@ -21,10 +20,6 @@ os.environ.setdefault("DATABRICKS_WAREHOUSE_HTTP_PATH", "/sql/1.0/warehouses/abc
 os.environ.setdefault("TRACE_CATALOG", "test_catalog")
 os.environ.setdefault("TRACE_SCHEMA", "test_schema")
 
-from spc_backend.utils.db import (
-    get_data_freshness,
-    run_sql_async,
-)
 
 
 class TestSqlCacheBehavior:

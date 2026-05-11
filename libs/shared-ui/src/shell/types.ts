@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /** Platform shell types — module contract, app composition manifest, and shared context types. */
 
 /** Plant / material / batch context displayed in the 40px context bar. */

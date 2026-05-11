@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 ﻿// @ts-nocheck
 // Mock data aligned to Kerry Databricks dashboard:
 // connected_plant_uat.csm_process_order_history.* views

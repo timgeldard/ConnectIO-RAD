@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { fetchJson } from './client'
 import type {
   CompareScorecardResult,

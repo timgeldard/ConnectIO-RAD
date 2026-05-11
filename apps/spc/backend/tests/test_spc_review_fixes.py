@@ -3,7 +3,7 @@ import asyncio
 from fastapi import HTTPException
 from pydantic import ValidationError
 from starlette.requests import Request
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 from spc_backend.process_control.dal import analysis as spc_analysis_dal
 from spc_backend.process_control.dal import charts as spc_charts_dal

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useMemo, useRef } from "react";
 import cytoscape, { type Core, type EdgeDefinition, type ElementDefinition, type NodeDefinition } from "cytoscape";
 import coseBilkent from "cytoscape-cose-bilkent";

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 export const templateChartConfig = {
   id: 'template-signals',
   type: 'bar',

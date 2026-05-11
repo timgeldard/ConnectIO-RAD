@@ -1,6 +1,6 @@
 import asyncio
 import pytest
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 from spc_backend.process_control.dal import analysis as spc_analysis_dal
 from spc_backend.process_control.domain.multivariate import compute_hotelling_t2

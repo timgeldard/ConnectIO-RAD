@@ -1,8 +1,13 @@
 {
   "name": "warehouse360-backend",
   "projectType": "application",
-  "tags": ["scope:warehouse360", "type:backend"],
-  "implicitDependencies": ["shared-geo"],
+  "tags": [
+    "scope:warehouse360",
+    "type:backend"
+  ],
+  "implicitDependencies": [
+    "shared-geo"
+  ],
   "targets": {
     "sync": {
       "executor": "nx:run-commands",
@@ -21,11 +26,8 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "PYTHONPATH=. uv run --no-sync --package warehouse360-backend python -m pytest",
-        "cwd": "apps/warehouse360/backend"
-      },
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
-      "cache": true
+        "command": "PYTHONPATH=. uv run --no-sync --package warehouse360-backend python -m pytest"
+      }
     },
     "lint": {
       "executor": "nx:run-commands",
@@ -33,7 +35,11 @@
         "command": "PYTHONPATH=apps/warehouse360/backend uv run --no-sync --package warehouse360-backend ruff check apps/warehouse360/backend",
         "cwd": "{workspaceRoot}"
       },
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "inputs": [
+        "pyFiles",
+        "^pyFiles",
+        "sharedGlobals"
+      ],
       "cache": true
     },
     "deploy": {

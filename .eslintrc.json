@@ -2,9 +2,42 @@
   "root": true,
   "parser": "@typescript-eslint/parser",
   "plugins": [
-    "@nx"
+    "@nx",
+    "jsdoc"
+  ],
+  "extends": [
+    "plugin:jsdoc/recommended-typescript-error"
   ],
   "overrides": [
+    {
+      "files": [
+        "*.ts",
+        "*.tsx"
+      ],
+      "rules": {
+        "jsdoc/require-jsdoc": [
+          "error",
+          {
+            "publicOnly": true,
+            "require": {
+              "FunctionDeclaration": true,
+              "MethodDefinition": true,
+              "ClassDeclaration": true,
+              "ArrowFunctionExpression": true,
+              "InterfaceDeclaration": true,
+              "TypeAliasDeclaration": true
+            },
+            "contexts": [
+              "ExportNamedDeclaration",
+              "ExportDefaultDeclaration"
+            ]
+          }
+        ],
+        "jsdoc/require-description": "error",
+        "jsdoc/require-param-description": "error",
+        "jsdoc/require-returns-description": "error"
+      }
+    },
     {
       "files": [
         "*.ts",

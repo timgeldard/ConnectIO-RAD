@@ -1,6 +1,5 @@
 import pytest
-import os
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import patch
 from spc_backend.utils import db as db_module
 
 def test_warehouse_id_parsing():

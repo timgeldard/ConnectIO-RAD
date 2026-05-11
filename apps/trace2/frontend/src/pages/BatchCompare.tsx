@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { Batch, BatchCompareEntry } from "../types";
 import { fetchBatchCompare } from "../data/api";
 import { useBatchData } from "../data/useBatchData";

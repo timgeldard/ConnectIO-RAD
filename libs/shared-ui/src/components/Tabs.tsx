@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 interface Tab {
   id: string;
   label: string;

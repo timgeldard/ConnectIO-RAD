@@ -1,8 +1,15 @@
 {
   "name": "envmon-backend",
   "projectType": "application",
-  "tags": ["scope:envmon", "type:backend"],
-  "implicitDependencies": ["shared-db", "shared-api", "shared-geo"],
+  "tags": [
+    "scope:envmon",
+    "type:backend"
+  ],
+  "implicitDependencies": [
+    "shared-db",
+    "shared-api",
+    "shared-geo"
+  ],
   "targets": {
     "sync": {
       "executor": "nx:run-commands",
@@ -21,11 +28,8 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run --no-sync --package envmon-backend python -m pytest",
-        "cwd": "apps/envmon/backend"
-      },
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
-      "cache": true
+        "command": "uv run --no-sync --package envmon-backend python -m pytest"
+      }
     },
     "lint": {
       "executor": "nx:run-commands",
@@ -33,7 +37,11 @@
         "command": "uv run --no-sync ruff check apps/envmon/backend",
         "cwd": "{workspaceRoot}"
       },
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "inputs": [
+        "pyFiles",
+        "^pyFiles",
+        "sharedGlobals"
+      ],
       "cache": true
     },
     "deploy": {

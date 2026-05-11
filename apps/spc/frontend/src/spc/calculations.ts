@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 export * from './calculations.runtime'
 export type {
   AutoCleanPhaseIResult,

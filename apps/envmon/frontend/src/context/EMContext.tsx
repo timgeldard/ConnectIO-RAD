@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Global state for the EM app.
  * Adds multi-level navigation (view) and persona gating on top of the original

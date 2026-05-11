@@ -1,6 +1,8 @@
 import asyncio
 from unittest.mock import MagicMock
 
+from shared_manufacturing import test_data
+
 import processorderhistory_backend.db as db
 
 
@@ -46,8 +48,6 @@ def test_run_sql_async_calls_shared(monkeypatch):
     mock.assert_called_once_with("tok", "SELECT 1", None)
     assert result == expected
 
-
-from shared_domain import test_data
 
 def test_run_sql_async_forwards_params(monkeypatch):
     po_id = test_data.process_order()

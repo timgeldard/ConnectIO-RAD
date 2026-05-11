@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useState, useCallback } from 'react'
 import { parseCrossAppContext } from '@connectio/shared-ui/shell'
 import type { CrossAppContext } from '@connectio/shared-ui/shell'

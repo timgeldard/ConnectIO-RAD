@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { WidgetComponent } from './types'
 
 export interface WidgetRegistry {

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useState } from 'react'
 import { calculateMSA } from '../../api/spc'
 import type { MSAResult } from '../types'

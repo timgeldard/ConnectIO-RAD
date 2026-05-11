@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useI18n } from '@connectio/shared-frontend-i18n'
 import { TemplateMetricGrid } from '../components/TemplateMetricGrid'
 import { useTemplateOverview } from '../hooks/useTemplateOverview'

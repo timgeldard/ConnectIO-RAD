@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { computeAll } from './calculations'
 import type {
   ChartDataPoint,

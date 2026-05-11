@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Tiny inline SVG sparkline — no D3, no Recharts.
  * Shows the last N values as a line, with faint ±3σ guide bands.

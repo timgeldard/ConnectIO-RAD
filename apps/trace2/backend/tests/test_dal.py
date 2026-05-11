@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, patch
-from shared_domain import test_data
+from shared_manufacturing import test_data
 import trace2_backend.dal.trace_dal as dal
 
 @pytest.mark.asyncio

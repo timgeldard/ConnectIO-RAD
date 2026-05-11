@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useMemo } from 'react'
 import EChart from './EChart'
 import type { CapabilityMatrixDatum, CorrelationMatrixProps, CorrelationPair, EventParamLike } from '../types'

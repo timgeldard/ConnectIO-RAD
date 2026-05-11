@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useState } from 'react';
 import { useI18n } from '@connectio/shared-frontend-i18n';
 import { useTrends, useMics } from '~/api/client';

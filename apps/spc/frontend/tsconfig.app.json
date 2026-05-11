@@ -9,7 +9,8 @@
     "ignoreDeprecations": "5.0",
     "baseUrl": ".",
     "paths": {
-      "~/*": ["src/*"]
+      "~/*": ["src/*"],
+      "@connectio/shared-reporting": ["../../../libs/shared-reporting/src/index.ts"]
     },
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,

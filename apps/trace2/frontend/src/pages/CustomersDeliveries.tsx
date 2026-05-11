@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useMemo, useState } from "react";
 import type { Batch, CustomerRow, Delivery, PageId } from "../types";
 import { fetchTopDown } from "../data/api";

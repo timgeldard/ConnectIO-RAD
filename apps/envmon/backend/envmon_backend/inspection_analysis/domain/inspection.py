@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from shared_domain import BusinessRuleValidationException, Entity
+from shared_ddd import BusinessRuleValidationException, Entity
 
 from envmon_backend.inspection_analysis.domain.status import LotStatus, lot_status
 

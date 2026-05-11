@@ -1,5 +1,5 @@
 from unittest.mock import AsyncMock
-from shared_domain import test_data
+from shared_manufacturing import test_data
 import spc_backend.dal.trace_dal as trace_dal
 
 def test_build_tree_breaks_cycles():

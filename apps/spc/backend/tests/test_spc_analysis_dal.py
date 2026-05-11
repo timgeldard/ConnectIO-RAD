@@ -2,7 +2,7 @@ import asyncio
 
 from spc_backend.process_control.dal import analysis as spc_analysis_dal
 from unittest.mock import AsyncMock
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 
 def test_fetch_scorecard_queries_metric_view_and_preserves_capability_fields(monkeypatch):

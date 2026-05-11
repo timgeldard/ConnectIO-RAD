@@ -1,7 +1,7 @@
 """Unit tests for orders_dal — _coerce_row helper and fetch_orders_list."""
 import asyncio
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from processorderhistory_backend.order_execution.dal import orders_dal as dal
 
 

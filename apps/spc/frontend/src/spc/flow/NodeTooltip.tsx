@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { Icon } from '@connectio/shared-ui'
 
 interface NodeTooltipProps {

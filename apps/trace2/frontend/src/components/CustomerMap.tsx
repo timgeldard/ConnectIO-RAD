@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import { fmtN, fmtInt } from "../ui";

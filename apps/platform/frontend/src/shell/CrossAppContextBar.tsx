@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { CrossAppContext } from '@connectio/shared-ui/shell'
 import { MODULES } from './modules'
 

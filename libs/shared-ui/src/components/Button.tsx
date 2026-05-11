@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import type { CSSProperties } from 'react'
 

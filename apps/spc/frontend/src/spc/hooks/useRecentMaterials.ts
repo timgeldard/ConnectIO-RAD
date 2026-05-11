@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { MaterialRef } from '../types'
 
 const KEY = 'spc_recent_materials'

@@ -8,7 +8,7 @@ This document outlines the complete plan to finalize the Domain-Driven Design (D
 - [x] Create Domain Glossary (`docs/domain-glossary.md`).
 
 ## Phase 1: Establish DDD Foundations in Shared Libraries (Completed)
-- [x] Introduce standard DDD building blocks (`shared-domain` library): `Entity`, `AggregateRoot`, `ValueObject`, `DomainEvent`, `Repository`.
+- [x] Introduce standard DDD building blocks (`shared-ddd / shared-manufacturing` library): `Entity`, `AggregateRoot`, `ValueObject`, `DomainEvent`, `Repository`.
 - [x] Enrich core domain models in `shared-trace` (Batch, Material).
 - [x] Ensure models are pure with 100% test coverage for domain logic.
 

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useMemo, useState } from 'react'
 import '../charts/ensureEChartsTheme'
 import { shallowEqual, useSPCSelector } from '../SPCContext'

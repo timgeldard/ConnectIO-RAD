@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getWarehouseApiBase, resolveWarehouseApiPath } from '../apiBase'
 

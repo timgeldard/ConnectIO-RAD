@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { renderHook, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { 
@@ -41,19 +42,19 @@ describe('EM API client hooks', () => {
   it('useLocations builds query params', async () => {
     const { result } = renderHook(() => useLocations('C351', 'F1', true), { wrapper: createWrapper() })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    const call = vi.mocked(fetchJson).mock.calls.find(c => c[0].includes('/api/em/locations'))
-    expect(call![0]).toContain('plant_id=C351')
-    expect(call![0]).toContain('floor_id=F1')
-    expect(call![0]).toContain('mapped_only=true')
+    const call = vi.mocked(fetchJson).mock.calls.find(c => (c[0] as any).includes('/api/em/locations'))
+    expect(call![0] as any).toContain('plant_id=C351')
+    expect(call![0] as any).toContain('floor_id=F1')
+    expect(call![0] as any).toContain('mapped_only=true')
   })
 
   it('useHeatmap builds complex params', async () => {
     const { result } = renderHook(() => useHeatmap('C351', 'F1', 'deterministic', 30, '2026-01-01', 0.1, ['M1']), { wrapper: createWrapper() })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    const call = vi.mocked(fetchJson).mock.calls.find(c => c[0].includes('/api/em/heatmap'))
-    expect(call![0]).toContain('plant_id=C351')
-    expect(call![0]).toContain('as_of_date=2026-01-01')
-    expect(call![0]).toContain('mics=M1')
+    const call = vi.mocked(fetchJson).mock.calls.find(c => (c[0] as any).includes('/api/em/heatmap'))
+    expect(call![0] as any).toContain('plant_id=C351')
+    expect(call![0] as any).toContain('as_of_date=2026-01-01')
+    expect(call![0] as any).toContain('mics=M1')
   })
 
   it('useMics handles optional funcLocId', async () => {
@@ -94,7 +95,7 @@ describe('EM API client hooks', () => {
   it('useSaveCoordinate mutation', async () => {
     vi.mocked(fetchJson).mockResolvedValue({})
     const { result } = renderHook(() => useSaveCoordinate(), { wrapper: createWrapper() })
-    await result.current.mutateAsync({ plant_id: 'C351', func_loc_id: 'L1', x_pos: 10, y_pos: 20 })
+    await result.current.mutateAsync({ plant_id: 'C351', func_loc_id: 'L1', floor_id: 'floor-1', x_pos: 10, y_pos: 20 })
     expect(fetchJson).toHaveBeenCalledWith('/api/em/coordinates', expect.objectContaining({ method: 'POST' }))
   })
 

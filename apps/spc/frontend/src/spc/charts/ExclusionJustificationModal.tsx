@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useRef, useState } from 'react'
 import type { ExclusionDialogState } from '../types'
 

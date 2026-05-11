@@ -1,0 +1,40 @@
+{
+  "name": "shared-manufacturing",
+  "projectType": "library",
+  "tags": [
+    "scope:shared",
+    "type:backend"
+  ],
+  "targets": {
+    "sync": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync --package shared-manufacturing",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "PYTHONPATH=libs/shared-manufacturing/src uv run --no-sync --package shared-manufacturing python -m pytest libs/shared-manufacturing/tests",
+        "cwd": "{workspaceRoot}"
+      },
+      "inputs": [
+        "pyFiles",
+        "sharedGlobals"
+      ]
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --no-sync ruff check .",
+        "cwd": "libs/shared-manufacturing"
+      },
+      "inputs": [
+        "pyFiles",
+        "sharedGlobals"
+      ],
+      "cache": true
+    }
+  }
+}

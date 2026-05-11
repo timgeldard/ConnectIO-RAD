@@ -41,7 +41,7 @@ for the migrated DDD apps (`trace2`, `spc`, `envmon`, `warehouse360`, and
 - application services stay transport-agnostic, with the existing Genie streaming client documented as a narrow exception;
 - routers do not import DAL modules or SQL runtime helpers directly.
 
-Domain events remain in `shared-domain`. `DomainEventPublisher` provides a
+Domain events remain in `shared-ddd / shared-manufacturing`. `DomainEventPublisher` provides a
 synchronous in-memory dispatcher for local application orchestration and tests.
 Durable event delivery is intentionally left to infrastructure adapters in a
 future phase.
@@ -81,7 +81,7 @@ Manual grep across all 5 migrated apps confirmed zero violations:
 
 | Scope | Status | Notes |
 |---|---|---|
-| `shared-domain` | 8 passed | Full coverage |
+| `shared-ddd / shared-manufacturing` | 8 passed | Full coverage |
 | `shared-trace` | 17 passed | Full coverage |
 | `spc` (per-app) | 294 passed, 92% coverage | Passes all guardrails |
 | `processorderhistory` | 392 passed | Passes all guardrails |

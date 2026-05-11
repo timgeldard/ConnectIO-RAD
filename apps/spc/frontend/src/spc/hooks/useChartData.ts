@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { usePChartData } from './usePChartData'
 import { useSPCChartData } from './useSPCChartData'
 import { useCountChartData } from './useCountChartData'

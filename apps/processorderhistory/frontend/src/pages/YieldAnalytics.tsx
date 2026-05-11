@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Yield Analytics page — three internal components plus one page export:
  *   - YieldTrendChart      : unified 24h / 7d / 30d toggle with hover tooltip

@@ -1,13 +1,13 @@
-import concurrent.futures
+import asyncio
 import os
-import threading
 import time
 from collections.abc import MutableMapping as MutableMappingABC
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, MutableMapping, Tuple
+from typing import Any, Dict, MutableMapping, Tuple
 from urllib.parse import urlsplit
 
-from openai import OpenAI
+import httpx
+from openai import AsyncOpenAI
 
 CACHE_KEY = "dbx_oauth"
 VALIDATION_TTL_SECONDS = 300
@@ -25,15 +25,9 @@ class DatabricksLLMConfig:
     auth_mode: str
 
 
-_token_lock = threading.Lock()
+_token_lock = asyncio.Lock()
 _token_cache: Dict[str, Any] = {}
 _validation_cache: Dict[Tuple[str, str], int] = {}
-
-
-def _requests_module():
-    import requests
-
-    return requests
 
 
 def _normalize_host(raw_host: str) -> str:
@@ -109,14 +103,6 @@ def get_databricks_llm_config() -> DatabricksLLMConfig:
     )
 
 
-def get_serving_base_url() -> str:
-    return get_databricks_llm_config().serving_base_url
-
-
-def get_model_name() -> str:
-    return get_databricks_llm_config().model
-
-
 def _is_token_fresh(cache: MutableMapping[str, Any] | Dict[str, Any]) -> bool:
     return bool(
         cache.get("access_token")
@@ -154,7 +140,7 @@ def _token_cache_matches(
     )
 
 
-def get_databricks_bearer_token(
+async def get_databricks_bearer_token(
     cache: MutableMapping[str, Any] | None = None,
 ) -> str:
     config = get_databricks_llm_config()
@@ -183,51 +169,51 @@ def get_databricks_bearer_token(
         _write_token_cache(access_token, expires_at, config, cache=cache)
         return access_token
 
-    with _token_lock:
+    async with _token_lock:
         if _token_cache_matches(_token_cache, config) and _is_token_fresh(_token_cache):
             access_token = str(_token_cache["access_token"])
             expires_at = int(_token_cache["expires_at"])
             _write_token_cache(access_token, expires_at, config, cache=cache)
             return access_token
 
-        requests = _requests_module()
-        try:
-            response = requests.post(
-                f"{config.workspace_host}/oidc/v1/token",
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                data={"grant_type": "client_credentials", "scope": "all-apis"},
-                auth=(
-                    os.environ["DATABRICKS_CLIENT_ID"].strip(),
-                    os.environ["DATABRICKS_CLIENT_SECRET"].strip(),
-                ),
-                timeout=30,
-            )
-        except Exception as exc:
-            raise DatabricksLLMConfigError(
-                f"Could not reach Databricks OAuth token endpoint for "
-                f"{config.workspace_host}: {type(exc).__name__}: {str(exc)[:200]}"
-            ) from exc
-        if response.status_code >= 400:
-            raise DatabricksLLMConfigError(
-                f"Failed Databricks OAuth authentication for {config.workspace_host} "
-                f"(HTTP {response.status_code}). Check the service principal credentials "
-                "for that workspace."
-            )
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(
+                    f"{config.workspace_host}/oidc/v1/token",
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                    data={"grant_type": "client_credentials", "scope": "all-apis"},
+                    auth=(
+                        os.environ["DATABRICKS_CLIENT_ID"].strip(),
+                        os.environ["DATABRICKS_CLIENT_SECRET"].strip(),
+                    ),
+                    timeout=30,
+                )
+            except Exception as exc:
+                raise DatabricksLLMConfigError(
+                    f"Could not reach Databricks OAuth token endpoint for "
+                    f"{config.workspace_host}: {type(exc).__name__}: {str(exc)[:200]}"
+                ) from exc
+            if response.status_code >= 400:
+                raise DatabricksLLMConfigError(
+                    f"Failed Databricks OAuth authentication for {config.workspace_host} "
+                    f"(HTTP {response.status_code}). Check the service principal credentials "
+                    "for that workspace."
+                )
 
-        payload = response.json()
-        access_token = payload.get("access_token")
-        expires_in = int(payload.get("expires_in", 300))
-        if not access_token:
-            raise DatabricksLLMConfigError(
-                f"Token endpoint response is missing access_token: {payload}"
-            )
+            payload = response.json()
+            access_token = payload.get("access_token")
+            expires_in = int(payload.get("expires_in", 300))
+            if not access_token:
+                raise DatabricksLLMConfigError(
+                    f"Token endpoint response is missing access_token: {payload}"
+                )
 
-        expires_at = int(time.time()) + expires_in
-        _write_token_cache(str(access_token), expires_at, config, cache=cache)
-        return str(access_token)
+            expires_at = int(time.time()) + expires_in
+            _write_token_cache(str(access_token), expires_at, config, cache=cache)
+            return str(access_token)
 
 
-def validate_databricks_llm_config(
+async def validate_databricks_llm_config(
     cache: MutableMapping[str, Any] | None = None,
 ) -> DatabricksLLMConfig:
     config = get_databricks_llm_config()
@@ -237,117 +223,75 @@ def validate_databricks_llm_config(
     if cached_expiry > int(time.time()):
         return config
 
-    requests = _requests_module()
-    token = get_databricks_bearer_token(cache=cache)
+    token = await get_databricks_bearer_token(cache=cache)
     headers = {"Authorization": f"Bearer {token}"}
     endpoint_url = f"{config.workspace_host}/api/2.0/serving-endpoints/{config.model}"
-    try:
-        response = requests.get(endpoint_url, headers=headers, timeout=30)
-    except Exception as exc:
-        raise DatabricksLLMConfigError(
-            f"Could not validate DATABRICKS_MODEL={config.model!r} in workspace "
-            f"{config.workspace_host}: {type(exc).__name__}: {str(exc)[:200]}"
-        ) from exc
-
-    if response.status_code == 404:
+    
+    async with httpx.AsyncClient() as client:
         try:
-            list_response = requests.get(
-                f"{config.workspace_host}/api/2.0/serving-endpoints",
-                headers=headers,
-                timeout=30,
-            )
-        except Exception:
-            list_response = None
-        available: list[str] = []
-        if list_response is not None and list_response.status_code < 400:
+            response = await client.get(endpoint_url, headers=headers, timeout=30)
+        except Exception as exc:
+            raise DatabricksLLMConfigError(
+                f"Could not validate DATABRICKS_MODEL={config.model!r} in workspace "
+                f"{config.workspace_host}: {type(exc).__name__}: {str(exc)[:200]}"
+            ) from exc
+
+        if response.status_code == 404:
             try:
-                payload = list_response.json()
-                available = sorted(
-                    endpoint.get("name", "").strip()
-                    for endpoint in payload.get("endpoints", [])
-                    if endpoint.get("name", "").strip()
+                list_response = await client.get(
+                    f"{config.workspace_host}/api/2.0/serving-endpoints",
+                    headers=headers,
+                    timeout=30,
                 )
             except Exception:
-                available = []
-        available_text = ", ".join(available[:10]) if available else "no endpoints were returned"
-        raise DatabricksLLMConfigError(
-            f"DATABRICKS_MODEL={config.model!r} was not found in workspace "
-            f"{config.workspace_host}. Available endpoints include: {available_text}."
-        )
+                list_response = None
+            available: list[str] = []
+            if list_response is not None and list_response.status_code < 400:
+                try:
+                    payload = list_response.json()
+                    available = sorted(
+                        endpoint.get("name", "").strip()
+                        for endpoint in payload.get("endpoints", [])
+                        if endpoint.get("name", "").strip()
+                    )
+                except Exception:
+                    available = []
+            available_text = ", ".join(available[:10]) if available else "no endpoints were returned"
+            raise DatabricksLLMConfigError(
+                f"DATABRICKS_MODEL={config.model!r} was not found in workspace "
+                f"{config.workspace_host}. Available endpoints include: {available_text}."
+            )
 
-    if response.status_code >= 400:
-        raise DatabricksLLMConfigError(
-            f"Failed to validate DATABRICKS_MODEL={config.model!r} in workspace "
-            f"{config.workspace_host} (HTTP {response.status_code}). "
-            f"Response: {response.text[:300]}"
-        )
+        if response.status_code >= 400:
+            raise DatabricksLLMConfigError(
+                f"Failed to validate DATABRICKS_MODEL={config.model!r} in workspace "
+                f"{config.workspace_host} (HTTP {response.status_code}). "
+                f"Response: {response.text[:300]}"
+            )
 
     _validation_cache[cache_key] = int(time.time()) + VALIDATION_TTL_SECONDS
     return config
 
 
-def build_openai_client(
+async def build_openai_client(
     *,
     validate: bool = True,
     cache: MutableMapping[str, Any] | None = None,
-) -> OpenAI:
+) -> AsyncOpenAI:
     config = (
-        validate_databricks_llm_config(cache=cache)
+        await validate_databricks_llm_config(cache=cache)
         if validate
         else get_databricks_llm_config()
     )
-    token = get_databricks_bearer_token(cache=cache)
-    return OpenAI(api_key=token, base_url=config.serving_base_url)
+    token = await get_databricks_bearer_token(cache=cache)
+    return AsyncOpenAI(api_key=token, base_url=config.serving_base_url)
 
 
-def create_foundation_model_client(
+async def create_foundation_model_client(
     cache: MutableMapping[str, Any] | None = None,
-) -> OpenAI:
-    return build_openai_client(validate=True, cache=cache)
+) -> AsyncOpenAI:
+    return await build_openai_client(validate=True, cache=cache)
 
 
-def resolve_bearer_token(cache: MutableMapping[str, Any] | None = None) -> str:
-    return get_databricks_bearer_token(cache=cache)
-
-
-def run_jobs_parallel(
-    jobs: Dict[str, Tuple[Callable[..., Any], Tuple[Any, ...], Dict[str, Any]]],
-    max_workers: int | None = None,
-) -> Tuple[Dict[str, Any], list[str]]:
-    """Run independent jobs in parallel and collect per-job failures."""
-    if max_workers is None:
-        raw_worker_count = os.environ.get("LLM_MAX_CONCURRENCY", "5")
-        try:
-            worker_count = int(raw_worker_count)
-        except ValueError as exc:
-            raise DatabricksLLMConfigError(
-                "LLM_MAX_CONCURRENCY must be a positive integer."
-            ) from exc
-    else:
-        worker_count = max_workers
-
-    if worker_count < 1:
-        raise DatabricksLLMConfigError(
-            "LLM_MAX_CONCURRENCY must be a positive integer."
-        )
-
-    results: Dict[str, Any] = {}
-    errors: list[str] = []
-
-    def _call(fn: Callable[..., Any], args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> Any:
-        return fn(*args, **kwargs)
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=worker_count) as executor:
-        futures = {
-            executor.submit(_call, fn, args, kwargs): name
-            for name, (fn, args, kwargs) in jobs.items()
-        }
-        concurrent.futures.wait(list(futures.keys()))
-        for future, name in [(future, futures[future]) for future in futures]:
-            try:
-                results[name] = future.result()
-            except Exception as exc:
-                errors.append(f"{name}: {type(exc).__name__}: {str(exc)[:200]}")
-                results[name] = None
-
-    return results, errors
+async def resolve_bearer_token(cache: MutableMapping[str, Any] | None = None) -> str:
+    return await get_databricks_bearer_token(cache=cache)

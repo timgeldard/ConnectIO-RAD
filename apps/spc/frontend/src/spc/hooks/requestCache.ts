@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 interface CacheEntry<T> {
   data?: T
   timestamp?: number

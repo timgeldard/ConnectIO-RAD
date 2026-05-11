@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 export * from './schema/config'
 export * from './core/types'
 export * from './core/registry'

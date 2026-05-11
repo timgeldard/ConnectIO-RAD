@@ -9,4 +9,5 @@ Requires-Dist: pydantic>=2
 Requires-Dist: hypothesis>=6.100
 Requires-Dist: shared-api
 Requires-Dist: shared-auth
-Requires-Dist: shared-domain
+Requires-Dist: shared-ddd
+Requires-Dist: shared-manufacturing

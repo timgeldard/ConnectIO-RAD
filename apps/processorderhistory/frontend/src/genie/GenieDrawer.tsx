@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useCallback, useState } from 'react'
 import { useT } from '../i18n/context'
 import { I } from '../ui'

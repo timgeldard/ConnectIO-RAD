@@ -8,7 +8,7 @@ from connectedquality_backend.main import app
 import connectedquality_backend.main as main_module
 from shared_auth.identity import UserIdentity, require_proxy_user
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 def override_require_proxy_user():
     return UserIdentity(user_id="test_user", raw_token="test_token")
