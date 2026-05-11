@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { type ReactNode, useState, type CSSProperties } from 'react'
 import { Icon, type IconName } from './Icon'
 

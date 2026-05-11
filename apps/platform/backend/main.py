@@ -10,7 +10,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter
 from starlette.staticfiles import StaticFiles
 
 from shared_api import (

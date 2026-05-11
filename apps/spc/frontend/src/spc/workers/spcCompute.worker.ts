@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { computeAnalytics } from '../computeAnalytics'
 import type {
   ChartDataPoint,

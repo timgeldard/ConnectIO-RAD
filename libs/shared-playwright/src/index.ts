@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 export { test, expect } from './fixtures/base'
 export type { ConnectIOTestContext } from './fixtures/base'
 export { mockAllApiRoutes } from './fixtures/mockApi'

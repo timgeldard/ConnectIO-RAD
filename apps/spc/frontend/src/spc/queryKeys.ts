@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 export const spcQueryKeys = {
   plants: (materialId: string | null | undefined) => ['spc', 'plants', materialId ?? null] as const,
   characteristics: (materialId: string | null | undefined, plantId: string | null | undefined) =>

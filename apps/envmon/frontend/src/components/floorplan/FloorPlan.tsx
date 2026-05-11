@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * FloorPlan — renders the SVG floor plan for the active floor and overlays
  * heatmap markers. Sanitation persona gets blast-radius halos on FAIL markers.

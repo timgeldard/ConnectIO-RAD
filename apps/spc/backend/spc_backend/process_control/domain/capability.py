@@ -3,11 +3,6 @@
 from typing import List, Optional
 
 from shared_manufacturing.analytics.capability import (
-    CPK_CAPABLE,
-    CPK_HIGHLY_CAPABLE,
-    CPK_MARGINAL,
-)
-from shared_manufacturing.analytics.capability import (
     compute_capability_indices as _compute_capability_indices,
 )
 from shared_manufacturing.analytics.capability import (

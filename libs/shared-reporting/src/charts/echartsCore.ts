@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import * as echarts from 'echarts/core'
 import { BarChart, HeatmapChart, LineChart, ScatterChart } from 'echarts/charts'
 import {

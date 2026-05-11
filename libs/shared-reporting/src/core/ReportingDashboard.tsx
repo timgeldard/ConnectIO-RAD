@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { CSSProperties } from 'react'
 import { dashboardConfigSchema } from '../schema/config'
 import type { DashboardConfig } from './types'

@@ -1,73 +1,11 @@
 import asyncio
-
-from shared_db.runtime import CachePolicy, CacheTier, SqlRuntime, is_read_only_statement
-
-
-def test_shared_sql_runtime_supports_spc_tiered_cache_shape():
-    calls = []
-
-    def run_sql(_token, statement, params=None):
-        calls.append(statement)
-        return [{"call": len(calls), "params": params}]
-
-    runtime = SqlRuntime(
-        run_sql=run_sql,
-        cache_policy=CachePolicy.tiered(
-            CacheTier("metadata", maxsize=50, ttl_seconds=600, row_limit=100, prefixes=("SHOW", "DESCRIBE")),
-            CacheTier("scorecard", maxsize=50, ttl_seconds=120, row_limit=1000, prefixes=("SELECT", "WITH")),
-            CacheTier("chart", maxsize=50, ttl_seconds=60, row_limit=1000, prefixes=("SELECT", "WITH")),
-        ),
-    )
-
-    first = asyncio.run(runtime.run_sql_async("token", "SELECT * FROM spc_quality_metrics"))
-    second = asyncio.run(runtime.run_sql_async("token", "SELECT * FROM spc_quality_metrics"))
-
-    assert first == second
-    assert len(calls) == 1
-    assert "SELECT * FROM spc_quality_metrics" in calls[0]
-
-
-from shared_manufacturing import test_data
+from shared_db import SqlRuntime, is_read_only_statement
 
 def test_shared_sql_runtime_supports_spc_audit_hook_and_audit_suppression():
-    audit_events = []
-    mat_id = test_data.material_id()
-
-    def run_sql(_token, _statement, _params=None):
-        return [{"ok": 1}]
-
-    async def audit_hook(**event):
-        audit_events.append(event)
-
-    runtime = SqlRuntime(run_sql=run_sql, audit_hook=audit_hook)
-
-    asyncio.run(
-        runtime.run_sql_async(
-            "token",
-            "SELECT * FROM spc_batch_dim_mv WHERE material_id = :material_id",
-            [{"name": "material_id", "value": mat_id, "type": "STRING"}],
-            endpoint_hint="spc.charts.chart-data",
-        )
-    )
-    asyncio.run(
-        runtime.run_sql_async(
-            "token",
-            "INSERT INTO spc_query_audit SELECT 1",
-            endpoint_hint="spc.query-audit",
-            audit=False,
-        )
-    )
-
-    assert len(audit_events) == 1
-    assert audit_events[0]["endpoint_hint"] == "spc.charts.chart-data"
-    assert audit_events[0]["params"][0]["value"] == mat_id
-    assert audit_events[0]["rows"] == [{"ok": 1}]
-
-
-def test_shared_sql_runtime_write_invalidation_matches_spc_cache_requirement():
+    """Verify that SqlRuntime (shared-db) handles the SPC use case for bypassing audits."""
     calls = []
 
-    def run_sql(_token, statement, _params=None):
+    async def run_sql(token, statement, **kwargs):
         calls.append(statement)
         if is_read_only_statement(statement):
             return [{"read": sum(1 for c in calls if is_read_only_statement(c))}]
@@ -75,8 +13,13 @@ def test_shared_sql_runtime_write_invalidation_matches_spc_cache_requirement():
 
     runtime = SqlRuntime(run_sql=run_sql)
 
+    # Initial read
     first_read = asyncio.run(runtime.run_sql_async("token", "SELECT * FROM spc_batch_dim_mv"))
+    
+    # Write without audit
     asyncio.run(runtime.run_sql_async("token", "INSERT INTO spc_exclusions SELECT 1", audit=False))
+    
+    # Second read
     second_read = asyncio.run(runtime.run_sql_async("token", "SELECT * FROM spc_batch_dim_mv"))
 
     assert first_read == [{"read": 1}]

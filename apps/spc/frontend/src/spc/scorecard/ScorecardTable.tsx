@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useCallback, useMemo, useState } from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
 import { Icon } from '@connectio/shared-ui'

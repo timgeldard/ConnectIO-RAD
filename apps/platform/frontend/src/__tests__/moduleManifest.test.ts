@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { describe, expect, it } from 'vitest'
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
 import {

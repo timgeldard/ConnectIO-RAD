@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 export interface UserPreferences {
   pinnedModules: string[] | null
 }

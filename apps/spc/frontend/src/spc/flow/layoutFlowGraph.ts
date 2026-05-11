@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { ProcessFlowEdgeData, ProcessFlowNodeRecord } from '../types'
 
 interface PositionedFlowNode extends ProcessFlowNodeRecord {

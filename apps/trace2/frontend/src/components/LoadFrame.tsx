@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { ReactNode } from "react";
 import { useI18n } from "@connectio/shared-frontend-i18n";
 import type { LoadState } from "../data/useBatchData";

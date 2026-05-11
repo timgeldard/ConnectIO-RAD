@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useCallback, useMemo } from 'react'
 import { shallowEqual, useSPCSelector } from '../SPCContext'
 import { toExcludedPoints } from '../exclusions'

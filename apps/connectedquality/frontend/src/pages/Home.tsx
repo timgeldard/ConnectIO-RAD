@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useQuery } from '@tanstack/react-query'
 import { Card } from '@connectio/shared-ui'
 import { Pill } from '~/components/Pill'

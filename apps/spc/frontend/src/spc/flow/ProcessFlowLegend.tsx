@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 const items = [
   { label: 'Healthy (< 2% rejection)',   color: 'var(--status-ok)'   },
   { label: 'Warning (2–10% rejection)',  color: 'var(--status-warn)' },

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useCallback, useEffect } from 'react'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from '../SPCContext'
 import { getLimitsSnapshot, mapExcludedPointsToIndices, recomputeForExcludedSet, toExcludedPoints } from '../exclusions'

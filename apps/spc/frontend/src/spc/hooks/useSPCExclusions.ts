@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import type { ExclusionAuditSnapshot, StratifyByKey } from '../types'
 

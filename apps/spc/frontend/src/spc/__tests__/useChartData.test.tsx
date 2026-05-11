@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { renderHook } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { useChartData } from '../hooks/useChartData'

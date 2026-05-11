@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { renderHook, act } from '@testing-library/react'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { EMProvider, useEM } from '../EMContext'

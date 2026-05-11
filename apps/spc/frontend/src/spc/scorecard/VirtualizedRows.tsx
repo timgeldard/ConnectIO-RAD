@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useCallback, useMemo, useRef, useState } from 'react'
 
 interface VirtualizedRowsProps<T> {

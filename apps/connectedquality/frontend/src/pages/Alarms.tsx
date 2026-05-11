@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchJson } from '@connectio/shared-frontend-api'
@@ -49,7 +50,7 @@ export function Alarms() {
       render: (r) => {
         const status = r.status ?? r.st ?? 'open'
         return (
-          <Pill tone={status === 'open' ? 'red' : status === 'ack' ? 'amber' : 'grey'}>
+          <Pill kind={status === 'open' ? 'bad' : status === 'ack' ? 'warn' : 'muted'}>
             {status}
           </Pill>
         )

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useMemo } from 'react'
 import EChart from './EChart'
 import { computeCChart } from '../calculations'

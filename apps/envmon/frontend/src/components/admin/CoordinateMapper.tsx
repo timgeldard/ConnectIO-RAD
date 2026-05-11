@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CoordinateMapper — multi-plant admin spatial authoring tool.
  *

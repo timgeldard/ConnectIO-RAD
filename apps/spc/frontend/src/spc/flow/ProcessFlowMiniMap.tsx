@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useMemo } from 'react'
 import { layoutFlowGraph } from './layoutFlowGraph'
 import type { ProcessFlowResult } from '../types'

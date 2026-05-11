@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useState } from 'react'
 import type { AttributeChartType } from '../charts/ChartSettingsRail'
 

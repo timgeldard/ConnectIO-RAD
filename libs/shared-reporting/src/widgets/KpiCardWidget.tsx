@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { KPI, type KPITone, type IconName } from '@connectio/shared-ui'
 import type { WidgetRenderProps } from '../core/types'
 

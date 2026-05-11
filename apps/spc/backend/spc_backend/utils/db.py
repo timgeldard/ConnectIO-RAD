@@ -39,7 +39,6 @@ from shared_db.executors import (
 from shared_db.freshness import DataFreshnessRuntime
 from shared_db.runtime import (
     CachePolicy,
-    CacheTier,
     SqlRuntimeConfig,
     is_read_only_statement as _shared_is_read_only_statement,
     is_write_statement as _shared_is_write_statement,

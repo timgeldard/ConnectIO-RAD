@@ -3,6 +3,8 @@
 import math
 from typing import List, Optional
 
+from .spc import mean, moving_range, stddev
+
 # Cpk classification thresholds (Six Sigma / AIAG conventions).
 # Used by `dal/analysis.py::_scorecard_status` to map a process Ppk into
 # the dashboard buckets {poor, marginal, good, excellent}.
@@ -15,8 +17,6 @@ try:
 except ImportError:
     norm = None
     shapiro = None
-
-from .spc import mean, moving_range, stddev
 
 
 def normal_cdf(z: float) -> float:

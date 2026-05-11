@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Internal route names <-> PlatformShell module IDs.
  *

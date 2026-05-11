@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { ConnectIOModule, AppComposition } from '@connectio/shared-ui'
 
 export const W360_MODULES: ConnectIOModule[] = [

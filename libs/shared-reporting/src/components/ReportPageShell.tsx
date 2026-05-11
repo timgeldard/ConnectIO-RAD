@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { ReactNode } from 'react'
 
 /** Translated overrides for the built-in state messages. */

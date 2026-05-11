@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /** Reads a CSS custom property from the document root; returns fallback in SSR or when unset. */
 function resolveCssVar(name: string, fallback: string): string {
   if (typeof document === 'undefined') return fallback

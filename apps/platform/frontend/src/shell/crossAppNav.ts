@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { appendCrossAppContext, type ConnectIOModule, type CrossAppContext } from '@connectio/shared-ui/shell'
 import { moduleHref } from './LandingCard'
 

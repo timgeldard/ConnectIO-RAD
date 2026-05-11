@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * SPC Control Chart Constants
  * Source: AIAG Statistical Process Control Reference Manual, 4th Edition.

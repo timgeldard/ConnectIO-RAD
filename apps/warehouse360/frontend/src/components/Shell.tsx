@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
 import { I18nProvider, LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n'

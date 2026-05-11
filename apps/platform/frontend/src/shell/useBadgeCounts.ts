@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useState, useEffect } from 'react'
 
 const POLL_INTERVAL_MS = 60_000

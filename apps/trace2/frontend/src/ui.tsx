@@ -1,10 +1,38 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import React, { CSSProperties, ReactNode, useState } from "react";
 import { useI18n } from "@connectio/shared-frontend-i18n";
 import { traceCopy } from "./i18n/pageCopy";
 
-import { DataTable, Card, KPI, StatusPill, Button } from "@connectio/shared-ui";
+import { 
+  DataTable, 
+  Card, 
+  KPI as SharedKPI, 
+  StatusPill as SharedStatusPill, 
+  Button 
+} from "@connectio/shared-ui";
 export type { Column } from "@connectio/shared-ui";
-export { DataTable, Card, KPI, StatusPill, Button };
+export { DataTable, Card, Button };
+
+/** 
+ * Legacy-compatible StatusPill for Trace2.
+ * Maps 'size' to 'compact' and preserves status mapping.
+ */
+export const StatusPill = (props: any) => {
+  const { size, ...rest } = props;
+  return <SharedStatusPill compact={size === 'sm'} {...rest} />;
+};
+
+/**
+ * Legacy-compatible KPI for Trace2.
+ * Maps 'good'/'bad'/'muted' tones to the unified semantic set.
+ */
+export const KPI = (props: any) => {
+  let { tone, ...rest } = props;
+  if (tone === 'good') tone = 'ok';
+  if (tone === 'bad') tone = 'risk';
+  if (tone === 'muted') tone = 'neutral';
+  return <SharedKPI tone={tone} {...rest} />;
+};
 
 // ---------------------------------------------------------------------------
 // BarChart

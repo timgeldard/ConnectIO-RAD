@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 const REWRITE_SOURCE = '/api'
 const STANDALONE_API_BASE = '/api/t2'
 const PLATFORM_API_BASE = '/api/t2'

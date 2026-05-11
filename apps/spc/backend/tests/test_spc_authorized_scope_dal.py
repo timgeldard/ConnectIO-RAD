@@ -1,11 +1,9 @@
 """Unit tests for spc_backend.process_control.dal.authorized_scope."""
 import asyncio
 from unittest.mock import AsyncMock, patch
-
 import pytest
-
 from spc_backend.process_control.dal.authorized_scope import fetch_authorized_plants
-
+from shared_manufacturing import test_data
 
 @pytest.fixture()
 def mock_run_sql():
@@ -33,8 +31,6 @@ def test_empty_when_no_plants(mock_run_sql):
     result = asyncio.run(fetch_authorized_plants("tok"))
     assert result == []
 
-
-from shared_manufacturing import test_data
 
 def test_filters_null_plant_ids(mock_run_sql):
     """Rows with a null or empty PLANT_ID are silently dropped."""

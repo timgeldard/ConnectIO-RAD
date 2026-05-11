@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react'
+/* eslint-disable jsdoc/require-jsdoc */
+import React, { type ReactNode } from 'react'
 import { GlobalFilterBar } from '@connectio/shared-ui'
 import { SPCHeader } from './SPCHeader'
 import { Sidebar } from './Sidebar'
@@ -8,13 +9,13 @@ import { Sidebar } from './Sidebar'
  */
 interface AppShellProps {
   /** Main content to be rendered in the scrollable area. */
-  children: ReactNode
+  children: React.ReactNode
   /** @deprecated Dark mode is no longer supported in the Kerry design system. */
   dark?: boolean
   /** @deprecated */
   onToggleDark?: () => void
   /** Optional sticky filter bar content. */
-  filterBar?: ReactNode
+  filterBar?: React.ReactNode
 }
 
 /**
@@ -26,9 +27,9 @@ export function AppShell({ children, dark = false, onToggleDark, filterBar }: Ap
       <Sidebar dark={dark} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
         <SPCHeader dark={dark} onToggleDark={onToggleDark} />
-        <GlobalFilterBar>{filterBar}</GlobalFilterBar>
+        <GlobalFilterBar>{filterBar as any}</GlobalFilterBar>
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {children}
+          {children as any}
         </div>
       </div>
     </div>

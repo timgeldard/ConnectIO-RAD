@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import React from 'react'
 import { PlantProvider as SharedPlantProvider, usePlantSelection as useSharedPlantSelection } from '@connectio/shared-app-context'
 import type { Plant } from '@connectio/shared-app-context'

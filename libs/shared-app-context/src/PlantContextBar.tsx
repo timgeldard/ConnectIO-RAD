@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import React from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
 import { usePlantSelection } from './index'

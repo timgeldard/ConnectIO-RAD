@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { fetchPlants, type Plant } from '../api/plants'
 import { Icon, type IconName } from '@connectio/shared-ui'

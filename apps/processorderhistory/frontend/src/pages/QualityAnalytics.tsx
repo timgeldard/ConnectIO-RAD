@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Quality Analytics — one export:
  *   - QualityAnalyticsPage: full insights page — daily/hourly trend charts

@@ -3,9 +3,6 @@
 from typing import List, Tuple
 
 from shared_manufacturing.analytics.spc import (
-    D2_TABLE,
-)
-from shared_manufacturing.analytics.spc import (
     compute_imr_limits as _compute_imr_limits,
 )
 from shared_manufacturing.analytics.spc import (

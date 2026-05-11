@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { TemplateOverview, TemplateSignal } from '../types'

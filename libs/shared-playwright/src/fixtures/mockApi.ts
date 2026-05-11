@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { Page } from '@playwright/test'
 import path from 'node:path'
 import fs from 'node:fs'

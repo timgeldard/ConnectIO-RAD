@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useQuery } from '@tanstack/react-query'
 import { fetchAttributeCharacteristics } from '../../api/spc'
 import type { MicRef } from '../types'

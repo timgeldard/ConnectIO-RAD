@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
@@ -290,7 +291,6 @@ const ReceiptDetail = ({ receipt }: ReceiptDetailProps) => {
           ]}
           rows={[]}
           dense
-          noDataLabel="No live putaway transfer-order detail endpoint is available yet."
         />
       </Card>
     </div>

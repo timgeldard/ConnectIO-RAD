@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useState } from 'react'
 import { useSPCDispatch } from '../SPCContext'
 import type { IndexedChartPoint, SPCSignal } from '../types'

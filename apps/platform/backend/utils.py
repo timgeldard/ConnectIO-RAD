@@ -26,10 +26,14 @@ versions of this module forced on its tests.
 from __future__ import annotations
 
 import logging
+import tomllib
 from importlib import import_module
+from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+ROOT = Path(__file__).resolve().parents[3]
 
 
 class RequiredArtifactMissing(RuntimeError):
@@ -137,6 +141,18 @@ def _optional_attr(
     return _default_tracker.attempt(module_name, attr_name, artifact, required=required)
 
 
+def _required_attr(
+    module_name: str,
+    attr_name: str,
+    artifact: str | None = None,
+) -> Any:
+    """Convenience shim for required attributes.
+
+    Delegates to :data:`_default_tracker` with required=True.
+    """
+    return _default_tracker.attempt(module_name, attr_name, artifact, required=True)
+
+
 def get_missing_optional_artifacts() -> dict[str, str]:
     """Return the map of optional artifacts that failed to import."""
     return _default_tracker.missing()
@@ -150,11 +166,6 @@ def get_missing_artifacts() -> dict[str, str]:
     """
     return get_missing_optional_artifacts()
 
-
-import tomllib
-from pathlib import Path
-
-# ... (existing imports)
 
 def discover_active_modules(apps_dir: Path = ROOT / "apps") -> list[str]:
     """Scan the apps directory for RAD modules and return their backend package names.

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
 import type { PlatformModuleRegistration } from './moduleManifest'
 

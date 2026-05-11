@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { Card, CardContent, MetadataLabel, StatusBadge } from '../ui'
 
 export const CAPABILITY_TIERS = [

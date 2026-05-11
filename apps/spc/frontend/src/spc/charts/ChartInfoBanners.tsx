@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import InfoBanner from '../components/InfoBanner'
 import type { AutocorrelationResult, ExclusionAuditSnapshot, SpecDriftWarning } from '../types'
 

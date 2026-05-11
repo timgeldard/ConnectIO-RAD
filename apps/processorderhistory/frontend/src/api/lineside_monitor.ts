@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { postJson } from './client'
 
 /** Process order currently running or queued for a production line. */

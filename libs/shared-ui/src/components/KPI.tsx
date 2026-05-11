@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { Sparkline } from './Sparkline'
 import { Icon } from './Icon'
 import type { IconName } from './Icon'

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { Card } from '@connectio/shared-ui'
 import { PageHead } from '@connectio/shared-ui'
 import { Icon } from '@connectio/shared-ui'

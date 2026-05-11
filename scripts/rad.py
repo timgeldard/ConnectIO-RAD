@@ -30,6 +30,7 @@ def cmd_check(args):
         ["python3", "scripts/validate_new_app.py", "template"],
         ["uv", "run", "pytest", "scripts/tests/test_ddd_architecture_guardrails.py"],
         ["uv", "run", "interrogate", "."],
+        ["npm", "run", "lint"],
     ]
     
     for script in scripts:

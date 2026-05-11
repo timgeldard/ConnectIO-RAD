@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Unit tests for GroupedBarChart.
  * Verifies that the shared ChartContainer wrapper renders correctly for both

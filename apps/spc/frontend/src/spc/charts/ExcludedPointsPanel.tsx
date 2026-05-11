@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { ExcludedPoint, ExclusionAuditSnapshot } from '../types'
 
 function formatLimit(value: number | null | undefined) {

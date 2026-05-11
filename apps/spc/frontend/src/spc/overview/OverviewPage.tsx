@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useMemo } from 'react'
 import { Icon } from '@connectio/shared-ui'
 import { shallowEqual, useSPCDispatch, useSPCSelector } from '../SPCContext'

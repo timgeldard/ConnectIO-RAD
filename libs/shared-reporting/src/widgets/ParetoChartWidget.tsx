@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { EChartsOption } from 'echarts'
 import { ChartContainer } from '../components/ChartContainer'
 import type { WidgetRenderProps } from '../core/types'

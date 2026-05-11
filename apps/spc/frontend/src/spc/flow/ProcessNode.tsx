@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { memo, useState } from 'react'
 import { SparklineMini } from '@connectio/shared-ui'
 import NodeTooltip from './NodeTooltip'

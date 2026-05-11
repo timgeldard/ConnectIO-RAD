@@ -3,7 +3,7 @@ import asyncio
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 from shared_manufacturing import test_data
 from spc_backend.main import app

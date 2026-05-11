@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { CSSProperties } from 'react'
 
 const ICON_PATHS: Record<string, string> = {

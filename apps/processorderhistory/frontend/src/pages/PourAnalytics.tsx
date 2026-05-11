@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Pour Performance — three exports:
  *   - PourKpiCards     : 3 KPI tiles (Target/Planned/Actual) — used on Order List

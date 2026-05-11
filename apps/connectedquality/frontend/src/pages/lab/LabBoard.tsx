@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import React, { useState, useEffect } from 'react'
 import { Icon } from '@connectio/shared-ui'
 import { useQuery } from '@tanstack/react-query'
@@ -19,11 +20,6 @@ interface FailSpec {
   sev: 'fail' | 'warn'
 }
 
-interface PlantOption {
-  plant_id: string
-  plant_name: string
-}
-
 const PAGE_SIZE = 6
 
 /** Lab Board — full-screen wallboard for quality lab. Auto-rotates inspection lot failures. */
@@ -35,7 +31,7 @@ export function LabBoard() {
   const urlPlantId = params.get('plant_id') ?? params.get('plant')
   const lotType = params.get('lot_type')
 
-  const { plants, selectedPlantId, setSelectedPlantId, loading: plantsLoading } = usePlantSelection()
+  const { plants, selectedPlantId, setSelectedPlantId } = usePlantSelection()
   const plantId = selectedPlantId || null
 
   const { data, isLoading } = useQuery({

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { shallowEqual, useSPCSelector } from '../SPCContext'
 import InfoBanner from '../components/InfoBanner'

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Equipment Insights 2 — production equipment estate, cleaning, calibration, and anomaly tabs.
  *

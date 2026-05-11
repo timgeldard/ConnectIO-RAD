@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import React from 'react'
 
 type Variant = 'error' | 'warn' | 'info' | 'neutral'

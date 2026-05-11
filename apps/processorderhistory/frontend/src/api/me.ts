@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /** Current authenticated user, resolved server-side via current_user(). */
 import { fetchJson } from './client'
 

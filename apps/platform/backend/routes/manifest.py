@@ -15,6 +15,11 @@ from typing import Any
 import anyio
 from fastapi import APIRouter, HTTPException
 
+from backend.utils import (
+    discover_app_manifests,
+    discover_active_modules,
+)
+
 router = APIRouter(prefix="/api/platform/apps", tags=["Platform"])
 
 PLATFORM_ROOT = Path(__file__).resolve().parents[2]
@@ -138,16 +143,6 @@ def _module_status(module: dict[str, Any]) -> str:
     if declared_status and declared_status != "unknown":
         return str(declared_status)
     return _static_status(module)
-
-
-from backend.utils import (
-    _read_manifest,
-    _with_env_feature_flags,
-    discover_app_manifests,
-    discover_active_modules,
-)
-
-router = APIRouter(prefix="/api/platform/apps", tags=["Platform"])
 
 
 @router.get("/manifest")

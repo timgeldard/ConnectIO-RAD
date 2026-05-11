@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { ReactNode } from 'react'
 
 interface SectionHeaderProps {

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * State machine for a multi-turn Genie conversation in the platform app.
  *

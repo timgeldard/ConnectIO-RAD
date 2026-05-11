@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { EChartsOption } from 'echarts'
 import { ChartContainer } from '../components/ChartContainer'
 import type { WidgetRenderProps } from '../core/types'
@@ -56,7 +57,7 @@ export function SPCControlChartWidget({ config, props, data }: WidgetRenderProps
   const limits = merged.limits ?? {}
   const title = config.title
 
-  const markLines = []
+  const markLines: any[] = []
   if (limits.ucl != null) markLines.push({ yAxis: limits.ucl, name: 'UCL', lineStyle: { color: '#EF4444', type: 'dashed' as const } })
   if (limits.cl != null) markLines.push({ yAxis: limits.cl, name: 'CL', lineStyle: { color: '#6B7280', type: 'solid' as const } })
   if (limits.lcl != null) markLines.push({ yAxis: limits.lcl, name: 'LCL', lineStyle: { color: '#EF4444', type: 'dashed' as const } })
