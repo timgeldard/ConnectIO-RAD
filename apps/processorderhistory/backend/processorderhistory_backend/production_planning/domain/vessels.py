@@ -93,6 +93,7 @@ def derive_planning_data(
         if not instrument_id:
             continue
         state = classify_state(row.get("status_to"), row.get("order_status"))
+        raw_max_cap = row.get("max_capacity")
         vessel_states[instrument_id] = {
             "instrument_id": instrument_id,
             "equipment_type": row.get("equipment_type"),
@@ -109,6 +110,7 @@ def derive_planning_data(
             "state_since_ms": coerce_int_ms(row.get("change_at_ms")),
             "status_to": row.get("status_to"),
             "status_from": row.get("status_from"),
+            "max_capacity": float(raw_max_cap) if raw_max_cap is not None else None,
             "affinity_materials": [],
             "blocked_orders": [],
             "blocked_order_count": 0,
@@ -159,7 +161,9 @@ def derive_planning_data(
         material_name = str(row.get("material_name") or po_id)
         scheduled_start_ms = coerce_int_ms(row.get("scheduled_start_ms"))
         plant_id = row.get("plant_id")
-        order_qty: Optional[float] = None
+        order_qty_raw = row.get("order_qty")
+        order_qty: Optional[float] = float(order_qty_raw) if order_qty_raw is not None else None
+        order_uom: Optional[str] = str(row["order_uom"]) if row.get("order_uom") else None
 
         sorted_affinity = sorted(
             affinity_map.get(material_id, {}).items(),
@@ -174,11 +178,22 @@ def derive_planning_data(
         if order_qty is not None:
             filtered_vessels: list[str] = []
             for instrument_id in likely_vessels:
-                fits, note = capacity_check(instrument_id, order_qty, plant_id)
-                if fits:
+                max_cap = vessel_states.get(instrument_id, {}).get("max_capacity")
+                if max_cap is not None:
+                    if order_qty > max_cap:
+                        uom_label = f" {order_uom}" if order_uom else ""
+                        evidence_notes.append(
+                            f"{instrument_id} excluded — silver capacity {max_cap:g}{uom_label},"
+                            f" order qty {order_qty:g}{uom_label}"
+                        )
+                        continue
                     filtered_vessels.append(instrument_id)
                 else:
-                    evidence_notes.append(note)
+                    fits, note = capacity_check(instrument_id, order_qty, plant_id)
+                    if fits:
+                        filtered_vessels.append(instrument_id)
+                    else:
+                        evidence_notes.append(note)
             likely_vessels = filtered_vessels
         else:
             evidence_notes.append("capacity not validated — order quantity unavailable")
@@ -249,6 +264,8 @@ def derive_planning_data(
             "material_name": material_name,
             "plant_id": plant_id,
             "scheduled_start_ms": scheduled_start_ms,
+            "order_qty": order_qty,
+            "order_uom": order_uom,
             "rank": index + 1,
             "feasible": feasible,
             "constraint_type": constraint_type,

@@ -1,8 +1,8 @@
 import os
 os.environ["APP_ENV"] = "test"
 
-from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from shared_db.errors import WarehouseNotConfiguredError
 
 from trace2_backend.main import app
 import trace2_backend.main as main_module
@@ -31,7 +31,7 @@ def test_ready_returns_503_when_readiness_token_missing(monkeypatch):
 def test_ready_returns_503_when_warehouse_config_missing(monkeypatch):
     monkeypatch.setenv("DATABRICKS_READINESS_TOKEN", "fake-token")
     def missing_config():
-        raise HTTPException(status_code=500, detail="missing warehouse")
+        raise WarehouseNotConfiguredError("missing warehouse")
 
     monkeypatch.setattr(main_module, "check_warehouse_config", missing_config)
 

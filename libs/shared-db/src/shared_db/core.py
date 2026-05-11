@@ -13,8 +13,8 @@ import time
 import threading
 from typing import Any, Optional
 
-from fastapi import HTTPException
 from shared_auth import resolve_token as auth_resolve_token
+from shared_db.errors import WarehouseNotConfiguredError
 
 try:
     from cachetools import TTLCache as _CachetoolsTTLCache  # type: ignore[import-untyped]
@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 DATABRICKS_HOST:    str = os.environ.get("DATABRICKS_HOST", "")
 WAREHOUSE_HTTP_PATH: str = os.environ.get("DATABRICKS_WAREHOUSE_HTTP_PATH", "")
-TRACE_CATALOG:      str = os.environ.get("TRACE_CATALOG", "connected_plant_uat")
+TRACE_CATALOG:      str = os.environ.get("TRACE_CATALOG", "")
 TRACE_SCHEMA:       str = os.environ.get("TRACE_SCHEMA", "gold")
 
 
@@ -68,11 +68,10 @@ def tbl(name: str) -> str:
 
 
 def check_warehouse_config() -> str:
-    """Raise HTTP 500 if DATABRICKS_WAREHOUSE_HTTP_PATH is not set."""
+    """Raise WarehouseNotConfiguredError if DATABRICKS_WAREHOUSE_HTTP_PATH is not set."""
     if not WAREHOUSE_HTTP_PATH:
-        raise HTTPException(
-            status_code=500,
-            detail="DATABRICKS_WAREHOUSE_HTTP_PATH environment variable is not set.",
+        raise WarehouseNotConfiguredError(
+            "DATABRICKS_WAREHOUSE_HTTP_PATH environment variable is not set."
         )
     return WAREHOUSE_HTTP_PATH
 

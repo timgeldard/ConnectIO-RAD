@@ -1,5 +1,5 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.wh360_bin_stock_v
+-- View : ${TRACE_CATALOG}.wh360.wh360_bin_stock_v
 -- Phase: 1 -- direct join on raw SAP tables
 -- Sources: sap.storagebin_lagp  (LAGP)
 --          sap.quant_lqua       (LQUA)
@@ -8,7 +8,7 @@
 -- Purpose: Bin-level stock summary with fill rate and shelf-life signals
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.wh360_bin_stock_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.wh360_bin_stock_v AS
 
 WITH quant_agg AS (
   -- Aggregate plant-specific quants per bin.
@@ -40,7 +40,7 @@ WITH quant_agg AS (
         ELSE NULL
       END
     )                                                            AS latest_gr_date
-  FROM connected_plant_uat.sap.quant_lqua
+  FROM ${TRACE_CATALOG}.sap.quant_lqua
   WHERE WERKS IS NOT NULL
     AND LENGTH(TRIM(WERKS)) > 0
   GROUP BY WERKS, LGNUM, LGTYP, LGPLA
@@ -100,13 +100,13 @@ SELECT
 
   COALESCE(q.quant_count, 0)                                     AS quant_count
 
-FROM connected_plant_uat.sap.storagebin_lagp AS lg
+FROM ${TRACE_CATALOG}.sap.storagebin_lagp AS lg
 LEFT JOIN quant_agg AS q
   ON  q.LGNUM = lg.LGNUM
   AND q.LGTYP = lg.LGTYP
   AND q.LGPLA = lg.LGPLA
 
-LEFT JOIN connected_plant_uat.silver.silver_material_description AS md
+LEFT JOIN ${TRACE_CATALOG}.silver.silver_material_description AS md
   ON LPAD(md.MATERIAL_ID, 18, '0') = q.material_id
   AND md.LANGUAGE_ID = 'E'
 

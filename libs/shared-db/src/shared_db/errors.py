@@ -9,6 +9,10 @@ from typing import Optional
 
 from fastapi import HTTPException
 
+
+class WarehouseNotConfiguredError(RuntimeError):
+    """Raised when DATABRICKS_WAREHOUSE_HTTP_PATH is not configured in the environment."""
+
 logger = logging.getLogger(__name__)
 
 

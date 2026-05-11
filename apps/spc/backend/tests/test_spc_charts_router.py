@@ -29,7 +29,7 @@ def mock_locked_limits_dal(monkeypatch):
 
     mocks = {
         "get_limits": AsyncMock(return_value=None),
-        "lock_limits": AsyncMock(return_value={"id": "LOCKED-1"}),
+        "lock_limits": AsyncMock(return_value={"saved": True}),
         "delete_limits": AsyncMock(return_value={"deleted": True}),
     }
     for name, m in mocks.items():
@@ -130,7 +130,7 @@ def test_locked_limits_endpoints(mock_locked_limits_dal):
     response = client.post("/api/spc/lock-limits", json=payload)
     assert response.status_code == 200
     mock_locked_limits_dal.lock_limits.assert_called_once()
-    assert response.json()["id"] == "LOCKED-1" or "id" in response.json()
+    assert response.json()["saved"] is True
 
     # DELETE
     response = client.request(

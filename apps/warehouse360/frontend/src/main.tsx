@@ -1,5 +1,6 @@
 ﻿import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { ErrorBoundary } from '@connectio/shared-ui'
 import App from './App'
 import '@connectio/shared-ui/styles/kerry-tokens.css'
 import '@connectio/shared-ui/styles/kerry-app.css'
@@ -9,6 +10,8 @@ import './styles/app.css'
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <App/>
+    <ErrorBoundary>
+      <App/>
+    </ErrorBoundary>
   </React.StrictMode>
 )

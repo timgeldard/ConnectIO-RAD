@@ -28,6 +28,21 @@ _CHART_TYPES = {"imr", "xbar_r", "p_chart"}
 _STRATIFY_KEYS = {"plant_id", "inspection_lot_id", "operation_id"}
 
 
+class SavedResponse(BaseModel):
+    """Confirmation response for write operations that return only a success flag."""
+
+    saved: bool
+
+
+class SaveExclusionsResponse(BaseModel):
+    """Response returned after persisting an exclusion snapshot."""
+
+    saved: bool
+    event_id: str
+    user_id: Optional[str]
+    event_ts: Optional[str]
+
+
 def _handle_exclusion_sql_error(exc: Exception) -> None:
     mapped_error = classify_sql_runtime_error(
         exc,
@@ -51,7 +66,7 @@ def _handle_exclusion_sql_error(exc: Exception) -> None:
 # Locked Limits
 # ---------------------------------------------------------------------------
 
-@router.post("/lock-limits")
+@router.post("/lock-limits", response_model=SavedResponse)
 @limiter.limit("30/minute")
 async def lock_limits(
     request: Request,
@@ -228,7 +243,7 @@ class GetExclusionsQuery(BaseModel):
         return SaveExclusionsRequest.normalize_optional_text(value)
 
 
-@router.post("/exclusions")
+@router.post("/exclusions", response_model=SaveExclusionsResponse)
 @limiter.limit("30/minute")
 async def save_exclusions(
     request: Request,

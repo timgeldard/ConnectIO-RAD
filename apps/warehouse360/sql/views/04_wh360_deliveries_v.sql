@@ -1,5 +1,5 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.wh360_deliveries_v
+-- View : ${TRACE_CATALOG}.wh360.wh360_deliveries_v
 -- Phase: 1 -- direct join on raw SAP tables
 -- Sources: sap.deliveryobjects_likp (LIKP)
 --          sap.deliveryobjects_lips (LIPS)
@@ -8,13 +8,13 @@
 -- Purpose: Outbound delivery header with pick progress and shipment risk signal
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.wh360_deliveries_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.wh360_deliveries_v AS
 
 WITH
 
 cust AS (
   SELECT CUSTOMER_ID, MIN(CUSTOMER_NAME) AS CUSTOMER_NAME
-  FROM connected_plant_uat.gold.gold_customer
+  FROM ${TRACE_CATALOG}.gold.gold_customer
   GROUP BY CUSTOMER_ID
 ),
 
@@ -26,7 +26,7 @@ pick_progress AS (
     COALESCE(SUM(LFIMG), 0)                                      AS total_del_qty,
     COALESCE(SUM(LGMNG), 0)                                      AS total_wm_qty,
     SUM(LGMNG) * 100.0 / NULLIF(SUM(LFIMG), 0)                  AS pick_pct
-  FROM connected_plant_uat.sap.deliveryobjects_lips
+  FROM ${TRACE_CATALOG}.sap.deliveryobjects_lips
   GROUP BY VBELN
 )
 
@@ -94,7 +94,7 @@ SELECT
     ELSE FALSE
   END                                                            AS shipped
 
-FROM connected_plant_uat.sap.deliveryobjects_likp AS lk
+FROM ${TRACE_CATALOG}.sap.deliveryobjects_likp AS lk
 LEFT JOIN pick_progress AS pp
   ON pp.VBELN = lk.VBELN
 
