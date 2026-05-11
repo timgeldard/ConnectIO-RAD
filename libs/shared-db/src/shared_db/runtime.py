@@ -5,6 +5,7 @@ import hashlib
 import inspect
 import json
 import logging
+import re
 import threading
 import time
 from collections.abc import Awaitable
@@ -22,6 +23,7 @@ AuditHook = Callable[..., None | Awaitable[None]]
 
 WRITE_SQL_PREFIXES = ("INSERT", "MERGE", "UPDATE", "DELETE", "ALTER", "CREATE", "DROP", "TRUNCATE", "OPTIMIZE", "VACUUM")
 READ_SQL_PREFIXES = ("SELECT", "WITH", "SHOW", "DESCRIBE")
+DEFAULT_SLOW_QUERY_THRESHOLD_MS = 3000
 logger = logging.getLogger(__name__)
 
 
@@ -56,14 +58,48 @@ def is_write_statement(statement: str) -> bool:
 
 
 def sql_cache_key(token: str, statement: str, params: Optional[list[dict]] = None) -> str:
+    """Build a data-cache key for a statement and parameters.
+
+    Args:
+        token: Deprecated compatibility parameter. Tokens are validated and
+            audited separately, but intentionally excluded from the data key so
+            common manufacturing dashboard reads share cache entries.
+        statement: SQL statement text.
+        params: Optional Databricks SQL named parameters.
+
+    Returns:
+        Stable ``statement_hash:params_hash`` cache key.
+    """
     payload = json.dumps(params or [], sort_keys=True, default=str, separators=(",", ":"))
     return ":".join(
         [
-            hashlib.sha256(token.encode()).hexdigest(),
             hashlib.sha256(statement.encode()).hexdigest(),
             hashlib.sha256(payload.encode()).hexdigest(),
         ]
     )
+
+
+def statement_has_limit(statement: str) -> bool:
+    """Return True when a read statement already contains a LIMIT clause."""
+    stripped = _strip_leading_comments(statement)
+    return bool(re.search(r"\blimit\b", stripped, flags=re.IGNORECASE))
+
+
+def apply_max_rows_guard(statement: str, max_rows: int | None) -> str:
+    """Append a conservative LIMIT for read statements that do not have one.
+
+    Args:
+        statement: SQL statement to guard.
+        max_rows: Maximum rows to request, or ``None`` to leave unchanged.
+
+    Returns:
+        Statement with a trailing ``LIMIT`` when safe and requested.
+    """
+    if max_rows is None or max_rows <= 0:
+        return statement
+    if not is_read_only_statement(statement) or statement_has_limit(statement):
+        return statement
+    return f"{statement.rstrip()}\nLIMIT {int(max_rows)}"
 
 
 @dataclass(frozen=True)
@@ -143,6 +179,7 @@ class SqlRuntimeConfig:
     cache_policy: CachePolicy | None = None
     audit_hook: AuditHook | None = None
     audit_in_background: bool = False
+    slow_query_threshold_ms: int = DEFAULT_SLOW_QUERY_THRESHOLD_MS
 
     def build(self) -> "SqlRuntime":
         return SqlRuntime(
@@ -153,6 +190,7 @@ class SqlRuntimeConfig:
             cache_policy=self.cache_policy,
             audit_hook=self.audit_hook,
             audit_in_background=self.audit_in_background,
+            slow_query_threshold_ms=self.slow_query_threshold_ms,
         )
 
 
@@ -167,6 +205,7 @@ class SqlRuntime:
         cache_policy: CachePolicy | None = None,
         audit_hook: AuditHook | None = None,
         audit_in_background: bool = False,
+        slow_query_threshold_ms: int = DEFAULT_SLOW_QUERY_THRESHOLD_MS,
     ) -> None:
         self._run_sql = run_sql
         self.cache_policy = cache_policy or CachePolicy.single(
@@ -182,6 +221,7 @@ class SqlRuntime:
         self.cache_lock = threading.Lock()
         self.cache_row_limit = self.cache_policy.tiers[0].row_limit
         self.audit_in_background = audit_in_background
+        self.slow_query_threshold_ms = slow_query_threshold_ms
 
     def clear_cache(self) -> None:
         with self.cache_lock:
@@ -272,20 +312,23 @@ class SqlRuntime:
         audit: bool = True,
         invalidate_cache: bool = True,
         bypass_cache: bool = False,
+        max_rows: int | None = None,
     ) -> list[dict]:
         try:
-            tier = self._cache_tier_for(statement)
+            statement_to_execute = apply_max_rows_guard(statement, max_rows)
+            tier = self._cache_tier_for(statement_to_execute)
             if tier is None or bypass_cache:
                 loop = asyncio.get_running_loop()
                 started_at = time.monotonic()
-                rows = await loop.run_in_executor(_sql_executor, lambda: self._run_sql(token, statement, params))
+                rows = await loop.run_in_executor(_sql_executor, lambda: self._run_sql(token, statement_to_execute, params))
                 duration_ms = int((time.monotonic() - started_at) * 1000)
-                if invalidate_cache and is_write_statement(statement):
+                self._log_slow_query(duration_ms=duration_ms, endpoint_hint=endpoint_hint)
+                if invalidate_cache and is_write_statement(statement_to_execute):
                     self.clear_cache()
                 if audit:
                     await self._emit_audit(
                         token=token,
-                        statement=statement,
+                        statement=statement_to_execute,
                         params=params,
                         endpoint_hint=endpoint_hint,
                         rows=rows,
@@ -293,7 +336,7 @@ class SqlRuntime:
                     )
                 return rows
 
-            cache_key = f"{tier.name}:{sql_cache_key(token, statement, params)}"
+            cache_key = f"{tier.name}:{sql_cache_key(token, statement_to_execute, params)}"
             cache = self._tier_caches[tier.name]
             with self.cache_lock:
                 cached_rows = cache.get(cache_key)
@@ -302,15 +345,16 @@ class SqlRuntime:
 
             loop = asyncio.get_running_loop()
             started_at = time.monotonic()
-            rows = await loop.run_in_executor(_sql_executor, lambda: self._run_sql(token, statement, params))
+            rows = await loop.run_in_executor(_sql_executor, lambda: self._run_sql(token, statement_to_execute, params))
             duration_ms = int((time.monotonic() - started_at) * 1000)
+            self._log_slow_query(duration_ms=duration_ms, endpoint_hint=endpoint_hint)
             if len(rows) <= tier.row_limit:
                 with self.cache_lock:
                     cache[cache_key] = deepcopy(rows)
             if audit:
                 await self._emit_audit(
                     token=token,
-                    statement=statement,
+                    statement=statement_to_execute,
                     params=params,
                     endpoint_hint=endpoint_hint,
                     rows=rows,
@@ -330,3 +374,12 @@ class SqlRuntime:
             if mapped_error:
                 raise mapped_error from exc
             raise
+
+    def _log_slow_query(self, *, duration_ms: int, endpoint_hint: str) -> None:
+        """Emit a warning for SQL calls that exceed the configured threshold."""
+        if duration_ms > self.slow_query_threshold_ms:
+            logger.warning(
+                "sql.slow_query duration_ms=%d endpoint=%s",
+                duration_ms,
+                endpoint_hint,
+            )

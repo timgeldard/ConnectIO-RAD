@@ -9,6 +9,8 @@ Exports: run_sql, resolve_token, check_warehouse_config, tbl, sql_param,
 import asyncio
 import logging
 import os
+import json
+import hashlib
 import time
 import threading
 from typing import Any, Optional
@@ -114,6 +116,28 @@ def sql_param(name: str, value: Optional[object]) -> dict:
 _sql_cache = TTLCache(maxsize=100, ttl=300)
 _sql_cache_lock = threading.Lock()
 _SQL_CACHE_ROW_LIMIT = 1000
+_SQL_SLOW_QUERY_THRESHOLD_MS = int(os.environ.get("SQL_SLOW_QUERY_THRESHOLD_MS", "3000"))
+
+
+def _core_sql_cache_key(statement: str, params: Optional[list[dict]] = None) -> str:
+    """Build a token-independent data cache key for the base SQL runtime."""
+    payload = json.dumps(params or [], sort_keys=True, default=str, separators=(",", ":"))
+    return ":".join(
+        [
+            hashlib.sha256(statement.encode()).hexdigest(),
+            hashlib.sha256(payload.encode()).hexdigest(),
+        ]
+    )
+
+
+def _log_slow_query(*, duration_ms: int, endpoint_hint: str | None) -> None:
+    """Log slow SQL calls for N+1 and warehouse latency detection."""
+    if duration_ms > _SQL_SLOW_QUERY_THRESHOLD_MS:
+        logger.warning(
+            "sql.slow_query duration_ms=%d endpoint=%s",
+            duration_ms,
+            endpoint_hint or "unknown",
+        )
 
 
 def run_sql(
@@ -150,6 +174,7 @@ async def run_sql_async(
     params: Optional[list[dict]] = None,
     *,
     endpoint_hint: Optional[str] = None,
+    max_rows: int | None = None,
 ) -> list[dict]:
     """
     Execute a SQL statement asynchronously with a single TTL cache.
@@ -167,10 +192,10 @@ async def run_sql_async(
         List of dictionaries representing the query result rows.
     """
     from .executors import _sql_executor, _REST_EXECUTOR
-    import hashlib
-    cache_key = hashlib.sha256(
-        f"{token}:{statement}:{params!r}".encode()
-    ).hexdigest()
+    from .runtime import apply_max_rows_guard
+
+    statement_to_execute = apply_max_rows_guard(statement, max_rows)
+    cache_key = _core_sql_cache_key(statement_to_execute, params)
 
     with _sql_cache_lock:
         cached = _sql_cache.get(cache_key)
@@ -181,12 +206,15 @@ async def run_sql_async(
         logger.info("sql.execute_async hint=%s", endpoint_hint)
 
     app_name = os.environ.get("APP_NAME", "unknown")
-    tagged_statement = f"/* App={app_name}, Module={endpoint_hint or 'unknown'} */\n{statement}"
+    tagged_statement = f"/* App={app_name}, Module={endpoint_hint or 'unknown'} */\n{statement_to_execute}"
 
+    started_at = time.monotonic()
     rows = await asyncio.get_running_loop().run_in_executor(
         _sql_executor,
         lambda: _REST_EXECUTOR.execute(token, tagged_statement, params),
     )
+    duration_ms = int((time.monotonic() - started_at) * 1000)
+    _log_slow_query(duration_ms=duration_ms, endpoint_hint=endpoint_hint)
 
     if len(rows) <= _SQL_CACHE_ROW_LIMIT:
         with _sql_cache_lock:
