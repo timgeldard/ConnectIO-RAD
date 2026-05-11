@@ -60,6 +60,8 @@ env:
   # acceptable tokens.
   - name: AUTH_JWKS_URL
     value: "${AUTH_JWKS_URL}"
+  - name: AUTH_JWT_AUDIENCE
+    value: "${AUTH_JWT_AUDIENCE}"
   - name: AUTH_JWT_ISSUER
     value: "${AUTH_JWT_ISSUER}"
   - name: AUTH_ALLOW_UNVERIFIED_JWT

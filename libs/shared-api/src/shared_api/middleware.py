@@ -171,4 +171,5 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("x-frame-options", "DENY")
         response.headers.setdefault("referrer-policy", "strict-origin-when-cross-origin")
         response.headers.setdefault("permissions-policy", "camera=(), microphone=(), geolocation=()")
+        response.headers.setdefault("cache-control", "no-store")
         return response
