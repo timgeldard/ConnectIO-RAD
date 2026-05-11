@@ -30,3 +30,33 @@ Please include:
 
 This policy covers the ConnectIO-RAD Databricks Apps platform. Third-party
 platform issues (Databricks, Azure) should be reported to those vendors directly.
+
+## Data Classification
+
+ConnectIO-RAD serves industrial manufacturing analytics, including quality,
+traceability, environmental monitoring, process-order, and inventory data. Treat
+this data as sensitive manufacturing intellectual property unless a business data
+owner has explicitly classified it otherwise.
+
+Default handling expectations:
+- **Restricted:** authentication tokens, user identity headers, audit logs with
+  personal data, production credentials, and workspace configuration.
+- **Confidential:** batch genealogy, supplier traceability, quality results,
+  process-order performance, warehouse inventory, and manufacturing KPIs.
+- **Internal:** generated demo data, non-production screenshots, and development
+  diagnostics that do not include real production identifiers.
+
+Do not paste Restricted or Confidential data into public issues, external AI
+tools, logs without masking, or pull-request comments.
+
+## Regulatory and Privacy Considerations
+
+Security triage must consider applicable food-manufacturing and privacy
+obligations, including FSMA preventive-controls expectations, GFSI-aligned audit
+readiness, customer traceability commitments, and GDPR obligations for personal
+data such as user identity, email, audit trail, and access logs.
+
+When a vulnerability may expose personal data or regulated traceability records,
+the incident owner must involve legal/privacy and the accountable data owner to
+assess notification obligations, data residency constraints, and customer or
+regulator communication requirements.

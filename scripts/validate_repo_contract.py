@@ -28,6 +28,7 @@ REQUIRED_PROD_ENV_KEYS = (
     "DATABRICKS_WAREHOUSE_HTTP_PATH",
     "TRACE_CATALOG",
     "POH_CATALOG",
+    "AUTH_JWT_AUDIENCE",
 )
 FORBIDDEN_PRODUCTION_PATTERNS = {
     '"gold_views_pending"': "Use a domain-specific unavailable reason instead of the legacy placeholder.",
@@ -269,7 +270,13 @@ def validate_prod_manifest(errors: list[str], deploy_file: Path, manifest: dict[
         return
 
     for key in REQUIRED_PROD_ENV_KEYS:
-        if key in prod_env and str(prod_env[key]).strip() == "":
+        if (
+            key == "AUTH_JWT_AUDIENCE"
+            and "AUTH_JWKS_URL" in prod_env
+            and key not in prod_env
+        ):
+            errors.append(f"{app_dir.relative_to(ROOT)}: prod env must define `{key}`")
+        elif key in prod_env and str(prod_env[key]).strip() == "":
             errors.append(f"{app_dir.relative_to(ROOT)}: prod env `{key}` must not be empty")
 
     default_target = str(app.get("default_target", app.get("default_profile", "")))

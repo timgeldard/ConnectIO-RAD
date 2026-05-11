@@ -45,9 +45,22 @@ def test_extract_identity_accepts_malformed_dev_token_as_dev_user(monkeypatch):
 def test_warn_if_jwks_unconfigured_passes_when_jwks_url_set(monkeypatch):
     """JWKS configured — startup proceeds with no error."""
     monkeypatch.setenv("AUTH_JWKS_URL", "https://example.com/oidc/jwks")
+    monkeypatch.setenv("AUTH_JWT_AUDIENCE", "connectio-rad")
     monkeypatch.delenv("APP_ENV", raising=False)
 
     warn_if_jwks_unconfigured()
+
+
+def test_warn_if_jwks_unconfigured_requires_audience_with_jwks_in_prod(monkeypatch):
+    """JWKS verification in non-dev mode must also pin the expected audience."""
+    monkeypatch.setenv("AUTH_JWKS_URL", "https://example.com/oidc/jwks")
+    monkeypatch.delenv("AUTH_JWT_AUDIENCE", raising=False)
+    monkeypatch.delenv("APP_ENV", raising=False)
+
+    with pytest.raises(RuntimeError) as exc:
+        warn_if_jwks_unconfigured()
+
+    assert "AUTH_JWT_AUDIENCE is required" in str(exc.value)
 
 
 def test_warn_if_jwks_unconfigured_passes_in_dev_without_jwks(monkeypatch):
@@ -70,16 +83,16 @@ def test_warn_if_jwks_unconfigured_raises_in_prod_without_jwks(monkeypatch):
     assert "AUTH_JWKS_URL is not configured" in str(exc.value)
 
 
-def test_warn_if_jwks_unconfigured_raises_for_unverified_opt_out_in_prod(monkeypatch):
-    """AUTH_ALLOW_UNVERIFIED_JWT=true in non-dev mode must raise — silent bypass
-    is a security misconfiguration that must be surfaced at startup, not logged."""
+def test_warn_if_jwks_unconfigured_warns_for_unverified_opt_out_in_prod(monkeypatch, caplog):
+    """AUTH_ALLOW_UNVERIFIED_JWT=true is an explicit unsafe startup bypass."""
     monkeypatch.delenv("APP_ENV", raising=False)
     monkeypatch.delenv("AUTH_JWKS_URL", raising=False)
     monkeypatch.setenv("AUTH_ALLOW_UNVERIFIED_JWT", "true")
 
-    with pytest.raises(RuntimeError) as exc:
+    with caplog.at_level("WARNING", logger="shared_auth.identity"):
         warn_if_jwks_unconfigured()
-    assert "AUTH_ALLOW_UNVERIFIED_JWT" in str(exc.value)
+
+    assert any("AUTH_ALLOW_UNVERIFIED_JWT" in rec.message for rec in caplog.records)
 
 
 def test_warn_if_jwks_unconfigured_passes_in_dev_with_allow_flag(monkeypatch):
