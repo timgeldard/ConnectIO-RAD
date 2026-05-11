@@ -1,11 +1,27 @@
 {
+  "version": 1,
+  "featureFlags": {
+    "template.enabled": true
+  },
   "modules": [
     {
       "moduleId": "template",
       "displayName": "Template Module",
       "shortName": "TEMPLATE",
       "tagline": "Template Module demo module",
-      "domain": "demo",
+      "domain": "platform",
+      "category": "demo",
+      "description": "Reference bounded-context template used by generated manufacturing modules.",
+      "permissions": [],
+      "featureFlags": {
+        "template.enabled": true
+      },
+      "searchKeywords": [
+        "template",
+        "demo",
+        "bounded context",
+        "new module"
+      ],
       "iconSet": "shared-ui",
       "icon": "chart",
       "color": "#289BA2",
@@ -41,11 +57,20 @@
       },
       "contextBarSlot": false,
       "routeBase": "/template/",
+      "route": {
+        "kind": "local",
+        "path": "/template/"
+      },
       "i18nNamespace": "template",
       "isUserSelectable": true,
       "isPinnedByDefault": false,
       "isMandatory": false,
-      "backendPrefix": "/api/module-template"
+      "backendPrefix": "/api/module-template",
+      "health": {
+        "endpoint": "/api/module-template/overview",
+        "status": "unknown",
+        "badge": "Demo"
+      }
     }
   ]
 }

@@ -156,6 +156,15 @@
 /* ── Home panel ── */
 .plat-home {
   padding: 40px 48px;
+  max-width: 1240px;
+}
+
+.plat-home-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 30px;
 }
 
 .plat-home-greeting {
@@ -164,14 +173,81 @@
   font-size: 32px;
   line-height: 1;
   color: var(--shell-fg, #0E1F0A);
-  margin: 0 0 36px;
+  margin: 0 0 10px;
+}
+
+.plat-home-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--shell-fg-3, #7A8A75);
+}
+
+.plat-home-search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(360px, 100%);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--shell-fg-3, #7A8A75);
+}
+
+.plat-home-search input {
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 12px;
+  border: 1px solid var(--shell-line, #DAD9C9);
+  border-radius: 4px;
+  background: var(--shell-surface, #fff);
+  color: var(--shell-fg, #0E1F0A);
+  font-family: var(--font-sans, sans-serif);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.plat-home-search input:focus {
+  outline: 2px solid var(--valentia-slate, #005776);
+  outline-offset: 2px;
+}
+
+.plat-home-section {
+  margin-top: 24px;
+}
+
+.plat-home-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.plat-home-section-head h2 {
+  margin: 0;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--shell-fg, #0E1F0A);
+}
+
+.plat-home-section-head span {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: var(--shell-fg-3, #7A8A75);
 }
 
 .plat-home-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14px;
-  max-width: 960px;
 }
 
 .plat-home-card {
@@ -202,6 +278,26 @@
   padding: 16px 18px 18px;
 }
 
+.plat-home-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.plat-home-status {
+  flex: 0 0 auto;
+  border: 1px solid var(--shell-line, #DAD9C9);
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--shell-fg-3, #7A8A75);
+}
+
 .plat-home-card-name {
   font-family: var(--font-sans, sans-serif);
   font-weight: 700;
@@ -222,6 +318,26 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+@media (max-width: 980px) {
+  .plat-home-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .plat-home {
+    padding: 28px 20px;
+  }
+
+  .plat-home-hero {
+    flex-direction: column;
+  }
+
+  .plat-home-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Empty / not found ── */

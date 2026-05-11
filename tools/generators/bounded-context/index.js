@@ -1502,24 +1502,33 @@ function updateDddGuardrail(tree, n) {
   tree.write(path, text);
 }
 
-function updatePlatformManifest(tree, n, skipPlatform) {
-  if (skipPlatform) return;
-  const path = "apps/platform/frontend/src/shell/module-manifest.json";
-  const manifest = tree.exists(path)
-    ? JSON.parse(tree.read(path, "utf-8"))
-    : { modules: [] };
-  manifest.modules = manifest.modules || [];
-  if (!manifest.modules.some((module) => module.moduleId === n.projectName)) {
-    manifest.modules.push({
+function buildPlatformModuleRegistration(n) {
+  const domainMap = {
+    quality: "quality",
+    warehouse: "warehouse",
+    platform: "platform",
+    operations: "process-order",
+    "process-order": "process-order",
+  };
+  const shellDomain = domainMap[n.domain] || "platform";
+  const sidebarGroup = n.domain === "warehouse" ? "warehouse" : n.domain === "operations" ? "operations" : n.domain;
+  const enabledFlag = `${n.projectName}.enabled`;
+  return {
+    module: {
       moduleId: n.projectName,
       displayName: n.displayName,
       shortName: n.projectName.slice(0, 8).toUpperCase(),
       tagline: `${n.displayName} demo module`,
-      domain: n.domain,
+      domain: shellDomain,
+      category: n.domain,
+      description: `${n.displayName} bounded context generated for ${n.domain} manufacturing workflows.`,
+      permissions: [],
+      featureFlags: { [enabledFlag]: true },
+      searchKeywords: [n.projectName, n.displayName, n.domain, n.contextKebab, "bounded context", "demo"],
       iconSet: "shared-ui",
       icon: "chart",
       color: "#289BA2",
-      sidebarGroup: n.domain === "warehouse" ? "warehouse" : n.domain === "operations" ? "operations" : "quality",
+      sidebarGroup,
       sidebarOrder: 90,
       defaultTab: "overview",
       tabs: [{ id: "overview", label: "Overview", num: "01" }],
@@ -1534,12 +1543,35 @@ function updatePlatformManifest(tree, n, skipPlatform) {
       },
       contextBarSlot: false,
       routeBase: `/${n.appName}/`,
+      route: { kind: "local", path: `/${n.appName}/` },
       i18nNamespace: n.projectName,
       isUserSelectable: true,
       isPinnedByDefault: false,
       isMandatory: false,
       backendPrefix: `/api/${n.contextKebab}`,
-    });
+      health: {
+        endpoint: `/api/${n.contextKebab}/overview`,
+        status: "unknown",
+        badge: "Demo",
+      },
+    },
+    enabledFlag,
+  };
+}
+
+function updatePlatformManifest(tree, n, skipPlatform) {
+  if (skipPlatform) return;
+  const path = "apps/platform/frontend/src/shell/module-manifest.json";
+  const manifest = tree.exists(path)
+    ? JSON.parse(tree.read(path, "utf-8"))
+    : { version: 1, featureFlags: {}, modules: [] };
+  manifest.version = manifest.version || 1;
+  manifest.featureFlags = manifest.featureFlags || {};
+  manifest.modules = manifest.modules || [];
+  if (!manifest.modules.some((module) => module.moduleId === n.projectName)) {
+    const { module, enabledFlag } = buildPlatformModuleRegistration(n);
+    manifest.featureFlags[enabledFlag] = true;
+    manifest.modules.push(module);
   }
   manifest.modules.sort((a, b) => String(a.moduleId).localeCompare(String(b.moduleId)));
   tree.write(path, `${JSON.stringify(manifest, null, 2)}\n`);
@@ -1562,3 +1594,4 @@ module.exports = boundedContextGenerator;
 module.exports.default = boundedContextGenerator;
 module.exports.toNames = toNames;
 module.exports.planBoundedContextFiles = planBoundedContextFiles;
+module.exports.buildPlatformModuleRegistration = buildPlatformModuleRegistration;

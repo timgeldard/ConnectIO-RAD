@@ -1,7 +1,11 @@
 const assert = require("node:assert/strict");
 const { describe, it } = require("node:test");
 
-const { planBoundedContextFiles, toNames } = require("../../../tools/generators/bounded-context/index");
+const {
+  buildPlatformModuleRegistration,
+  planBoundedContextFiles,
+  toNames,
+} = require("../../../tools/generators/bounded-context/index");
 
 describe("bounded-context generator planning", () => {
   it("normalizes app and context names for spc/trace2-style packages", () => {
@@ -27,5 +31,20 @@ describe("bounded-context generator planning", () => {
     assert(files.includes("apps/supplier-quality/backend/supplierquality_backend/supplier_quality/domain/value_objects.py"));
     assert(files.includes("apps/supplier-quality/backend/supplierquality_backend/supplier_quality/routers/router.py"));
     assert(files.includes("apps/supplier-quality/frontend/src/supplier-quality/pages/SupplierQualityPage.tsx"));
+  });
+
+  it("builds platform registration metadata for dynamic shell discovery", () => {
+    const names = toNames({ name: "supplier-quality", domain: "quality" });
+    const { module, enabledFlag } = buildPlatformModuleRegistration(names);
+
+    assert.equal(enabledFlag, "supplierquality.enabled");
+    assert.equal(module.moduleId, "supplierquality");
+    assert.equal(module.domain, "quality");
+    assert.equal(module.category, "quality");
+    assert.deepEqual(module.route, { kind: "local", path: "/supplier-quality/" });
+    assert.deepEqual(module.permissions, []);
+    assert.equal(module.featureFlags["supplierquality.enabled"], true);
+    assert(module.searchKeywords.includes("bounded context"));
+    assert.equal(module.health.endpoint, "/api/supplier-quality/overview");
   });
 });
