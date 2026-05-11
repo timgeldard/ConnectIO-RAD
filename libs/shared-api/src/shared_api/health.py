@@ -12,6 +12,7 @@ from collections.abc import Callable
 from typing import Any
 
 from fastapi import HTTPException
+from shared_db.errors import WarehouseNotConfiguredError
 
 
 CheckWarehouseConfig = Callable[[], Any]
@@ -87,10 +88,10 @@ async def databricks_sql_ready(
     """
     try:
         check_warehouse_config()
-    except HTTPException as exc:
+    except WarehouseNotConfiguredError as exc:
         raise not_ready(
             "warehouse_config_missing",
-            message=warehouse_config_message if warehouse_config_message is not None else exc.detail,
+            message=warehouse_config_message if warehouse_config_message is not None else str(exc),
         ) from exc
 
     readiness_token = readiness_token_from_env()

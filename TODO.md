@@ -47,12 +47,12 @@
   worth doing as one coordinated change. Security-adjacent, no production behaviour
   change required.
 
-- [ ] **SQL DDL catalog templating** — every SQL view file under `apps/*/sql/views/`
-  hardcodes `connected_plant_uat` / `published_uat` / `silver_uat`. The Python apps
-  receive `TRACE_CATALOG` per environment via `app.template.yaml`, but SQL DDL
-  ships as-is. Pre-deploy templating from `deploy.toml` is the obvious fix; needs
-  to land before any non-trivial production deploy of W360/IMWM views. Surfaced
-  by CodeRabbit on PR-26.
+- [x] **SQL DDL catalog templating** — `apps/warehouse360/sql/views/*.sql` (views
+  01–10) now use `${TRACE_CATALOG}` / `${PUBLISHED_CATALOG}` placeholders rendered
+  via `scripts/render_sql_views.py` from `deploy.toml`. IMWM and near-expiry views
+  (11–15) had no catalog references and are unchanged. `rendered/` output is
+  gitignored. **Note**: before a prod deploy of views 05, 09, 10, confirm that
+  `published_prod.central_services.*` tables exist in the production workspace.
 
 - [ ] **Backend `--cov-branch`** — every backend's `pyproject.toml` enforces
   `--cov-fail-under=75` on line coverage but not branch coverage. Gemini review

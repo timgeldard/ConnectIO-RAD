@@ -14,7 +14,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from starlette.requests import Request as StarletteRequest
 
 from shared_api.errors import safe_global_exception_response
@@ -22,12 +22,22 @@ from shared_api.middleware import LatencyMiddleware, RequestContextMiddleware, S
 from shared_api.rate_limit import RateLimitExceeded, RateLimitMiddleware, rate_limit_handler
 from shared_api.security import SameOriginMiddleware
 from shared_auth.identity import warn_if_jwks_unconfigured
+from shared_db.errors import WarehouseNotConfiguredError
 
 
 StaticDirGetter = Callable[[], Path]
 logger = logging.getLogger(__name__)
 
 NO_CACHE = {"Cache-Control": "no-store"}
+
+
+_DEFAULT_ALLOW_METHODS = ["GET", "POST", "OPTIONS"]
+_DEFAULT_ALLOW_HEADERS = [
+    "Content-Type",
+    "Authorization",
+    "X-Forwarded-Access-Token",
+    "X-Request-Id",
+]
 
 
 def create_api_app(
@@ -41,6 +51,8 @@ def create_api_app(
     default_latency_budget_ms: int = 10_000,
     latency_alert_callback: Callable[[str, int, int, int], Any] | None = None,
     allow_origins: list[str] | None = None,
+    allow_methods: list[str] | None = None,
+    allow_headers: list[str] | None = None,
     enable_rate_limit: bool = True,
     enable_security_headers: bool = True,
     trust_forwarded_user: bool = False,
@@ -59,6 +71,8 @@ def create_api_app(
         default_latency_budget_ms: The default latency budget for paths not in latency_budgets_ms.
         latency_alert_callback: A callback triggered when a request exceeds its latency budget.
         allow_origins: A list of origins allowed for CORS. Defaults to [] if None.
+        allow_methods: HTTP methods permitted in CORS preflight. Defaults to GET, POST, OPTIONS.
+        allow_headers: Request headers permitted in CORS preflight. Defaults to a safe explicit list.
         enable_rate_limit: Whether to enable the built-in rate limiting middleware.
         enable_security_headers: Whether to attach standard browser security headers.
         trust_forwarded_user: Whether to trust the x-forwarded-preferred-username header for identity.
@@ -90,6 +104,10 @@ def create_api_app(
     async def global_exception_handler(request: StarletteRequest, exc: Exception):
         return await safe_global_exception_response(request, exc, logger_name=title)
 
+    @app.exception_handler(WarehouseNotConfiguredError)
+    async def warehouse_not_configured_handler(request: StarletteRequest, exc: WarehouseNotConfiguredError):
+        return JSONResponse(status_code=500, content={"detail": str(exc)})
+
     if enable_rate_limit:
         app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
@@ -110,8 +128,8 @@ def create_api_app(
         CORSMiddleware,
         allow_origins=[] if allow_origins is None else allow_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=_DEFAULT_ALLOW_METHODS if allow_methods is None else allow_methods,
+        allow_headers=_DEFAULT_ALLOW_HEADERS if allow_headers is None else allow_headers,
     )
 
     # Observability: Latency Monitoring

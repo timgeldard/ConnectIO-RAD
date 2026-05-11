@@ -1,5 +1,5 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.wh360_kpi_snapshot_v
+-- View : ${TRACE_CATALOG}.wh360.wh360_kpi_snapshot_v
 -- Phase: 1 -- direct queries on raw SAP tables (not via other wh360 views)
 -- Sources: sap.productionorderobject_afko (AFKO)
 --          sap.productionorderobject_afpo  (AFPO)
@@ -8,47 +8,47 @@
 --          sap.transferrequirementobjects_ltbk (LTBK)
 --          sap.deliveryobjects_likp        (LIKP)
 --          sap.deliveryobjects_lips        (LIPS)
---          published_uat.central_services.procurementorderobject_ekpo (EKPO)
+--          ${PUBLISHED_CATALOG}.central_services.procurementorderobject_ekpo (EKPO)
 --          sap.storagebin_lagp             (LAGP)
 --          sap.quant_lqua                  (LQUA)
 -- Purpose: Plant-level KPI summary for dashboard header / tiles
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.wh360_kpi_snapshot_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.wh360_kpi_snapshot_v AS
 
 WITH
 
 plant_scope AS (
   SELECT DISTINCT PWERK AS plant_id
-  FROM connected_plant_uat.sap.productionorderobject_afpo
+  FROM ${TRACE_CATALOG}.sap.productionorderobject_afpo
   WHERE PWERK IS NOT NULL
     AND LENGTH(TRIM(PWERK)) > 0
 
   UNION
 
   SELECT DISTINCT WERKS AS plant_id
-  FROM connected_plant_uat.sap.transferorderobjects_ltap
+  FROM ${TRACE_CATALOG}.sap.transferorderobjects_ltap
   WHERE WERKS IS NOT NULL
     AND LENGTH(TRIM(WERKS)) > 0
 
   UNION
 
   SELECT DISTINCT WERKS AS plant_id
-  FROM connected_plant_uat.sap.deliveryobjects_likp
+  FROM ${TRACE_CATALOG}.sap.deliveryobjects_likp
   WHERE WERKS IS NOT NULL
     AND LENGTH(TRIM(WERKS)) > 0
 
   UNION
 
   SELECT DISTINCT WERKS AS plant_id
-  FROM published_uat.central_services.procurementorderobject_ekpo
+  FROM ${PUBLISHED_CATALOG}.central_services.procurementorderobject_ekpo
   WHERE WERKS IS NOT NULL
     AND LENGTH(TRIM(WERKS)) > 0
 
   UNION
 
   SELECT DISTINCT WERKS AS plant_id
-  FROM connected_plant_uat.sap.quant_lqua
+  FROM ${TRACE_CATALOG}.sap.quant_lqua
   WHERE WERKS IS NOT NULL
     AND LENGTH(TRIM(WERKS)) > 0
 ),
@@ -62,8 +62,8 @@ order_staging AS (
     COUNT(lt.TAPOS)                                             AS to_items_total,
     COUNT(CASE WHEN lt.PQUIT = 'X' THEN 1 END) * 100.0
       / NULLIF(COUNT(lt.TAPOS), 0)                              AS staging_pct
-  FROM connected_plant_uat.sap.transferorderobjects_ltak AS lk
-  JOIN connected_plant_uat.sap.transferorderobjects_ltap AS lt
+  FROM ${TRACE_CATALOG}.sap.transferorderobjects_ltak AS lk
+  JOIN ${TRACE_CATALOG}.sap.transferorderobjects_ltap AS lt
     ON  lt.LGNUM = lk.LGNUM
     AND lt.TANUM = lk.TANUM
   WHERE lk.RSNUM IS NOT NULL
@@ -92,8 +92,8 @@ order_risk AS (
         THEN 'amber'
       ELSE 'green'
     END                                                          AS risk
-  FROM connected_plant_uat.sap.productionorderobject_afko AS ak
-  JOIN connected_plant_uat.sap.productionorderobject_afpo AS ap
+  FROM ${TRACE_CATALOG}.sap.productionorderobject_afko AS ak
+  JOIN ${TRACE_CATALOG}.sap.productionorderobject_afpo AS ap
     ON  ap.AUFNR = ak.AUFNR
   LEFT JOIN order_staging AS s
     ON  s.RSNUM = ak.RSNUM
@@ -121,7 +121,7 @@ delivery_pick AS (
     SUM(LFIMG)                                                   AS total_del_qty,
     SUM(LGMNG)                                                   AS total_wm_qty,
     SUM(LGMNG) * 100.0 / NULLIF(SUM(LFIMG), 0)                  AS pick_pct
-  FROM connected_plant_uat.sap.deliveryobjects_lips
+  FROM ${TRACE_CATALOG}.sap.deliveryobjects_lips
   GROUP BY VBELN
 ),
 
@@ -150,7 +150,7 @@ delivery_risk AS (
         THEN 'amber'
       ELSE 'green'
     END                                                          AS risk
-  FROM connected_plant_uat.sap.deliveryobjects_likp AS lk
+  FROM ${TRACE_CATALOG}.sap.deliveryobjects_likp AS lk
   LEFT JOIN delivery_pick AS dp
     ON dp.VBELN = lk.VBELN
   WHERE lk.WERKS IS NOT NULL
@@ -174,8 +174,8 @@ open_transfer_orders AS (
   SELECT
     lt.WERKS                                                     AS plant_id,
     COUNT(DISTINCT lk.TANUM)                                     AS tos_open
-  FROM connected_plant_uat.sap.transferorderobjects_ltak AS lk
-  JOIN connected_plant_uat.sap.transferorderobjects_ltap AS lt
+  FROM ${TRACE_CATALOG}.sap.transferorderobjects_ltak AS lk
+  JOIN ${TRACE_CATALOG}.sap.transferorderobjects_ltap AS lt
     ON  lt.LGNUM = lk.LGNUM
     AND lt.TANUM = lk.TANUM
   WHERE lk.KQUIT != 'X'
@@ -188,10 +188,10 @@ open_transfer_requirements AS (
   SELECT
     ap.PWERK                                                     AS plant_id,
     COUNT(DISTINCT tr.RSNUM)                                     AS trs_open
-  FROM connected_plant_uat.sap.transferrequirementobjects_ltbk AS tr
-  JOIN connected_plant_uat.sap.productionorderobject_afko AS ak
+  FROM ${TRACE_CATALOG}.sap.transferrequirementobjects_ltbk AS tr
+  JOIN ${TRACE_CATALOG}.sap.productionorderobject_afko AS ak
     ON ak.RSNUM = tr.RSNUM
-  JOIN connected_plant_uat.sap.productionorderobject_afpo AS ap
+  JOIN ${TRACE_CATALOG}.sap.productionorderobject_afpo AS ap
     ON ap.AUFNR = ak.AUFNR
   WHERE tr.STATU != 'C'
     AND tr.LGNUM IS NOT NULL
@@ -205,7 +205,7 @@ inbound_counts AS (
   SELECT
     WERKS                                                        AS plant_id,
     COUNT(*)                                                     AS inbound_open
-  FROM published_uat.central_services.procurementorderobject_ekpo
+  FROM ${PUBLISHED_CATALOG}.central_services.procurementorderobject_ekpo
   WHERE WERKS IS NOT NULL
     AND LENGTH(TRIM(WERKS)) > 0
     AND ELIKZ != 'X'
@@ -234,8 +234,8 @@ bin_counts AS (
         THEN CONCAT(q.LGNUM, '|', q.LGTYP, '|', q.LGPLA)
       END
     )                                                            AS bins_blocked
-  FROM connected_plant_uat.sap.quant_lqua AS q
-  LEFT JOIN connected_plant_uat.sap.storagebin_lagp AS lg
+  FROM ${TRACE_CATALOG}.sap.quant_lqua AS q
+  LEFT JOIN ${TRACE_CATALOG}.sap.storagebin_lagp AS lg
     ON  lg.LGNUM = q.LGNUM
     AND lg.LGTYP = q.LGTYP
     AND lg.LGPLA = q.LGPLA

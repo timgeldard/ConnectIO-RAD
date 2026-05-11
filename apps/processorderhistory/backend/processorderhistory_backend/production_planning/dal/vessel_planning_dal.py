@@ -107,13 +107,16 @@ async def _q_latest_states(token: str, plant_id: Optional[str]) -> list[dict]:
             po.MATERIAL_ID             AS material_id,
             COALESCE(m.MATERIAL_NAME, po.MATERIAL_DESCRIPTION) AS material_name,
             po.PLANT_ID                AS plant_id,
-            {_LEH_ORDER_STATUS_EXPR}   AS order_status
+            {_LEH_ORDER_STATUS_EXPR}   AS order_status,
+            si.MAXIMUM_CAPACITY        AS max_capacity
         FROM latest_eh leh
         LEFT JOIN {tbl('vw_gold_process_order')} po
             ON po.PROCESS_ORDER_ID = leh.PROCESS_ORDER_ID
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = po.MATERIAL_ID
            AND m.LANGUAGE_ID = 'E'
+        LEFT JOIN {silver_tbl('instrument')} si
+            ON si.INSTRUMENT_ID = leh.INSTRUMENT_ID
         WHERE leh.rn = 1
           {plant_clause}
         ORDER BY leh.INSTRUMENT_ID
@@ -180,8 +183,10 @@ async def _q_events_range(
 async def _q_released_orders(token: str, plant_id: Optional[str]) -> list[dict]:
     """Released process orders ranked by silver SCHEDULED_START.
 
-    LEFT JOINs silver_process_order for SCHEDULED_START â degrades gracefully to
-    process_order_id ordering when the silver join returns no rows.
+    LEFT JOINs silver_process_order for SCHEDULED_START, QUANTITY, and UOM —
+    degrades gracefully to process_order_id ordering when the silver join returns
+    no rows.  QUANTITY and UOM enable silver-sourced capacity validation against
+    MAXIMUM_CAPACITY from silver.instrument (fetched in _q_latest_states).
     Excludes in-progress, completed, on-hold, and cancelled orders.
     """
     plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
@@ -194,7 +199,9 @@ async def _q_released_orders(token: str, plant_id: Optional[str]) -> list[dict]:
             COALESCE(m.MATERIAL_NAME, po.MATERIAL_DESCRIPTION, po.PROCESS_ORDER_ID)
                                    AS material_name,
             po.PLANT_ID            AS plant_id,
-            CAST(UNIX_TIMESTAMP(spo.SCHEDULED_START) * 1000 AS BIGINT) AS scheduled_start_ms
+            CAST(UNIX_TIMESTAMP(spo.SCHEDULED_START) * 1000 AS BIGINT) AS scheduled_start_ms,
+            spo.QUANTITY           AS order_qty,
+            spo.UOM                AS order_uom
         FROM {tbl('vw_gold_process_order')} po
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = po.MATERIAL_ID

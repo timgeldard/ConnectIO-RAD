@@ -36,7 +36,7 @@ from shared_db.core import (  # noqa: F401 — re-exported for dal imports
 )
 from shared_db.runtime import SqlRuntime, CachePolicy
 
-POH_CATALOG: str = os.environ.get("POH_CATALOG", "connected_plant_uat")
+POH_CATALOG: str = os.environ.get("POH_CATALOG", "")
 POH_SCHEMA: str = os.environ.get("POH_SCHEMA", "csm_process_order_history")
 
 # Standardized SQL Runtime with 300s cache and concurrency control

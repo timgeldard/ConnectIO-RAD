@@ -1,13 +1,13 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.wh360_handling_units_v
+-- View : ${TRACE_CATALOG}.wh360.wh360_handling_units_v
 -- Phase: 1 -- direct join on raw SAP tables (cross-plant source)
--- Sources: published_uat.central_services.handlingunit_vekp (VEKP)
---          published_uat.central_services.handlingunit_vepo (VEPO)
+-- Sources: ${PUBLISHED_CATALOG}.central_services.handlingunit_vekp (VEKP)
+--          ${PUBLISHED_CATALOG}.central_services.handlingunit_vepo (VEPO)
 -- Filter : VEKP.WERKS is populated
 -- Purpose: Handling unit (pallet/carton) detail with packed content and delivery link
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.wh360_handling_units_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.wh360_handling_units_v AS
 
 SELECT
   vk.VENUM                                                       AS hu_id,
@@ -38,11 +38,11 @@ SELECT
   vp.WDATU                                                       AS gr_date,
   md.MATERIAL_NAME                                               AS material_name
 
-FROM published_uat.central_services.handlingunit_vekp AS vk
-LEFT JOIN published_uat.central_services.handlingunit_vepo AS vp
+FROM ${PUBLISHED_CATALOG}.central_services.handlingunit_vekp AS vk
+LEFT JOIN ${PUBLISHED_CATALOG}.central_services.handlingunit_vepo AS vp
   ON  vp.VENUM = vk.VENUM
 
-LEFT JOIN connected_plant_uat.silver.silver_material_description AS md
+LEFT JOIN ${TRACE_CATALOG}.silver.silver_material_description AS md
   ON LPAD(md.MATERIAL_ID, 18, '0') = vp.MATNR
   AND md.LANGUAGE_ID = 'E'
 

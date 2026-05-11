@@ -3,7 +3,13 @@
 from processorderhistory_backend.production_planning.domain.vessels import classify_state, derive_planning_data
 
 
-def _vessel_row(instrument_id: str, status_to: str, *, order_status: str | None = None) -> dict:
+def _vessel_row(
+    instrument_id: str,
+    status_to: str,
+    *,
+    order_status: str | None = None,
+    max_capacity: float | None = None,
+) -> dict:
     return {
         "instrument_id": instrument_id,
         "equipment_type": "Tank",
@@ -14,6 +20,7 @@ def _vessel_row(instrument_id: str, status_to: str, *, order_status: str | None 
         "material_id": None,
         "material_name": None,
         "order_status": order_status,
+        "max_capacity": max_capacity,
     }
 
 
@@ -42,6 +49,33 @@ def test_derive_planning_data_recommends_available_affinity_vessel():
     assert orders[0]["recommended_vessel"] == "TK-101"
     assert orders[0]["evidence_last_seen_at_ms"] == 2000
     assert kpis["constrained_po_count"] == 0
+
+
+def test_derive_planning_data_exposes_max_capacity_on_vessel():
+    vessels, _orders, _kpis = derive_planning_data(
+        [_vessel_row("TK-101", "CLEAN", max_capacity=2000.0)],
+        [],
+        [],
+    )
+    assert vessels[0]["max_capacity"] == 2000.0
+
+
+def test_derive_planning_data_silver_capacity_excludes_oversized_order():
+    vessels, orders, _kpis = derive_planning_data(
+        [
+            _vessel_row("TK-101", "CLEAN", max_capacity=500.0),
+            _vessel_row("TK-102", "CLEAN", max_capacity=2000.0),
+        ],
+        [
+            {"instrument_id": "TK-101", "material_id": "MAT-A", "material_name": "Alpha", "change_at_ms": 1000},
+            {"instrument_id": "TK-102", "material_id": "MAT-A", "material_name": "Alpha", "change_at_ms": 1000},
+        ],
+        [{"po_id": "PO-1", "material_id": "MAT-A", "material_name": "Alpha", "plant_id": "RCN1", "order_qty": 1000.0}],
+    )
+    # TK-101 max 500 < 1000 → excluded; TK-102 max 2000 ≥ 1000 → included
+    assert "TK-101" not in orders[0]["likely_vessels"]
+    assert "TK-102" in orders[0]["likely_vessels"]
+    assert any("TK-101 excluded" in note for note in orders[0]["evidence_notes"])
 
 
 def test_derive_planning_data_marks_dirty_affinity_vessel_constrained():

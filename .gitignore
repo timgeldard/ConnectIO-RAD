@@ -15,6 +15,7 @@ node_modules/
 **/build/
 **/coverage/
 **/.nx/cache/
+**/sql/views/rendered/
 
 # Shared lib copies staged for Databricks Apps bundle deploy
 apps/*/shared_api/

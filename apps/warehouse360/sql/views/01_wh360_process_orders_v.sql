@@ -1,5 +1,5 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.wh360_process_orders_v
+-- View : ${TRACE_CATALOG}.wh360.wh360_process_orders_v
 -- Phase: 1 -- direct join on raw SAP tables
 -- Sources: sap.productionorderobject_afko (AFKO)
 --          sap.productionorderobject_afpo (AFPO)
@@ -10,7 +10,7 @@
 -- Purpose: Active process orders with staging progress and risk signal
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.wh360_process_orders_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.wh360_process_orders_v AS
 
 WITH staging AS (
   -- Aggregate WM transfer order progress per reservation number
@@ -20,8 +20,8 @@ WITH staging AS (
     COUNT(CASE WHEN lt.PQUIT = 'X' THEN 1 END)                  AS to_items_done,
     COUNT(CASE WHEN lt.PQUIT = 'X' THEN 1 END) * 100.0
       / NULLIF(COUNT(lt.TAPOS), 0)                              AS staging_pct
-  FROM connected_plant_uat.sap.transferorderobjects_ltak  AS lk
-  JOIN connected_plant_uat.sap.transferorderobjects_ltap  AS lt
+  FROM ${TRACE_CATALOG}.sap.transferorderobjects_ltak  AS lk
+  JOIN ${TRACE_CATALOG}.sap.transferorderobjects_ltap  AS lt
     ON  lt.LGNUM = lk.LGNUM
     AND lt.TANUM = lk.TANUM
   WHERE lk.RSNUM IS NOT NULL
@@ -45,8 +45,8 @@ orders AS (
     ap.MEINS,
     ap.CHARG,
     ap.LGORT
-  FROM connected_plant_uat.sap.productionorderobject_afko AS ak
-  JOIN connected_plant_uat.sap.productionorderobject_afpo AS ap
+  FROM ${TRACE_CATALOG}.sap.productionorderobject_afko AS ak
+  JOIN ${TRACE_CATALOG}.sap.productionorderobject_afpo AS ap
     ON  ap.AUFNR = ak.AUFNR
   WHERE ap.PWERK IS NOT NULL
     AND LENGTH(TRIM(ap.PWERK)) > 0
@@ -103,6 +103,6 @@ SELECT
 FROM orders AS o
 LEFT JOIN staging AS s
   ON s.RSNUM = o.RSNUM
-LEFT JOIN connected_plant_uat.silver.silver_material_description AS md
+LEFT JOIN ${TRACE_CATALOG}.silver.silver_material_description AS md
   ON LPAD(md.MATERIAL_ID, 18, '0') = o.MATNR
   AND md.LANGUAGE_ID = 'E'

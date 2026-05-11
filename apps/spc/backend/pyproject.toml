@@ -45,7 +45,7 @@ omit = ["tests/*", "spc_backend/__init__.py"]
 # Docstring presence gate - set at the current floor as of 2026-05-08.
 # See TODO.md for the ratchet commitment toward 80%+. Run locally with
 # `uv run --with interrogate interrogate <package>` to see uncovered files.
-fail-under = 30
+fail-under = 40
 ignore-init-method = true
 ignore-init-module = true
 ignore-magic = true

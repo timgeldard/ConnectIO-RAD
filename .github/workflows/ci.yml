@@ -217,7 +217,7 @@ jobs:
     environment: uat
     strategy:
       matrix:
-        app: [warehouse360, spc, trace2, platform]
+        app: [warehouse360, spc, trace2, platform, envmon, processorderhistory]
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
@@ -243,7 +243,8 @@ jobs:
         run: |
           npx playwright test \
             --config=apps/${{ matrix.app }}/e2e/playwright.config.ts \
-            --reporter=blob
+            --reporter=blob \
+            --workers=2
       - name: Upload blob report
         uses: actions/upload-artifact@v4
         if: always()

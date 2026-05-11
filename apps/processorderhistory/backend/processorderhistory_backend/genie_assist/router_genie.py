@@ -32,7 +32,28 @@ class GenieFollowupRequest(GenieRequest):
     conversation_id: Annotated[str, Field(alias="conversationId")]
 
 
-@router.post("/genie/start")
+class GenieAttachment(BaseModel):
+    """A single attachment returned in a Genie message response."""
+
+    attachmentId: Optional[str] = None
+    text: Optional[str] = None
+    sql: Optional[str] = None
+    type: Optional[str] = None
+    query: dict[str, Any] = {}
+
+
+class GenieMessageResponse(BaseModel):
+    """Normalised Genie message response returned to the frontend."""
+
+    conversationId: Optional[str] = None
+    messageId: Optional[str] = None
+    status: Optional[str] = None
+    error: Optional[str] = None
+    answer: str
+    attachments: list[GenieAttachment] = []
+
+
+@router.post("/genie/start", response_model=GenieMessageResponse)
 @limiter.limit("20/minute")
 async def genie_start(
     body: GenieRequest,
@@ -46,7 +67,7 @@ async def genie_start(
     return normalize_start_response(response)
 
 
-@router.post("/genie/followup")
+@router.post("/genie/followup", response_model=GenieMessageResponse)
 @limiter.limit("20/minute")
 async def genie_followup(
     body: GenieFollowupRequest,

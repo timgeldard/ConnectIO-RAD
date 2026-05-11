@@ -16,7 +16,7 @@ from shared_db.core import (  # noqa: F401 — re-exported
     sql_param,
 )
 
-CQ_CATALOG: str = os.environ.get("CQ_CATALOG", os.environ.get("TRACE_CATALOG", "connected_plant_uat"))
+CQ_CATALOG: str = os.environ.get("CQ_CATALOG", os.environ.get("TRACE_CATALOG", ""))
 CQ_SCHEMA: str = os.environ.get("CQ_SCHEMA", os.environ.get("POH_SCHEMA", "csm_process_order_history"))
 
 _SQL_CONCURRENCY_LIMIT = int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4"))

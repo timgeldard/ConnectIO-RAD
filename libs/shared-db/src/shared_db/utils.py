@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Any, Optional, Protocol
+from typing import Any, NoReturn, Optional, Protocol
 
 from fastapi import HTTPException
 from shared_db.errors import classify_sql_runtime_error
@@ -91,7 +91,7 @@ async def attach_payload_freshness(
         raise
 
 
-def handle_sql_error(exc: Exception) -> None:
+def handle_sql_error(exc: Exception) -> NoReturn:
     """Convert common SQL errors to appropriate HTTP status codes."""
     mapped_error = classify_sql_runtime_error(exc)
     if mapped_error is not None:
@@ -105,7 +105,7 @@ def handle_sql_error(exc: Exception) -> None:
     )
 
 
-def handle_analysis_error(exc: Exception) -> None:
+def handle_analysis_error(exc: Exception) -> NoReturn:
     """Handle errors from analysis endpoints, surfacing user-facing validation messages.
 
     LinAlgError → 422 with a user-friendly explanation of the degenerate matrix case.
@@ -126,7 +126,7 @@ def handle_analysis_error(exc: Exception) -> None:
     handle_sql_error(exc)
 
 
-def handle_locked_limits_error(exc: Exception) -> None:
+def handle_locked_limits_error(exc: Exception) -> NoReturn:
     """Handle errors from locked-limits endpoints, with a clear 503 for missing table."""
     msg = str(exc).lower()
     if "table or view not found" in msg or "doesn't exist" in msg or "does not exist" in msg:

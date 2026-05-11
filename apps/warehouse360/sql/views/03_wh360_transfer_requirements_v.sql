@@ -1,12 +1,12 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.wh360_transfer_requirements_v
+-- View : ${TRACE_CATALOG}.wh360.wh360_transfer_requirements_v
 -- Phase: 1 -- direct query on raw SAP table
 -- Sources: sap.transferrequirementobjects_ltbk (LTBK)
 -- Filter : LGNUM IS NOT NULL AND LENGTH(TRIM(LGNUM)) > 0
 -- Purpose: WM transfer requirements with age and priority; all statuses included
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.wh360_transfer_requirements_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.wh360_transfer_requirements_v AS
 
 SELECT
   TBNUM                                                          AS tr_id,
@@ -32,7 +32,7 @@ SELECT
     ELSE NULL
   END                                                            AS age_mins
 
-FROM connected_plant_uat.sap.transferrequirementobjects_ltbk
+FROM ${TRACE_CATALOG}.sap.transferrequirementobjects_ltbk
 
 WHERE LGNUM IS NOT NULL
   AND LENGTH(TRIM(LGNUM)) > 0
