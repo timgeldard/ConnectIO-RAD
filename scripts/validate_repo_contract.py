@@ -7,6 +7,7 @@ import json
 import re
 import sys
 import tomllib
+import ast
 from pathlib import Path
 from typing import Any
 
@@ -31,15 +32,15 @@ REQUIRED_PROD_ENV_KEYS = (
     "AUTH_JWT_AUDIENCE",
 )
 FORBIDDEN_PRODUCTION_PATTERNS = {
-    '"gold_views_pending"': "Use a domain-specific unavailable reason instead of the legacy placeholder.",
+    r'"gold_views_pending"': "Use a domain-specific unavailable reason instead of the legacy placeholder.",
     "Feature coming soon": "Production apps must render actionable empty/loading/error states.",
     "demo robustness": "Production endpoints must not preserve demo-only behavior.",
     "Good morning, Niamh": "Demo identities must not be baked into production UI.",
     "Sarah Keane": "Demo identities must not be baked into production UI.",
-    "../data/mockData": "Production pages must use API-backed hooks, not bundled mock data.",
-    "~/data/mockData": "Production pages must use API-backed hooks, not bundled mock data.",
-    'useState("20582002")': "Material context must come from session, search, or deep link.",
-    'useState("0008898869")': "Batch context must come from session, search, or deep link.",
+    r"\.\./data/\s*mockData": "Production pages must use API-backed hooks, not bundled mock data.",
+    r"~/data/\s*mockData": "Production pages must use API-backed hooks, not bundled mock data.",
+    r"useState\s*\(\s*['\"]20582002['\"]\s*\)": "Material context must come from session, search, or deep link.",
+    r"useState\s*\(\s*['\"]0008898869['\"]\s*\)": "Batch context must come from session, search, or deep link.",
 }
 PLACEHOLDER_SCAN_EXTENSIONS = {".py", ".ts", ".tsx", ".js", ".jsx"}
 PLACEHOLDER_SCAN_EXCLUDED_PARTS = {
@@ -62,10 +63,82 @@ PRODUCTION_APP_DIRS = (
     "trace2",
     "warehouse360",
 )
+DDD_APP_NAMES = (
+    "connectedquality",
+    "envmon",
+    "processorderhistory",
+    "spc",
+    "template",
+    "trace2",
+    "warehouse360",
+)
+ALLOWED_CONTEXTS = {
+    "connectedquality": {"user_preferences"},
+    "envmon": {"inspection_analysis", "spatial_config"},
+    "processorderhistory": {"order_execution", "manufacturing_analytics", "production_planning", "genie_assist"},
+    "spc": {"chart_config", "process_control"},
+    "trace2": {"batch_trace", "lineage_analysis", "quality_record"},
+    "template": {"module_template"},
+    "warehouse360": {"inventory_management", "dispensary_ops", "order_fulfillment", "operations_control_tower"},
+}
+DOMAIN_FORBIDDEN_PREFIXES = ("fastapi", "shared_auth", "shared_db")
+DOMAIN_FORBIDDEN_PARTS = (".application", ".dal", ".router", ".schemas", ".db", ".utils.db")
+APPLICATION_FORBIDDEN_PREFIXES = ("fastapi",)
+APPLICATION_TRANSPORT_EXCEPTIONS = {
+    Path("apps/processorderhistory/backend/processorderhistory_backend/genie_assist/application/genie_client.py"),
+}
+ROUTER_FORBIDDEN_PARTS = (".dal",)
+ROUTER_FORBIDDEN_NAMES = ("run_sql_async", "tbl", "silver_tbl", "sql_param", "instrument_tbl")
+SHARED_DOMAIN_FORBIDDEN_PREFIXES = ("fastapi", "sqlalchemy", "databricks")
+SHARED_DOMAIN_FORBIDDEN_EXACT = {"pydantic"}
+SHARED_DOMAIN_ALLOWED_EXACT = {"pydantic.dataclasses"}
+CONNECTEDQUALITY_ALLOWED_SIBLING_PREFIXES = (
+    "envmon_backend.inspection_analysis.dal",
+    "envmon_backend.spatial_config.dal",
+    "spc_backend.process_control.dal",
+    "trace2_backend.dal",
+)
+SIBLING_BACKEND_PREFIXES = (
+    "envmon_backend",
+    "processorderhistory_backend",
+    "spc_backend",
+    "trace2_backend",
+    "warehouse360_backend",
+)
 
 
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def import_modules(path: Path) -> list[str]:
+    """Return imported module names from a Python file using AST parsing."""
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    except SyntaxError as exc:
+        return [f"<syntax-error:{exc.msg}>"]
+    imports: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imports.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imports.append(node.module)
+    return imports
+
+
+def imported_names(path: Path) -> list[str]:
+    """Return imported symbol names from a Python file using AST parsing."""
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    except SyntaxError:
+        return []
+    names: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names.extend(alias.asname or alias.name.rsplit(".", maxsplit=1)[-1] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            names.extend(alias.asname or alias.name for alias in node.names)
+    return names
 
 
 def command_for(target: dict[str, Any]) -> str:
@@ -293,8 +366,124 @@ def validate_forbidden_placeholders(errors: list[str]) -> None:
                 continue
             text = path.read_text(encoding="utf-8", errors="ignore")
             for pattern, message in FORBIDDEN_PRODUCTION_PATTERNS.items():
-                if pattern in text:
+                if re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE):
                     errors.append(f"{path.relative_to(ROOT)}: forbidden placeholder `{pattern}`. {message}")
+
+
+def app_backend_root(app_name: str) -> Path:
+    """Return the import-package root for a DDD backend app."""
+    return ROOT / "apps" / app_name / "backend" / f"{app_name}_backend"
+
+
+def domain_files() -> list[Path]:
+    """Return all app domain-layer Python modules."""
+    return sorted(
+        path
+        for app_name in DDD_APP_NAMES
+        for path in app_backend_root(app_name).glob("**/domain/*.py")
+    )
+
+
+def application_files() -> list[Path]:
+    """Return all app application-layer Python modules."""
+    return sorted(
+        path
+        for app_name in DDD_APP_NAMES
+        for path in app_backend_root(app_name).glob("**/application/*.py")
+    )
+
+
+def router_files() -> list[Path]:
+    """Return all app router-layer Python modules."""
+    files: set[Path] = set()
+    for app_name in DDD_APP_NAMES:
+        root = app_backend_root(app_name)
+        files.update(root.glob("**/router*.py"))
+        files.update(root.glob("**/routers/*.py"))
+    return sorted(files)
+
+
+def validate_python_layer_rules(errors: list[str]) -> None:
+    """Validate DDD import rules for app domain, application, and router layers."""
+    for path in domain_files():
+        if path.name == "__init__.py":
+            continue
+        relative = path.relative_to(ROOT)
+        parts = relative.parts
+        current_app = parts[1]
+        current_context = parts[4]
+        for module in import_modules(path):
+            if module.startswith(DOMAIN_FORBIDDEN_PREFIXES) or any(part in module for part in DOMAIN_FORBIDDEN_PARTS):
+                errors.append(f"{relative}: domain layer must not import `{module}`")
+            if ".domain" in module:
+                module_parts = module.split(".")
+                if len(module_parts) >= 2:
+                    target_context = module_parts[1]
+                    if target_context != current_context and target_context in ALLOWED_CONTEXTS.get(current_app, set()):
+                        errors.append(f"{relative}: domain layer must not import sibling domain `{module}`")
+
+    for app_name in DDD_APP_NAMES:
+        root = app_backend_root(app_name)
+        if not root.exists():
+            continue
+        actual_contexts = {
+            path.name
+            for path in root.iterdir()
+            if path.is_dir() and ((path / "domain").exists() or (path / "application").exists())
+        }
+        for context in sorted(actual_contexts - ALLOWED_CONTEXTS.get(app_name, set())):
+            errors.append(f"apps/{app_name}: unauthorized bounded context `{context}`")
+
+    for path in application_files():
+        relative = path.relative_to(ROOT)
+        if relative in APPLICATION_TRANSPORT_EXCEPTIONS:
+            continue
+        for module in import_modules(path):
+            if module.startswith(APPLICATION_FORBIDDEN_PREFIXES):
+                errors.append(f"{relative}: application layer must not import `{module}`")
+
+    for path in router_files():
+        relative = path.relative_to(ROOT)
+        for module in import_modules(path):
+            if any(part in module for part in ROUTER_FORBIDDEN_PARTS):
+                errors.append(f"{relative}: router layer must not import `{module}`")
+        for name in imported_names(path):
+            if name in ROUTER_FORBIDDEN_NAMES:
+                errors.append(f"{relative}: router layer must not import `{name}`")
+
+
+def validate_shared_library_purity(errors: list[str]) -> None:
+    """Validate that shared-domain remains a pure domain shared kernel."""
+    shared_domain_root = ROOT / "libs" / "shared-domain" / "src"
+    for path in sorted(shared_domain_root.glob("**/*.py")):
+        if path.name == "__init__.py":
+            continue
+        relative = path.relative_to(ROOT)
+        for module in import_modules(path):
+            if module in SHARED_DOMAIN_ALLOWED_EXACT:
+                continue
+            if (
+                module in SHARED_DOMAIN_FORBIDDEN_EXACT
+                or module.startswith(SHARED_DOMAIN_FORBIDDEN_PREFIXES)
+            ):
+                errors.append(f"{relative}: shared-domain must not import infrastructure module `{module}`")
+
+
+def validate_connectedquality_aggregator_scope(errors: list[str]) -> None:
+    """Keep the connectedquality cross-app aggregator exception explicit and bounded."""
+    cq_root = app_backend_root("connectedquality")
+    for path in sorted(cq_root.glob("**/*.py")):
+        if path.name == "__init__.py" or "tests" in path.parts:
+            continue
+        relative = path.relative_to(ROOT)
+        in_application = "/application/" in relative.as_posix()
+        for module in import_modules(path):
+            if not module.startswith(SIBLING_BACKEND_PREFIXES):
+                continue
+            if ".domain" in module:
+                errors.append(f"{relative}: connectedquality aggregator must not import sibling domain `{module}`")
+            if not in_application or not module.startswith(CONNECTEDQUALITY_ALLOWED_SIBLING_PREFIXES):
+                errors.append(f"{relative}: connectedquality aggregator import `{module}` is outside the bounded exception")
 
 
 def main() -> int:
@@ -304,6 +493,9 @@ def main() -> int:
         validate_project(project_file, errors, seen_backend_ports)
     validate_deploy_manifests(errors)
     validate_forbidden_placeholders(errors)
+    validate_python_layer_rules(errors)
+    validate_shared_library_purity(errors)
+    validate_connectedquality_aggregator_scope(errors)
 
     if errors:
         print("Repo contract validation failed:", file=sys.stderr)
