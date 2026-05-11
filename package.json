@@ -28,6 +28,8 @@
     "audit:frontend:strict": "node scripts/frontend-audit.mjs --strict",
     "render:app-configs": "python3 scripts/render_app_configs.py",
     "check:app-configs": "python3 scripts/validate_app_configs.py",
+    "openapi:generate": "python3 scripts/generate_openapi.py",
+    "openapi:check": "python3 scripts/generate_openapi.py --check",
     "graph": "nx graph"
   },
   "devDependencies": {
