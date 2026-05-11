@@ -11,7 +11,7 @@ dependencies = [
   "databricks-sql-connector>=3.3",
   "shared-db",
   "shared-api",
-  "shared-domain",
+  "shared-ddd", "shared-manufacturing",
   "shared-geo",
 ]
 

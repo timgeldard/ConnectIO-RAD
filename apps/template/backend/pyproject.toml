@@ -10,7 +10,7 @@ dependencies = [
   "hypothesis>=6.100",
   "shared-api",
   "shared-auth",
-  "shared-domain",
+  "shared-ddd", "shared-manufacturing",
 ]
 
 [tool.pytest.ini_options]

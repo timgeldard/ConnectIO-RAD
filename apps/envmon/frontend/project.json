@@ -1,7 +1,10 @@
 {
   "name": "envmon-frontend",
   "projectType": "application",
-  "tags": ["scope:envmon", "type:frontend"],
+  "tags": [
+    "scope:envmon",
+    "type:frontend"
+  ],
   "targets": {
     "dev": {
       "executor": "nx:run-commands",
@@ -16,8 +19,14 @@
         "command": "npm run build",
         "cwd": "apps/envmon/frontend"
       },
-      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
-      "outputs": ["{projectRoot}/dist"],
+      "inputs": [
+        "tsFiles",
+        "^tsFiles",
+        "sharedGlobals"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ],
       "cache": true
     },
     "typecheck": {
@@ -33,17 +42,23 @@
         "command": "npm run lint",
         "cwd": "apps/envmon/frontend"
       },
-      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
+      "inputs": [
+        "tsFiles",
+        "^tsFiles",
+        "sharedGlobals"
+      ],
       "cache": true
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npm run test:ci",
-        "cwd": "apps/envmon/frontend"
+        "command": "npm run test:ci"
       },
-      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
-      "cache": true
+      "inputs": [
+        "tsFiles",
+        "^tsFiles",
+        "sharedGlobals"
+      ]
     },
     "test:coverage": {
       "executor": "nx:run-commands",
@@ -51,8 +66,14 @@
         "command": "npm run test:ci",
         "cwd": "apps/envmon/frontend"
       },
-      "inputs": ["tsFiles", "^tsFiles", "sharedGlobals"],
-      "outputs": ["{projectRoot}/coverage"],
+      "inputs": [
+        "tsFiles",
+        "^tsFiles",
+        "sharedGlobals"
+      ],
+      "outputs": [
+        "{projectRoot}/coverage"
+      ],
       "cache": true
     }
   }

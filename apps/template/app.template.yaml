@@ -1,0 +1,6 @@
+# App template for ConnectIO-RAD modules.
+# Used by the platform build system to generate app.yaml for deployment.
+spec:
+  # Standardized template fields
+  displayName: ${DISPLAY_NAME}
+  # ...

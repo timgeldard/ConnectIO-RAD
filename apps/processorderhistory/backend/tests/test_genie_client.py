@@ -4,7 +4,7 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 from fastapi import HTTPException
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 from processorderhistory_backend.genie_assist.application import genie_client
 

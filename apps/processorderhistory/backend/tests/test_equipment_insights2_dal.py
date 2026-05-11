@@ -17,7 +17,7 @@ from processorderhistory_backend.manufacturing_analytics.dal.equipment_insights2
 )
 
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 # ---------------------------------------------------------------------------
 # Fixtures / helpers

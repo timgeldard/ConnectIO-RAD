@@ -1,0 +1,22 @@
+{
+  "shared.plant.selector": "Plant",
+  "shared.plant.loading": "Loading plants...",
+  "shared.plant.none": "No plants available",
+  "shared.plant.unavailable": "Plant context unavailable",
+  "shared.language.label": "Language",
+  "common.loading": "Loading...",
+  "common.error": "Error",
+  "common.ok": "OK",
+  "common.cancel": "Cancel",
+  "common.refresh": "Refresh",
+  "common.search": "Search",
+  "common.filter": "Filter",
+  "common.export": "Export",
+  "common.all": "All",
+  "common.save": "Save",
+  "common.close": "Close",
+  "common.status.pass": "Pass",
+  "common.status.fail": "Fail",
+  "common.status.warning": "Warning",
+  "common.status.pending": "Pending"
+}

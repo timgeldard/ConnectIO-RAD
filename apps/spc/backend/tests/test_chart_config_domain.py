@@ -2,7 +2,8 @@
 
 import pytest
 
-from shared_domain import BusinessRuleValidationException, test_data
+from shared_ddd import BusinessRuleValidationException
+from shared_manufacturing import test_data
 from spc_backend.chart_config.domain.locked_limits import LockedLimits
 from spc_backend.chart_config.domain.exclusion import Exclusion
 

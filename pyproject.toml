@@ -17,7 +17,8 @@ members = [
   "libs/shared-api",
   "libs/shared-auth",
   "libs/shared-db",
-  "libs/shared-domain",
+  "libs/shared-ddd",
+  "libs/shared-manufacturing",
   "libs/shared-geo",
   "libs/shared-trace",
 ]
@@ -26,7 +27,8 @@ members = [
 shared-db   = { workspace = true }
 shared-auth = { workspace = true }
 shared-api  = { workspace = true }
-shared-domain = { workspace = true }
+shared-ddd  = { workspace = true }
+shared-manufacturing = { workspace = true }
 shared-geo  = { workspace = true }
 shared-trace = { workspace = true }
 connectedquality-backend = { workspace = true }
@@ -52,4 +54,6 @@ dev-dependencies = [
   "hypothesis>=6.100",
   "ruff>=0.4",
   "mypy>=1.10",
+  "fastapi>=0.111",
+  "pydantic>=2.0",
 ]

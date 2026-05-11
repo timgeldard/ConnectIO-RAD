@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from shared_domain import ValueObject
+from shared_ddd import ValueObject
 
 KpiHealth = Literal["HEALTHY", "WARNING", "CRITICAL"]
 

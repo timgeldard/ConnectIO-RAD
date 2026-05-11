@@ -1,7 +1,7 @@
 """Application query tests for Warehouse360 inventory management."""
 
 import pytest
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 from warehouse360_backend.inventory_management.application import queries
 from warehouse360_backend.inventory_management.router_imwm import _resolve_plant_scope

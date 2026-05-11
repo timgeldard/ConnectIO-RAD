@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from shared_trace.conformance import assert_core_trace_route_contract, install_core_trace_route_stubs
 from spc_backend.main import app
 import spc_backend.routers.trace as trace_router

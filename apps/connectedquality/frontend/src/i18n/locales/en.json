@@ -1,8 +1,4 @@
 {
-  "shared.plant.selector": "Plant",
-  "shared.plant.loading": "Loading plants...",
-  "shared.plant.none": "No plants available",
-  "shared.plant.unavailable": "Plant context unavailable",
   "app.title": "ConnectedQuality",
   "app.tagline": "A Kerry Platform",
   "app.env": "UAT",
@@ -33,11 +29,6 @@
   "alarms.open": "Open",
   "alarms.acknowledged": "Acknowledged",
   "alarms.closed": "Closed",
-  "common.export": "Export",
-  "common.refresh": "Refresh",
-  "common.search": "Search",
-  "common.filter": "Filter",
-  "common.all": "All",
   "common.openAll": "Open all",
   "common.markAllRead": "Mark all read",
   "common.exportCsv": "Export CSV"

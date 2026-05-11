@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, patch
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from spc_backend.main import app
 import spc_backend.process_control.router_metadata as meta_router
 import spc_backend.process_control.application.metadata as meta_app

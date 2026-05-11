@@ -3,7 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from processorderhistory_backend.main import app
 import processorderhistory_backend.order_execution.router_order_detail as detail_router
 

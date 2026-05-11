@@ -1,9 +1,4 @@
 {
-  "shared.plant.selector": "Plant",
-  "shared.plant.loading": "Loading plants...",
-  "shared.plant.none": "No plants available",
-  "shared.plant.unavailable": "Plant context unavailable",
-  "shared.language.label": "Language",
   "envmon.product.tag": "Kerry",
   "envmon.nav.allPlants": "All plants",
   "envmon.nav.portfolio": "Portfolio overview",

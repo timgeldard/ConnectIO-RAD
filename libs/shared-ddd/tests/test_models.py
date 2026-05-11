@@ -2,7 +2,7 @@ import pytest
 from dataclasses import dataclass
 from decimal import Decimal
 
-from shared_domain import (
+
     AuditMixin,
     AuditStamp,
     Batch,

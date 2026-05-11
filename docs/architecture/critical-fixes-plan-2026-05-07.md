@@ -42,7 +42,7 @@ Delete the byte-for-byte copies under `apps/platform/{processorderhistory_backen
 1. **Create `apps/platform/scripts/build.py`** — committed, tested, replaces the missing file `deploy.toml` already references.
    - Uses `uv build` to produce a wheel for each upstream package:
      - Apps: `apps/processorderhistory/backend`, `apps/warehouse360/backend`, `apps/connectedquality/backend`, plus any others bundled into the shell.
-     - Libs: `libs/shared-api`, `libs/shared-auth`, `libs/shared-db`, `libs/shared-domain`, `libs/shared-trace`, `libs/shared-geo`.
+     - Libs: `libs/shared-api`, `libs/shared-auth`, `libs/shared-db`, `libs/shared-ddd / shared-manufacturing`, `libs/shared-trace`, `libs/shared-geo`.
    - Writes all wheels to `apps/platform/wheels/`.
    - Idempotent: clears `wheels/` first, then rebuilds.
    - Exits non-zero on any build failure (so `deploy_app.py --action build` propagates the failure).
@@ -55,7 +55,7 @@ Delete the byte-for-byte copies under `apps/platform/{processorderhistory_backen
    - `apps/platform/processorderhistory_backend/`
    - `apps/platform/warehouse360_backend/`
    - `apps/platform/connectedquality_backend/`
-   - `apps/platform/shared_api/`, `shared_auth/`, `shared_db/`, `shared_domain/`
+   - `apps/platform/shared_api/`, `shared_auth/`, `shared_db/`, `shared_ddd / shared_manufacturing/`
    These are now installed from wheels into the runtime venv.
 
 5. **Verify imports still work** in `apps/platform/backend/main.py`:
@@ -71,7 +71,7 @@ Delete the byte-for-byte copies under `apps/platform/{processorderhistory_backen
                    -e ../../libs/shared-api \
                    -e ../../libs/shared-auth \
                    -e ../../libs/shared-db \
-                   -e ../../libs/shared-domain
+                   -e ../../libs/shared-ddd / shared-manufacturing
    ```
    So a developer working on POH sees changes immediately in the platform shell without rebuilding wheels.
 
@@ -93,7 +93,7 @@ Delete the byte-for-byte copies under `apps/platform/{processorderhistory_backen
 | `apps/platform/shared_api/` | **DELETED** |
 | `apps/platform/shared_auth/` | **DELETED** |
 | `apps/platform/shared_db/` | **DELETED** |
-| `apps/platform/shared_domain/` | **DELETED** |
+| `apps/platform/shared_ddd / shared_manufacturing/` | **DELETED** |
 
 ### Verification
 
@@ -114,7 +114,7 @@ Delete the byte-for-byte copies under `apps/platform/{processorderhistory_backen
 
 ### Goal
 
-The current `sync.include` references directories that no longer exist (`poh_backend/**`, `cq_backend/**`) and omits ones that do (`processorderhistory_backend/**`, `connectedquality_backend/**`, `warehouse360_backend/**`, `shared_domain/**`). Best practice: explicit allowlist + explicit excludes for build artefacts.
+The current `sync.include` references directories that no longer exist (`poh_backend/**`, `cq_backend/**`) and omits ones that do (`processorderhistory_backend/**`, `connectedquality_backend/**`, `warehouse360_backend/**`, `shared_ddd / shared_manufacturing/**`). Best practice: explicit allowlist + explicit excludes for build artefacts.
 
 ### Approach
 

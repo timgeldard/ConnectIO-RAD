@@ -1,7 +1,8 @@
 """Entities for the module_template bounded context."""
 from dataclasses import dataclass
 
-from shared_domain import AggregateRoot, AuditStamp, PlantId
+from shared_ddd import AggregateRoot, AuditStamp
+from shared_manufacturing import PlantId
 
 from template_backend.module_template.domain.events import (
     TemplateOverviewViewed,

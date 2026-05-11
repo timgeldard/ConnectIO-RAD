@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from envmon_backend.inspection_analysis.dal import lots
 
 

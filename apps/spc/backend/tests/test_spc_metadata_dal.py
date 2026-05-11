@@ -1,5 +1,5 @@
 import asyncio
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from spc_backend.process_control.dal import metadata as spc_metadata_dal
 
 

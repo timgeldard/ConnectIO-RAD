@@ -2,7 +2,7 @@
 Repository implementation for the Batch aggregate.
 """
 from typing import Optional
-from shared_domain.repository import Repository
+from shared_ddd import Repository
 from shared_trace.domain.models import Batch, BatchIdentity
 from .trace_core import get_trace_core_dal
 from datetime import datetime

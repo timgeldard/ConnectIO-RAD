@@ -1,7 +1,7 @@
 """
 Tests to verify SAP data realism and edge case handling.
 """
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 
 def test_material_id_is_always_8_digits():

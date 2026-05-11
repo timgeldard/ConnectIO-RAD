@@ -149,3 +149,54 @@ def get_missing_artifacts() -> dict[str, str]:
     for clarity in new code.
     """
     return get_missing_optional_artifacts()
+
+
+import tomllib
+from pathlib import Path
+
+# ... (existing imports)
+
+def discover_active_modules(apps_dir: Path = ROOT / "apps") -> list[str]:
+    """Scan the apps directory for RAD modules and return their backend package names.
+
+    A directory is considered a RAD module if it contains a deploy.toml file
+    specifying a backend_project.
+    """
+    packages = []
+    if not apps_dir.exists():
+        return packages
+
+    for deploy_toml in apps_dir.rglob("deploy.toml"):
+        try:
+            with open(deploy_toml, "rb") as f:
+                config = tomllib.load(f)
+                backend_project = config.get("app", {}).get("backend_project")
+                if backend_project:
+                    # Convention: spc-backend -> spc_backend
+                    packages.append(backend_project.replace("-", "_"))
+        except Exception as exc:
+            logger.warning("Failed to parse %s: %s", deploy_toml, exc)
+
+    return sorted(list(set(packages)))
+
+
+def discover_app_routers(packages: list[str]) -> list[tuple[Any, str, list[str] | None]]:
+    """Dynamically discover PLATFORM_ROUTERS from a list of backend packages.
+
+    Args:
+        packages: List of fully-qualified package names (e.g. ['spc_backend', 'poh_backend']).
+
+    Returns:
+        A flattened list of (router, prefix, tags) tuples ready for inclusion.
+    """
+    all_routers = []
+    for pkg in packages:
+        # Try <pkg>.routers.PLATFORM_ROUTERS
+        routers = _optional_attr(f"{pkg}.routers", "PLATFORM_ROUTERS", required=False)
+        if routers:
+            all_routers.extend(routers)
+        else:
+            # Fallback for apps that might put it in <pkg>.main or similar if needed
+            logger.info("No PLATFORM_ROUTERS found in %s.routers", pkg)
+
+    return all_routers

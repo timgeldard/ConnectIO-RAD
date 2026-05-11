@@ -22,7 +22,7 @@ The current E2E testing infrastructure is well-architected but inconsistent in i
 ### Phase 1: Realistic Data Alignment (COMPLETE)
 - [x] Update `libs/shared-playwright/fixtures` with 8-12 digit numeric SAP IDs.
 - [x] Update `Warehouse360`, `SPC`, and `Trace2` spec files to use high-fidelity identifiers.
-- [x] Align E2E data with `shared_domain.test_data` utility patterns.
+- [x] Align E2E data with `shared_manufacturing.test_data` utility patterns.
 
 ### Phase 2: Coverage Expansion (COMPLETE)
 - [x] **POH E2E Suite**: Implement OEE dashboard and Pours history journeys.
@@ -52,4 +52,4 @@ The current E2E testing infrastructure is well-architected but inconsistent in i
 ### 3b. Data Strategy
 - Use `mockApi.ts` for PR/smoke tests to ensure stability and speed.
 - Use live Databricks UAT endpoints for post-merge integration tests.
-- Always use high-fidelity SAP IDs from `shared_domain.test_data` generators.
+- Always use high-fidelity SAP IDs from `shared_manufacturing.test_data` generators.

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Optional
-from shared_domain import ValueObject, BusinessRuleValidationException
+from shared_ddd import BusinessRuleValidationException, ValueObject
 
 _CHART_TYPES = frozenset({
     "imr", "xbar_r", "xbar_s", "ewma", "cusum",

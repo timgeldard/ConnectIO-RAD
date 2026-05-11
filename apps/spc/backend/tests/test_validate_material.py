@@ -1,4 +1,4 @@
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 

@@ -8,7 +8,7 @@ import spc_backend.process_control.router_charts as spc_charts
 from spc_backend.routers import trace
 
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from shared_auth import UserIdentity, require_proxy_user
 
 client = TestClient(app)

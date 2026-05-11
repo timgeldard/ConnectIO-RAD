@@ -34,9 +34,9 @@ Since we cannot always connect to the remote Warehouse from a local IDE, we use 
 - **Reference**: `ai-context/samples/sap_materials.json`.
 
 ### 2. High-Fidelity Test Data
-When writing unit tests, use the `shared_domain.test_data` utility to generate valid IDs.
+When writing unit tests, use the `shared_manufacturing.test_data` utility to generate valid IDs.
 ```python
-from shared_domain import test_data
+from shared_ddd import ... and shared_manufacturing import test_data
 
 def test_order_mapping():
     order_id = test_data.random_order_id()  # Generates a valid 12-digit PO string

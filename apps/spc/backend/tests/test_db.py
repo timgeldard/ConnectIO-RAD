@@ -12,7 +12,7 @@ import pytest
 from unittest.mock import patch, AsyncMock
 
 import spc_backend.utils.db as db_module
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 
 # Provide defaults so the module can be imported without env vars set

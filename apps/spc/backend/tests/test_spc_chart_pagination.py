@@ -1,7 +1,7 @@
 import asyncio
 
 from fastapi.testclient import TestClient
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 import spc_backend.main as main_module
 import spc_backend.process_control.router_charts as spc_charts_module

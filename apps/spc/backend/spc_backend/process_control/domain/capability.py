@@ -1,22 +1,24 @@
 """Process capability indices, normality testing, and Cpk classification thresholds."""
 
-import math
 from typing import List, Optional
 
-# Cpk classification thresholds (Six Sigma / AIAG conventions).
-# Used by `dal/analysis.py::_scorecard_status` to map a process Ppk into
-# the dashboard buckets {poor, marginal, good, excellent}.
-CPK_MARGINAL = 1.0
-CPK_CAPABLE = 1.33
-CPK_HIGHLY_CAPABLE = 1.67
-
-try:
-    from scipy.stats import norm, shapiro
-except ImportError:
-    norm = None
-    shapiro = None
-
-from spc_backend.process_control.domain.control_charts import mean, moving_range, stddev
+from shared_manufacturing.analytics.capability import (
+    CPK_CAPABLE,
+    CPK_HIGHLY_CAPABLE,
+    CPK_MARGINAL,
+)
+from shared_manufacturing.analytics.capability import (
+    compute_capability_indices as _compute_capability_indices,
+)
+from shared_manufacturing.analytics.capability import (
+    compute_non_parametric_capability as _compute_non_parametric_capability,
+)
+from shared_manufacturing.analytics.capability import (
+    compute_normality_result as _compute_normality_result,
+)
+from shared_manufacturing.analytics.capability import cpk_ci as _cpk_ci
+from shared_manufacturing.analytics.capability import infer_spec_type as _infer_spec_type
+from shared_manufacturing.analytics.capability import normal_cdf as _normal_cdf
 
 
 def normal_cdf(z: float) -> float:
@@ -32,12 +34,7 @@ def normal_cdf(z: float) -> float:
     Returns:
         The probability that a standard normal variable is less than or equal to z.
     """
-    if norm is not None:
-        return float(norm.cdf(z))
-    
-    # math.erf is highly precise and standard library based.
-    # CDF(z) = 0.5 * (1 + erf(z / sqrt(2)))
-    return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
+    return _normal_cdf(z)
 
 
 def cpk_ci(cpk: float, n: int) -> tuple[Optional[float], Optional[float]]:
@@ -54,12 +51,7 @@ def cpk_ci(cpk: float, n: int) -> tuple[Optional[float], Optional[float]]:
     Returns:
         A tuple of (lower_bound, upper_bound), or (None, None) if n < 25.
     """
-    if n < 25:
-        return None, None
-    se = math.sqrt(1 / (9 * n) + cpk ** 2 / (2 * (n - 1)))
-    lower = round(cpk - 1.96 * se, 3)
-    upper = round(cpk + 1.96 * se, 3)
-    return lower, upper
+    return _cpk_ci(cpk, n)
 
 
 def infer_spec_type(
@@ -79,19 +71,7 @@ def infer_spec_type(
         One of: "bilateral_symmetric", "bilateral_asymmetric", "unilateral_upper",
         "unilateral_lower", or "unspecified".
     """
-    if usl is not None and lsl is not None:
-        if nominal is not None:
-            upper_span = usl - nominal
-            lower_span = nominal - lsl
-            if math.isclose(abs(upper_span), abs(lower_span), rel_tol=1e-6, abs_tol=1e-6):
-                return "bilateral_symmetric"
-            return "bilateral_asymmetric"
-        return "bilateral_symmetric"
-    if usl is not None:
-        return "unilateral_upper"
-    if lsl is not None:
-        return "unilateral_lower"
-    return "unspecified"
+    return _infer_spec_type(usl, lsl, nominal)
 
 
 def compute_normality_result(values: list[Optional[float]]) -> dict:
@@ -105,50 +85,7 @@ def compute_normality_result(values: list[Optional[float]]) -> dict:
         A dictionary containing "is_normal" (bool), "p_value", and "method".
         Includes a "warning" if normality testing was skipped or sampled.
     """
-    alpha = 0.05
-    valid_values = [
-        float(v) for v in values
-        if v is not None and isinstance(v, (int, float)) and math.isfinite(v)
-    ]
-    result = {
-        "method": "shapiro_wilk",
-        "p_value": None,
-        "alpha": alpha,
-        "is_normal": None,
-        "warning": None,
-    }
-
-    if len(valid_values) < 3:
-        result["warning"] = "Normality requires at least 3 quantitative points."
-        return result
-
-    if shapiro is None:
-        result["warning"] = "scipy is not installed; Shapiro-Wilk normality testing skipped."
-        return result
-
-    sample = valid_values
-    if len(valid_values) > 5000:
-        last_index = len(valid_values) - 1
-        sample = [valid_values[round(i * last_index / 4999)] for i in range(5000)]
-        result["method"] = "shapiro_wilk_sampled"
-        result["warning"] = (
-            "Dataset exceeded 5000 points; normality was evaluated on an evenly "
-            "sampled 5000-point subset."
-        )
-
-    try:
-        _, p_value = shapiro(sample)
-    except Exception as exc:  # pragma: no cover
-        result["warning"] = f"Normality test failed: {str(exc)[:160]}"
-        return result
-
-    if p_value is None or math.isnan(float(p_value)):
-        result["warning"] = "Shapiro-Wilk returned an invalid p-value."
-        return result
-
-    result["p_value"] = round(float(p_value), 6)
-    result["is_normal"] = bool(float(p_value) >= alpha)
-    return result
+    return _compute_normality_result(values)
 
 
 def compute_capability_indices(
@@ -172,37 +109,7 @@ def compute_capability_indices(
     Returns:
         A dictionary mapping index names to their numeric values.
     """
-    mu = mean(values)
-    s_overall = stddev(values, ddof=1)
-
-    mr = moving_range(values)
-    mr_bar = mean(mr)
-    d2 = 1.128
-    sigma_within = mr_bar / d2
-
-    results = {}
-
-    if usl is not None and lsl is not None:
-        results["cp"] = (usl - lsl) / (6 * sigma_within) if sigma_within > 0 else None
-
-    if usl is not None or lsl is not None:
-        cpk_u = (usl - mu) / (3 * sigma_within) if usl is not None and sigma_within > 0 else float("inf")
-        cpk_l = (mu - lsl) / (3 * sigma_within) if lsl is not None and sigma_within > 0 else float("inf")
-        results["cpk"] = min(cpk_u, cpk_l)
-
-    if usl is not None and lsl is not None:
-        results["pp"] = (usl - lsl) / (6 * s_overall) if s_overall > 0 else None
-
-    if usl is not None or lsl is not None:
-        ppk_u = (usl - mu) / (3 * s_overall) if usl is not None and s_overall > 0 else float("inf")
-        ppk_l = (mu - lsl) / (3 * s_overall) if lsl is not None and s_overall > 0 else float("inf")
-        results["ppk"] = min(ppk_u, ppk_l)
-
-    if target is not None and usl is not None and lsl is not None:
-        denom = 6 * math.sqrt(s_overall ** 2 + (mu - target) ** 2)
-        results["cpm"] = (usl - lsl) / denom if denom > 0 else None
-
-    return results
+    return _compute_capability_indices(values, usl, lsl, target)
 
 
 def compute_non_parametric_capability(
@@ -225,37 +132,4 @@ def compute_non_parametric_capability(
         A dictionary containing "ppk_non_parametric" and optional "warning".
         If n < 125, indices are returned as None with a descriptive warning.
     """
-    if not values:
-        return {}
-
-    n = len(values)
-    # ISO 22514-2 recommends a minimum of 125 samples for non-parametric methods
-    # to ensure that the extreme percentiles (0.135% and 99.865%) are based on
-    # enough data points to be statistically stable.
-    if n < 125:
-        return {
-            "ppk_non_parametric": None,
-            "warning": f"Non-parametric Ppk requires n >= 125 (received n={n})."
-        }
-
-    sorted_vals = sorted(values)
-
-    def get_percentile(p: float) -> float:
-        idx = p * (n - 1)
-        i = math.floor(idx)
-        d = idx - i
-        if i >= n - 1:
-            return sorted_vals[-1]
-        return sorted_vals[i] * (1 - d) + sorted_vals[i + 1] * d
-
-    p00135 = get_percentile(0.00135)
-    p50 = get_percentile(0.5)
-    p99865 = get_percentile(0.99865)
-
-    results = {"ppk_non_parametric": None}
-    if usl is not None or lsl is not None:
-        ppk_u = (usl - p50) / (p99865 - p50) if usl is not None and p99865 > p50 else float("inf")
-        ppk_l = (p50 - lsl) / (p50 - p00135) if lsl is not None and p50 > p00135 else float("inf")
-        results["ppk_non_parametric"] = min(ppk_u, ppk_l)
-
-    return results
+    return _compute_non_parametric_capability(values, usl, lsl)

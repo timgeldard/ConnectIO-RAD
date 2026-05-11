@@ -77,7 +77,7 @@ We follow strict **Domain-Driven Design (DDD)**. Each application is partitioned
 | `shared-db` | DAL | Connection pools, async SQL, and safe identifier mapping. |
 | `shared-auth` | Infra | OIDC/Databricks token validation and persona resolution. |
 | `shared-ui` | UI | Kerry Design System tokens and Kerry-specific shell. |
-| `shared-domain` | Domain | Base classes: `AggregateRoot`, `ValueObject`, `Entity`. |
+| `shared-ddd / shared-manufacturing` | Domain | Base classes: `AggregateRoot`, `ValueObject`, `Entity`. |
 
 ---
 

@@ -34,7 +34,7 @@ def test_empty_when_no_plants(mock_run_sql):
     assert result == []
 
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 def test_filters_null_plant_ids(mock_run_sql):
     """Rows with a null or empty PLANT_ID are silently dropped."""

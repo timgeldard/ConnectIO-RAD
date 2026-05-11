@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 from shared_auth import UserIdentity, require_proxy_user
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 from warehouse360_backend.main import app
 import warehouse360_backend.inventory_management.router_imwm as imwm_router

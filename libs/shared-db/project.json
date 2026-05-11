@@ -1,7 +1,10 @@
 {
   "name": "shared-db",
   "projectType": "library",
-  "tags": ["scope:shared", "type:lib"],
+  "tags": [
+    "scope:shared",
+    "type:lib"
+  ],
   "targets": {
     "lint": {
       "executor": "nx:run-commands",
@@ -9,7 +12,10 @@
         "command": "uv run --no-sync ruff check .",
         "cwd": "libs/shared-db"
       },
-      "inputs": ["pyFiles", "sharedGlobals"],
+      "inputs": [
+        "pyFiles",
+        "sharedGlobals"
+      ],
       "cache": true
     },
     "typecheck": {
@@ -18,7 +24,11 @@
         "command": "uv run --no-sync mypy src",
         "cwd": "libs/shared-db"
       },
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "inputs": [
+        "pyFiles",
+        "^pyFiles",
+        "sharedGlobals"
+      ],
       "cache": true
     },
     "test": {
@@ -27,8 +37,10 @@
         "command": "PYTHONPATH=libs/shared-db/src uv run --no-sync --package shared-db python -m pytest libs/shared-db/tests",
         "cwd": "{workspaceRoot}"
       },
-      "inputs": ["pyFiles", "sharedGlobals"],
-      "cache": true
+      "inputs": [
+        "pyFiles",
+        "sharedGlobals"
+      ]
     }
   }
 }

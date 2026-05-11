@@ -27,7 +27,7 @@ def test_shared_sql_runtime_supports_spc_tiered_cache_shape():
     assert "SELECT * FROM spc_quality_metrics" in calls[0]
 
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 def test_shared_sql_runtime_supports_spc_audit_hook_and_audit_suppression():
     audit_events = []

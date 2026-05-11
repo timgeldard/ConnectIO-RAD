@@ -8,8 +8,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from .models import ValueObject
-from .exceptions import BusinessRuleValidationException
+from shared_ddd import ValueObject, BusinessRuleValidationException
 
 
 class PlantId(str):

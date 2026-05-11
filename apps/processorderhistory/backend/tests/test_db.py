@@ -47,7 +47,7 @@ def test_run_sql_async_calls_shared(monkeypatch):
     assert result == expected
 
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 def test_run_sql_async_forwards_params(monkeypatch):
     po_id = test_data.process_order()

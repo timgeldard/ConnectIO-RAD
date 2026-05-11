@@ -5,7 +5,7 @@ injection pattern (``", ".join(f"'{pid}'" for ...)``). These tests pin both
 the safe SQL fragment shape and the matching named-parameter list.
 """
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from envmon_backend.inspection_analysis.dal.plants import _plant_id_in_clause
 
 

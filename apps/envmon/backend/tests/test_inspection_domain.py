@@ -2,7 +2,8 @@
 
 import pytest
 
-from shared_domain import BusinessRuleValidationException, Entity, test_data
+from shared_ddd import BusinessRuleValidationException, Entity
+from shared_manufacturing import test_data
 
 from envmon_backend.inspection_analysis.domain.inspection import InspectionLot
 

@@ -9,6 +9,42 @@ import {
   type ReactNode,
 } from 'react'
 
+import enBase from './locales/en.json'
+import deBase from './locales/de.json'
+import frBase from './locales/fr.json'
+import esBase from './locales/es.json'
+import jaBase from './locales/ja.json'
+import ptBase from './locales/pt.json'
+import idBase from './locales/id.json'
+import msBase from './locales/ms.json'
+import gaBase from './locales/ga.json'
+import plBase from './locales/pl.json'
+import nlBase from './locales/nl.json'
+import ukBase from './locales/uk.json'
+import daBase from './locales/da.json'
+import viBase from './locales/vi.json'
+import zhHansBase from './locales/zh-Hans.json'
+import zhHantBase from './locales/zh-Hant.json'
+
+export const baseResources: LocaleResources = {
+  en: enBase,
+  de: deBase,
+  fr: frBase,
+  es: esBase,
+  ja: jaBase,
+  pt: ptBase,
+  id: idBase,
+  ms: msBase,
+  ga: gaBase,
+  pl: plBase,
+  nl: nlBase,
+  uk: ukBase,
+  da: daBase,
+  vi: viBase,
+  'zh-Hans': zhHansBase,
+  'zh-Hant': zhHantBase,
+}
+
 export type LanguageCode = 'en' | 'fr' | 'es' | 'de' | 'ja' | 'pt' | 'id' | 'ms' | 'ga' | 'pl' | 'nl' | 'uk' | 'da' | 'vi' | 'zh-Hans' | 'zh-Hant'
 export type TranslationValues = Record<string, string | number | boolean | null | undefined>
 export type LocaleResources = Partial<Record<LanguageCode, Record<string, string>>>
