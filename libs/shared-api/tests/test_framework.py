@@ -106,6 +106,90 @@ def test_include_router_registers_before_mount(tmp_path):
     assert b"spa-index" in spa_response.content
 
 
+def test_include_versioned_router_registers_v1_and_legacy_alias():
+    """Versioned routers respond on both /api/v1/... and the legacy /api/... path."""
+    rad = ConnectIoApp(title="t")
+
+    router = APIRouter()
+
+    @router.get("/ping")
+    async def ping():
+        return {"ok": True}
+
+    rad.include_versioned_router(router, prefix="/api/spc")
+
+    client = TestClient(rad.app)
+    assert client.get("/api/v1/spc/ping").status_code == 200
+    assert client.get("/api/spc/ping").status_code == 200  # deprecated alias
+    assert client.get("/api/v1/spc/ping").json() == {"ok": True}
+
+
+def test_include_versioned_router_can_disable_legacy_alias():
+    """After the deprecation window, deprecated_alias=False removes the legacy path."""
+    rad = ConnectIoApp(title="t")
+
+    router = APIRouter()
+
+    @router.get("/ping")
+    async def ping():
+        return {"ok": True}
+
+    rad.include_versioned_router(router, prefix="/api/spc", deprecated_alias=False)
+
+    client = TestClient(rad.app)
+    assert client.get("/api/v1/spc/ping").status_code == 200
+    assert client.get("/api/spc/ping").status_code == 404
+
+
+def test_include_versioned_router_rejects_non_api_prefix():
+    """Versioned routers must live under /api/ to keep route shape predictable."""
+    rad = ConnectIoApp(title="t")
+    router = APIRouter()
+    with pytest.raises(ValueError, match="must be '/api' or start with '/api/'"):
+        rad.include_versioned_router(router, prefix="/spc")
+
+
+def test_include_versioned_router_rejects_lookalike_prefix():
+    """`/apiary` must be rejected — the `/api` segment must terminate cleanly."""
+    rad = ConnectIoApp(title="t")
+    router = APIRouter()
+    with pytest.raises(ValueError, match="must be '/api' or start with '/api/'"):
+        rad.include_versioned_router(router, prefix="/apiary")
+
+
+def test_include_versioned_router_accepts_bare_api_prefix():
+    """`prefix='/api'` is valid and mounts the router at /api/v1 + /api."""
+    rad = ConnectIoApp(title="t")
+
+    router = APIRouter()
+
+    @router.get("/ping")
+    async def ping():
+        return {"ok": True}
+
+    rad.include_versioned_router(router, prefix="/api")
+
+    client = TestClient(rad.app)
+    assert client.get("/api/v1/ping").status_code == 200
+    assert client.get("/api/ping").status_code == 200
+
+
+def test_include_versioned_router_supports_v2():
+    """The version segment is configurable so apps can ship /api/v2/... when ready."""
+    rad = ConnectIoApp(title="t")
+
+    router = APIRouter()
+
+    @router.get("/ping")
+    async def ping():
+        return {"v": 2}
+
+    rad.include_versioned_router(router, prefix="/api/spc", version="v2", deprecated_alias=False)
+
+    client = TestClient(rad.app)
+    assert client.get("/api/v2/spc/ping").json() == {"v": 2}
+
+
 def test_include_router_after_mount_raises_runtimeerror(tmp_path):
     """Adding a router AFTER mount_spa is a programming error.
 

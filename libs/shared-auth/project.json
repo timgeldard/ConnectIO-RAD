@@ -1,33 +1,13 @@
 {
   "name": "shared-auth",
   "projectType": "library",
-  "tags": [
-    "scope:shared",
-    "type:lib"
-  ],
+  "tags": ["scope:shared", "type:backend"],
   "targets": {
     "lint": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "uv run --no-sync ruff check .",
-        "cwd": "libs/shared-auth"
-      },
-      "inputs": [
-        "pyFiles",
-        "sharedGlobals"
-      ],
-      "cache": true
+      "executor": "nx:run-commands"
     },
     "test": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "PYTHONPATH=libs/shared-auth/src uv run --no-sync --package shared-auth python -m pytest libs/shared-auth/tests",
-        "cwd": "{workspaceRoot}"
-      },
-      "inputs": [
-        "pyFiles",
-        "sharedGlobals"
-      ]
+      "executor": "nx:run-commands"
     }
   }
 }

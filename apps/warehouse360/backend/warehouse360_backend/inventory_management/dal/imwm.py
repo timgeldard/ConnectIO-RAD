@@ -1,6 +1,6 @@
 """DAL — IMWM (IM vs WM) stock comparison, movements, exceptions, and aging.
 
-Backed by the views under ``connected_plant_uat.wh360.imwm_*_v`` (DDL in
+Backed by the views under ``${TRACE_CATALOG}.wh360.imwm_*_v`` (DDL in
 ``apps/warehouse360/sql/views/``). All queries are plant-scopable.
 """
 
