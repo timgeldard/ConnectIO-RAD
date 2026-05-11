@@ -612,7 +612,13 @@ from ${n.backendPackageName}.${n.contextName}.schemas import (
 
 @dataclass(frozen=True)
 class ${n.className}ApplicationService:
-    """Facade used by routers to keep HTTP concerns out of use cases."""
+    """Facade used by routers to keep HTTP concerns out of use cases.
+
+    This service coordinates the execution of application use cases and
+    provides a high-level API for the transport layer (FastAPI routers).
+    It ensures that domain entities and snapshots are returned to the edge,
+    leaving the DTO mapping to the caller.
+    """
 
     overview: Get${n.className}Overview
     list_signals: List${n.className}Signals
@@ -621,35 +627,78 @@ class ${n.className}ApplicationService:
     update_status: Update${n.className}SignalStatus
 
     async def get_overview(self, plant_id: str | None = None) -> ${n.className}Overview:
-        """Return the overview read model."""
+        """Return the overview read model snapshot.
+
+        Args:
+            plant_id: Optional SAP plant identifier to filter metrics.
+
+        Returns:
+            A ${n.className}Overview DTO containing manufacturing metrics.
+        """
         return await self.overview.execute(plant_id=plant_id)
 
     async def signals(self, plant_id: str | None = None) -> list[${n.className}SignalDTO]:
-        """Return visible signals."""
+        """Return visible actionable signals.
+
+        Args:
+            plant_id: Optional SAP plant identifier to filter signals.
+
+        Returns:
+            List of ${n.className}SignalDTOs visible in the requested scope.
+        """
         return await self.list_signals.execute(plant_id=plant_id)
 
     async def signal(self, signal_id: str) -> ${n.className}SignalDTO | None:
-        """Return one signal by ID."""
+        """Return one actionable signal by ID.
+
+        Args:
+            signal_id: Unique identifier for the requested signal.
+
+        Returns:
+            The ${n.className}SignalDTO if found, otherwise None.
+        """
         return await self.get_signal.execute(signal_id)
 
     async def create(self, request: ${n.className}CreateRequest) -> ${n.className}SignalDTO:
-        """Create one signal."""
+        """Create a new signal aggregate.
+
+        Args:
+            request: Validated creation request.
+
+        Returns:
+            The newly created ${n.className}SignalDTO.
+        """
         return await self.create_signal.execute(request)
 
     async def set_status(self, signal_id: str, request: ${n.className}StatusUpdateRequest) -> ${n.className}SignalDTO | None:
-        """Update one signal status."""
+        """Update one signal workflow status.
+
+        Args:
+            signal_id: Unique identifier for the signal to update.
+            request: Validated status update request.
+
+        Returns:
+            The updated ${n.className}SignalDTO if found, otherwise None.
+        """
         return await self.update_status.execute(signal_id, request)
 
 
+# Singleton repository to maintain in-memory demo state across requests
+_REPOSITORY = ${n.className}Repository()
+
+
 def create_${n.contextName}_service(token: str | None = None) -> ${n.className}ApplicationService:
-    """Create a service instance with production repository wiring."""
-    repository = ${n.className}Repository(token=token)
+    """Create a service instance with production repository wiring.
+
+    Returns:
+        A fully wired ${n.className}ApplicationService instance.
+    """
     return ${n.className}ApplicationService(
-        overview=Get${n.className}Overview(repository),
-        list_signals=List${n.className}Signals(repository),
-        get_signal=Get${n.className}Signal(repository),
-        create_signal=Create${n.className}Signal(repository),
-        update_status=Update${n.className}SignalStatus(repository),
+        overview=Get${n.className}Overview(_REPOSITORY),
+        list_signals=List${n.className}Signals(_REPOSITORY),
+        get_signal=Get${n.className}Signal(_REPOSITORY),
+        create_signal=Create${n.className}Signal(_REPOSITORY),
+        update_status=Update${n.className}SignalStatus(_REPOSITORY),
     )
 `);
 

@@ -164,7 +164,7 @@ export const IMWMCockpit = () => {
     fontFamily: 'var(--font-mono)',
   })
 
-  const stockColumns: Column<Row>[] = [
+  const stockColumns: Column<Row>[] = React.useMemo(() => [
     { header: 'Material', render: (row) => <><div style={{ fontSize: 12 }}>{String(row.material_name ?? row.material_id ?? '—')}</div><div className="muted mono small">{String(row.material_id ?? '—')}</div></>, sortKey: 'material_name' },
     { header: 'Plant', render: (row) => <><div style={{ fontSize: 12 }}>{String(row.plant_name ?? row.plant_id ?? '—')}</div><div className="muted mono small">{String(row.plant_id ?? '—')}</div></>, sortKey: 'plant_id' },
     { header: 'Storage', render: (row) => <><div style={{ fontSize: 12 }}>{String(row.storage_loc_name ?? row.storage_loc ?? '—')}</div><div className="muted mono small">{String(row.storage_loc ?? '—')}</div></>, sortKey: 'storage_loc' },
@@ -173,7 +173,7 @@ export const IMWMCockpit = () => {
     { header: 'Delta', align: 'right', render: (row) => <span className={num(row.delta_qty) !== 0 ? 'bold amber' : ''}>{fmtQty(row.delta_qty)}</span>, sortKey: 'delta_qty' },
     { header: 'Value', align: 'right', render: (row) => fmtMoney(row.inventory_value_eur), sortKey: 'inventory_value_eur' },
     { header: 'Status', render: (row) => <Pill tone={mismatchTone(row.mismatch_kind)}>{String(row.mismatch_kind ?? '—')}</Pill>, sortKey: 'mismatch_kind' }
-  ];
+  ], []);
 
   const stockLookup = React.useMemo(() => {
     const map = new Map<string, Row>()
@@ -184,7 +184,7 @@ export const IMWMCockpit = () => {
     return map
   }, [stock])
 
-  const excColumns: Column<Row>[] = [
+  const excColumns: Column<Row>[] = React.useMemo(() => [
     { header: 'Type', render: (row) => <Pill tone={severityTone(row.severity)}>{String(row.exception_type ?? '—')}</Pill>, sortKey: 'exception_type' },
     { header: 'Sev', align: 'right', key: 'severity', sortKey: 'severity' },
     { header: 'SLA', align: 'right', render: (row) => row.sla_hours != null ? `${row.sla_hours}h` : '—', sortKey: 'sla_hours' },
@@ -200,7 +200,7 @@ export const IMWMCockpit = () => {
     { header: 'Batch', key: 'batch_id', mono: true },
     { header: 'Bin', key: 'bin_id', mono: true },
     { header: 'Detail', render: (row) => <span style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{String(row.detail_text ?? '—')}</span> }
-  ];
+  ], [stockLookup]);
 
   return (
     <div className="page">
