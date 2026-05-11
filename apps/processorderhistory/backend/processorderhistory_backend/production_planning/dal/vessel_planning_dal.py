@@ -188,6 +188,14 @@ async def _q_released_orders(token: str, plant_id: Optional[str]) -> list[dict]:
     no rows.  QUANTITY and UOM enable silver-sourced capacity validation against
     MAXIMUM_CAPACITY from silver.instrument (fetched in _q_latest_states).
     Excludes in-progress, completed, on-hold, and cancelled orders.
+
+    Args:
+        token: Databricks access token forwarded from the request proxy header.
+        plant_id: Optional SAP plant filter; when None all plants are returned.
+
+    Returns:
+        List of row dicts with keys: po_id, material_id, material_name, plant_id,
+        scheduled_start_ms, order_qty, order_uom.
     """
     plant_clause = "AND po.PLANT_ID = :plant_id" if plant_id else ""
     params: Optional[list[dict]] = [sql_param("plant_id", plant_id)] if plant_id else None

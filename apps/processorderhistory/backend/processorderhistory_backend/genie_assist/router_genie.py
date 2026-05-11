@@ -39,7 +39,7 @@ class GenieAttachment(BaseModel):
     text: Optional[str] = None
     sql: Optional[str] = None
     type: Optional[str] = None
-    query: dict[str, Any] = {}
+    query: dict[str, Any] = Field(default_factory=dict)
 
 
 class GenieMessageResponse(BaseModel):
@@ -50,7 +50,7 @@ class GenieMessageResponse(BaseModel):
     status: Optional[str] = None
     error: Optional[str] = None
     answer: str
-    attachments: list[GenieAttachment] = []
+    attachments: list[GenieAttachment] = Field(default_factory=list)
 
 
 @router.post("/genie/start", response_model=GenieMessageResponse)

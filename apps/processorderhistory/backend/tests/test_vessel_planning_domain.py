@@ -61,7 +61,7 @@ def test_derive_planning_data_exposes_max_capacity_on_vessel():
 
 
 def test_derive_planning_data_silver_capacity_excludes_oversized_order():
-    vessels, orders, _kpis = derive_planning_data(
+    _vessels, orders, _kpis = derive_planning_data(
         [
             _vessel_row("TK-101", "CLEAN", max_capacity=500.0),
             _vessel_row("TK-102", "CLEAN", max_capacity=2000.0),
