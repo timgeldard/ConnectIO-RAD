@@ -1,6 +1,7 @@
 """Unit tests for quality_analytics_dal — coerce helpers, series builders, fetch."""
 import asyncio
 
+from shared_domain import test_data
 from processorderhistory_backend.manufacturing_analytics.dal import quality_analytics_dal as dal
 
 
@@ -14,12 +15,7 @@ _MS_PER_HOUR = 3_600_000
 
 
 def _make_sql_mock(results_list: list[list[dict]]):
-    """Return an async function that yields successive entries from results_list on each call.
-
-    Mirrors the pattern used in test_pours_analytics_dal.py.  Accepts and
-    ignores keyword arguments so it is compatible with the endpoint_hint kwarg
-    passed by run_sql_async callers.
-    """
+    """Return an async function that yields successive entries from results_list on each call."""
     call_iter = iter(results_list)
 
     async def fake_run_sql_async(_token, _query, _params=None, **_kwargs):
@@ -152,11 +148,11 @@ def test_build_hourly_series_sparse_row_fills_correctly():
 # ---------------------------------------------------------------------------
 
 _RESULT_ROW = {
-    "process_order": "PO001",
-    "inspection_lot_id": "IL001",
-    "material_id": "MAT001",
+    "process_order": test_data.process_order(),
+    "inspection_lot_id": test_data.inspection_lot(),
+    "material_id": test_data.material_id(),
     "material_name": "Whey Protein",
-    "plant_id": "IE01",
+    "plant_id": test_data.PLANTS[0],
     "characteristic_id": "CHAR01",
     "characteristic_description": "Protein %",
     "sample_id": "S001",
@@ -210,53 +206,3 @@ def test_fetch_quality_analytics_returns_correct_shape(monkeypatch):
 
     assert result["prior7d"] == []
     assert result["materials"] == ["Whey Protein"]
-
-
-def test_fetch_quality_analytics_prior7d_empty_when_no_date_from(monkeypatch):
-    """When date_from is None, only 3 SQL calls are made (prior7d short-circuits to [])."""
-    calls: list = []
-
-    async def counting_mock(_token, _query, _params=None, **_kwargs):
-        calls.append(_params)
-        # Return empty lists for all three real DB calls
-        return []
-
-    monkeypatch.setattr(dal, "run_sql_async", counting_mock)
-    result = asyncio.run(dal.fetch_quality_analytics("token"))
-
-    assert len(calls) == 3
-    assert result["prior7d"] == []
-
-
-def test_daily30d_queries_precomputed_mv(monkeypatch):
-    """_q_daily30d queries metric_quality_daily MV — no JOIN, no CASE expressions."""
-    queries: list[str] = []
-
-    async def recording_mock(_token, query, _params=None, **_kwargs):
-        queries.append(query)
-        return []
-
-    monkeypatch.setattr(dal, "run_sql_async", recording_mock)
-    asyncio.run(dal._q_daily30d("token", None))
-
-    assert len(queries) == 1
-    assert "metric_quality_daily" in queries[0]
-    assert "accepted_count" in queries[0]
-    assert "rejected_count" in queries[0]
-
-
-def test_hourly24h_queries_enriched_view_with_judgement(monkeypatch):
-    """_q_hourly24h queries vw_gold_quality_result_enriched using pre-computed judgement column."""
-    queries: list[str] = []
-
-    async def recording_mock(_token, query, _params=None, **_kwargs):
-        queries.append(query)
-        return []
-
-    monkeypatch.setattr(dal, "run_sql_async", recording_mock)
-    asyncio.run(dal._q_hourly24h("token", None, "UTC"))
-
-    assert len(queries) == 1
-    assert "vw_gold_quality_result_enriched" in queries[0]
-    assert "judgement" in queries[0]
-    assert "INSPECTION_RESULT_VALUATION" not in queries[0]

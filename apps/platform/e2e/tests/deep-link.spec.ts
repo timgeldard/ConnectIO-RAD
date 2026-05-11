@@ -17,8 +17,8 @@ test.describe('Deep-link URL restoration', () => {
   })
 
   test('?plant= param pre-selects the plant on load', async ({ page }) => {
-    await page.goto('/cq?plant=DEMO_PLANT')
+    await page.goto('/cq?plant=C351')
     // Plant selector should reflect the URL param
-    await expect(page.locator('[data-testid="topbar-plant-selector"]')).toContainText(/DEMO_PLANT/i, { timeout: 10_000 })
+    await expect(page.locator('[data-testid="topbar-plant-selector"]')).toContainText(/C351/i, { timeout: 10_000 })
   })
 })

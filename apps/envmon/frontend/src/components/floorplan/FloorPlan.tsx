@@ -115,6 +115,7 @@ export default function FloorPlan({ personaId }: Props) {
         viewBox={`0 0 ${viewWidth} ${viewHeight}`}
         preserveAspectRatio="xMidYMid meet"
         aria-label={t('envmon.floorPlan.markersAria', { floor: activeFloor ?? '' })}
+        data-testid="floor-plan-svg"
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}
       >
         {/* Blast radius halos — sanitation persona only */}

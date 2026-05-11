@@ -10,7 +10,7 @@ import { test, expect } from '@connectio/shared-playwright'
 test.describe('Forward trace', () => {
   test('batch ID input → lineage tree renders @smoke', async ({ page }) => {
     await page.goto('/')
-    await page.locator('[data-testid="batch-id-input"]').fill('BATCH-E2E-001')
+    await page.locator('[data-testid="batch-id-input"]').fill('0008898869')
     await page.locator('[data-testid="trace-forward-btn"]').click()
 
     await expect(page.locator('[data-testid="trace-tree"]')).toBeVisible({ timeout: 30_000 })
@@ -20,7 +20,7 @@ test.describe('Forward trace', () => {
 
   test('forward trace shows child nodes', async ({ page }) => {
     await page.goto('/')
-    await page.locator('[data-testid="batch-id-input"]').fill('BATCH-E2E-001')
+    await page.locator('[data-testid="batch-id-input"]').fill('0008898869')
     await page.locator('[data-testid="trace-forward-btn"]').click()
 
     await expect(page.locator('[data-testid="trace-tree"]')).toBeVisible({ timeout: 30_000 })

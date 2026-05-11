@@ -16,7 +16,7 @@ test.describe('Plant selection propagation', () => {
       (r) => r.url().includes('/api/') && r.status() < 400,
       { timeout: 15_000 },
     )
-    await plantBar.selectPlant('DEMO_PLANT')
+    await plantBar.selectPlant('C351')
     await responsePromise
   })
 })

@@ -67,7 +67,7 @@ def mock_me(monkeypatch):
 
 def test_get_me_returns_200(mock_me):
     """Verify that /api/me returns a 200 status and correctly parsed user data."""
-    response = client.get("/api/me")
+    response = client.get("/api/poh/me")
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Alice Smith"
@@ -77,7 +77,7 @@ def test_get_me_returns_200(mock_me):
 
 def test_get_me_returns_all_keys(mock_me):
     """Ensure the /api/me response contains all required keys."""
-    response = client.get("/api/me")
+    response = client.get("/api/poh/me")
     data = response.json()
     for key in ("name", "initials", "email"):
         assert key in data, f"Missing key: {key}"
@@ -87,7 +87,7 @@ def test_get_me_handles_empty_sql_result(monkeypatch):
     """Verify that /api/me gracefully handles cases where no user record is found."""
     monkeypatch.setattr(me_router, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(me_router, "get_user_email", AsyncMock(return_value=""))
-    response = client.get("/api/me")
+    response = client.get("/api/poh/me")
     assert response.status_code == 200
     data = response.json()
     assert data["email"] == ""

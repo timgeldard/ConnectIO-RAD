@@ -1,0 +1,26 @@
+[
+  {
+    "material_id": "20582002",
+    "material_name": "PRT1519 PRE-COOK NUGGET 25KG",
+    "material_category": "Nutrition",
+    "uom": "KG"
+  },
+  {
+    "material_id": "30001234",
+    "material_name": "FINISHED PRODUCT A",
+    "material_category": "Dairy",
+    "uom": "KG"
+  },
+  {
+    "material_id": "50009876",
+    "material_name": "ULTRA WHEY CONCENTRATE",
+    "material_category": "Dairy",
+    "uom": "L"
+  },
+  {
+    "material_id": "10004567",
+    "material_name": "PURE SYRUP FLAVOUR",
+    "material_category": "Taste",
+    "uom": "G"
+  }
+]

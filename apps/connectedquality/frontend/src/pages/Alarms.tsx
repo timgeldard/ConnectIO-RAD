@@ -1,3 +1,4 @@
+import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchJson } from '@connectio/shared-frontend-api'
 import { Card, KPI, PageHead, Icon, DataTable, type Column } from '@connectio/shared-ui'
@@ -17,7 +18,7 @@ export function Alarms() {
   const ack = rows.filter((row: any) => row.status === 'ack').length
   const closed = rows.filter((row: any) => row.status === 'closed').length
 
-  const columns: Column<any>[] = [
+  const columns: Column<any>[] = React.useMemo(() => [
     {
       header: '',
       width: 28,
@@ -48,7 +49,7 @@ export function Alarms() {
       render: (r) => {
         const status = r.status ?? r.st ?? 'open'
         return (
-          <Pill kind={status === 'open' ? 'bad' : status === 'ack' ? 'warn' : 'muted'}>
+          <Pill tone={status === 'open' ? 'red' : status === 'ack' ? 'amber' : 'grey'}>
             {status}
           </Pill>
         )
@@ -59,7 +60,7 @@ export function Alarms() {
       align: 'right',
       render: () => <button className="cq-btn sm ghost"><Icon name="arrow" size={11} /></button>
     }
-  ]
+  ], []);
 
   return (
     <div className="cq-page">

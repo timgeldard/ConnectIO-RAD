@@ -24,8 +24,19 @@ export default defineConfig({
     },
   },
 
-  // Chromium only for Phases 1–3; Firefox added in Phase 4.
+  // Browser matrix: Chromium, Firefox (on-site teams), and Mobile Chrome (dispensary tablets).
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'mobile-tablet',
+      use: { ...devices['Galaxy Tab S4'] },
+    },
   ],
 })

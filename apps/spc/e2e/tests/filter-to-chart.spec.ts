@@ -14,10 +14,10 @@ test.describe('SPC filter-to-chart pipeline', () => {
     const filterBar = new SPCFilterBarPO(page)
     await page.goto('/')
 
-    await filterBar.selectPlant('DEMO_PLANT')
-    await filterBar.typeMaterial('DMAT-01')
+    await filterBar.selectPlant('C351')
+    await filterBar.typeMaterial('20582002')
     await filterBar.confirmMaterial()
-    await filterBar.selectMIC('MIC-A')
+    await filterBar.selectMIC('Viscosity')
     await filterBar.setDatePreset('90d')
     await filterBar.commit()
 
@@ -30,10 +30,10 @@ test.describe('SPC filter-to-chart pipeline', () => {
     const filterBar = new SPCFilterBarPO(page)
     await page.goto('/')
 
-    await filterBar.selectPlant('DEMO_PLANT')
-    await filterBar.typeMaterial('DMAT-01')
+    await filterBar.selectPlant('C351')
+    await filterBar.typeMaterial('20582002')
     await filterBar.confirmMaterial()
-    await filterBar.selectMIC('MIC-A')
+    await filterBar.selectMIC('Viscosity')
     await filterBar.setDatePreset('30d')
     await filterBar.commit()
     await waitForChart(page, 'control-chart-svg', 25_000)
@@ -49,8 +49,8 @@ test.describe('SPC filter-to-chart pipeline', () => {
   test('resetting filters returns to empty state', async ({ page }) => {
     const filterBar = new SPCFilterBarPO(page)
     await page.goto('/')
-    await filterBar.selectPlant('DEMO_PLANT')
-    await filterBar.typeMaterial('DMAT-01')
+    await filterBar.selectPlant('C351')
+    await filterBar.typeMaterial('20582002')
     await filterBar.confirmMaterial()
     await filterBar.reset()
     // After reset the chart container should not be visible

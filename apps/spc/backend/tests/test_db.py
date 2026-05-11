@@ -12,6 +12,7 @@ import pytest
 from unittest.mock import patch, AsyncMock
 
 import spc_backend.utils.db as db_module
+from shared_domain import test_data
 
 
 # Provide defaults so the module can be imported without env vars set
@@ -67,6 +68,7 @@ class TestSqlCacheBehavior:
 
         async def exercise():
             db_module._clear_sql_cache()
+            mat_id = test_data.material_id()
             with patch("spc_backend.utils.db.run_sql", return_value=[{"ok": 1}]), patch(
                 "spc_backend.utils.db.insert_spc_query_audit",
                 fake_insert_query_audit,
@@ -74,7 +76,7 @@ class TestSqlCacheBehavior:
                 rows = await db_module.run_sql_async(
                     "token",
                     "SELECT * FROM test_catalog.test_schema.spc_batch_dim_mv WHERE material_id = :material_id",
-                    [db_module.sql_param("material_id", "MAT-1")],
+                    [db_module.sql_param("material_id", mat_id)],
                     endpoint_hint="spc.charts.chart-data",
                 )
                 await asyncio.sleep(0)
@@ -121,17 +123,20 @@ async def test_attach_data_freshness_success():
 async def test_insert_spc_audit_event(monkeypatch):
     mock_run = AsyncMock(return_value=[])
     monkeypatch.setattr(db_module, "run_sql_async", mock_run)
+    mat_id = test_data.material_id()
     
-    await db_module.insert_spc_audit_event("token", event_type="test", detail={"material_id": "M1"})
+    await db_module.insert_spc_audit_event("token", event_type="test", detail={"material_id": mat_id})
     assert mock_run.called
     assert "INSERT INTO" in mock_run.call_args[0][1]
 
 async def test_insert_spc_exclusion_snapshot(monkeypatch):
     mock_run = AsyncMock(return_value=[])
     monkeypatch.setattr(db_module, "run_sql_async", mock_run)
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     
     payload = {
-        "event_id": "uuid", "material_id": "M1", "mic_id": "MIC1", "chart_type": "imr",
+        "event_id": "uuid", "material_id": mat_id, "mic_id": mic, "chart_type": "imr",
         "justification": "test", "excluded_count": 1, "excluded_points": []
     }
     await db_module.insert_spc_exclusion_snapshot("token", payload)

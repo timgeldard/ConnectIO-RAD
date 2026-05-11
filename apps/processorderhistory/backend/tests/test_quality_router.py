@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
+from shared_domain import test_data
 from processorderhistory_backend.main import app
 import processorderhistory_backend.manufacturing_analytics.router_quality as quality_router
 
@@ -27,7 +28,7 @@ def mock_quality(monkeypatch):
 
 
 def test_post_quality_analytics_returns_200(mock_quality):
-    response = client.post("/api/quality/analytics", json={})
+    response = client.post("/api/poh/quality/analytics", json={})
     assert response.status_code == 200
     data = response.json()
     assert "now_ms" in data
@@ -38,28 +39,29 @@ def test_post_quality_analytics_returns_200(mock_quality):
 
 
 def test_post_quality_analytics_passes_plant_id(mock_quality):
-    client.post("/api/quality/analytics", json={"plant_id": "P001"})
+    plant = test_data.PLANTS[0]
+    client.post("/api/poh/quality/analytics", json={"plant_id": plant})
     mock_quality.assert_called_once_with(
-        "token", plant_id="P001", date_from=None, date_to=None, timezone="UTC"
+        "token", plant_id=plant, date_from=None, date_to=None, timezone="UTC"
     )
 
 
 def test_post_quality_analytics_passes_date_range(mock_quality):
-    client.post("/api/quality/analytics", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
+    client.post("/api/poh/quality/analytics", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
     mock_quality.assert_called_once_with(
         "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07", timezone="UTC"
     )
 
 
 def test_post_quality_analytics_passes_timezone(mock_quality):
-    client.post("/api/quality/analytics", json={"timezone": "Europe/London"})
+    client.post("/api/poh/quality/analytics", json={"timezone": "Europe/London"})
     mock_quality.assert_called_once_with(
         "token", plant_id=None, date_from=None, date_to=None, timezone="Europe/London"
     )
 
 
 def test_post_quality_analytics_returns_full_shape(mock_quality):
-    response = client.post("/api/quality/analytics", json={})
+    response = client.post("/api/poh/quality/analytics", json={})
     data = response.json()
     for key in ("now_ms", "materials", "rows", "prior7d", "daily30d", "hourly24h"):
         assert key in data, f"Missing key: {key}"

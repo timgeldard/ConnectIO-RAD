@@ -17,9 +17,13 @@ import type {
   Risk,
   Supplier,
 } from "../types";
-import { ApiError, postJson } from "@connectio/shared-frontend-api";
+import { ApiError, postJson as basePost } from "@connectio/shared-frontend-api";
+import { resolveTraceApiPath } from "./apiBase";
 
 export { ApiError };
+
+const postJson = <T>(path: string, body: unknown) => 
+  basePost<T>(resolveTraceApiPath(path), body);
 
 export function focalIdFor(materialId: string, batchId: string, plantId?: string): string {
   const plantPart = plantId && plantId.trim() ? `|${plantId}` : "";

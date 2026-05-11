@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { usePlantSelection } from '~/context/PlantContext'
 import { resolveWarehouseApiPath } from '~/api/apiBase'
 
@@ -18,46 +18,30 @@ export interface ApiState<T> {
 }
 
 /**
- * Fetches a backend API endpoint and returns reactive { data, loading, error }.
- * Auth is handled by the Databricks Apps proxy (x-forwarded-access-token injected
- * server-side), so no token handling is needed in the browser.
+ * Fetches a backend API endpoint using TanStack Query.
+ * Provides automatic caching, deduplication, and background refetching.
  *
  * @param path - Relative API path, e.g. '/api/kpis'
- * @param deps - Extra useEffect dependencies (re-fetch when these change)
+ * @param deps - Extra dependencies (integrated into queryKey)
  */
 export function useApi<T = unknown>(path: string, deps: unknown[] = []): ApiState<T> {
   const { selectedPlantId } = usePlantSelection()
   const requestPath = resolveWarehouseApiPath(withPlantId(path, selectedPlantId))
-  const [data, setData] = useState<T | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    setError(null)
+  const { data, isLoading, error } = useQuery<T>({
+    queryKey: [requestPath, ...deps],
+    queryFn: async () => {
+      const res = await fetch(requestPath)
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      return res.json() as Promise<T>
+    },
+    // Standard cockpit caching: 30s stale time
+    staleTime: 30_000,
+  })
 
-    fetch(requestPath)
-      .then((res) => {
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-        return res.json() as Promise<T>
-      })
-      .then((json) => {
-        if (!cancelled) {
-          setData(json)
-          setLoading(false)
-        }
-      })
-      .catch((err: Error) => {
-        if (!cancelled) {
-          setError(err.message)
-          setLoading(false)
-        }
-      })
-
-    return () => { cancelled = true }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestPath, ...deps])
-
-  return { data, loading, error }
+  return {
+    data: data ?? null,
+    loading: isLoading,
+    error: error ? (error as Error).message : null
+  }
 }

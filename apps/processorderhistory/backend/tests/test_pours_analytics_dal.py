@@ -1,7 +1,7 @@
 """Unit tests for pours_analytics_dal — coerce helpers, series builders, fetch."""
 import asyncio
 
-
+from shared_domain import test_data
 from processorderhistory_backend.order_execution.dal import pours_analytics_dal as dal
 
 
@@ -126,7 +126,7 @@ def test_build_hourly_series_all_key_aggregates():
 # ---------------------------------------------------------------------------
 
 _EVENT_ROW = {
-    "process_order": "PO001",
+    "process_order": test_data.process_order(),
     "material_name": "Whey Protein",
     "quantity": "250.0",
     "uom": "KG",
@@ -214,6 +214,7 @@ def test_fetch_pours_analytics_with_date_range(monkeypatch):
 
 def test_fetch_pours_analytics_applies_plant_filter_to_all_queries(monkeypatch):
     calls: list[tuple[str, list[dict] | None]] = []
+    plant = test_data.PLANTS[0]
     original_mock = _make_sql_mock([
         [_EVENT_ROW],  # events_range
         [_DAILY_ROW],  # daily30d
@@ -228,7 +229,7 @@ def test_fetch_pours_analytics_applies_plant_filter_to_all_queries(monkeypatch):
     monkeypatch.setattr(dal, "run_sql_async", recording_mock)
     result = asyncio.run(dal.fetch_pours_analytics(
         "token",
-        plant_id="IE01",
+        plant_id=plant,
         date_from="2024-01-01",
         date_to="2024-01-07",
     ))
@@ -239,4 +240,4 @@ def test_fetch_pours_analytics_applies_plant_filter_to_all_queries(monkeypatch):
         assert "vw_gold_process_order" in query
         assert "po.PLANT_ID = :plant_id" in query
         assert params is not None
-        assert any(p["name"] == "plant_id" and p["value"] == "IE01" for p in params)
+        assert any(p["name"] == "plant_id" and p["value"] == plant for p in params)

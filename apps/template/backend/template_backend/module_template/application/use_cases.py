@@ -3,30 +3,24 @@ from typing import Protocol
 
 from template_backend.module_template.domain.entities import TemplateSignal, TemplateSnapshot
 from template_backend.module_template.domain.value_objects import TemplateScope
-from template_backend.module_template.schemas import (
-    TemplateCreateRequest,
-    TemplateOverview,
-    TemplateSignalDTO,
-    TemplateStatusUpdateRequest,
-)
 
 
 class TemplateRepositoryPort(Protocol):
     """Repository contract owned by the application layer."""
 
-    async def get_overview(self, plant_id: str | None = None) -> TemplateSnapshot:
+    async def get_overview(self, token: str | None, plant_id: str | None = None) -> TemplateSnapshot:
         """Return an overview snapshot."""
 
-    async def list_signals(self, scope: TemplateScope) -> list[TemplateSignal]:
+    async def list_signals(self, token: str | None, scope: TemplateScope) -> list[TemplateSignal]:
         """Return visible signals."""
 
-    async def get_signal(self, signal_id: str) -> TemplateSignal | None:
+    async def get_signal(self, token: str | None, signal_id: str) -> TemplateSignal | None:
         """Return one signal by ID."""
 
-    async def create_signal(self, *, plant_id: str, title: str, status: str) -> TemplateSignal:
+    async def create_signal(self, token: str | None, *, plant_id: str, title: str, status: str) -> TemplateSignal:
         """Create one signal."""
 
-    async def update_status(self, signal_id: str, status: str) -> TemplateSignal | None:
+    async def update_status(self, token: str | None, signal_id: str, status: str) -> TemplateSignal | None:
         """Update signal workflow status."""
 
 
@@ -36,11 +30,11 @@ class GetTemplateOverview:
     def __init__(self, repository: TemplateRepositoryPort):
         self.repository = repository
 
-    async def execute(self, plant_id: str | None = None) -> TemplateOverview:
+    async def execute(self, token: str | None, plant_id: str | None = None) -> TemplateSnapshot:
         """Return overview metrics for the requested plant scope."""
-        snapshot = await self.repository.get_overview(plant_id=plant_id)
+        snapshot = await self.repository.get_overview(token, plant_id=plant_id)
         snapshot.mark_viewed()
-        return TemplateOverview.from_snapshot(snapshot)
+        return snapshot
 
 
 class ListTemplateSignals:
@@ -49,10 +43,9 @@ class ListTemplateSignals:
     def __init__(self, repository: TemplateRepositoryPort):
         self.repository = repository
 
-    async def execute(self, plant_id: str | None = None) -> list[TemplateSignalDTO]:
-        """Return signal DTOs."""
-        signals = await self.repository.list_signals(TemplateScope.from_optional(plant_id))
-        return [TemplateSignalDTO.from_entity(signal) for signal in signals]
+    async def execute(self, token: str | None, plant_id: str | None = None) -> list[TemplateSignal]:
+        """Return signals."""
+        return await self.repository.list_signals(token, TemplateScope.from_optional(plant_id))
 
 
 class GetTemplateSignal:
@@ -61,10 +54,9 @@ class GetTemplateSignal:
     def __init__(self, repository: TemplateRepositoryPort):
         self.repository = repository
 
-    async def execute(self, signal_id: str) -> TemplateSignalDTO | None:
-        """Return one signal DTO, if found."""
-        signal = await self.repository.get_signal(signal_id)
-        return TemplateSignalDTO.from_entity(signal) if signal else None
+    async def execute(self, token: str | None, signal_id: str) -> TemplateSignal | None:
+        """Return one signal, if found."""
+        return await self.repository.get_signal(token, signal_id)
 
 
 class CreateTemplateSignal:
@@ -73,14 +65,14 @@ class CreateTemplateSignal:
     def __init__(self, repository: TemplateRepositoryPort):
         self.repository = repository
 
-    async def execute(self, request: TemplateCreateRequest) -> TemplateSignalDTO:
+    async def execute(self, token: str | None, *, plant_id: str, title: str, status: str) -> TemplateSignal:
         """Create one signal."""
-        signal = await self.repository.create_signal(
-            plant_id=request.plant_id,
-            title=request.title,
-            status=request.status,
+        return await self.repository.create_signal(
+            token,
+            plant_id=plant_id,
+            title=title,
+            status=status,
         )
-        return TemplateSignalDTO.from_entity(signal)
 
 
 class UpdateTemplateSignalStatus:
@@ -89,7 +81,6 @@ class UpdateTemplateSignalStatus:
     def __init__(self, repository: TemplateRepositoryPort):
         self.repository = repository
 
-    async def execute(self, signal_id: str, request: TemplateStatusUpdateRequest) -> TemplateSignalDTO | None:
+    async def execute(self, token: str | None, signal_id: str, status: str) -> TemplateSignal | None:
         """Update one signal status."""
-        signal = await self.repository.update_status(signal_id, request.status)
-        return TemplateSignalDTO.from_entity(signal) if signal else None
+        return await self.repository.update_status(token, signal_id, status)

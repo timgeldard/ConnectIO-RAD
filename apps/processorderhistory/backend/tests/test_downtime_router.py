@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
+from shared_domain import test_data
 from processorderhistory_backend.main import app
 import processorderhistory_backend.manufacturing_analytics.router_downtime as downtime_router
 
@@ -24,7 +25,7 @@ def mock_downtime(monkeypatch):
 
 
 def test_post_downtime_analytics_returns_200(mock_downtime):
-    response = client.post("/api/downtime", json={})
+    response = client.post("/api/poh/downtime", json={})
     assert response.status_code == 200
     data = response.json()
     assert "now_ms" in data
@@ -36,21 +37,22 @@ def test_post_downtime_analytics_returns_200(mock_downtime):
 
 
 def test_post_downtime_analytics_passes_plant_id(mock_downtime):
-    client.post("/api/downtime", json={"plant_id": "P001"})
+    plant = test_data.PLANTS[0]
+    client.post("/api/poh/downtime", json={"plant_id": plant})
     mock_downtime.assert_called_once_with(
-        "token", plant_id="P001", date_from=None, date_to=None, timezone="UTC"
+        "token", plant_id=plant, date_from=None, date_to=None, timezone="UTC"
     )
 
 
 def test_post_downtime_analytics_passes_date_range(mock_downtime):
-    client.post("/api/downtime", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
+    client.post("/api/poh/downtime", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
     mock_downtime.assert_called_once_with(
         "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07", timezone="UTC"
     )
 
 
 def test_post_downtime_analytics_passes_timezone(mock_downtime):
-    client.post("/api/downtime", json={"timezone": "Europe/London"})
+    client.post("/api/poh/downtime", json={"timezone": "Europe/London"})
     mock_downtime.assert_called_once_with(
         "token", plant_id=None, date_from=None, date_to=None, timezone="Europe/London"
     )

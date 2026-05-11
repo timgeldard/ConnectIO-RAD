@@ -309,7 +309,7 @@ from ${n.backendPackageName}.${n.contextName}.routers.router import router as ${
 from shared_api import create_rad_app
 
 
-STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
+STATIC_DIR: Path = Path(__file__).parent.parent.parent / "frontend" / "dist"
 
 rad_app = create_rad_app(
     title="${n.displayName} API",
@@ -612,7 +612,13 @@ from ${n.backendPackageName}.${n.contextName}.schemas import (
 
 @dataclass(frozen=True)
 class ${n.className}ApplicationService:
-    """Facade used by routers to keep HTTP concerns out of use cases."""
+    """Facade used by routers to keep HTTP concerns out of use cases.
+
+    This service coordinates the execution of application use cases and
+    provides a high-level API for the transport layer (FastAPI routers).
+    It ensures that domain entities and snapshots are returned to the edge,
+    leaving the DTO mapping to the caller.
+    """
 
     overview: Get${n.className}Overview
     list_signals: List${n.className}Signals
@@ -621,35 +627,78 @@ class ${n.className}ApplicationService:
     update_status: Update${n.className}SignalStatus
 
     async def get_overview(self, plant_id: str | None = None) -> ${n.className}Overview:
-        """Return the overview read model."""
+        """Return the overview read model snapshot.
+
+        Args:
+            plant_id: Optional SAP plant identifier to filter metrics.
+
+        Returns:
+            A ${n.className}Overview DTO containing manufacturing metrics.
+        """
         return await self.overview.execute(plant_id=plant_id)
 
     async def signals(self, plant_id: str | None = None) -> list[${n.className}SignalDTO]:
-        """Return visible signals."""
+        """Return visible actionable signals.
+
+        Args:
+            plant_id: Optional SAP plant identifier to filter signals.
+
+        Returns:
+            List of ${n.className}SignalDTOs visible in the requested scope.
+        """
         return await self.list_signals.execute(plant_id=plant_id)
 
     async def signal(self, signal_id: str) -> ${n.className}SignalDTO | None:
-        """Return one signal by ID."""
+        """Return one actionable signal by ID.
+
+        Args:
+            signal_id: Unique identifier for the requested signal.
+
+        Returns:
+            The ${n.className}SignalDTO if found, otherwise None.
+        """
         return await self.get_signal.execute(signal_id)
 
     async def create(self, request: ${n.className}CreateRequest) -> ${n.className}SignalDTO:
-        """Create one signal."""
+        """Create a new signal aggregate.
+
+        Args:
+            request: Validated creation request.
+
+        Returns:
+            The newly created ${n.className}SignalDTO.
+        """
         return await self.create_signal.execute(request)
 
     async def set_status(self, signal_id: str, request: ${n.className}StatusUpdateRequest) -> ${n.className}SignalDTO | None:
-        """Update one signal status."""
+        """Update one signal workflow status.
+
+        Args:
+            signal_id: Unique identifier for the signal to update.
+            request: Validated status update request.
+
+        Returns:
+            The updated ${n.className}SignalDTO if found, otherwise None.
+        """
         return await self.update_status.execute(signal_id, request)
 
 
+# Singleton repository to maintain in-memory demo state across requests
+_REPOSITORY = ${n.className}Repository()
+
+
 def create_${n.contextName}_service(token: str | None = None) -> ${n.className}ApplicationService:
-    """Create a service instance with production repository wiring."""
-    repository = ${n.className}Repository(token=token)
+    """Create a service instance with production repository wiring.
+
+    Returns:
+        A fully wired ${n.className}ApplicationService instance.
+    """
     return ${n.className}ApplicationService(
-        overview=Get${n.className}Overview(repository),
-        list_signals=List${n.className}Signals(repository),
-        get_signal=Get${n.className}Signal(repository),
-        create_signal=Create${n.className}Signal(repository),
-        update_status=Update${n.className}SignalStatus(repository),
+        overview=Get${n.className}Overview(_REPOSITORY),
+        list_signals=List${n.className}Signals(_REPOSITORY),
+        get_signal=Get${n.className}Signal(_REPOSITORY),
+        create_signal=Create${n.className}Signal(_REPOSITORY),
+        update_status=Update${n.className}SignalStatus(_REPOSITORY),
     )
 `);
 
@@ -1298,8 +1347,8 @@ export function ${n.className}Page() {
 .rad-page {
   min-height: 100vh;
   padding: 32px;
-  background: var(--kerry-bg, #f6f8fa);
-  color: var(--kerry-text, #182026);
+  background: var(--surface-1);
+  color: var(--text-1);
 }
 
 .rad-page__header {
@@ -1314,6 +1363,7 @@ export function ${n.className}Page() {
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0;
+  color: var(--text-3);
 }
 
 .rad-page h1 {
@@ -1328,22 +1378,23 @@ export function ${n.className}Page() {
 }
 
 .rad-metric {
-  border: 1px solid #d9e2e8;
-  border-radius: 8px;
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-md);
   padding: 16px;
-  background: #fff;
+  background: var(--surface-0);
 }
 
 .rad-metric span,
 .rad-metric small {
   display: block;
-  color: #4a5c66;
+  color: var(--text-3);
 }
 
 .rad-metric strong {
   display: block;
   margin: 8px 0;
   font-size: 2rem;
+  color: var(--text-1);
 }
 `);
 

@@ -1,0 +1,11 @@
+[
+  {
+    "process_order_id": "007006276688",
+    "inspection_lot_id": "010008898869",
+    "material_id": "20582002",
+    "plant_id": "C351",
+    "status": "completed",
+    "actual_qty": "23975.000",
+    "qty_uom": "KG"
+  }
+]

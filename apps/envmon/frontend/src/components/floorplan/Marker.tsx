@@ -57,6 +57,8 @@ export default memo(function Marker({
   return (
     <g
       className="em-marker-group"
+      data-testid="em-marker"
+      data-status={marker.status}
       onClick={() => onClick(marker)}
       onMouseEnter={(e) => onMouseEnter(marker, e)}
       onMouseLeave={onMouseLeave}

@@ -18,7 +18,7 @@ def test_list_plants_returns_application_payload(monkeypatch) -> None:
     mock = AsyncMock(return_value={"plants": [{"plant_id": "P001", "plant_name": "Plant 1"}]})
     monkeypatch.setattr(plants_router, "list_visible_plants", mock)
 
-    response = client.get("/api/plants")
+    response = client.get("/api/poh/plants")
 
     assert response.status_code == 200
     assert response.json() == {"plants": [{"plant_id": "P001", "plant_name": "Plant 1"}]}

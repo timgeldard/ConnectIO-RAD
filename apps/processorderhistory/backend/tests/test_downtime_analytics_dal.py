@@ -1,6 +1,7 @@
 """Unit tests for downtime_analytics_dal — coerce helpers, series builders, fetch."""
 import asyncio
 
+from shared_domain import test_data
 from processorderhistory_backend.manufacturing_analytics.dal import downtime_analytics_dal as dal
 
 
@@ -90,6 +91,7 @@ def test_build_daily_series_ignores_bad_rows():
 def test_fetch_downtime_analytics_passes_dates_to_queries(monkeypatch):
     """Ensure the date range propagates to the underlying queries."""
     calls = []
+    plant = test_data.PLANTS[0]
 
     async def recording_mock(token, query, params=None, **kwargs):
         calls.append((query, params))
@@ -97,7 +99,7 @@ def test_fetch_downtime_analytics_passes_dates_to_queries(monkeypatch):
 
     monkeypatch.setattr(dal, "run_sql_async", recording_mock)
     result = asyncio.run(
-        dal.fetch_downtime_analytics("token", date_from="2024-01-01", date_to="2024-01-07", plant_id="P001")
+        dal.fetch_downtime_analytics("token", date_from="2024-01-01", date_to="2024-01-07", plant_id=plant)
     )
 
     assert result["reasons"] == []

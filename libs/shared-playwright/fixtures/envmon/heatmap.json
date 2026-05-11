@@ -1,0 +1,9 @@
+{
+  "plant_id": "C351",
+  "floor_id": "F1",
+  "markers": [
+    { "func_loc_id": "LOC-01", "x_pos": 25.0, "y_pos": 30.0, "status": "FAIL", "risk_score": 4.5 },
+    { "func_loc_id": "LOC-02", "x_pos": 50.0, "y_pos": 50.0, "status": "WARNING", "risk_score": 2.8 },
+    { "func_loc_id": "LOC-03", "x_pos": 75.0, "y_pos": 70.0, "status": "PASS", "risk_score": 0.5 }
+  ]
+}

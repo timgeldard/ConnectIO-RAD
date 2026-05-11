@@ -13,10 +13,10 @@
 | 0 | Plan written and committed | ✅ Done | 2026-05-09 |
 | 1 | Preparation — tooling, scaffold, first Nx target | ✅ Done | 2026-05-09 |
 | 2 | Foundation — auth fixture, base config, first green test | ✅ Done | 2026-05-09 |
-| 3 | Core Coverage — W360 + SPC journeys | ✅ Done | 2026-05-09 |
-| 4 | Expansion — Trace2, Platform shell, EnvMon, POH | ✅ Done | 2026-05-09 |
-| 5 | CI/CD Integration — PR smoke gate + live post-merge run | ✅ Done | 2026-05-09 |
-| 6 | Governance & Hardening — DoD update, flake budget | ✅ Done | 2026-05-09 |
+| 3 | Core Coverage — W360 + SPC journeys | ✅ Done | 2026-05-10 |
+| 4 | Expansion — Trace2, Platform shell, EnvMon, POH | ✅ Done | 2026-05-10 |
+| 5 | CI/CD Integration — PR smoke gate + live post-merge run | ✅ Done | 2026-05-10 |
+| 6 | Governance & Hardening — DoD update, flake budget | ✅ Done | 2026-05-10 |
 
 ---
 

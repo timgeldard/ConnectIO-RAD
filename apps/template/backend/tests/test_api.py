@@ -1,13 +1,17 @@
 """API smoke tests for Template Module."""
 from fastapi.testclient import TestClient
 
+from shared_auth import UserIdentity, require_user, require_proxy_user
 from template_backend.module_template.application.services import create_module_template_service
 from template_backend.module_template.infrastructure.dependencies import get_module_template_service
 from template_backend.main import app
 
 
 _service = create_module_template_service()
+_user = UserIdentity(user_id="test", raw_token="token")
 app.dependency_overrides[get_module_template_service] = lambda: _service
+app.dependency_overrides[require_user] = lambda: _user
+app.dependency_overrides[require_proxy_user] = lambda: _user
 
 
 def test_overview_returns_demo_metrics() -> None:

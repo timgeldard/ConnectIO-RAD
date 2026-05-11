@@ -1,6 +1,7 @@
 """Unit tests for vessel_planning_dal — classifier, coerce helpers, derivation logic."""
 from unittest.mock import patch
 
+from shared_domain import test_data
 from processorderhistory_backend.production_planning.dal import vessel_planning_dal as dal
 from processorderhistory_backend.config import vessel_capacity as vc
 from processorderhistory_backend.config.vessel_capacity import check_capacity, get_vessel_capacity
@@ -77,17 +78,19 @@ def test_coerce_int_ms_none_returns_none():
 # ---------------------------------------------------------------------------
 
 def test_coerce_event_row_normal():
+    po_id = test_data.process_order()
+    mat_id = test_data.material_id()
     row = {
         "change_at_ms": "1700000000000",
         "instrument_id": "TK-101",
-        "process_order_id": "PO-001",
-        "material_id": "MAT-A",
+        "process_order_id": po_id,
+        "material_id": mat_id,
     }
     result = dal._coerce_event_row(row)
     assert result["change_at_ms"] == 1700000000000
     assert result["instrument_id"] == "TK-101"
-    assert result["process_order_id"] == "PO-001"
-    assert result["material_id"] == "MAT-A"
+    assert result["process_order_id"] == po_id
+    assert result["material_id"] == mat_id
 
 
 def test_coerce_event_row_none_process_order():
@@ -130,10 +133,11 @@ def test_derive_vessel_state_available():
 
 
 def test_derive_vessel_state_in_use_via_running_po():
-    row = {**_LATEST_ROW, "status_to": "CLEAN", "order_status": "running", "process_order_id": "PO-999"}
+    po_id = test_data.process_order()
+    row = {**_LATEST_ROW, "status_to": "CLEAN", "order_status": "running", "process_order_id": po_id}
     vessels, _, _ = dal._derive_planning_data([row], [], [])
     assert vessels[0]["state"] == "IN_USE"
-    assert vessels[0]["current_po_id"] == "PO-999"
+    assert vessels[0]["current_po_id"] == po_id
 
 
 def test_derive_vessel_state_dirty():
@@ -155,21 +159,22 @@ def test_derive_vessel_skips_empty_instrument_id():
 # ---------------------------------------------------------------------------
 
 def test_derive_affinity_counted_from_events():
+    mat_id = test_data.material_id()
     events = [
-        {"instrument_id": "TK-101", "material_id": "MAT-A", "material_name": "Alpha", "change_at_ms": 0},
-        {"instrument_id": "TK-101", "material_id": "MAT-A", "material_name": "Alpha", "change_at_ms": 0},
-        {"instrument_id": "TK-102", "material_id": "MAT-A", "material_name": "Alpha", "change_at_ms": 0},
+        {"instrument_id": "TK-101", "material_id": mat_id, "material_name": "Alpha", "change_at_ms": 0},
+        {"instrument_id": "TK-101", "material_id": mat_id, "material_name": "Alpha", "change_at_ms": 0},
+        {"instrument_id": "TK-102", "material_id": mat_id, "material_name": "Alpha", "change_at_ms": 0},
     ]
     vessel_row_a = {**_LATEST_ROW, "instrument_id": "TK-101"}
     vessel_row_b = {**_LATEST_ROW, "instrument_id": "TK-102"}
     vessels, _, _ = dal._derive_planning_data([vessel_row_a, vessel_row_b], events, [])
     tk101 = next(v for v in vessels if v["instrument_id"] == "TK-101")
-    assert tk101["affinity_materials"][0]["material_id"] == "MAT-A"
+    assert tk101["affinity_materials"][0]["material_id"] == mat_id
     assert tk101["affinity_materials"][0]["use_count"] == 2
 
 
 def test_derive_affinity_missing_ids_skipped():
-    events = [{"instrument_id": "", "material_id": "MAT-A", "change_at_ms": 0}]
+    events = [{"instrument_id": "", "material_id": test_data.material_id(), "change_at_ms": 0}]
     vessels, _, _ = dal._derive_planning_data([_LATEST_ROW], events, [])
     tk101 = next(v for v in vessels if v["instrument_id"] == "TK-101")
     assert tk101["affinity_materials"] == []
@@ -200,13 +205,15 @@ def _released(po_id, material_id):
 
 
 def test_released_order_feasible_when_affinity_vessel_available():
+    mat_id = test_data.material_id()
+    po_id = test_data.process_order()
     events = [
-        {"instrument_id": "TK-101", "material_id": "MAT-A", "material_name": "Alpha", "change_at_ms": 0},
-        {"instrument_id": "TK-101", "material_id": "MAT-A", "material_name": "Alpha", "change_at_ms": 0},
-        {"instrument_id": "TK-101", "material_id": "MAT-A", "material_name": "Alpha", "change_at_ms": 0},
+        {"instrument_id": "TK-101", "material_id": mat_id, "material_name": "Alpha", "change_at_ms": 0},
+        {"instrument_id": "TK-101", "material_id": mat_id, "material_name": "Alpha", "change_at_ms": 0},
+        {"instrument_id": "TK-101", "material_id": mat_id, "material_name": "Alpha", "change_at_ms": 0},
     ]
     _, orders, kpis = dal._derive_planning_data(
-        [_vessel("TK-101", "AVAILABLE")], events, [_released("PO-1", "MAT-A")]
+        [_vessel("TK-101", "AVAILABLE")], events, [_released(po_id, mat_id)]
     )
     assert orders[0]["feasible"] is True
     assert orders[0]["constraint_type"] is None
@@ -216,9 +223,11 @@ def test_released_order_feasible_when_affinity_vessel_available():
 
 
 def test_released_order_constrained_dirty_vessel():
-    events = [{"instrument_id": "TK-101", "material_id": "MAT-A", "material_name": "A", "change_at_ms": 0}]
+    mat_id = test_data.material_id()
+    po_id = test_data.process_order()
+    events = [{"instrument_id": "TK-101", "material_id": mat_id, "material_name": "A", "change_at_ms": 0}]
     _, orders, kpis = dal._derive_planning_data(
-        [_vessel("TK-101", "DIRTY")], events, [_released("PO-1", "MAT-A")]
+        [_vessel("TK-101", "DIRTY")], events, [_released(po_id, mat_id)]
     )
     assert orders[0]["feasible"] is False
     assert orders[0]["constraint_type"] == "dirty_vessel"
@@ -227,18 +236,22 @@ def test_released_order_constrained_dirty_vessel():
 
 
 def test_released_order_constrained_in_use_vessel():
-    events = [{"instrument_id": "TK-101", "material_id": "MAT-A", "material_name": "A", "change_at_ms": 0}]
+    mat_id = test_data.material_id()
+    po_id = test_data.process_order()
+    events = [{"instrument_id": "TK-101", "material_id": mat_id, "material_name": "A", "change_at_ms": 0}]
     latest = {**_LATEST_ROW, "instrument_id": "TK-101", "status_to": "IN USE", "order_status": "running",
               "process_order_id": "PO-RUN"}
-    _, orders, kpis = dal._derive_planning_data([latest], events, [_released("PO-1", "MAT-A")])
+    _, orders, kpis = dal._derive_planning_data([latest], events, [_released(po_id, mat_id)])
     assert orders[0]["feasible"] is False
     assert orders[0]["constraint_type"] == "in_use_vessel"
     assert kpis["unblock_action_count"] == 1
 
 
 def test_released_order_no_affinity_constraint():
+    mat_id = test_data.material_id()
+    po_id = test_data.process_order()
     _, orders, kpis = dal._derive_planning_data(
-        [_vessel("TK-101", "AVAILABLE")], [], [_released("PO-1", "MAT-A")]
+        [_vessel("TK-101", "AVAILABLE")], [], [_released(po_id, mat_id)]
     )
     assert orders[0]["feasible"] is False
     assert orders[0]["constraint_type"] == "no_vessel"
@@ -247,7 +260,9 @@ def test_released_order_no_affinity_constraint():
 
 
 def test_released_order_rank_is_one_based():
-    _, orders, _ = dal._derive_planning_data([], [], [_released("PO-X", "MAT-Z")])
+    po_id = test_data.process_order()
+    mat_id = test_data.material_id()
+    _, orders, _ = dal._derive_planning_data([], [], [_released(po_id, mat_id)])
     assert orders[0]["rank"] == 1
 
 
@@ -270,8 +285,12 @@ def test_kpis_vessel_counts():
 
 
 def test_kpis_released_po_count():
+    po1 = test_data.process_order()
+    po2 = test_data.process_order()
+    mat1 = test_data.material_id()
+    mat2 = test_data.material_id()
     _, _, kpis = dal._derive_planning_data(
-        [], [], [_released("PO-1", "M1"), _released("PO-2", "M2")]
+        [], [], [_released(po1, mat1), _released(po2, mat2)]
     )
     assert kpis["released_po_count"] == 2
 
@@ -281,18 +300,21 @@ def test_kpis_released_po_count():
 # ---------------------------------------------------------------------------
 
 def test_blocked_orders_populated_for_dirty_vessel():
-    events = [{"instrument_id": "TK-101", "material_id": "MAT-A", "material_name": "A", "change_at_ms": 0}]
+    mat_id = test_data.material_id()
+    po_id = test_data.process_order()
+    events = [{"instrument_id": "TK-101", "material_id": mat_id, "material_name": "A", "change_at_ms": 0}]
     vessels, _, _ = dal._derive_planning_data(
-        [_vessel("TK-101", "DIRTY")], events, [_released("PO-1", "MAT-A")]
+        [_vessel("TK-101", "DIRTY")], events, [_released(po_id, mat_id)]
     )
     tk = next(v for v in vessels if v["instrument_id"] == "TK-101")
     assert len(tk["blocked_orders"]) == 1
-    assert tk["blocked_orders"][0]["po_id"] == "PO-1"
+    assert tk["blocked_orders"][0]["po_id"] == po_id
 
 
 def test_blocked_orders_capped_at_ten():
-    events = [{"instrument_id": "TK-X", "material_id": "MAT-X", "material_name": "X", "change_at_ms": 0}] * 20
-    released = [_released(f"PO-{i}", "MAT-X") for i in range(15)]
+    mat_id = test_data.material_id()
+    events = [{"instrument_id": "TK-X", "material_id": mat_id, "material_name": "X", "change_at_ms": 0}] * 20
+    released = [_released(test_data.process_order(), mat_id) for i in range(15)]
     vessels, _, _ = dal._derive_planning_data([_vessel("TK-X", "DIRTY")], events, released)
     tk = next(v for v in vessels if v["instrument_id"] == "TK-X")
     assert len(tk["blocked_orders"]) == 10
@@ -303,8 +325,9 @@ def test_blocked_orders_capped_at_ten():
 # ---------------------------------------------------------------------------
 
 def test_state_reason_running_po():
-    reason = dal._state_reason("IN_USE", "CLEAN", "running", "PO-123")
-    assert "PO-123" in reason
+    po_id = test_data.process_order()
+    reason = dal._state_reason("IN_USE", "CLEAN", "running", po_id)
+    assert po_id in reason
     assert "Running" in reason
 
 
@@ -351,82 +374,100 @@ def _events_with_ts(*pairs):
 
 
 def test_evidence_affinity_count_matches_cooccurrence():
+    mat_id = test_data.material_id()
+    po_id = test_data.process_order()
     events = _events_with_ts(
-        ("TK-101", "MAT-A", 1000),
-        ("TK-101", "MAT-A", 2000),
-        ("TK-101", "MAT-A", 3000),
+        ("TK-101", mat_id, 1000),
+        ("TK-101", mat_id, 2000),
+        ("TK-101", mat_id, 3000),
     )
     _, orders, _ = dal._derive_planning_data(
-        [_vessel("TK-101", "AVAILABLE")], events, [_released("PO-1", "MAT-A")]
+        [_vessel("TK-101", "AVAILABLE")], events, [_released(po_id, mat_id)]
     )
     assert orders[0]["evidence_affinity_count"] == 3
 
 
 def test_evidence_affinity_rank_is_1_for_top_vessel():
+    mat_id = test_data.material_id()
+    po_id = test_data.process_order()
     events = _events_with_ts(
-        ("TK-101", "MAT-A", 1000),
-        ("TK-101", "MAT-A", 2000),
-        ("TK-102", "MAT-A", 3000),
+        ("TK-101", mat_id, 1000),
+        ("TK-101", mat_id, 2000),
+        ("TK-102", mat_id, 3000),
     )
     vessels = [_vessel("TK-101", "AVAILABLE"), _vessel("TK-102", "AVAILABLE")]
-    _, orders, _ = dal._derive_planning_data(vessels, events, [_released("PO-1", "MAT-A")])
+    _, orders, _ = dal._derive_planning_data(vessels, events, [_released(po_id, mat_id)])
     assert orders[0]["evidence_affinity_rank"] == 1
     assert orders[0]["recommended_vessel"] == "TK-101"
 
 
 def test_evidence_candidate_vessel_count():
+    mat_id = test_data.material_id()
+    po_id = test_data.process_order()
     events = _events_with_ts(
-        ("TK-101", "MAT-A", 1000),
-        ("TK-102", "MAT-A", 2000),
-        ("TK-103", "MAT-A", 3000),
+        ("TK-101", mat_id, 1000),
+        ("TK-102", mat_id, 2000),
+        ("TK-103", mat_id, 3000),
     )
     vessels = [_vessel("TK-101", "AVAILABLE"), _vessel("TK-102", "AVAILABLE"), _vessel("TK-103", "AVAILABLE")]
-    _, orders, _ = dal._derive_planning_data(vessels, events, [_released("PO-1", "MAT-A")])
+    _, orders, _ = dal._derive_planning_data(vessels, events, [_released(po_id, mat_id)])
     assert orders[0]["evidence_candidate_vessel_count"] == 3
 
 
 def test_evidence_last_seen_at_ms_is_max_timestamp():
+    mat_id = test_data.material_id()
+    po_id = test_data.process_order()
     events = _events_with_ts(
-        ("TK-101", "MAT-A", 1000),
-        ("TK-101", "MAT-A", 9000),
-        ("TK-101", "MAT-A", 5000),
+        ("TK-101", mat_id, 1000),
+        ("TK-101", mat_id, 9000),
+        ("TK-101", mat_id, 5000),
     )
     _, orders, _ = dal._derive_planning_data(
-        [_vessel("TK-101", "AVAILABLE")], events, [_released("PO-1", "MAT-A")]
+        [_vessel("TK-101", "AVAILABLE")], events, [_released(po_id, mat_id)]
     )
     assert orders[0]["evidence_last_seen_at_ms"] == 9000
 
 
 def test_evidence_source_affinity_history_when_data_exists():
-    events = _events_with_ts(("TK-101", "MAT-A", 1000))
+    mat_id = test_data.material_id()
+    po_id = test_data.process_order()
+    events = _events_with_ts(("TK-101", mat_id, 1000))
     _, orders, _ = dal._derive_planning_data(
-        [_vessel("TK-101", "AVAILABLE")], events, [_released("PO-1", "MAT-A")]
+        [_vessel("TK-101", "AVAILABLE")], events, [_released(po_id, mat_id)]
     )
     assert orders[0]["evidence_source"] == "affinity_history"
 
 
 def test_evidence_source_no_affinity_data_when_no_history():
+    po_id = test_data.process_order()
+    mat_id = test_data.material_id()
     _, orders, _ = dal._derive_planning_data(
-        [_vessel("TK-101", "AVAILABLE")], [], [_released("PO-1", "MAT-A")]
+        [_vessel("TK-101", "AVAILABLE")], [], [_released(po_id, mat_id)]
     )
     assert orders[0]["evidence_source"] == "no_affinity_data"
 
 
 def test_evidence_notes_contains_capacity_note_when_qty_unknown():
-    events = _events_with_ts(("TK-101", "MAT-A", 1000))
+    po_id = test_data.process_order()
+    mat_id = test_data.material_id()
+    events = _events_with_ts(("TK-101", mat_id, 1000))
     _, orders, _ = dal._derive_planning_data(
-        [_vessel("TK-101", "AVAILABLE")], events, [_released("PO-1", "MAT-A")]
+        [_vessel("TK-101", "AVAILABLE")], events, [_released(po_id, mat_id)]
     )
     assert any("capacity" in n.lower() for n in orders[0]["evidence_notes"])
 
 
 def test_evidence_affinity_rank_none_when_no_affinity():
-    _, orders, _ = dal._derive_planning_data([], [], [_released("PO-1", "MAT-Z")])
+    po_id = test_data.process_order()
+    mat_id = test_data.material_id()
+    _, orders, _ = dal._derive_planning_data([], [], [_released(po_id, mat_id)])
     assert orders[0]["evidence_affinity_rank"] is None
 
 
 def test_evidence_last_seen_none_when_no_history():
-    _, orders, _ = dal._derive_planning_data([], [], [_released("PO-1", "MAT-Z")])
+    po_id = test_data.process_order()
+    mat_id = test_data.material_id()
+    _, orders, _ = dal._derive_planning_data([], [], [_released(po_id, mat_id)])
     assert orders[0]["evidence_last_seen_at_ms"] is None
 
 
@@ -488,11 +529,14 @@ def test_vessel_state_reason_present_on_every_vessel():
 
 
 def test_vessel_blocked_order_count_matches_blocked_orders_len():
+    mat_id = test_data.material_id()
+    po1 = test_data.process_order()
+    po2 = test_data.process_order()
     events = _events_with_ts(
-        ("TK-101", "MAT-A", 1000),
-        ("TK-101", "MAT-A", 2000),
+        ("TK-101", mat_id, 1000),
+        ("TK-101", mat_id, 2000),
     )
-    released = [_released("PO-1", "MAT-A"), _released("PO-2", "MAT-A")]
+    released = [_released(po1, mat_id), _released(po2, mat_id)]
     vessels, _, _ = dal._derive_planning_data([_vessel("TK-101", "DIRTY")], events, released)
     tk = next(v for v in vessels if v["instrument_id"] == "TK-101")
     assert tk["blocked_order_count"] == len(tk["blocked_orders"])
@@ -501,9 +545,9 @@ def test_vessel_blocked_order_count_matches_blocked_orders_len():
 
 def test_vessel_top_affinity_material_count():
     events = _events_with_ts(
-        ("TK-101", "MAT-A", 1000),
-        ("TK-101", "MAT-B", 2000),
-        ("TK-101", "MAT-C", 3000),
+        ("TK-101", test_data.material_id(), 1000),
+        ("TK-101", test_data.material_id(), 2000),
+        ("TK-101", test_data.material_id(), 3000),
     )
     vessels, _, _ = dal._derive_planning_data([_vessel("TK-101", "AVAILABLE")], events, [])
     tk = next(v for v in vessels if v["instrument_id"] == "TK-101")
@@ -511,8 +555,9 @@ def test_vessel_top_affinity_material_count():
 
 
 def test_vessel_action_reason_includes_waiting_count_for_dirty():
-    events = _events_with_ts(("TK-101", "MAT-A", 1000))
-    released = [_released("PO-1", "MAT-A"), _released("PO-2", "MAT-A")]
+    mat_id = test_data.material_id()
+    events = _events_with_ts(("TK-101", mat_id, 1000))
+    released = [_released(test_data.process_order(), mat_id), _released(test_data.process_order(), mat_id)]
     vessels, _, _ = dal._derive_planning_data([_vessel("TK-101", "DIRTY")], events, released)
     tk = next(v for v in vessels if v["instrument_id"] == "TK-101")
     assert tk["action_reason"] is not None
@@ -526,10 +571,11 @@ def test_vessel_action_reason_none_for_available_vessel():
 
 
 def test_vessel_state_reason_running_po_contains_po_id():
-    row = {**_LATEST_ROW, "order_status": "running", "process_order_id": "PO-XYZ", "status_to": "CLEAN"}
+    po_id = test_data.process_order()
+    row = {**_LATEST_ROW, "order_status": "running", "process_order_id": po_id, "status_to": "CLEAN"}
     vessels, _, _ = dal._derive_planning_data([row], [], [])
     tk = vessels[0]
-    assert "PO-XYZ" in tk["state_reason"]
+    assert po_id in tk["state_reason"]
 
 
 def test_vessel_blocked_order_count_zero_when_no_blocked():

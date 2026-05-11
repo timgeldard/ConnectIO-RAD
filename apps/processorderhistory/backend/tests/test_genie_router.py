@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from shared_domain import test_data
 
 from processorderhistory_backend.main import app
 import processorderhistory_backend.genie_assist.router_genie as genie_router
@@ -9,6 +10,8 @@ client = TestClient(app)
 
 def test_genie_start_composes_context_and_proxies(monkeypatch):
     captured = {}
+    po_id = test_data.process_order()
+    plant = test_data.PLANTS[0]
 
     monkeypatch.setattr(genie_router, "resolve_genie_token", lambda forwarded, auth: "server-token")
 
@@ -22,12 +25,12 @@ def test_genie_start_composes_context_and_proxies(monkeypatch):
 
     monkeypatch.setattr(genie_router, "start_conversation", fake_start)
 
-    response = client.post("/api/genie/start", json={
+    response = client.post("/api/poh/genie/start", json={
         "prompt": "What happened?",
         "pageContext": {
-            "selected_process_order": "450001",
-            "selected_plant": "IE01",
-            "active_filters": "detail view for process order 450001",
+            "selected_process_order": po_id,
+            "selected_plant": plant,
+            "active_filters": f"detail view for process order {po_id}",
             "selected_row_count": 1,
         },
     })
@@ -35,12 +38,13 @@ def test_genie_start_composes_context_and_proxies(monkeypatch):
     assert response.status_code == 200
     assert response.json()["conversationId"] == "conv-1"
     assert captured["token"] == "server-token"
-    assert "- selected_process_order: 450001" in captured["content"]
+    assert f"- selected_process_order: {po_id}" in captured["content"]
     assert "User question:\nWhat happened?" in captured["content"]
 
 
 def test_genie_followup_reuses_conversation(monkeypatch):
     captured = {}
+    plant = test_data.PLANTS[0]
 
     monkeypatch.setattr(genie_router, "resolve_genie_token", lambda forwarded, auth: "server-token")
 
@@ -52,17 +56,17 @@ def test_genie_followup_reuses_conversation(monkeypatch):
 
     monkeypatch.setattr(genie_router, "create_followup", fake_followup)
 
-    response = client.post("/api/genie/followup", json={
+    response = client.post("/api/poh/genie/followup", json={
         "conversationId": "conv-1",
         "prompt": "And the next one?",
-        "pageContext": {"selected_plant": "IE01"},
+        "pageContext": {"selected_plant": plant},
     })
 
     assert response.status_code == 200
     assert response.json()["conversationId"] == "conv-1"
     assert response.json()["messageId"] == "msg-2"
     assert captured["conversation_id"] == "conv-1"
-    assert "- selected_plant: IE01" in captured["content"]
+    assert f"- selected_plant: {plant}" in captured["content"]
 
 
 def test_genie_message_and_query_result_proxy(monkeypatch):
@@ -80,8 +84,8 @@ def test_genie_message_and_query_result_proxy(monkeypatch):
         },
     })
 
-    message = client.get("/api/genie/message?conversationId=conv-1&messageId=msg-1")
-    result = client.get("/api/genie/query-result?conversationId=conv-1&messageId=msg-1&attachmentId=att-1")
+    message = client.get("/api/poh/genie/message?conversationId=conv-1&messageId=msg-1")
+    result = client.get("/api/poh/genie/query-result?conversationId=conv-1&messageId=msg-1&attachmentId=att-1")
 
     assert message.status_code == 200
     assert message.json()["answer"] == "Done"

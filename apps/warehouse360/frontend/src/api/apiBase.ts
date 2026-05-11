@@ -1,5 +1,6 @@
-const STANDALONE_API_BASE = '/api'
-const PLATFORM_API_BASE = '/api/wh'
+const REWRITE_SOURCE = '/api'
+const STANDALONE_API_BASE = '/api/wh360'
+const PLATFORM_API_BASE = '/api/wh360'
 const PLATFORM_ROUTE_BASE = '/warehouse360'
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
@@ -37,9 +38,9 @@ export const resolveWarehouseApiPath = (path: string, apiBase = getWarehouseApiB
   const base = normaliseApiBase(apiBase)
   if (path === base || path.startsWith(`${base}/`)) return path
 
-  if (path === STANDALONE_API_BASE) return base
-  if (path.startsWith(`${STANDALONE_API_BASE}/`)) {
-    return `${base}${path.slice(STANDALONE_API_BASE.length)}`
+  if (path === REWRITE_SOURCE) return base
+  if (path.startsWith(`${REWRITE_SOURCE}/`)) {
+    return `${base}${path.slice(REWRITE_SOURCE.length)}`
   }
 
   return path

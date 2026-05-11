@@ -9,9 +9,17 @@ import {
 import { createApiClient, type ApiClientOptions, type ApiRequestOptions } from './client'
 import type { ChartSeriesPoint, ManufacturingFilters, PageRequest, PageResponse } from './types'
 
+/**
+ * Options for configuring an API resource query.
+ *
+ * @template T - The type of data returned by the API.
+ */
 export interface ResourceQueryOptions<T> {
+  /** API client configuration. */
   client?: ApiClientOptions
+  /** Options for the fetch request. */
   request?: ApiRequestOptions
+  /** Options for the React Query useQuery hook. */
   query?: Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>
 }
 
@@ -31,11 +39,23 @@ export function useApiResource<T>(
   })
 }
 
+/**
+ * Options for specific entity queries (GET /resource/:id).
+ */
 export interface EntityQueryOptions<T> extends ResourceQueryOptions<T> {
+  /** The ID of the entity to fetch. */
   id?: string | number | null
+  /** Whether the query is enabled. */
   enabled?: boolean
 }
 
+/**
+ * Hook to fetch a single entity by ID.
+ * 
+ * @param resource - The resource path (e.g. 'orders')
+ * @param id - The entity ID
+ * @param options - Query configuration
+ */
 export function useEntityQuery<T>(
   resource: string,
   id: string | number | null | undefined,
@@ -55,10 +75,20 @@ export function useEntityQuery<T>(
   )
 }
 
+/**
+ * Options for entity list queries (GET /resource).
+ */
 export interface EntityListOptions<T> extends ResourceQueryOptions<T[]> {
+  /** Manufacturing-specific filters (plant, material, etc.) */
   filters?: ManufacturingFilters
 }
 
+/**
+ * Hook to fetch a list of entities.
+ * 
+ * @param resource - The resource path
+ * @param options - Query configuration including filters
+ */
 export function useEntityListQuery<T>(resource: string, options: EntityListOptions<T> = {}) {
   return useApiResource<T[]>(
     [resource, 'list', options.filters ?? {}],
@@ -86,18 +116,24 @@ export function useEntityMutation<TData, TVariables extends Record<string, unkno
 ) {
   const client = createApiClient(options.client)
   const queryClient = useQueryClient()
+  const { mutation: mutationOptions } = options
+
   return useMutation<TData, Error, TVariables>({
+    ...mutationOptions,
     mutationFn: (variables) => {
       if (method === 'delete') {
         return client.delete<TData>(path, { query: variables as ApiRequestOptions['query'] })
       }
       return client[method]<TData>(path, variables)
     },
-    onSuccess: async (...args) => {
-      await Promise.all((options.invalidate ?? []).map((key) => queryClient.invalidateQueries({ queryKey: key })))
-      await options.mutation?.onSuccess?.(...args)
+    onSuccess: async (data, variables, context) => {
+      await Promise.all(
+        (options.invalidate ?? []).map((key) => queryClient.invalidateQueries({ queryKey: key })),
+      )
+      if (mutationOptions?.onSuccess) {
+        await mutationOptions.onSuccess(data, variables, context)
+      }
     },
-    ...options.mutation,
   })
 }
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LangProvider } from './i18n/context'
 import { PlatformShell, parseCrossAppContext } from '@connectio/shared-ui'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { POH_MODULES, POH_COMPOSITION } from './manifest'
 import { OrderList } from './pages/OrderList'
 import { OrderDetail } from './pages/OrderDetail'
@@ -194,12 +195,25 @@ function AppContent() {
   )
 }
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: 5 * 60_000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    }
+  }
+})
+
 export default function App() {
   return (
-    <LangProvider>
-      <PlantProvider appName="processorderhistory">
-        <AppContent />
-      </PlantProvider>
-    </LangProvider>
+    <QueryClientProvider client={queryClient}>
+      <LangProvider>
+        <PlantProvider appName="processorderhistory">
+          <AppContent />
+        </PlantProvider>
+      </LangProvider>
+    </QueryClientProvider>
   )
 }

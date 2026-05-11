@@ -2,6 +2,7 @@ import pytest
 import math
 import json
 import os
+from shared_domain import test_data
 from spc_backend.process_control.domain.msa import compute_grr, compute_grr_anova, _is_number
 from spc_backend.process_control.domain.multivariate import compute_hotelling_t2, _round_float
 
@@ -36,17 +37,23 @@ def test_multivariate_utils():
     Verifies T2 calculation and contribution decomposition.
     """
     # Two MICs, 4 batches (n > p)
+    mic1 = test_data.mic_id()
+    mic2 = test_data.mic_id()
+    b1 = test_data.batch_id()
+    b2 = test_data.batch_id()
+    b3 = test_data.batch_id()
+    b4 = test_data.batch_id()
     data = [
-        {"batch_id": "b1", "batch_date": "2024-01-01", "mic_id": "mic1", "mic_name": "m1", "avg_result": 10.0},
-        {"batch_id": "b1", "batch_date": "2024-01-01", "mic_id": "mic2", "mic_name": "m2", "avg_result": 100.0},
-        {"batch_id": "b2", "batch_date": "2024-01-02", "mic_id": "mic1", "mic_name": "m1", "avg_result": 10.1},
-        {"batch_id": "b2", "batch_date": "2024-01-02", "mic_id": "mic2", "mic_name": "m2", "avg_result": 101.0},
-        {"batch_id": "b3", "batch_date": "2024-01-03", "mic_id": "mic1", "mic_name": "m1", "avg_result": 10.2},
-        {"batch_id": "b3", "batch_date": "2024-01-03", "mic_id": "mic2", "mic_name": "m2", "avg_result": 102.0},
-        {"batch_id": "b4", "batch_date": "2024-01-04", "mic_id": "mic1", "mic_name": "m1", "avg_result": 10.3},
-        {"batch_id": "b4", "batch_date": "2024-01-04", "mic_id": "mic2", "mic_name": "m2", "avg_result": 103.0},
+        {"batch_id": b1, "batch_date": "2024-01-01", "mic_id": mic1, "mic_name": "m1", "avg_result": 10.0},
+        {"batch_id": b1, "batch_date": "2024-01-01", "mic_id": mic2, "mic_name": "m2", "avg_result": 100.0},
+        {"batch_id": b2, "batch_date": "2024-01-02", "mic_id": mic1, "mic_name": "m1", "avg_result": 10.1},
+        {"batch_id": b2, "batch_date": "2024-01-02", "mic_id": mic2, "mic_name": "m2", "avg_result": 101.0},
+        {"batch_id": b3, "batch_date": "2024-01-03", "mic_id": mic1, "mic_name": "m1", "avg_result": 10.2},
+        {"batch_id": b3, "batch_date": "2024-01-03", "mic_id": mic2, "mic_name": "m2", "avg_result": 102.0},
+        {"batch_id": b4, "batch_date": "2024-01-04", "mic_id": mic1, "mic_name": "m1", "avg_result": 10.3},
+        {"batch_id": b4, "batch_date": "2024-01-04", "mic_id": mic2, "mic_name": "m2", "avg_result": 103.0},
     ]
-    res = compute_hotelling_t2(data, ["mic1", "mic2"])
+    res = compute_hotelling_t2(data, [mic1, mic2])
     assert "points" in res
     assert len(res["points"]) == 4
     # Each result should have a t2 score and top contributors
@@ -72,12 +79,15 @@ def test_msa_anova_significant_interaction():
 
 def test_multivariate_errors():
     # Singular matrix or insufficient data
+    mic1 = test_data.mic_id()
+    mic2 = test_data.mic_id()
+    b1 = test_data.batch_id()
     data = [
-        {"batch_id": "b1", "batch_date": "2024-01-01", "mic_id": "mic1", "mic_name": "m1", "avg_result": 10},
-        {"batch_id": "b1", "batch_date": "2024-01-01", "mic_id": "mic2", "mic_name": "m2", "avg_result": 20},
+        {"batch_id": b1, "batch_date": "2024-01-01", "mic_id": mic1, "mic_name": "m1", "avg_result": 10},
+        {"batch_id": b1, "batch_date": "2024-01-01", "mic_id": mic2, "mic_name": "m2", "avg_result": 20},
     ]
     with pytest.raises(ValueError, match="Insufficient shared batches"):
-        compute_hotelling_t2(data, ["mic1", "mic2"])
+        compute_hotelling_t2(data, [mic1, mic2])
 
 def test_round_float_edge_cases():
     assert _round_float(None) is None
@@ -87,19 +97,29 @@ def test_round_float_edge_cases():
     assert _round_float(10.5555555, 2) == 10.56
 
 def test_multivariate_missing_columns():
-    data = [{"batch_id": "B1"}] # Missing others
+    b1 = test_data.batch_id()
+    mic1 = test_data.mic_id()
+    mic2 = test_data.mic_id()
+    data = [{"batch_id": b1}] # Missing others
     with pytest.raises(ValueError, match="Missing required multivariate columns"):
-        compute_hotelling_t2(data, ["M1", "M2"])
+        compute_hotelling_t2(data, [mic1, mic2])
 
 def test_multivariate_empty_after_filter():
-    data = [{"batch_id": "B1", "batch_date": "D1", "mic_id": "M3", "mic_name": "N3", "avg_result": 10}]
+    b1 = test_data.batch_id()
+    mic1 = test_data.mic_id()
+    mic2 = test_data.mic_id()
+    data = [{"batch_id": b1, "batch_date": "D1", "mic_id": "M3", "mic_name": "N3", "avg_result": 10}]
     with pytest.raises(ValueError, match="No observations found for the selected characteristics"):
-        compute_hotelling_t2(data, ["M1", "M2"])
+        compute_hotelling_t2(data, [mic1, mic2])
 
 def test_multivariate_no_shared_batches():
+    mic1 = test_data.mic_id()
+    mic2 = test_data.mic_id()
+    b1 = test_data.batch_id()
+    b2 = test_data.batch_id()
     data = [
-        {"batch_id": "B1", "batch_date": "D1", "mic_id": "M1", "mic_name": "N1", "avg_result": 10},
-        {"batch_id": "B2", "batch_date": "D2", "mic_id": "M2", "mic_name": "N2", "avg_result": 20},
+        {"batch_id": b1, "batch_date": "D1", "mic_id": mic1, "mic_name": "N1", "avg_result": 10},
+        {"batch_id": b2, "batch_date": "D2", "mic_id": mic2, "mic_name": "N2", "avg_result": 20},
     ]
     with pytest.raises(ValueError, match="No shared batches contain complete observations"):
-        compute_hotelling_t2(data, ["M1", "M2"])
+        compute_hotelling_t2(data, [mic1, mic2])

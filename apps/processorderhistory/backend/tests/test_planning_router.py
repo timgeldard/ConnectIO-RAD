@@ -80,7 +80,7 @@ def mock_schedule(monkeypatch):
 
 
 def test_post_planning_schedule_returns_200(mock_schedule):
-    response = client.post("/api/planning/schedule", json={})
+    response = client.post("/api/poh/planning/schedule", json={})
     assert response.status_code == 200
     data = response.json()
     assert data["lines"] == ["MIX-04", "SPD-02"]
@@ -90,12 +90,12 @@ def test_post_planning_schedule_returns_200(mock_schedule):
 
 
 def test_post_planning_schedule_passes_plant_id(mock_schedule):
-    client.post("/api/planning/schedule", json={"plant_id": "C351"})
+    client.post("/api/poh/planning/schedule", json={"plant_id": "C351"})
     mock_schedule.assert_called_once_with("token", plant_id="C351")
 
 
 def test_post_planning_schedule_returns_full_shape(mock_schedule):
-    response = client.post("/api/planning/schedule", json={})
+    response = client.post("/api/poh/planning/schedule", json={})
     data = response.json()
     for key in ("now_ms", "today_ms", "window_start_ms", "window_end_ms",
                 "lines", "blocks", "backlog", "kpis"):
@@ -106,12 +106,12 @@ def test_post_planning_schedule_returns_full_shape(mock_schedule):
 
 
 def test_post_planning_schedule_block_shape(mock_schedule):
-    response = client.post("/api/planning/schedule", json={})
+    response = client.post("/api/poh/planning/schedule", json={})
     block = response.json()["blocks"][0]
     for key in ("id", "poId", "lineId", "start", "end", "kind", "label"):
         assert key in block, f"Missing block key: {key}"
 
 
 def test_post_planning_schedule_empty_body(mock_schedule):
-    response = client.post("/api/planning/schedule", json={})
+    response = client.post("/api/poh/planning/schedule", json={})
     assert response.status_code == 200

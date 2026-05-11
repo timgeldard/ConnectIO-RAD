@@ -3,32 +3,37 @@ import { describe, it, expect, vi } from 'vitest'
 import EnvMonGlobalMap from '../EnvMonGlobalMap'
 
 // Mock maplibregl
-vi.mock('maplibre-gl', () => ({
-  default: {
-    Map: vi.fn(() => ({
-      addControl: vi.fn(),
-      on: vi.fn(),
-      once: vi.fn(),
-      remove: vi.fn(),
-      setStyle: vi.fn(),
-      addSource: vi.fn(),
-      addLayer: vi.fn(),
-      getStyle: vi.fn(() => ({ glyphs: 'mock-glyphs' })),
-      getCanvas: vi.fn(() => ({ style: {} })),
-      getZoom: vi.fn(() => 6),
-      dragRotate: { disable: vi.fn() },
-      touchZoomRotate: { disableRotation: vi.fn() },
-      getSource: vi.fn(),
-      isStyleLoaded: vi.fn(() => true),
-      getLayer: vi.fn(() => ({})),
-      setFilter: vi.fn(),
-      flyTo: vi.fn(),
-      easeTo: vi.fn(),
-      fitBounds: vi.fn(),
-    })),
+vi.mock('maplibre-gl', () => {
+  const Map = vi.fn()
+  Map.prototype.addControl = vi.fn()
+  Map.prototype.on = vi.fn()
+  Map.prototype.once = vi.fn()
+  Map.prototype.remove = vi.fn()
+  Map.prototype.setStyle = vi.fn()
+  Map.prototype.addSource = vi.fn()
+  Map.prototype.addLayer = vi.fn()
+  Map.prototype.getStyle = vi.fn(() => ({ glyphs: 'mock-glyphs' }))
+  Map.prototype.getCanvas = vi.fn(() => ({ style: {} }))
+  Map.prototype.getZoom = vi.fn(() => 6)
+  Map.prototype.dragRotate = { disable: vi.fn() }
+  Map.prototype.touchZoomRotate = { disableRotation: vi.fn() }
+  Map.prototype.getSource = vi.fn()
+  Map.prototype.isStyleLoaded = vi.fn(() => true)
+  Map.prototype.getLayer = vi.fn(() => ({}))
+  Map.prototype.setFilter = vi.fn()
+  Map.prototype.flyTo = vi.fn()
+  Map.prototype.easeTo = vi.fn()
+  Map.prototype.fitBounds = vi.fn()
+
+  return {
+    default: {
+      Map,
+      NavigationControl: vi.fn(),
+    },
+    Map,
     NavigationControl: vi.fn(),
   }
-}))
+})
 
 describe('EnvMonGlobalMap', () => {
   const mockFC = {
@@ -48,7 +53,7 @@ describe('EnvMonGlobalMap', () => {
         onOpenPlant={vi.fn()} 
       />
     )
-    expect(document.querySelector('.envmon-map-container')).toBeInTheDocument()
+    expect(document.querySelector('.envmon-map-container')).toBeDefined()
   })
 
   it('shows badge when no locations have GPS', () => {
@@ -61,6 +66,6 @@ describe('EnvMonGlobalMap', () => {
         onOpenPlant={vi.fn()} 
       />
     )
-    expect(screen.getByText(/No GPS coordinates/i)).toBeInTheDocument()
+    expect(screen.getByText(/No GPS coordinates/i)).toBeDefined()
   })
 })

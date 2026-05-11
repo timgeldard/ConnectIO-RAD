@@ -1,6 +1,7 @@
 import asyncio
 
 from fastapi.testclient import TestClient
+from shared_domain import test_data
 
 import spc_backend.main as main_module
 import spc_backend.process_control.router_charts as spc_charts_module
@@ -12,18 +13,22 @@ client = TestClient(main_module.app)
 
 def test_chart_data_returns_paginated_shape(monkeypatch):
     monkeypatch.setattr(spc_charts_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    b_id = test_data.batch_id()
+    lot = test_data.inspection_lot()
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
 
     async def fake_fetch_chart_data_page(*_args, **_kwargs):
         return {
             "data": [
                 {
-                    "batch_id": "B1",
+                    "batch_id": b_id,
                     "batch_date": "2026-04-01",
                     "sample_seq": 1,
                     "value": 1.23,
                 }
             ],
-            "next_cursor": "1711929600:B1:1:LOT-1:OP-1",
+            "next_cursor": f"1711929600:{b_id}:1:{lot}:OP-1",
             "has_more": True,
         }
 
@@ -41,8 +46,8 @@ def test_chart_data_returns_paginated_shape(monkeypatch):
         "/api/spc/chart-data?limit=1000&include_summary=true",
         headers={"x-forwarded-access-token": "not-a-real-jwt"},
         json={
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
+            "material_id": mat_id,
+            "mic_id": mic,
             "mic_name": "Moisture",
             "date_from": None,
             "date_to": None,
@@ -53,8 +58,8 @@ def test_chart_data_returns_paginated_shape(monkeypatch):
 
     assert response.status_code == 200
     body = response.json()
-    assert body["data"][0]["batch_id"] == "B1"
-    assert body["next_cursor"] == "1711929600:B1:1:LOT-1:OP-1"
+    assert body["data"][0]["batch_id"] == b_id
+    assert body["next_cursor"] == f"1711929600:{b_id}:1:{lot}:OP-1"
     assert body["has_more"] is True
     assert body["count"] == 1
     assert body["limit"] == 1000
@@ -63,13 +68,15 @@ def test_chart_data_returns_paginated_shape(monkeypatch):
 
 def test_chart_data_rejects_invalid_cursor(monkeypatch):
     monkeypatch.setattr(spc_charts_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
 
     response = client.post(
         "/api/spc/chart-data?cursor=bad-cursor",
         headers={"x-forwarded-access-token": "not-a-real-jwt"},
         json={
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
+            "material_id": mat_id,
+            "mic_id": mic,
             "mic_name": "Moisture",
             "date_from": None,
             "date_to": None,
@@ -84,6 +91,10 @@ def test_chart_data_rejects_invalid_cursor(monkeypatch):
 
 def test_chart_data_skips_normality_fetch_on_non_initial_pages(monkeypatch):
     monkeypatch.setattr(spc_charts_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    b_id = test_data.batch_id()
+    lot = test_data.inspection_lot()
 
     async def fake_fetch_chart_data_page(*_args, **_kwargs):
         return {
@@ -103,11 +114,11 @@ def test_chart_data_skips_normality_fetch_on_non_initial_pages(monkeypatch):
     monkeypatch.setattr(spc_charts_module, "attach_data_freshness", passthrough_attach)
 
     response = client.post(
-        "/api/spc/chart-data?limit=1000&include_summary=true&cursor=1711929600:B1:1:LOT-1:OP-1",
+        f"/api/spc/chart-data?limit=1000&include_summary=true&cursor=1711929600:{b_id}:1:{lot}:OP-1",
         headers={"x-forwarded-access-token": "not-a-real-jwt"},
         json={
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
+            "material_id": mat_id,
+            "mic_id": mic,
             "mic_name": "Moisture",
             "date_from": None,
             "date_to": None,
@@ -122,10 +133,13 @@ def test_chart_data_skips_normality_fetch_on_non_initial_pages(monkeypatch):
 
 def test_chart_data_survives_spec_drift_summary_failure(monkeypatch):
     monkeypatch.setattr(spc_charts_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    b_id = test_data.batch_id()
 
     async def fake_fetch_chart_data_page(*_args, **_kwargs):
         return {
-            "data": [{"batch_id": "B1", "batch_date": "2026-04-01", "sample_seq": 1, "value": 1.23}],
+            "data": [{"batch_id": b_id, "batch_date": "2026-04-01", "sample_seq": 1, "value": 1.23}],
             "next_cursor": None,
             "has_more": False,
         }
@@ -147,7 +161,7 @@ def test_chart_data_survives_spec_drift_summary_failure(monkeypatch):
     response = client.post(
         "/api/spc/chart-data?include_summary=true",
         headers={"x-forwarded-access-token": "not-a-real-jwt"},
-        json={"material_id": "MAT-1", "mic_id": "MIC-1"},
+        json={"material_id": mat_id, "mic_id": mic},
     )
 
     assert response.status_code == 200
@@ -167,10 +181,15 @@ def test_encode_and_decode_chart_cursor_round_trip():
 
 
 def test_fetch_chart_data_page_builds_next_cursor_before_row_cleanup(monkeypatch):
+    b_id = test_data.batch_id()
+    lot = test_data.inspection_lot()
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+
     async def fake_run_sql_async(_token, _query, _params=None, **_kwargs):
         return [
             {
-                "batch_id": "B1",
+                "batch_id": b_id,
                 "batch_date": "2026-04-01",
                 "sample_seq": "1",
                 "attribut": "",
@@ -182,11 +201,11 @@ def test_fetch_chart_data_page_builds_next_cursor_before_row_cleanup(monkeypatch
                 "valuation": "A",
                 "cursor_batch_date_epoch": 1711929600,
                 "cursor_sample_id": "S1",
-                "cursor_inspection_lot_id": "LOT-1",
+                "cursor_inspection_lot_id": lot,
                 "cursor_operation_id": "OP-1",
             },
             {
-                "batch_id": "B1",
+                "batch_id": b_id,
                 "batch_date": "2026-04-01",
                 "sample_seq": "2",
                 "attribut": "",
@@ -208,8 +227,8 @@ def test_fetch_chart_data_page_builds_next_cursor_before_row_cleanup(monkeypatch
     page = asyncio.run(
         spc_charts_dal.fetch_chart_data_page(
             "token",
-            "MAT-1",
-            "MIC-1",
+            mat_id,
+            mic,
             None,
             None,
             None,
@@ -221,13 +240,17 @@ def test_fetch_chart_data_page_builds_next_cursor_before_row_cleanup(monkeypatch
     )
 
     assert page["has_more"] is True
-    assert page["next_cursor"] == "1711929600:B1:S1:LOT-1:OP-1"
+    assert page["next_cursor"] == f"1711929600:{b_id}:S1:{lot}:OP-1"
     assert "cursor_batch_date_epoch" not in page["data"][0]
     assert "cursor_inspection_lot_id" not in page["data"][0]
 
 
 def test_fetch_chart_data_page_uses_full_cursor_tie_breakers(monkeypatch):
     captured: dict[str, object] = {}
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    b_id = test_data.batch_id()
+    lot = test_data.inspection_lot()
 
     async def fake_run_sql_async(_token, query, params=None, **_kwargs):
         captured["query"] = query
@@ -239,14 +262,14 @@ def test_fetch_chart_data_page_uses_full_cursor_tie_breakers(monkeypatch):
     asyncio.run(
         spc_charts_dal.fetch_chart_data_page(
             "token",
-            "MAT-1",
-            "MIC-1",
+            mat_id,
+            mic,
             None,
             None,
             None,
             None,
             None,
-            cursor="1711929600:B1:S1:LOT-9:OP-4",
+            cursor=f"1711929600:{b_id}:S1:{lot}:OP-4",
             limit=1000,
         )
     )
@@ -255,7 +278,7 @@ def test_fetch_chart_data_page_uses_full_cursor_tie_breakers(monkeypatch):
     params = list(captured["params"])
     assert "cursor_inspection_lot_id > :cursor_inspection_lot_id" in query
     assert "cursor_operation_id > :cursor_operation_id" in query
-    assert any(param["name"] == "cursor_inspection_lot_id" and param["value"] == "LOT-9" for param in params)
+    assert any(param["name"] == "cursor_inspection_lot_id" and param["value"] == lot for param in params)
     assert any(param["name"] == "cursor_operation_id" and param["value"] == "OP-4" for param in params)
 
 
@@ -273,10 +296,15 @@ def test_fetch_chart_data_page_orderby_uses_cursor_columns(monkeypatch):
 
     monkeypatch.setattr(spc_charts_dal, "run_sql_async", fake_run_sql_async)
 
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    b_id = test_data.batch_id()
+    lot = test_data.inspection_lot()
+
     asyncio.run(
         spc_charts_dal.fetch_chart_data_page(
-            "token", "MAT-1", "MIC-1", None, None, None, None, None,
-            cursor="1711929600:B1:S1:LOT-9:OP-4", limit=1000,
+            "token", mat_id, mic, None, None, None, None, None,
+            cursor=f"1711929600:{b_id}:S1:{lot}:OP-4", limit=1000,
         )
     )
 
@@ -297,13 +325,15 @@ def test_fetch_chart_data_page_orderby_uses_cursor_columns(monkeypatch):
 
 def test_chart_data_rejects_invalid_stratify_key(monkeypatch):
     monkeypatch.setattr(spc_charts_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
 
     response = client.post(
         "/api/spc/chart-data",
         headers={"x-forwarded-access-token": "not-a-real-jwt"},
         json={
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
+            "material_id": mat_id,
+            "mic_id": mic,
             "mic_name": "Moisture",
             "stratify_by": "bad_column",
         },
@@ -315,6 +345,9 @@ def test_chart_data_rejects_invalid_stratify_key(monkeypatch):
 
 def test_control_limits_endpoint_returns_governed_metrics(monkeypatch):
     monkeypatch.setattr(spc_charts_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    plant = test_data.PLANTS[0]
 
     async def fake_fetch_control_limits(*_args, **_kwargs):
         return {
@@ -336,9 +369,9 @@ def test_control_limits_endpoint_returns_governed_metrics(monkeypatch):
         "/api/spc/control-limits",
         headers={"x-forwarded-access-token": "not-a-real-jwt"},
         json={
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
-            "plant_id": "PLANT-1",
+            "material_id": mat_id,
+            "mic_id": mic,
+            "plant_id": plant,
             "date_from": "2026-01-01",
             "date_to": "2026-01-31",
             "operation_id": "OP-10",
@@ -358,6 +391,8 @@ def test_control_limits_endpoint_returns_governed_metrics(monkeypatch):
 
 def test_fetch_chart_data_page_selects_stratify_value(monkeypatch):
     captured: dict[str, object] = {}
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
 
     async def fake_run_sql_async(_token, query, params=None, **_kwargs):
         captured["query"] = query
@@ -369,8 +404,8 @@ def test_fetch_chart_data_page_selects_stratify_value(monkeypatch):
     asyncio.run(
         spc_charts_dal.fetch_chart_data_page(
             "token",
-            "MAT-1",
-            "MIC-1",
+            mat_id,
+            mic,
             None,
             None,
             None,

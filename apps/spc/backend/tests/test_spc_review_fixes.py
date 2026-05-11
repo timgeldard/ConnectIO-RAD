@@ -3,6 +3,7 @@ import asyncio
 from fastapi import HTTPException
 from pydantic import ValidationError
 from starlette.requests import Request
+from shared_domain import test_data
 
 from spc_backend.process_control.dal import analysis as spc_analysis_dal
 from spc_backend.process_control.dal import charts as spc_charts_dal
@@ -16,6 +17,8 @@ from spc_backend.schemas.spc_schemas import ProcessFlowRequest
 
 def test_fetch_characteristics_applies_plant_filter(monkeypatch):
     calls = []
+    mat_id = test_data.material_id()
+    plant = test_data.PLANTS[0]
 
     async def fake_run_sql_async(_token, query, params=None, **_kwargs):
         calls.append((query, params or []))
@@ -24,26 +27,28 @@ def test_fetch_characteristics_applies_plant_filter(monkeypatch):
     monkeypatch.setattr(spc_metadata_dal, "run_sql_async", fake_run_sql_async)
 
     characteristics, attr_characteristics = asyncio.run(
-        spc_metadata_dal.fetch_characteristics("token", "MAT-1", "PLANT-1")
+        spc_metadata_dal.fetch_characteristics("token", mat_id, plant)
     )
 
     assert characteristics == []
     assert attr_characteristics == []
     query, params = calls[0]
     assert "plant_id = :plant_id" in query
-    assert any(param["name"] == "plant_id" and param["value"] == "PLANT-1" for param in params)
+    assert any(param["name"] == "plant_id" and param["value"] == plant for param in params)
 
 
 def test_fetch_process_flow_aggregates_multi_plant_rows(monkeypatch):
     calls = []
+    mat_root = test_data.material_id()
+    mat_child = test_data.material_id()
 
     async def fake_run_sql_async(_token, query, _params=None, **_kwargs):
         calls.append((query, _params or []))
         if "SELECT DISTINCT" in query and "AS source" in query:
-            return [{"source": "MAT-ROOT", "target": "MAT-CHILD"}]
+            return [{"source": mat_root, "target": mat_child}]
         return [
             {
-                "material_id": "MAT-ROOT",
+                "material_id": mat_root,
                 "material_name": "Root Material",
                 "plant_name": None,
                 "total_batches": 7,
@@ -51,7 +56,7 @@ def test_fetch_process_flow_aggregates_multi_plant_rows(monkeypatch):
                 "mic_count": 3,
             },
             {
-                "material_id": "MAT-CHILD",
+                "material_id": mat_child,
                 "material_name": "Child Material",
                 "plant_name": None,
                 "total_batches": 4,
@@ -63,10 +68,10 @@ def test_fetch_process_flow_aggregates_multi_plant_rows(monkeypatch):
     monkeypatch.setattr(spc_analysis_dal, "run_sql_async", fake_run_sql_async)
 
     result = asyncio.run(
-        spc_analysis_dal.fetch_process_flow("token", "MAT-ROOT", None, None, 8, 6)
+        spc_analysis_dal.fetch_process_flow("token", mat_root, None, None, 8, 6)
     )
 
-    root = next(node for node in result["nodes"] if node["material_id"] == "MAT-ROOT")
+    root = next(node for node in result["nodes"] if node["material_id"] == mat_root)
     assert root["total_batches"] == 7
     assert root["rejected_batches"] == 1
     assert root["plant_name"] is None
@@ -92,9 +97,10 @@ def test_handle_sql_error_masks_internal_details():
 
 
 def test_apply_chart_row_formatting_raises_on_bad_numeric_value():
+    b_id = test_data.batch_id()
     rows = [
         {
-            "batch_id": "BATCH-1",
+            "batch_id": b_id,
             "cursor_sample_id": "SAMPLE-7",
             "value": "not-a-number",
             "nominal": "10.0",
@@ -111,17 +117,19 @@ def test_apply_chart_row_formatting_raises_on_bad_numeric_value():
     except ValueError as exc:
         message = str(exc)
         assert "field 'value'" in message
-        assert "batch_id='BATCH-1'" in message
+        assert f"batch_id='{b_id}'" in message
         assert "'not-a-number'" in message
     else:  # pragma: no cover
         raise AssertionError("Expected ValueError")
 
 
 def test_get_exclusions_query_rejects_invalid_stratify_by():
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     try:
         exclusions.GetExclusionsQuery(
-            material_id="MAT-1",
-            mic_id="MIC-1",
+            material_id=mat_id,
+            mic_id=mic,
             stratify_by="bad_column",
         )
     except ValidationError as exc:
@@ -132,6 +140,9 @@ def test_get_exclusions_query_rejects_invalid_stratify_by():
 
 def test_get_exclusions_includes_legacy_plant_fallback(monkeypatch):
     calls = []
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    plant = test_data.PLANTS[0]
 
     async def fake_run_sql_async(_token, query, params=None, **_kwargs):
         calls.append((query, params or []))
@@ -142,9 +153,9 @@ def test_get_exclusions_includes_legacy_plant_fallback(monkeypatch):
 
     request = Request({"type": "http", "method": "GET", "headers": []})
     query = exclusions.GetExclusionsQuery(
-        material_id="MAT-1",
-        mic_id="MIC-1",
-        plant_id="PLANT-1",
+        material_id=mat_id,
+        mic_id=mic,
+        plant_id=plant,
         stratify_all=True,
         stratify_by="plant_id",
     )
@@ -202,15 +213,17 @@ def test_infer_spec_type_distinguishes_unspecified_and_asymmetric_specs():
 
 
 def test_process_flow_request_allows_configurable_lineage_depth():
-    request = ProcessFlowRequest(material_id="MAT-1", upstream_depth=10, downstream_depth=9)
+    mat_id = test_data.material_id()
+    request = ProcessFlowRequest(material_id=mat_id, upstream_depth=10, downstream_depth=9)
 
     assert request.upstream_depth == 10
     assert request.downstream_depth == 9
 
 
 def test_process_flow_request_rejects_out_of_range_lineage_depth():
+    mat_id = test_data.material_id()
     try:
-        ProcessFlowRequest(material_id="MAT-1", upstream_depth=0)
+        ProcessFlowRequest(material_id=mat_id, upstream_depth=0)
     except ValidationError as exc:
         assert "lineage depth must be between 1 and 10" in str(exc)
     else:  # pragma: no cover
@@ -222,25 +235,28 @@ def test_fetch_compare_scorecard_single_grouped_query(monkeypatch):
     # parallel names query to gold_material). fake_run_sql_async returns full rows
     # that satisfy both call sites.
     calls: list[str] = []
+    mat1 = test_data.material_id()
+    mat2 = test_data.material_id()
+    mic = test_data.mic_id()
 
     async def fake_run_sql_async(_token, _query, _params=None, **_kwargs):
         calls.append(_query)
         return [
-            {"material_id": "MAT-1", "material_name": "Material 1",
-             "mic_id": "MIC-A", "mic_name": "MIC A", "batch_count": 4, "ppk": 1.2, "ooc_rate": 0.05},
-            {"material_id": "MAT-2", "material_name": "Material 2",
-             "mic_id": "MIC-A", "mic_name": "MIC A", "batch_count": 5, "ppk": 1.1, "ooc_rate": 0.03},
+            {"material_id": mat1, "material_name": "Material 1",
+             "mic_id": mic, "mic_name": "MIC A", "batch_count": 4, "ppk": 1.2, "ooc_rate": 0.05},
+            {"material_id": mat2, "material_name": "Material 2",
+             "mic_id": mic, "mic_name": "MIC A", "batch_count": 5, "ppk": 1.1, "ooc_rate": 0.03},
         ]
 
     monkeypatch.setattr(spc_analysis_dal, "run_sql_async", fake_run_sql_async)
 
     result = asyncio.run(
-        spc_analysis_dal.fetch_compare_scorecard("token", ["MAT-1", "MAT-2"], None, None, None)
+        spc_analysis_dal.fetch_compare_scorecard("token", [mat1, mat2], None, None, None)
     )
 
     # Exactly 2 SQL calls (grouped scorecard + names), not N per-material calls.
     assert len(calls) == 2
-    assert [entry["material_id"] for entry in result["materials"]] == ["MAT-1", "MAT-2"]
+    assert [entry["material_id"] for entry in result["materials"]] == [mat1, mat2]
     assert result["materials"][0]["material_name"] == "Material 1"
-    assert result["materials"][0]["scorecard"][0]["mic_id"] == "MIC-A"
-    assert result["common_mics"] == [{"mic_id": "MIC-A", "mic_name": "MIC A"}]
+    assert result["materials"][0]["scorecard"][0]["mic_id"] == mic
+    assert result["common_mics"] == [{"mic_id": mic, "mic_name": "MIC A"}]

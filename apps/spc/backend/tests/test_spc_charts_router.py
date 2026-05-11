@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+from shared_domain import test_data
 from spc_backend.main import app
 import spc_backend.process_control.router_charts as charts_router
 import spc_backend.chart_config.router as chart_config_router
@@ -38,78 +39,92 @@ def mock_locked_limits_dal(monkeypatch):
 
 
 def test_chart_data_endpoint(mock_charts_dal):
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     response = client.post(
         "/api/spc/chart-data",
-        json={"material_id": "MAT1", "mic_id": "MIC1"}
+        json={"material_id": mat_id, "mic_id": mic}
     )
     assert response.status_code == 200
     assert "data" in response.json()
     mock_charts_dal.fetch_chart_data_page.assert_called_once()
     args, kwargs = mock_charts_dal.fetch_chart_data_page.call_args
     # token, material_id, mic_id, ...
-    assert args[1] == "MAT1"
-    assert args[2] == "MIC1"
+    assert args[1] == mat_id
+    assert args[2] == mic
 
 def test_chart_data_endpoint_negative():
+    mic = test_data.mic_id()
     response = client.post(
         "/api/spc/chart-data",
-        json={"mic_id": "MIC1"}
+        json={"mic_id": mic}
     )
     assert response.status_code == 422
 
 def test_data_quality_endpoint(mock_charts_dal):
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     response = client.post(
         "/api/spc/data-quality",
-        json={"material_id": "MAT1", "mic_id": "MIC1"}
+        json={"material_id": mat_id, "mic_id": mic}
     )
     assert response.status_code == 200
 
 def test_control_limits_endpoint(mock_charts_dal):
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    plant = test_data.PLANTS[0]
     response = client.post(
         "/api/spc/control-limits",
-        json={"material_id": "MAT1", "mic_id": "MIC1", "plant_id": "P1", "chart_type": "imr"}
+        json={"material_id": mat_id, "mic_id": mic, "plant_id": plant, "chart_type": "imr"}
     )
     assert response.status_code == 200
     mock_charts_dal.fetch_control_limits.assert_called_once()
     args, kwargs = mock_charts_dal.fetch_control_limits.call_args
-    assert args[1] == "MAT1"
-    assert args[2] == "MIC1"
-    assert args[3] == "P1"
+    assert args[1] == mat_id
+    assert args[2] == mic
+    assert args[3] == plant
     resp_data = response.json()
     assert "control_limits" in resp_data
     assert "cl" in resp_data["control_limits"]
 
 def test_p_chart_data_endpoint(mock_charts_dal):
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     response = client.post(
         "/api/spc/p-chart-data",
-        json={"material_id": "MAT1", "mic_id": "MIC1"}
+        json={"material_id": mat_id, "mic_id": mic}
     )
     assert response.status_code == 200
     mock_charts_dal.fetch_p_chart_data.assert_called_once()
     args, kwargs = mock_charts_dal.fetch_p_chart_data.call_args
-    assert args[1] == "MAT1"
-    assert args[2] == "MIC1"
+    assert args[1] == mat_id
+    assert args[2] == mic
     resp_data = response.json()
     assert "points" in resp_data
     assert "data" in resp_data["points"]
 
 def test_count_chart_data_endpoint(mock_charts_dal):
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     response = client.post(
         "/api/spc/count-chart-data",
-        json={"material_id": "MAT1", "mic_id": "MIC1", "chart_subtype": "u"}
+        json={"material_id": mat_id, "mic_id": mic, "chart_subtype": "u"}
     )
     assert response.status_code == 200
     mock_charts_dal.fetch_count_chart_data.assert_called_once()
 
 def test_locked_limits_endpoints(mock_locked_limits_dal):
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     # GET
-    response = client.get("/api/spc/locked-limits?material_id=MAT1&mic_id=MIC1")
+    response = client.get(f"/api/spc/locked-limits?material_id={mat_id}&mic_id={mic}")
     assert response.status_code == 200
     mock_locked_limits_dal.get_limits.assert_called_once()
 
     # POST
     payload = {
-        "material_id": "MAT1", "mic_id": "MIC1", "chart_type": "imr",
+        "material_id": mat_id, "mic_id": mic, "chart_type": "imr",
         "cl": 10, "ucl": 12, "lcl": 8
     }
     response = client.post("/api/spc/lock-limits", json=payload)
@@ -120,7 +135,7 @@ def test_locked_limits_endpoints(mock_locked_limits_dal):
     # DELETE
     response = client.request(
         "DELETE", "/api/spc/locked-limits",
-        json={"material_id": "MAT1", "mic_id": "MIC1", "chart_type": "imr"}
+        json={"material_id": mat_id, "mic_id": mic, "chart_type": "imr"}
     )
     assert response.status_code == 200
     mock_locked_limits_dal.delete_limits.assert_called_once()

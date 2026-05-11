@@ -51,7 +51,7 @@ def test_health_debug_hidden_outside_development(monkeypatch):
 
 def test_cross_origin_mutation_blocked_before_route_handler():
     response = client.post(
-        "/api/trace",
+        "/api/t2/trace",
         headers={"Origin": "https://evil.example.com"},
         json={"material_id": "MAT1", "batch_id": "BATCH1"},
     )

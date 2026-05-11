@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from shared_domain import test_data
 
 from spc_backend.main import app
 from spc_backend.chart_config.application import commands as chart_config_commands
@@ -13,12 +14,14 @@ client = TestClient(app)
 def test_save_exclusions_no_token():
     # Remove the global mock from conftest to test real auth behavior
     app.dependency_overrides.pop(require_proxy_user, None)
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     try:
         response = client.post(
             "/api/spc/exclusions",
             json={
-                "material_id": "MAT-1",
-                "mic_id": "MIC-1",
+                "material_id": mat_id,
+                "mic_id": mic,
                 "chart_type": "imr",
                 "justification": "test justification",
                 "excluded_points": [],
@@ -33,12 +36,14 @@ def test_save_exclusions_no_token():
 
 
 def test_save_exclusions_invalid_chart_type():
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     response = client.post(
         "/api/spc/exclusions",
         headers={"x-forwarded-access-token": "token"},
         json={
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
+            "material_id": mat_id,
+            "mic_id": mic,
             "chart_type": "bad_chart",
             "justification": "test justification",
             "excluded_points": [],
@@ -49,12 +54,14 @@ def test_save_exclusions_invalid_chart_type():
 
 
 def test_save_exclusions_blank_justification():
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     response = client.post(
         "/api/spc/exclusions",
         headers={"x-forwarded-access-token": "token"},
         json={
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
+            "material_id": mat_id,
+            "mic_id": mic,
             "chart_type": "imr",
             "justification": "  ",
             "excluded_points": [],
@@ -66,6 +73,9 @@ def test_save_exclusions_blank_justification():
 
 def test_save_exclusions_persists_snapshot(monkeypatch):
     captured = {}
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    b_id = test_data.batch_id()
 
     async def fake_save(_token, payload):
         captured["payload"] = payload
@@ -81,11 +91,11 @@ def test_save_exclusions_persists_snapshot(monkeypatch):
         "/api/spc/exclusions",
         headers={"x-forwarded-access-token": "token"},
         json={
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
+            "material_id": mat_id,
+            "mic_id": mic,
             "chart_type": "imr",
             "justification": "Operator removed obvious transposition error",
-            "excluded_points": [{"batch_id": "B1", "sample_seq": 1}],
+            "excluded_points": [{"batch_id": b_id, "sample_seq": 1}],
         },
     )
 
@@ -97,6 +107,10 @@ def test_save_exclusions_persists_snapshot(monkeypatch):
 
 
 def test_save_exclusions_actor_lookup_failure(monkeypatch):
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    b_id = test_data.batch_id()
+
     async def fake_save(_token, payload):
         return None
 
@@ -111,11 +125,11 @@ def test_save_exclusions_actor_lookup_failure(monkeypatch):
         "/api/spc/exclusions",
         headers={"x-forwarded-access-token": "token"},
         json={
-            "material_id": "MAT-1",
-            "mic_id": "MIC-1",
+            "material_id": mat_id,
+            "mic_id": mic,
             "chart_type": "imr",
             "justification": "Operator removed obvious transposition error",
-            "excluded_points": [{"batch_id": "B1", "sample_seq": 1}],
+            "excluded_points": [{"batch_id": b_id, "sample_seq": 1}],
         },
     )
 
@@ -160,13 +174,15 @@ class pytest_http_exception:
 
 def test_get_exclusions_returns_none_when_empty(monkeypatch):
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
 
     async def fake_fetch_latest(*args, **kwargs):
         return None
     monkeypatch.setattr(chart_config_commands.exclusions_dal, "fetch_latest_exclusion_snapshot", fake_fetch_latest)
 
     response = client.get(
-        "/api/spc/exclusions?material_id=M1&mic_id=MIC1",
+        f"/api/spc/exclusions?material_id={mat_id}&mic_id={mic}",
         headers={"x-forwarded-access-token": "token"}
     )
     assert response.status_code == 200
@@ -174,6 +190,9 @@ def test_get_exclusions_returns_none_when_empty(monkeypatch):
 
 def test_save_exclusions_sql_error(monkeypatch):
     monkeypatch.setattr(exclusions, "check_warehouse_config", lambda: None)
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
+    b_id = test_data.batch_id()
 
     async def fake_save(*args, **kwargs):
         raise RuntimeError("SQL Error")
@@ -183,8 +202,8 @@ def test_save_exclusions_sql_error(monkeypatch):
         "/api/spc/exclusions",
         headers={"x-forwarded-access-token": "token"},
         json={
-            "material_id": "M1", "mic_id": "MIC1", "justification": "Too low",
-            "excluded_points": [{"batch_id": "B1", "sample_seq": 1}]
+            "material_id": mat_id, "mic_id": mic, "justification": "Too low",
+            "excluded_points": [{"batch_id": b_id, "sample_seq": 1}]
         }
     )
     assert response.status_code == 500

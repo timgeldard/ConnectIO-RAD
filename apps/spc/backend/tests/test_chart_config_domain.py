@@ -2,20 +2,28 @@
 
 import pytest
 
-from shared_domain import BusinessRuleValidationException
+from shared_domain import BusinessRuleValidationException, test_data
 from spc_backend.chart_config.domain.locked_limits import LockedLimits
 from spc_backend.chart_config.domain.exclusion import Exclusion
 
 
 class TestLockedLimits:
     def _valid(self, **overrides):
-        defaults = dict(material_id="MAT-1", mic_id="MIC-1", chart_type="imr", cl=10.0, ucl=12.0, lcl=8.0)
+        defaults = dict(
+            material_id=test_data.material_id(),
+            mic_id=test_data.mic_id(),
+            chart_type="imr",
+            cl=10.0,
+            ucl=12.0,
+            lcl=8.0
+        )
         defaults.update(overrides)
         return LockedLimits(**defaults)
 
     def test_valid_imr_limits_construct(self):
-        ll = self._valid()
-        assert ll.material_id == "MAT-1"
+        mat_id = test_data.material_id()
+        ll = self._valid(material_id=mat_id)
+        assert ll.material_id == mat_id
         assert ll.ucl == 12.0
 
     def test_rejects_empty_material_id(self):
@@ -65,13 +73,19 @@ class TestLockedLimits:
 
 class TestExclusion:
     def _valid(self, **overrides):
-        defaults = dict(material_id="MAT-1", mic_id="MIC-1", chart_type="imr", justification="bad outlier")
+        defaults = dict(
+            material_id=test_data.material_id(),
+            mic_id=test_data.mic_id(),
+            chart_type="imr",
+            justification="bad outlier"
+        )
         defaults.update(overrides)
         return Exclusion(**defaults)
 
     def test_valid_exclusion_constructs(self):
-        ex = self._valid()
-        assert ex.material_id == "MAT-1"
+        mat_id = test_data.material_id()
+        ex = self._valid(material_id=mat_id)
+        assert ex.material_id == mat_id
         assert ex.justification == "bad outlier"
 
     def test_rejects_empty_material_id(self):

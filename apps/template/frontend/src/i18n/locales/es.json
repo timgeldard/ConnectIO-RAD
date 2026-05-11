@@ -1,7 +1,7 @@
 {
-  "title": "Template Module",
-  "loading": "Loading",
-  "empty": "Demo data is not available for this module yet.",
-  "overview": "Overview",
-  "signals": "Signals"
+  "title": "Módulo de plantilla",
+  "loading": "Cargando...",
+  "empty": "Los datos de demostración aún no están disponibles para este módulo.",
+  "overview": "Resumen",
+  "signals": "Señales"
 }

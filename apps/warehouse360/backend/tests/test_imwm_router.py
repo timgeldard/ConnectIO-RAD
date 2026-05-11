@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 from shared_auth import UserIdentity, require_proxy_user
+from shared_domain import test_data
 
 from warehouse360_backend.main import app
 import warehouse360_backend.inventory_management.router_imwm as imwm_router
@@ -30,25 +31,27 @@ def mock_auth(monkeypatch):
 @pytest.fixture
 def mock_imwm_queries(monkeypatch):
     """Stub all application-layer queries and warehouse config check."""
+    plant = test_data.PLANTS[0]
     monkeypatch.setattr(imwm_router, "check_warehouse_config", lambda: None)
     monkeypatch.setattr(
         imwm_router.inventory_queries, "list_imwm_stock",
-        AsyncMock(return_value=[{"plant_id": "IE01", "mismatch_kind": "match"}]),
+        AsyncMock(return_value=[{"plant_id": plant, "mismatch_kind": "match"}]),
     )
     monkeypatch.setattr(
         imwm_router.inventory_queries, "list_imwm_movements",
-        AsyncMock(return_value=[{"plant_id": "IE01", "movement_type": "GR"}]),
+        AsyncMock(return_value=[{"plant_id": plant, "movement_type": "101"}]),
     )
     monkeypatch.setattr(
         imwm_router.inventory_queries, "list_imwm_exceptions",
-        AsyncMock(return_value=[{"plant_id": "IE01", "exception_type": "NEGATIVE_WM_QUANT"}]),
+        AsyncMock(return_value=[{"plant_id": plant, "exception_type": "NEGATIVE_WM_QUANT"}]),
     )
     monkeypatch.setattr(
         imwm_router.inventory_queries, "list_imwm_aging",
-        AsyncMock(return_value=[{"plant_id": "IE01", "age_bucket": "0-30d"}]),
+        AsyncMock(return_value=[{"plant_id": plant, "age_bucket": "0-30d"}]),
     )
     monkeypatch.setattr(
-        "warehouse360_backend.utils.db.attach_data_freshness",
+        imwm_router,
+        "attach_data_freshness",
         AsyncMock(side_effect=lambda data, *a, **kw: data),
     )
 
@@ -66,26 +69,29 @@ def test_imwm_stock_returns_200_with_stock_key(mock_imwm_queries):
 
 def test_imwm_stock_passes_plant_param(mock_imwm_queries, monkeypatch):
     captured = {}
+    plant = test_data.PLANTS[0]
 
     async def capture(*args, plant_id=None, **kwargs):
         captured["plant_id"] = plant_id
         return []
 
     monkeypatch.setattr(imwm_router.inventory_queries, "list_imwm_stock", capture)
-    client.get("/api/wh360/imwm/stock?plant=IE01")
-    assert captured.get("plant_id") == "IE01"
+    client.get(f"/api/wh360/imwm/stock?plant={plant}")
+    assert captured.get("plant_id") == plant
 
 
 def test_imwm_stock_plant_wins_over_plant_id(mock_imwm_queries, monkeypatch):
     captured = {}
+    plant1 = test_data.PLANTS[0]
+    plant2 = test_data.PLANTS[1]
 
     async def capture(*args, plant_id=None, **kwargs):
         captured["plant_id"] = plant_id
         return []
 
     monkeypatch.setattr(imwm_router.inventory_queries, "list_imwm_stock", capture)
-    client.get("/api/wh360/imwm/stock?plant=IE01&plant_id=DE01")
-    assert captured.get("plant_id") == "IE01"
+    client.get(f"/api/wh360/imwm/stock?plant={plant1}&plant_id={plant2}")
+    assert captured.get("plant_id") == plant1
 
 
 # ---------------------------------------------------------------------------
@@ -100,14 +106,15 @@ def test_imwm_movements_returns_200_with_movements_key(mock_imwm_queries):
 
 def test_imwm_movements_plant_id_fallback(mock_imwm_queries, monkeypatch):
     captured = {}
+    plant = test_data.PLANTS[1]
 
     async def capture(*args, plant_id=None, **kwargs):
         captured["plant_id"] = plant_id
         return []
 
     monkeypatch.setattr(imwm_router.inventory_queries, "list_imwm_movements", capture)
-    client.get("/api/wh360/imwm/movements?plant_id=DE01")
-    assert captured.get("plant_id") == "DE01"
+    client.get(f"/api/wh360/imwm/movements?plant_id={plant}")
+    assert captured.get("plant_id") == plant
 
 
 # ---------------------------------------------------------------------------
@@ -135,16 +142,20 @@ def test_imwm_aging_returns_200_with_aging_key(mock_imwm_queries):
 # ---------------------------------------------------------------------------
 
 def test_resolve_plant_scope_primary_wins():
-    assert imwm_router._resolve_plant_scope("IE01", "DE01") == "IE01"
+    plant1 = test_data.PLANTS[0]
+    plant2 = test_data.PLANTS[1]
+    assert imwm_router._resolve_plant_scope(plant1, plant2) == plant1
 
 
 def test_resolve_plant_scope_falls_back_to_plant_id():
-    assert imwm_router._resolve_plant_scope(None, "DE01") == "DE01"
-    assert imwm_router._resolve_plant_scope("", "DE01") == "DE01"
+    plant = test_data.PLANTS[1]
+    assert imwm_router._resolve_plant_scope(None, plant) == plant
+    assert imwm_router._resolve_plant_scope("", plant) == plant
 
 
 def test_resolve_plant_scope_strips_whitespace():
-    assert imwm_router._resolve_plant_scope(" IE01 ", None) == "IE01"
+    plant = test_data.PLANTS[0]
+    assert imwm_router._resolve_plant_scope(f" {plant} ", None) == plant
 
 
 def test_resolve_plant_scope_returns_none_when_both_empty():

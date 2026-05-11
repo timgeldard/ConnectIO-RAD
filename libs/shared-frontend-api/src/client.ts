@@ -60,6 +60,9 @@ export async function fetchJson<T>(input: RequestInfo | URL, init?: RequestInit)
   return body as T;
 }
 
+/**
+ * Configuration options for the API client.
+ */
 export interface ApiClientOptions {
   /** Base URL prefix, for example `/api/spc`. */
   baseUrl?: string;
@@ -69,6 +72,10 @@ export interface ApiClientOptions {
   headers?: HeadersInit;
 }
 
+/**
+ * Options for an individual API request.
+ * Extends standard RequestInit with support for query parameters.
+ */
 export interface ApiRequestOptions extends RequestInit {
   /** Query-string parameters. Undefined/null values are omitted. */
   query?: Record<string, string | number | boolean | null | undefined>;

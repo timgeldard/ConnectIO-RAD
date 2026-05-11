@@ -1,0 +1,26 @@
+[
+  {
+    "material_id": "20582002",
+    "batch_id": "0008898869",
+    "plant_id": "C351",
+    "storage_id": "S10",
+    "unrestricted": "23975.000",
+    "qi": "0.000",
+    "blocked": "0.000",
+    "total_stock": "23975.000",
+    "uom": "KG",
+    "manufacture_date": "2024-10-25"
+  },
+  {
+    "material_id": "30001234",
+    "batch_id": "0009900001",
+    "plant_id": "C351",
+    "storage_id": "S10",
+    "unrestricted": "5000.000",
+    "qi": "0.000",
+    "blocked": "0.000",
+    "total_stock": "5000.000",
+    "uom": "KG",
+    "manufacture_date": "2024-11-01"
+  }
+]

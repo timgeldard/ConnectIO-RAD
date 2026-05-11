@@ -1,3 +1,4 @@
+from shared_domain import test_data
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
@@ -10,9 +11,10 @@ client = TestClient(main_module.app)
 
 def test_validate_material_returns_valid_when_freshness_temporarily_unavailable(monkeypatch):
     monkeypatch.setattr(spc_module, "check_warehouse_config", lambda: "/sql/1.0/warehouses/test")
+    mat_id = test_data.material_id()
 
     async def fake_validate_material(_token, _material_id):
-        return {"material_id": "MAT-1", "material_name": "Material 1"}
+        return {"material_id": mat_id, "material_name": "Material 1"}
 
     async def failing_attach_freshness(_payload, _token, _views, *, request_path=None, **_kwargs):
         raise HTTPException(
@@ -26,13 +28,13 @@ def test_validate_material_returns_valid_when_freshness_temporarily_unavailable(
     response = client.post(
         "/api/spc/validate-material",
         headers={"x-forwarded-access-token": "not-a-real-jwt"},
-        json={"material_id": "MAT-1"},
+        json={"material_id": mat_id},
     )
 
     assert response.status_code == 200
     body = response.json()
     assert body["valid"] is True
-    assert body["material_id"] == "MAT-1"
+    assert body["material_id"] == mat_id
     assert body["material_name"] == "Material 1"
     assert body["data_freshness"] is None
     assert body["data_freshness_warning"]["message"] == "Data freshness lookup failed"

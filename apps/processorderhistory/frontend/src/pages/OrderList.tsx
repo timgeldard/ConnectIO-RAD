@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useT } from '../i18n/context'
 import { KPI, Icon, TopBar, Button, GlobalFilterBar, FilterGroup, FilterDivider } from '@connectio/shared-ui'
 import { usePlantSelection } from '@connectio/shared-app-context'
+import { useQuery } from '@tanstack/react-query'
 import { fmt, StatusBadge, Check } from '../ui'
 import { STATUSES } from '../data/mock'
 import { fetchOrders } from '../api/orders'
@@ -23,6 +24,7 @@ function toISODate(d: Date): string {
 
 const _today = toISODate(new Date())
 const _sevenAgo = toISODate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+const PAGE_SIZE = 50
 
 interface OrderListProps {
   onOpen: (order: any) => void
@@ -41,28 +43,22 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [sortBy, setSortBy] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'start', dir: 'desc' })
   const [page, setPage] = useState(1)
-  const PAGE_SIZE = 14
 
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
-  const [fetchError, setFetchError] = useState<string | null>(null)
-  const [_poursToday, setPoursToday] = useState<number | null>(null)
+  const { data: ordersData, isLoading: loading, error: fetchError } = useQuery({
+    queryKey: ['poh', 'orders', selectedPlantId],
+    queryFn: () => fetchOrders({ plantId: selectedPlantId || undefined, limit: 2000 }),
+    staleTime: 30_000,
+  })
 
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    setFetchError(null)
-    fetchOrders({ plantId: selectedPlantId || undefined, limit: 2000 })
-      .then(res => { if (!cancelled) { setOrders(res.orders); setLoading(false) } })
-      .catch(err => { if (!cancelled) { setFetchError(String(err?.message ?? err)); setLoading(false) } })
-    return () => { cancelled = true }
-  }, [selectedPlantId])
+  const orders = ordersData?.orders ?? []
 
-  useEffect(() => {
-    fetchPoursAnalytics({ dateFrom: _today, dateTo: _today })
-      .then(data => setPoursToday(data.events.length))
-      .catch(() => {})
-  }, [])
+  const { data: poursData } = useQuery({
+    queryKey: ['poh', 'pours', 'today'],
+    queryFn: () => fetchPoursAnalytics({ dateFrom: _today, dateTo: _today }),
+    staleTime: 60_000,
+  })
+
+  const poursToday = poursData?.events.length ?? null
 
   const categories = useMemo(
     () => [...new Set(orders.map(o => o.product.category).filter(Boolean))].sort() as string[],
@@ -140,20 +136,78 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
   const allSel = pageOrders.length > 0 && pageOrders.every(o => selected.has(o.id))
   const someSel = pageOrders.some(o => selected.has(o.id)) && !allSel
 
-  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
-  const totalRunning = filtered.filter(o => o.status === 'running').length
-  const onHold = filtered.filter(o => o.status === 'onhold').length
-  const ordersThisMonth = orders.filter(o => o.start != null && o.start >= thirtyDaysAgo).length
-  const avgYield = (() => {
-    const ys = filtered.filter(o => o.yieldPct != null).map(o => o.yieldPct as number)
-    if (ys.length === 0) return null
-    return (ys.reduce((a, b) => a + b, 0) / ys.length).toFixed(1)
-  })()
-
-  const statusLabel: Record<string, string> = {
-    running: t.statusRunning, completed: t.statusCompleted, closed: t.statusClosed,
-    released: t.statusReleased, onhold: t.statusOnhold, cancelled: t.statusCancelled, failed: t.statusFailed,
-  }
+  const columns: Column<Order>[] = useMemo(() => [
+    {
+      header: t.colOrderLot,
+      render: (o) => (
+        <>
+          <div style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)' }}>{o.id}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>{o.lot ?? '—'}</div>
+        </>
+      ),
+      sortKey: 'id',
+    },
+    {
+      header: t.colProduct,
+      render: (o) => (
+        <>
+          <div style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)' }}>{o.product.name}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{o.product.sku} · {o.product.category}</div>
+        </>
+      ),
+      sortKey: 'product',
+    },
+    {
+      header: t.colStatus,
+      render: (o) => <StatusBadge status={o.status} onClick={(s) => toggleStatus(s)} />,
+      sortKey: 'status',
+    },
+    {
+      header: t.colLine,
+      render: (o) => (
+        <>
+          <div style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)' }}>{o.line ?? '—'}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{o.shift ? `${t.shift} ${o.shift}` : '—'}</div>
+        </>
+      ),
+      sortKey: 'line',
+    },
+    {
+      header: t.colQty,
+      align: 'right',
+      render: (o) => (
+        <div style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', fontFamily: 'var(--font-mono)' }}>
+          {o.actualQty != null ? fmt.num(o.actualQty) : '—'}<span style={{ fontSize: 11, fontWeight: 400, marginLeft: 2 }}>kg</span>
+        </div>
+      ),
+      sortKey: 'qty',
+    },
+    {
+      header: t.colYield,
+      align: 'right',
+      render: (o) => (
+        <div style={{ fontWeight: 'var(--fw-semibold)', color: o.yieldPct && o.yieldPct >= 95 ? 'var(--status-ok)' : o.yieldPct && o.yieldPct >= 90 ? 'var(--status-warn)' : 'var(--status-risk)', fontFamily: 'var(--font-mono)' }}>
+          {o.yieldPct ? `${o.yieldPct}%` : '—'}
+        </div>
+      ),
+      sortKey: 'yield',
+    },
+    {
+      header: t.colStarted,
+      render: (o) => (
+        <>
+          <div style={{ fontSize: 13, color: 'var(--text-1)' }}>{o.start != null ? fmt.shortDate(o.start) : '—'}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{o.start != null ? fmt.time(o.start) : ''}</div>
+        </>
+      ),
+      sortKey: 'start',
+    },
+    {
+      header: '',
+      width: 40,
+      render: () => <Icon name="chevron-right" style={{ opacity: 0.3 }} />,
+    }
+  ], [t, toggleStatus]);
 
   if (fetchError) {
     return (
@@ -161,7 +215,7 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
         <TopBar breadcrumbs={[{ label: t.operations }, { label: t.crumbManufacturing }, { label: t.crumbOrders }]} />
         <div style={{ padding: '48px 32px', color: 'var(--status-risk)', display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="alert-triangle" />
-          <span>Failed to load orders: {fetchError}</span>
+          <span>Failed to load orders: {(fetchError as Error).message}</span>
         </div>
       </div>
     )
@@ -288,8 +342,8 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
         </div>
       )}
 
-      <div style={{ padding: '0 32px 48px' }}>
-        <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: 'var(--text-3)' }}>
+      <div style={{ padding: '16px 32px 48px' }}>
+        <div style={{ padding: '0 0 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: 'var(--text-3)' }}>
           <div>
             <strong style={{ color: 'var(--text-1)' }}>{loading ? '…' : filtered.length.toLocaleString()}</strong> {t.ordersMatch}
           </div>
@@ -298,91 +352,24 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
           )}
         </div>
 
-        {loading ? (
-          <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-3)' }}>
-            Loading orders…
-          </div>
-        ) : (
-          <table className="tbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead style={{ background: 'var(--surface-sunken)', borderBottom: '1px solid var(--line-1)' }}>
-              <tr>
-                <th style={{ padding: '12px 16px', textAlign: 'left', width: 40 }}>
-                  <Check checked={allSel} indeterminate={someSel} onClick={toggleSelectAllOnPage} />
-                </th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => onSort('id')}>{t.colOrderLot} <Icon name={sortIcon('id')} size={12} /></span>
-                </th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => onSort('product')}>{t.colProduct} <Icon name={sortIcon('product')} size={12} /></span>
-                </th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t.colStatus}</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => onSort('line')}>{t.colLine} <Icon name={sortIcon('line')} size={12} /></span>
-                </th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <span style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={() => onSort('qty')}>{t.colQty} <Icon name={sortIcon('qty')} size={12} /></span>
-                </th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <span style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={() => onSort('yield')}>{t.colYield} <Icon name={sortIcon('yield')} size={12} /></span>
-                </th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => onSort('start')}>{t.colStarted} <Icon name={sortIcon('start')} size={12} /></span>
-                </th>
-                <th style={{ width: 40 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageOrders.map(o => {
-                const isSel = selected.has(o.id)
-                return (
-                  <tr key={o.id} style={{ borderBottom: '1px solid var(--line-1)', background: isSel ? 'var(--surface-sunken)' : 'transparent', cursor: 'pointer' }} onClick={() => onOpen(o)}>
-                    <td style={{ padding: '12px 16px' }} onClick={(e) => e.stopPropagation()}>
-                      <Check checked={isSel} onClick={() => toggleSelect(o.id)} />
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)' }}>{o.id}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>{o.lot ?? '—'}</div>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)' }}>{o.product.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{o.product.sku} · {o.product.category}</div>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <StatusBadge status={o.status} onClick={(s) => toggleStatus(s)} />
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)' }}>{o.line ?? '—'}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{o.shift ? `${t.shift} ${o.shift}` : '—'}</div>
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <div style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-1)', fontFamily: 'var(--font-mono)' }}>{o.actualQty != null ? fmt.num(o.actualQty) : '—'}<span style={{ fontSize: 11, fontWeight: 400, marginLeft: 2 }}>kg</span></div>
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <div style={{ fontWeight: 'var(--fw-semibold)', color: o.yieldPct && o.yieldPct >= 95 ? 'var(--status-ok)' : o.yieldPct && o.yieldPct >= 90 ? 'var(--status-warn)' : 'var(--status-risk)', fontFamily: 'var(--font-mono)' }}>{o.yieldPct ? `${o.yieldPct}%` : '—'}</div>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontSize: 13, color: 'var(--text-1)' }}>{o.start != null ? fmt.shortDate(o.start) : '—'}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{o.start != null ? fmt.time(o.start) : ''}</div>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}><Icon name="chevron-right" style={{ opacity: 0.3 }} /></td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-
-        {!loading && (
-          <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 13, color: 'var(--text-3)' }}>
-              {t.showing} <strong>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)}</strong> {t.of} <strong>{filtered.length}</strong>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Button variant="ghost" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} icon={<Icon name="chevron-left" />} />
-              <Button variant="ghost" disabled={page === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} icon={<Icon name="chevron-right" />} />
-            </div>
-          </div>
-        )}
+        <DataTable
+          columns={columns}
+          rows={filtered}
+          rowKey={(o) => o.id}
+          loading={loading}
+          pagination={{ pageSize: PAGE_SIZE }}
+          sortKey={sortBy.key}
+          sortDir={sortBy.dir}
+          onSort={(key, dir) => setSortBy({ key: key as SortKey, dir })}
+          onRowClick={(o) => onOpen(o)}
+          selection={{
+            selectedIds: selected,
+            onToggle: (id) => toggleSelect(String(id)),
+            onToggleAll: toggleSelectAllOnPage,
+            allSelected: allSel,
+            someSelected: someSel,
+          }}
+        />
       </div>
     </div>
   )

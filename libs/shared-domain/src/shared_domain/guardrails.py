@@ -26,12 +26,27 @@ def parse_layered_module_path(path: Path) -> LayeredModulePath | None:
         Parsed metadata when the path matches the ConnectIO-RAD app layout.
     """
     parts = path.parts
-    if len(parts) < 7 or parts[0] != "apps" or parts[2] != "backend":
+    try:
+        # Locate the "apps" segment to support both absolute and relative paths
+        apps_index = parts.index("apps")
+    except ValueError:
         return None
-    layer = parts[5]
+
+    # Check remaining parts relative to "apps" (expected: apps/app/backend/pkg/context/layer/...)
+    remaining_parts = parts[apps_index:]
+    if len(remaining_parts) < 7 or remaining_parts[2] != "backend":
+        return None
+
+    layer = remaining_parts[5]
     if layer not in {"domain", "application", "dal", "infrastructure", "routers"}:
         return None
-    return LayeredModulePath(app_name=parts[1], context_name=parts[4], layer=layer, path=path)
+
+    return LayeredModulePath(
+        app_name=remaining_parts[1],
+        context_name=remaining_parts[4],
+        layer=layer,
+        path=path,
+    )
 
 
 def is_infrastructure_import(module: str) -> bool:

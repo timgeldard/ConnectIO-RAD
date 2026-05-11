@@ -28,7 +28,7 @@ def mock_yield(monkeypatch):
 
 
 def test_post_yield_analytics_returns_200(mock_yield):
-    response = client.post("/api/yield", json={})
+    response = client.post("/api/poh/yield", json={})
     assert response.status_code == 200
     data = response.json()
     assert "now_ms" in data
@@ -39,28 +39,28 @@ def test_post_yield_analytics_returns_200(mock_yield):
 
 
 def test_post_yield_analytics_passes_plant_id(mock_yield):
-    client.post("/api/yield", json={"plant_id": "P001"})
+    client.post("/api/poh/yield", json={"plant_id": "P001"})
     mock_yield.assert_called_once_with(
         "token", plant_id="P001", date_from=None, date_to=None, timezone="UTC"
     )
 
 
 def test_post_yield_analytics_passes_date_range(mock_yield):
-    client.post("/api/yield", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
+    client.post("/api/poh/yield", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
     mock_yield.assert_called_once_with(
         "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07", timezone="UTC"
     )
 
 
 def test_post_yield_analytics_passes_timezone(mock_yield):
-    client.post("/api/yield", json={"timezone": "Australia/Sydney"})
+    client.post("/api/poh/yield", json={"timezone": "Australia/Sydney"})
     mock_yield.assert_called_once_with(
         "token", plant_id=None, date_from=None, date_to=None, timezone="Australia/Sydney"
     )
 
 
 def test_post_yield_analytics_returns_full_shape(mock_yield):
-    response = client.post("/api/yield", json={})
+    response = client.post("/api/poh/yield", json={})
     data = response.json()
     for key in ("now_ms", "target_yield_pct", "materials", "orders", "prior7d", "daily30d", "hourly24h"):
         assert key in data, f"Missing key: {key}"

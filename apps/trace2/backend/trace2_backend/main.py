@@ -73,9 +73,9 @@ rad_app = ConnectIoApp(
 
 # Domain Router Registration — must happen BEFORE mount_spa() / fastapi_app
 # access, because the SPA catch-all would otherwise shadow these routes.
-rad_app.include_router(batch_trace_router, prefix="/api", tags=["Batch Trace"])
-rad_app.include_router(lineage_router, prefix="/api", tags=["Lineage Analysis"])
-rad_app.include_router(quality_router, prefix="/api", tags=["Quality Record"])
+rad_app.include_router(batch_trace_router, prefix="/api/t2", tags=["Batch Trace"])
+rad_app.include_router(lineage_router, prefix="/api/t2", tags=["Lineage Analysis"])
+rad_app.include_router(quality_router, prefix="/api/t2", tags=["Quality Record"])
 
 rad_app.mount_spa()
 app = rad_app.fastapi_app

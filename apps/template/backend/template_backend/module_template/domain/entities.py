@@ -37,6 +37,8 @@ class TemplateSignal(AggregateRoot[str]):
         super().__init__(identity)
         if not title.strip():
             raise ValueError("Signal title cannot be blank")
+        if not status.strip():
+            raise ValueError("Signal status cannot be blank")
         self.plant_id = plant_id
         self.title = title
         self.status = status

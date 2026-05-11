@@ -2,6 +2,7 @@
 import asyncio
 
 
+from shared_domain import test_data
 from processorderhistory_backend.order_execution.dal import order_detail_dal as dal
 
 
@@ -172,38 +173,43 @@ def test_to_kg_whitespace_stripped():
 # ---------------------------------------------------------------------------
 
 def test_derive_materials_aggregates_261_movements():
+    mat1 = test_data.material_id()
+    mat2 = test_data.material_id()
+    mat3 = test_data.material_id()
     movements = [
-        {"movement_type": "261", "material_id": "MAT-1", "material_name": "Sugar",
+        {"movement_type": "261", "material_id": mat1, "material_name": "Sugar",
          "batch_id": "B001", "quantity": 100.0, "uom": "KG"},
-        {"movement_type": "261", "material_id": "MAT-1", "material_name": "Sugar",
+        {"movement_type": "261", "material_id": mat1, "material_name": "Sugar",
          "batch_id": "B001", "quantity": 50.0, "uom": "KG"},
-        {"movement_type": "261", "material_id": "MAT-2", "material_name": "Salt",
+        {"movement_type": "261", "material_id": mat2, "material_name": "Salt",
          "batch_id": "B002", "quantity": 10.0, "uom": "KG"},
-        {"movement_type": "101", "material_id": "MAT-3", "material_name": "Output",
+        {"movement_type": "101", "material_id": mat3, "material_name": "Output",
          "batch_id": "B003", "quantity": 200.0, "uom": "KG"},
     ]
     result = dal._derive_materials(movements)
     assert len(result) == 2
-    mat1 = next(m for m in result if m["material_id"] == "MAT-1")
-    assert mat1["total_qty"] == 150.0
-    assert mat1["material_name"] == "Sugar"
-    mat2 = next(m for m in result if m["material_id"] == "MAT-2")
-    assert mat2["total_qty"] == 10.0
+    m1 = next(m for m in result if m["material_id"] == mat1)
+    assert m1["total_qty"] == 150.0
+    assert m1["material_name"] == "Sugar"
+    m2 = next(m for m in result if m["material_id"] == mat2)
+    assert m2["total_qty"] == 10.0
 
 
 def test_derive_materials_empty_when_no_261():
+    mat1 = test_data.material_id()
     movements = [
-        {"movement_type": "101", "material_id": "MAT-1", "material_name": "X",
+        {"movement_type": "101", "material_id": mat1, "material_name": "X",
          "batch_id": None, "quantity": 100.0, "uom": "KG"},
     ]
     assert dal._derive_materials(movements) == []
 
 
 def test_derive_materials_uses_first_batch_id():
+    mat1 = test_data.material_id()
     movements = [
-        {"movement_type": "261", "material_id": "MAT-1", "material_name": "X",
+        {"movement_type": "261", "material_id": mat1, "material_name": "X",
          "batch_id": "FIRST", "quantity": 10.0, "uom": "KG"},
-        {"movement_type": "261", "material_id": "MAT-1", "material_name": "X",
+        {"movement_type": "261", "material_id": mat1, "material_name": "X",
          "batch_id": "SECOND", "quantity": 5.0, "uom": "KG"},
     ]
     result = dal._derive_materials(movements)
@@ -211,10 +217,11 @@ def test_derive_materials_uses_first_batch_id():
 
 
 def test_derive_materials_subtracts_262_from_261():
+    mat1 = test_data.material_id()
     movements = [
-        {"movement_type": "261", "material_id": "MAT-1", "material_name": "Sugar",
+        {"movement_type": "261", "material_id": mat1, "material_name": "Sugar",
          "batch_id": "B001", "quantity": 100.0, "uom": "KG"},
-        {"movement_type": "262", "material_id": "MAT-1", "material_name": "Sugar",
+        {"movement_type": "262", "material_id": mat1, "material_name": "Sugar",
          "batch_id": "B001", "quantity": 30.0, "uom": "KG"},
     ]
     result = dal._derive_materials(movements)
@@ -223,10 +230,11 @@ def test_derive_materials_subtracts_262_from_261():
 
 
 def test_derive_materials_excludes_fully_reversed_material():
+    mat1 = test_data.material_id()
     movements = [
-        {"movement_type": "261", "material_id": "MAT-1", "material_name": "X",
+        {"movement_type": "261", "material_id": mat1, "material_name": "X",
          "batch_id": "B001", "quantity": 50.0, "uom": "KG"},
-        {"movement_type": "262", "material_id": "MAT-1", "material_name": "X",
+        {"movement_type": "262", "material_id": mat1, "material_name": "X",
          "batch_id": "B001", "quantity": 50.0, "uom": "KG"},
     ]
     result = dal._derive_materials(movements)
@@ -234,22 +242,25 @@ def test_derive_materials_excludes_fully_reversed_material():
 
 
 def test_derive_materials_excludes_ea_materials():
+    pkg1 = test_data.material_id()
+    mat1 = test_data.material_id()
     movements = [
-        {"movement_type": "261", "material_id": "PKG-1", "material_name": "Box",
+        {"movement_type": "261", "material_id": pkg1, "material_name": "Box",
          "batch_id": "B001", "quantity": 500.0, "uom": "EA"},
-        {"movement_type": "261", "material_id": "MAT-1", "material_name": "Sugar",
+        {"movement_type": "261", "material_id": mat1, "material_name": "Sugar",
          "batch_id": "B002", "quantity": 100.0, "uom": "KG"},
     ]
     result = dal._derive_materials(movements)
     assert len(result) == 1
-    assert result[0]["material_id"] == "MAT-1"
+    assert result[0]["material_id"] == mat1
 
 
 def test_derive_materials_rounds_to_6dp():
+    mat1 = test_data.material_id()
     movements = [
-        {"movement_type": "261", "material_id": "MAT-1", "material_name": "X",
+        {"movement_type": "261", "material_id": mat1, "material_name": "X",
          "batch_id": "B001", "quantity": 1000.0, "uom": "G"},  # → 1.0 KG
-        {"movement_type": "262", "material_id": "MAT-1", "material_name": "X",
+        {"movement_type": "262", "material_id": mat1, "material_name": "X",
          "batch_id": "B001", "quantity": 1.0, "uom": "G"},   # → 0.001 KG
     ]
     result = dal._derive_materials(movements)
@@ -346,20 +357,21 @@ def test_time_summary_empty_phases():
 # fetch_order_detail — integration (mocked run_sql_async)
 # ---------------------------------------------------------------------------
 
-_HEADER_ROW = {
-    "process_order_id": "PO-001",
-    "inspection_lot_id": "LOT-001",
-    "material_id": "MAT-001",
-    "plant_id": "P001",
-    "raw_status": "IN PROGRESS",
-    "status": "running",
-    "material_name": "Test Product",
-    "material_category": "Dairy",
-    "batch_id": "B001",
-    "manufacture_date_ms": 1700000000000,
-    "expiry_date_ms": 1710000000000,
-    "supplier_batch_id": "SUP-B001",
-}
+def _header_row(order_id: str, mat_id: str, plant: str):
+    return {
+        "process_order_id": order_id,
+        "inspection_lot_id": test_data.inspection_lot(),
+        "material_id": mat_id,
+        "plant_id": plant,
+        "raw_status": "IN PROGRESS",
+        "status": "running",
+        "material_name": "Test Product",
+        "material_category": "Dairy",
+        "batch_id": test_data.batch_id(),
+        "manufacture_date_ms": 1700000000000,
+        "expiry_date_ms": 1710000000000,
+        "supplier_batch_id": "SUP-B001",
+    }
 
 _PHASE_ROW = {
     "phase_id": "PH-01", "phase_description": "Mix", "phase_text": None,
@@ -368,11 +380,12 @@ _PHASE_ROW = {
     "setup_s": 120.0, "mach_s": 3600.0, "clean_s": 300.0,
 }
 
-_MOVEMENT_ROW = {
-    "material_id": "MAT-002", "material_name": "Ingredient", "batch_id": "B002",
-    "movement_type": "261", "quantity": 100.0, "uom": "KG",
-    "storage_id": "STOR-01", "user_name": "user1", "date_time_of_entry": 1700001000000,
-}
+def _movement_row(mat_id: str):
+    return {
+        "material_id": mat_id, "material_name": "Ingredient", "batch_id": test_data.batch_id(),
+        "movement_type": "261", "quantity": 100.0, "uom": "KG",
+        "storage_id": "STOR-01", "user_name": "user1", "date_time_of_entry": 1700001000000,
+    }
 
 _UD_ROW = {
     "usage_decision_code": "A", "valuation_code": "GOOD",
@@ -401,25 +414,30 @@ def test_fetch_order_detail_returns_none_when_not_found(monkeypatch):
 
 
 def test_fetch_order_detail_returns_full_payload(monkeypatch):
+    po_id = test_data.process_order()
+    mat_id = test_data.material_id()
+    mat_in = test_data.material_id()
+    plant = test_data.PLANTS[0]
+    
     monkeypatch.setattr(dal, "run_sql_async", _make_sql_mock([
-        [_HEADER_ROW],
+        [_header_row(po_id, mat_id, plant)],
         [_PHASE_ROW],
-        [_MOVEMENT_ROW],
+        [_movement_row(mat_in)],
         [],  # comments
         [],  # downtime
         [],  # equipment
         [],  # inspections
         [_UD_ROW],
     ]))
-    result = asyncio.run(dal.fetch_order_detail("token", order_id="PO-001"))
+    result = asyncio.run(dal.fetch_order_detail("token", order_id=po_id))
     assert result is not None
-    assert result["order"]["process_order_id"] == "PO-001"
+    assert result["order"]["process_order_id"] == po_id
     assert result["order"]["status"] == "running"
     assert len(result["phases"]) == 1
     assert result["phases"][0]["setup_s"] == 120.0
     assert len(result["movements"]) == 1
     assert len(result["materials"]) == 1
-    assert result["materials"][0]["material_id"] == "MAT-002"
+    assert result["materials"][0]["material_id"] == mat_in
     assert result["materials"][0]["total_qty"] == 100.0
     assert result["movement_summary"]["qty_issued_kg"] == 100.0
     assert result["movement_summary"]["qty_received_kg"] is None
@@ -429,11 +447,15 @@ def test_fetch_order_detail_returns_full_payload(monkeypatch):
 
 
 def test_fetch_order_detail_no_usage_decision(monkeypatch):
+    po_id = test_data.process_order()
+    mat_id = test_data.material_id()
+    plant = test_data.PLANTS[0]
+    
     monkeypatch.setattr(dal, "run_sql_async", _make_sql_mock([
-        [_HEADER_ROW],
+        [_header_row(po_id, mat_id, plant)],
         [], [], [], [], [], [],
         [],  # usage_decision empty
     ]))
-    result = asyncio.run(dal.fetch_order_detail("token", order_id="PO-001"))
+    result = asyncio.run(dal.fetch_order_detail("token", order_id=po_id))
     assert result is not None
     assert result["usage_decision"] is None

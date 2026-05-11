@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+from shared_domain import test_data
 from spc_backend.main import app
 import spc_backend.process_control.router_analysis as spc_router
 from unittest.mock import AsyncMock
@@ -20,33 +21,40 @@ def mock_spc_dal(monkeypatch):
     return mock_payload
 
 def test_scorecard_endpoint(mock_spc_dal):
+    mat_id = test_data.material_id()
+    plant = test_data.PLANTS[0]
     response = client.post(
         "/api/spc/scorecard",
-        json={"material_id": "MAT1", "plant_id": "P1"}
+        json={"material_id": mat_id, "plant_id": plant}
     )
     assert response.status_code == 200
     assert "scorecard" in response.json()
 
 def test_process_flow_endpoint(mock_spc_dal):
+    mat_id = test_data.material_id()
     response = client.post(
         "/api/spc/process-flow",
-        json={"material_id": "MAT1"}
+        json={"material_id": mat_id}
     )
     assert response.status_code == 200
     assert response.json() == mock_spc_dal
 
 def test_correlation_endpoint(mock_spc_dal):
+    mat_id = test_data.material_id()
     response = client.post(
         "/api/spc/correlation",
-        json={"material_id": "MAT1"}
+        json={"material_id": mat_id}
     )
     assert response.status_code == 200
     assert response.json() == mock_spc_dal
 
 def test_multivariate_endpoint(mock_spc_dal):
+    mat_id = test_data.material_id()
+    mic1 = test_data.mic_id()
+    mic2 = test_data.mic_id()
     response = client.post(
         "/api/spc/multivariate",
-        json={"material_id": "MAT1", "mic_ids": ["M1", "M2"]}
+        json={"material_id": mat_id, "mic_ids": [mic1, mic2]}
     )
     assert response.status_code == 200
     assert response.json() == mock_spc_dal
@@ -79,13 +87,15 @@ def test_msa_calculate_endpoint():
     assert response.json()["method"] == "anova"
 
 def test_msa_save_endpoint(mock_spc_dal, monkeypatch):
+    mat_id = test_data.material_id()
+    mic = test_data.mic_id()
     monkeypatch.setattr(spc_router, "save_msa_session", AsyncMock(return_value={"saved": True}))
     response = client.post(
         "/api/spc/msa/save",
         headers={"x-forwarded-access-token": "token"},
         json={
-            "material_id": "MAT1",
-            "mic_id": "MIC1",
+            "material_id": mat_id,
+            "mic_id": mic,
             "n_operators": 2,
             "n_parts": 2,
             "n_replicates": 2,
@@ -100,13 +110,16 @@ def test_msa_save_endpoint(mock_spc_dal, monkeypatch):
     assert response.json()["saved"] is True
 
 def test_compare_scorecard_endpoint(mock_spc_dal, monkeypatch):
+    mat1 = test_data.material_id()
+    mat2 = test_data.material_id()
+    plant = test_data.PLANTS[0]
     monkeypatch.setattr(spc_router, "fetch_compare_scorecard", AsyncMock(return_value=[]))
     response = client.post(
         "/api/spc/compare-scorecard",
         headers={"x-forwarded-access-token": "token"},
         json={
-            "material_ids": ["MAT1", "MAT2"],
-            "plant_id": "P1"
+            "material_ids": [mat1, mat2],
+            "plant_id": plant
         }
     )
     assert response.status_code == 200

@@ -55,6 +55,7 @@ def test_shared_core_trace_route_contract(monkeypatch):
     app.dependency_overrides[require_proxy_user] = lambda: UserIdentity(user_id="test-user", raw_token="token")
 
     try:
-        assert_core_trace_route_contract(client, freshness_calls)
+        assert_core_trace_route_contract(client, freshness_calls, path_prefix="/api/t2")
     finally:
+
         app.dependency_overrides.clear()

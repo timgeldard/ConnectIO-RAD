@@ -1,0 +1,19 @@
+{
+  "now_ms": 1745884800000,
+  "planned_24h": 350,
+  "events": [
+    { "ts_ms": 1745884800000, "process_order": "007006276688", "material_id": "20582002", "material_name": "PRT1519 PRE-COOK NUGGET 25KG", "quantity": 250.0, "source_type": "WH", "line_id": "MIX-01" },
+    { "ts_ms": 1745888400000, "process_order": "007006276689", "material_id": "30001234", "material_name": "FINISHED PRODUCT A", "quantity": 120.5, "source_type": "TANK", "line_id": "MIX-02" }
+  ],
+  "prior7d": [],
+  "daily30d": {
+    "ALL": [
+      { "date": 1745798400000, "actual": 340, "target": 350, "planned": 360 }
+    ]
+  },
+  "hourly24h": {
+    "ALL": [
+      { "hour": 1745884800000, "actual": 12, "target": 15 }
+    ]
+  }
+}

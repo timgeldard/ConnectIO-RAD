@@ -27,8 +27,11 @@ def test_shared_sql_runtime_supports_spc_tiered_cache_shape():
     assert "SELECT * FROM spc_quality_metrics" in calls[0]
 
 
+from shared_domain import test_data
+
 def test_shared_sql_runtime_supports_spc_audit_hook_and_audit_suppression():
     audit_events = []
+    mat_id = test_data.material_id()
 
     def run_sql(_token, _statement, _params=None):
         return [{"ok": 1}]
@@ -42,7 +45,7 @@ def test_shared_sql_runtime_supports_spc_audit_hook_and_audit_suppression():
         runtime.run_sql_async(
             "token",
             "SELECT * FROM spc_batch_dim_mv WHERE material_id = :material_id",
-            [{"name": "material_id", "value": "MAT-1", "type": "STRING"}],
+            [{"name": "material_id", "value": mat_id, "type": "STRING"}],
             endpoint_hint="spc.charts.chart-data",
         )
     )
@@ -57,7 +60,7 @@ def test_shared_sql_runtime_supports_spc_audit_hook_and_audit_suppression():
 
     assert len(audit_events) == 1
     assert audit_events[0]["endpoint_hint"] == "spc.charts.chart-data"
-    assert audit_events[0]["params"][0]["value"] == "MAT-1"
+    assert audit_events[0]["params"][0]["value"] == mat_id
     assert audit_events[0]["rows"] == [{"ok": 1}]
 
 

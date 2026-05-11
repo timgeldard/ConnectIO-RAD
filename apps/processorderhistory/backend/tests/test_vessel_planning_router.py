@@ -36,7 +36,7 @@ def mock_analytics(monkeypatch):
 
 
 def test_post_vessel_planning_analytics_returns_200(mock_analytics):
-    response = client.post("/api/vessel-planning/analytics", json={})
+    response = client.post("/api/poh/vessel-planning/analytics", json={})
     assert response.status_code == 200
     data = response.json()
     for key in ("now_ms", "kpis", "vessels", "released_orders", "daily30d", "equipment_events"):
@@ -44,31 +44,31 @@ def test_post_vessel_planning_analytics_returns_200(mock_analytics):
 
 
 def test_post_vessel_planning_analytics_empty_body_calls_dal(mock_analytics):
-    client.post("/api/vessel-planning/analytics", json={})
+    client.post("/api/poh/vessel-planning/analytics", json={})
     mock_analytics.assert_called_once_with(
         "token", plant_id=None, date_from=None, date_to=None, timezone="UTC"
     )
 
 
 def test_post_vessel_planning_analytics_passes_plant_id(mock_analytics):
-    client.post("/api/vessel-planning/analytics", json={"plant_id": "RCN1"})
+    client.post("/api/poh/vessel-planning/analytics", json={"plant_id": "RCN1"})
     mock_analytics.assert_called_once_with("token", plant_id="RCN1", date_from=None, date_to=None, timezone="UTC")
 
 
 def test_post_vessel_planning_analytics_passes_date_range(mock_analytics):
-    client.post("/api/vessel-planning/analytics", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
+    client.post("/api/poh/vessel-planning/analytics", json={"date_from": "2024-01-01", "date_to": "2024-01-07"})
     mock_analytics.assert_called_once_with(
         "token", plant_id=None, date_from="2024-01-01", date_to="2024-01-07", timezone="UTC"
     )
 
 
 def test_post_vessel_planning_analytics_passes_timezone(mock_analytics):
-    client.post("/api/vessel-planning/analytics", json={"timezone": "Europe/London"})
+    client.post("/api/poh/vessel-planning/analytics", json={"timezone": "Europe/London"})
     mock_analytics.assert_called_once_with("token", plant_id=None, date_from=None, date_to=None, timezone="Europe/London")
 
 
 def test_post_vessel_planning_analytics_kpi_shape(mock_analytics):
-    response = client.post("/api/vessel-planning/analytics", json={})
+    response = client.post("/api/poh/vessel-planning/analytics", json={})
     kpis = response.json()["kpis"]
     for key in (
         "released_po_count", "constrained_po_count", "available_vessel_count",
