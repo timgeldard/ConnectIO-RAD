@@ -76,6 +76,11 @@ export interface UseAppRouterValue<R extends string> {
  * Returns `defaultRoute` when the param is absent or carries an unknown value.
  * Defensive: `URLSearchParams` is safe to call even on SSR-style empty
  * `window`, so the only failure mode is the route enum mismatch.
+ *
+ * @param routes The exhaustive list of valid routes for this app.
+ * @param defaultRoute Fallback when the URL has no usable route.
+ * @param queryParam URL query parameter name carrying the route.
+ * @returns A valid route from the supplied list.
  */
 function readRouteFromUrl<R extends string>(
   routes: readonly R[],
@@ -94,7 +99,22 @@ function readRouteFromUrl<R extends string>(
 /**
  * Typed, URL-synced single-page app router hook.
  *
- * See module-level docstring for usage.
+ * See the module-level documentation at the top of this file for the
+ * intended usage pattern and design tradeoffs.
+ *
+ * @template R String-literal union of the app's route identifiers.
+ * @param options Router configuration:
+ *   - `routes` — exhaustive list of valid route identifiers; values outside
+ *     this list are rejected (URL fallback applies).
+ *   - `defaultRoute` — used when the URL is missing the param or carries
+ *     an unknown value.
+ *   - `queryParam` — URL query parameter name (default `'view'`).
+ *   - `onNavigate` — optional callback fired after a navigation; the
+ *     platform shell uses this to forward operator navigation to its own
+ *     deep-link state.
+ * @returns An object with the current `route`, a typed `navigate(next)`
+ *   callback that updates URL state via `history.replaceState`, and an
+ *   `isDefault` boolean for "home" UI hints.
  */
 export function useAppRouter<R extends string>(
   options: UseAppRouterOptions<R>,

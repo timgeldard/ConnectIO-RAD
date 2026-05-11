@@ -34,7 +34,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import traceback
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -54,8 +56,43 @@ OPENAPI_DIR_TEMPLATE = "apps/{slug}/backend/openapi.json"
 TS_DIR = REPO_ROOT / "libs" / "shared-frontend-api" / "src" / "generated"
 
 
+def _serialize_spec(spec: dict[str, Any]) -> str:
+    """Serialize an OpenAPI spec dict to its canonical on-disk form.
+
+    The exact same encoding must be used by the generator and the ``--check``
+    drift detector — otherwise CI surfaces phantom differences from JSON
+    formatting alone.  Centralising the encoding here is the single source
+    of truth.
+
+    Args:
+        spec: An OpenAPI spec dict as returned by ``FastAPI.openapi()``.
+
+    Returns:
+        A UTF-8-friendly string with 2-space indent, sorted keys, and a
+        trailing newline.
+    """
+    return json.dumps(spec, indent=2, sort_keys=True) + "\n"
+
+
 def _import_app(module_path: str, attr: str):
-    """Import the backend module and return its FastAPI app object."""
+    """Import the backend module and return its FastAPI ``app`` object.
+
+    Unwraps ``ConnectIoApp`` wrappers automatically — apps that expose their
+    framework wrapper rather than the raw FastAPI instance still produce a
+    valid spec because we follow ``.fastapi_app`` when present.
+
+    Args:
+        module_path: Dotted module path, e.g. ``"spc_backend.main"``.
+        attr: Attribute on the module that holds the app, typically
+            ``"fastapi_app"``.
+
+    Returns:
+        The FastAPI application instance (with ``.openapi()`` available).
+
+    Raises:
+        ImportError: If ``module_path`` cannot be imported.
+        AttributeError: If ``attr`` is missing from the imported module.
+    """
     module = importlib.import_module(module_path)
     obj = getattr(module, attr)
     # ConnectIoApp wraps FastAPI — call .fastapi_app if needed.
@@ -65,11 +102,22 @@ def _import_app(module_path: str, attr: str):
 
 
 def _dump_openapi(slug: str, module_path: str, attr: str) -> Path:
-    """Generate ``apps/<slug>/backend/openapi.json`` and return its path."""
+    """Generate ``apps/<slug>/backend/openapi.json`` and return its path.
+
+    Args:
+        slug: App slug used in the output path (e.g. ``"spc"``).
+        module_path: Dotted module path for the backend's FastAPI entry point.
+        attr: Attribute name carrying the FastAPI/ConnectIoApp instance.
+
+    Returns:
+        Absolute path of the written ``openapi.json`` file.
+
+    Raises:
+        ImportError, AttributeError: Propagated from :func:`_import_app`.
+        OSError: If the output directory cannot be created or written.
+    """
     app = _import_app(module_path, attr)
-    spec = app.openapi()
-    # Stable key ordering so diff noise reflects real changes, not dict reordering.
-    text = json.dumps(spec, indent=2, sort_keys=True) + "\n"
+    text = _serialize_spec(app.openapi())
     out = REPO_ROOT / OPENAPI_DIR_TEMPLATE.format(slug=slug)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8")
@@ -77,7 +125,19 @@ def _dump_openapi(slug: str, module_path: str, attr: str) -> Path:
 
 
 def _render_ts_types(slug: str, openapi_path: Path) -> Path:
-    """Run ``npx openapi-typescript`` and write a per-app .ts types file."""
+    """Run ``npx openapi-typescript`` and write a per-app TypeScript types file.
+
+    Args:
+        slug: App slug, used to name the output as ``<slug>.ts``.
+        openapi_path: Path to the input ``openapi.json``.
+
+    Returns:
+        Absolute path of the generated TypeScript module.
+
+    Raises:
+        subprocess.CalledProcessError: If ``openapi-typescript`` exits non-zero.
+        OSError: If ``npx`` cannot be invoked or the output cannot be written.
+    """
     TS_DIR.mkdir(parents=True, exist_ok=True)
     out = TS_DIR / f"{slug}.ts"
     cmd = [
@@ -93,7 +153,20 @@ def _render_ts_types(slug: str, openapi_path: Path) -> Path:
 
 
 def _diff(a: Path, b: Path) -> str:
-    """Return a short diff between two text files, or empty string if equal."""
+    """Return a unified diff between two text files, or empty string if equal.
+
+    Used by ``--check`` to format human-readable drift output.  Missing files
+    are treated as empty strings so the caller can show an added or removed
+    file as a full insertion/deletion.
+
+    Args:
+        a: Reference file (committed copy in the repo).
+        b: Comparison file (freshly regenerated into a tempdir).
+
+    Returns:
+        A unified-diff string when the contents differ, empty string when
+        they match.
+    """
     text_a = a.read_text(encoding="utf-8") if a.exists() else ""
     text_b = b.read_text(encoding="utf-8") if b.exists() else ""
     if text_a == text_b:
@@ -112,7 +185,22 @@ def _diff(a: Path, b: Path) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Entry point.  Returns nonzero on import failure or (with --check) drift."""
+    """CLI entry point for the OpenAPI regeneration / drift-check script.
+
+    Args:
+        argv: Optional argv slice for testing.  When ``None``, ``argparse``
+            uses ``sys.argv`` as usual.  Recognised flags:
+            ``--check`` (compare committed specs against a fresh regen),
+            ``--app <slug>`` (limit to a single backend).
+
+    Returns:
+        ``0`` on success.  ``1`` on import failure or, in ``--check`` mode,
+        when drift is detected.
+
+    Raises:
+        SystemExit: Propagated from ``argparse`` when ``--help`` is supplied
+            or when an unknown flag is passed.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--check",
@@ -135,10 +223,17 @@ def main(argv: list[str] | None = None) -> int:
             for slug, (module_path, attr) in targets.items():
                 try:
                     app = _import_app(module_path, attr)
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001
+                    # Top-level CLI: any import failure must surface clearly
+                    # rather than crash the script. Narrow except types would
+                    # let unrelated failures (RecursionError from a circular
+                    # import, IO errors during module load) escape silently.
+                    # We compensate by printing the full traceback so the
+                    # operator has enough to debug.
                     print(f"[error] cannot import {slug}: {exc}", file=sys.stderr)
+                    traceback.print_exc(file=sys.stderr)
                     return 1
-                spec = json.dumps(app.openapi(), indent=2, sort_keys=True) + "\n"
+                spec = _serialize_spec(app.openapi())
                 tmp_spec = tmp / f"{slug}.openapi.json"
                 tmp_spec.write_text(spec, encoding="utf-8")
                 committed = REPO_ROOT / OPENAPI_DIR_TEMPLATE.format(slug=slug)

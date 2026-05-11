@@ -145,8 +145,33 @@ def test_include_versioned_router_rejects_non_api_prefix():
     """Versioned routers must live under /api/ to keep route shape predictable."""
     rad = ConnectIoApp(title="t")
     router = APIRouter()
-    with pytest.raises(ValueError, match="must start with '/api'"):
+    with pytest.raises(ValueError, match="must be '/api' or start with '/api/'"):
         rad.include_versioned_router(router, prefix="/spc")
+
+
+def test_include_versioned_router_rejects_lookalike_prefix():
+    """`/apiary` must be rejected — the `/api` segment must terminate cleanly."""
+    rad = ConnectIoApp(title="t")
+    router = APIRouter()
+    with pytest.raises(ValueError, match="must be '/api' or start with '/api/'"):
+        rad.include_versioned_router(router, prefix="/apiary")
+
+
+def test_include_versioned_router_accepts_bare_api_prefix():
+    """`prefix='/api'` is valid and mounts the router at /api/v1 + /api."""
+    rad = ConnectIoApp(title="t")
+
+    router = APIRouter()
+
+    @router.get("/ping")
+    async def ping():
+        return {"ok": True}
+
+    rad.include_versioned_router(router, prefix="/api")
+
+    client = TestClient(rad.app)
+    assert client.get("/api/v1/ping").status_code == 200
+    assert client.get("/api/ping").status_code == 200
 
 
 def test_include_versioned_router_supports_v2():

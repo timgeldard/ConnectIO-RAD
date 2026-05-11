@@ -32,9 +32,10 @@ repo; CI invokes it directly alongside the DDD guardrails.
 """
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 
 import pytest
 import yaml
@@ -172,9 +173,47 @@ def _sql_view_files() -> Iterable[Path]:
         yield path
 
 
-_TBL_CALL = re.compile(r"\b(tbl|silver_tbl|instrument_tbl)\(\s*['\"]([^'\"]+)['\"]\s*\)")
-_TBL_DYNAMIC = re.compile(r"\b(tbl|silver_tbl|instrument_tbl)\(\s*(?!['\"])")
+_TBL_HELPERS = {"tbl", "silver_tbl", "instrument_tbl"}
 _HARDCODED_CATALOG = re.compile(r"\bconnected_plant_uat\b")
+
+
+def _iter_tbl_calls(source: str) -> Iterable[tuple[str, Optional[str], int]]:
+    """Walk a Python source file's AST and yield each tbl-helper call.
+
+    Yields tuples of ``(helper_name, literal_arg, line_no)``.  ``literal_arg``
+    is the string passed as the first positional argument when it is a string
+    literal; ``None`` indicates a dynamic argument (variable, f-string,
+    concatenation, etc.) so callers can treat dynamic references separately.
+
+    Operating on the AST instead of regex avoids two classes of false
+    positive that scrappy text-matching is prone to:
+
+    1. ``tbl('foo')`` inside a comment, docstring, or unrelated string literal.
+    2. Helpers with trailing commas or multi-line argument formatting that
+       happen to defeat the regex parenthesis match.
+
+    Files that cannot be parsed (very rare — only if the file has a syntax
+    error) yield nothing; the surrounding test harness already requires
+    importable code, so a syntax-error file would have been caught earlier.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        # We only care about `tbl(...)`-style bare calls; attribute access
+        # (`obj.tbl(...)`) is something else entirely and out of scope.
+        func = node.func
+        if not isinstance(func, ast.Name) or func.id not in _TBL_HELPERS:
+            continue
+        if node.args and isinstance(node.args[0], ast.Constant) and isinstance(
+            node.args[0].value, str
+        ):
+            yield func.id, node.args[0].value, node.lineno
+        else:
+            yield func.id, None, node.lineno
 
 
 # ---------------------------------------------------------------------------
@@ -197,15 +236,15 @@ def test_all_tbl_references_are_approved():
     offenders: list[tuple[str, int, str]] = []
     for path in _python_files():
         text = path.read_text(encoding="utf-8")
-        for match in _TBL_CALL.finditer(text):
-            helper, name = match.group(1), match.group(2)
+        for helper, name, line_no in _iter_tbl_calls(text):
             if helper == "silver_tbl":
                 continue  # silver checked separately
             if helper == "instrument_tbl":
                 continue  # csm_equipment_history schema, allowed
+            if name is None:
+                continue  # dynamic — reported separately
             if name in approved:
                 continue
-            line_no = text.count("\n", 0, match.start()) + 1
             offenders.append((str(path.relative_to(REPO_ROOT)), line_no, name))
     if offenders:
         formatted = "\n".join(f"  {p}:{n}  → tbl({t!r})" for p, n, t in offenders)
@@ -223,13 +262,11 @@ def test_silver_tbl_only_uses_documented_exceptions():
     offenders: list[tuple[str, int, str]] = []
     for path in _python_files():
         text = path.read_text(encoding="utf-8")
-        for match in _TBL_CALL.finditer(text):
-            helper, name = match.group(1), match.group(2)
+        for helper, name, line_no in _iter_tbl_calls(text):
             if helper != "silver_tbl":
                 continue
-            if name in APPROVED_SILVER_TABLES:
+            if name is None or name in APPROVED_SILVER_TABLES:
                 continue
-            line_no = text.count("\n", 0, match.start()) + 1
             offenders.append((str(path.relative_to(REPO_ROOT)), line_no, name))
     if offenders:
         formatted = "\n".join(f"  {p}:{n}  → silver_tbl({t!r})" for p, n, t in offenders)
@@ -283,15 +320,12 @@ def test_dynamic_tbl_calls_are_reported():
     dynamic_calls: list[tuple[str, int, str]] = []
     for path in _python_files():
         text = path.read_text(encoding="utf-8")
-        for match in _TBL_DYNAMIC.finditer(text):
-            # Avoid double-counting literal calls (which the literal regex already covers).
-            tail = text[match.end():match.end() + 80]
-            if tail.startswith("'") or tail.startswith('"'):
-                continue
-            line_no = text.count("\n", 0, match.start()) + 1
-            dynamic_calls.append((str(path.relative_to(REPO_ROOT)), line_no, tail.split(")")[0]))
+        for helper, name, line_no in _iter_tbl_calls(text):
+            if name is not None:
+                continue  # literal — covered by the approval test
+            dynamic_calls.append((str(path.relative_to(REPO_ROOT)), line_no, helper))
     # Report-only: do not assert. Reviewers can read the test output.
     if dynamic_calls:
         print(f"\n[info] {len(dynamic_calls)} dynamic tbl() calls found (review manually):")
-        for p, n, snippet in dynamic_calls[:30]:
-            print(f"  {p}:{n}  → {snippet.strip()}...")
+        for p, n, helper in dynamic_calls[:30]:
+            print(f"  {p}:{n}  → {helper}(<dynamic>)")

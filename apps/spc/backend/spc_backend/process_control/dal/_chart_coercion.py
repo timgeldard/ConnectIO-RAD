@@ -67,9 +67,17 @@ def _apply_chart_row_formatting(rows: list[dict]) -> list[dict]:
     - ``value``, ``nominal``, ``tolerance``, ``lsl``, ``usl`` → finite float or None.
     - ``sample_seq`` → int or None.
     - ``is_outlier`` derived from the legacy ``attribut == '*'`` flag.
-    - When USL/LSL are absent, derive them from ``nominal ± tolerance`` and round to 6 dp.
+    - When USL/LSL are absent, derive **only the missing side** from
+      ``nominal ± tolerance`` (a supplied one-sided spec is preserved).
+    - Each present bound is rounded to 6 dp.
     - ``spec_type`` derived from the resolved USL/LSL/nominal triplet.
     - Drop cursor-only fields so they do not leak to the application layer.
+
+    Args:
+        rows: Raw chart rows from the SPC quality-data query.  Mutated in place.
+
+    Returns:
+        The same list, with each row's typed/derived fields filled.
     """
     for row in rows:
         for field_name in ["value", "nominal", "tolerance", "lsl", "usl"]:
@@ -82,8 +90,11 @@ def _apply_chart_row_formatting(rows: list[dict]) -> list[dict]:
             nominal = row.get("nominal")
             tol = row.get("tolerance")
             if nominal is not None and tol is not None:
-                usl = nominal + tol
-                lsl = nominal - tol
+                # Only derive the missing side; preserve a supplied one-sided spec.
+                if usl is None:
+                    usl = nominal + tol
+                if lsl is None:
+                    lsl = nominal - tol
         row["usl"] = round(usl, 6) if usl is not None else None
         row["lsl"] = round(lsl, 6) if lsl is not None else None
         row["spec_type"] = infer_spec_type(row["usl"], row["lsl"], row.get("nominal"))

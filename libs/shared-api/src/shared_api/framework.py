@@ -227,9 +227,13 @@ class ConnectIoApp:
                 "ConnectIoApp.include_versioned_router was called after "
                 "mount_spa(); the SPA catch-all would shadow this router."
             )
-        if not prefix.startswith("/api"):
+        # ``startswith("/api")`` alone would accept malformed inputs like
+        # ``/apiary`` and produce nonsensical routes like ``/api/v1ary``.
+        # Require an exact ``/api`` or a proper ``/api/...`` boundary.
+        if prefix != "/api" and not prefix.startswith("/api/"):
             raise ValueError(
-                f"versioned router prefix must start with '/api', got {prefix!r}"
+                f"versioned router prefix must be '/api' or start with '/api/', "
+                f"got {prefix!r}"
             )
         # The canonical versioned path: /api/v1/spc, /api/v1/trace, ...
         suffix = prefix[len("/api"):]  # "" or "/spc" or "/trace"
