@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import re
 import time
 import threading
@@ -39,8 +38,11 @@ class DataFreshnessRuntime:
 
         catalog = self._catalog()
         schema = self._schema()
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
-        cache_key = (token_hash, catalog, schema, tuple(safe_views))
+        # Freshness metadata is catalog/schema/view scoped, not user scoped.
+        # The token is still used for authorization on cache misses, but is
+        # intentionally excluded from the data cache key to avoid shift-change
+        # cache stampedes across operators looking at the same dashboards.
+        cache_key = (catalog, schema, tuple(safe_views))
         with self.cache_lock:
             cached = self.cache.get(cache_key)
         if cached is not None:
