@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 from warehouse360_backend.order_fulfillment.dal import process_orders
 
 

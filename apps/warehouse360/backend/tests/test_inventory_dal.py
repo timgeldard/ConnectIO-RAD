@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 from shared_manufacturing import test_data
 from warehouse360_backend.inventory_management.dal import inventory
 

@@ -2,23 +2,25 @@ import pytest
 from dataclasses import dataclass
 from decimal import Decimal
 
-
+from shared_ddd import (
     AuditMixin,
     AuditStamp,
-    Batch,
-    BatchId,
     DomainEvent,
     DomainEventPublisher,
     Entity,
     AggregateRoot,
+    parse_layered_module_path,
+    ValueObject,
+    is_infrastructure_import,
+)
+from shared_manufacturing import (
+    Batch,
+    BatchId,
     Material,
     MaterialId,
     Measurement,
-    parse_layered_module_path,
     PlantId,
     Specification,
-    ValueObject,
-    is_infrastructure_import,
 )
 
 @dataclass(frozen=True)
@@ -67,14 +69,14 @@ def test_audit_mixin_records_immutable_trail():
     assert thing.audit_trail[0].action == "reviewed"
 
 def test_entity_equality_by_identity():
-    u1 = User(identity="user-1")
-    u2 = User(identity="user-1")
-    u3 = User(identity="user-2")
-    
-    assert u1 == u2
-    assert u1 != u3
-    assert hash(u1) == hash(u2)
-    assert hash(u1) != hash(u3)
+ u1 = User(identity="user-1")
+ u2 = User(identity="user-1")
+ u3 = User(identity="user-2")
+ 
+ assert u1 == u2
+ assert u1 != u3
+ assert hash(u1) == hash(u2)
+ assert hash(u1) != hash(u3)
 
 def test_entity_identity_cannot_be_none():
     with pytest.raises(ValueError):
@@ -166,4 +168,4 @@ def test_guardrail_helpers_parse_layered_paths():
     assert parsed.context_name == "process_control"
     assert parsed.layer == "domain"
     assert is_infrastructure_import("fastapi") is True
-    assert is_infrastructure_import("shared_domain") is False
+    assert is_infrastructure_import("shared_ddd") is False

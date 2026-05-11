@@ -200,3 +200,23 @@ def discover_app_routers(packages: list[str]) -> list[tuple[Any, str, list[str] 
             logger.info("No PLATFORM_ROUTERS found in %s.routers", pkg)
 
     return all_routers
+
+
+def discover_app_manifests(packages: list[str]) -> list[dict[str, Any]]:
+    """Dynamically discover MANIFEST dictionaries from a list of backend packages.
+
+    Args:
+        packages: List of fully-qualified package names (e.g. ['spc_backend', 'poh_backend']).
+
+    Returns:
+        A list of manifest objects ready for inclusion in the platform manifest.
+    """
+    all_manifests = []
+    for pkg in packages:
+        manifest = _optional_attr(f"{pkg}.manifest", "MANIFEST", required=False)
+        if manifest:
+            all_manifests.append(manifest)
+        else:
+            logger.info("No MANIFEST found in %s.manifest", pkg)
+
+    return all_manifests

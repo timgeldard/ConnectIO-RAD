@@ -56,4 +56,26 @@ dev-dependencies = [
   "mypy>=1.10",
   "fastapi>=0.111",
   "pydantic>=2.0",
+  "interrogate>=1.7",
 ]
+
+[tool.interrogate]
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = true
+ignore-semiprivate = false
+ignore-private = false
+ignore-property-decorators = false
+ignore-module = false
+ignore-nested-functions = false
+ignore-nested-classes = true
+ignore-setters = false
+fail-under = 40
+exclude = ["setup.py", "docs", "build", "dist", "tests", "node_modules", "scripts/tests", ".agents", ".github", ".claude", "scripts"]
+ignore-regex = ["^get$", "^mock_.*", ".*Base$"]
+verbose = 0
+quiet = false
+whitelist-regex = []
+color = true
+generate-badge = "."
+badge-format = "svg"

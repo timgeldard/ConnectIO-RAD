@@ -29,6 +29,7 @@ def cmd_check(args):
         ["python3", "scripts/validate_app_configs.py"],
         ["python3", "scripts/validate_new_app.py", "template"],
         ["uv", "run", "pytest", "scripts/tests/test_ddd_architecture_guardrails.py"],
+        ["uv", "run", "interrogate", "."],
     ]
     
     for script in scripts:
@@ -55,6 +56,14 @@ def cmd_sync(args):
     print("Monorepo synced.")
 
 
+def cmd_promote(args):
+    """Promote a minimal module to full DDD."""
+    print(f"--- Promoting Module: {args.name} ---")
+    if run(["npx", "nx", "g", "@connectio/rad:promote", f"--name={args.name}"]) != 0:
+        sys.exit(1)
+    print(f"Module {args.name} promoted successfully.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="ConnectIO-RAD Unified CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -70,6 +79,10 @@ def main():
     # Sync
     subparsers.add_parser("sync", help="Sync all dependencies (uv + npm)")
 
+    # Promote
+    promote = subparsers.add_parser("promote", help="Promote a minimal module to full DDD")
+    promote.add_argument("name", help="Name of the module to promote")
+
     args = parser.parse_args()
 
     if args.command == "check":
@@ -78,6 +91,8 @@ def main():
         cmd_audit(args)
     elif args.command == "sync":
         cmd_sync(args)
+    elif args.command == "promote":
+        cmd_promote(args)
 
 
 if __name__ == "__main__":

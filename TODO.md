@@ -1,6 +1,9 @@
 # Outstanding TODOs
 
-## Before going live
+## Quality & Technical Debt
+
+- [ ] **Lint Baseline Cleanup** — Fix pre-existing TS errors and add JSDoc to major exports to re-enable `npm run lint` in `rad check`.
+- [ ] **Interrogate Ratchet** — Gradually increase `fail-under` from 40% to 80% as documentation improves.
 
 - [x] **Databricks bundle validation** — all three pass `databricks bundle validate --target uat`.
 - [x] **GitHub remote** — ConnectIO-RAD is on GitHub and `origin` is configured.
