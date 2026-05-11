@@ -244,3 +244,23 @@ def test_data_freshness_runtime_filters_views_and_caches():
     assert second["sources"] == [{"source_view": "gold_batch_stock_v"}]
     assert len(calls) == 1
     assert [param["name"] for param in calls[0]] == ["catalog_name", "schema_name", "view_0"]
+
+
+def test_data_freshness_runtime_cache_is_not_partitioned_by_token():
+    calls = []
+
+    def run_sql(token, _statement, params=None):
+        calls.append(token)
+        return [{"source_view": "gold_batch_stock_v"}]
+
+    runtime = DataFreshnessRuntime(
+        run_sql=run_sql,
+        catalog=lambda: "catalog",
+        schema=lambda: "schema",
+    )
+
+    first = runtime.get_data_freshness("operator-a", ["gold_batch_stock_v"])
+    second = runtime.get_data_freshness("operator-b", ["gold_batch_stock_v"])
+
+    assert first["sources"] == second["sources"]
+    assert calls == ["operator-a"]
