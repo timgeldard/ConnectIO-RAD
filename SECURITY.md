@@ -49,6 +49,33 @@ Default handling expectations:
 Do not paste Restricted or Confidential data into public issues, external AI
 tools, logs without masking, or pull-request comments.
 
+## Application Cache Retention and Purge
+
+The shared SQL runtime uses process-local in-memory LRU/TTL caches for selected
+read-only dashboard queries. Cached rows may include Confidential manufacturing
+data such as quality metrics, inventory snapshots, batch genealogy, and
+traceability summaries. The cache is never written to disk and must not contain
+authentication tokens, raw authorization headers, credentials, or unrestricted
+personal data.
+
+Default retention limits:
+- Metadata lookups: maximum 15 minutes.
+- Scorecards and KPI summaries: maximum 5 minutes.
+- Chart and dashboard reads: maximum 3 minutes.
+- Legacy single-tier runtime and data-freshness caches: maximum 5 minutes unless
+  an app explicitly configures a shorter TTL.
+
+Purge events:
+- TTL expiry and LRU eviction automatically remove stale entries.
+- `SqlRuntime.clear_cache()` purges all configured cache tiers.
+- Write statements clear read caches by default after successful execution.
+- Databricks App restart, redeploy, or scale-down clears process memory.
+
+User-specific, Restricted, or regulated personal-data endpoints must bypass this
+shared cache or configure a shorter app-specific TTL. Token validation and audit
+logging are separate concerns; bearer tokens must not be included in shared data
+cache keys or stored in cached rows.
+
 ## Regulatory and Privacy Considerations
 
 Security triage must consider applicable food-manufacturing and privacy

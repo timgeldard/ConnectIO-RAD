@@ -147,6 +147,36 @@ def test_sql_runtime_supports_tiered_cache_policy():
     assert "SHOW TABLES" in calls[0]
 
 
+def test_manufacturing_cache_policy_documents_short_retention_tiers():
+    policy = CachePolicy.manufacturing(row_limit=250)
+
+    tiers = {tier.name: tier for tier in policy.tiers}
+
+    assert tiers["metadata"].ttl_seconds == 15 * 60
+    assert tiers["scorecard"].ttl_seconds == 5 * 60
+    assert tiers["chart"].ttl_seconds == 3 * 60
+    assert max(tier.ttl_seconds for tier in policy.tiers) <= 15 * 60
+    assert {tier.row_limit for tier in policy.tiers} == {250}
+
+
+def test_sql_runtime_clear_cache_purges_all_cache_tiers():
+    calls = []
+
+    def run_sql(_token, statement, params=None):
+        calls.append(statement)
+        return [{"call": len(calls)}]
+
+    runtime = SqlRuntime(run_sql=run_sql, cache_policy=CachePolicy.manufacturing())
+
+    asyncio.run(runtime.run_sql_async("token", "SELECT * FROM kpi_overview"))
+    asyncio.run(runtime.run_sql_async("token", "SELECT * FROM kpi_overview"))
+    runtime.clear_cache()
+    after_purge = asyncio.run(runtime.run_sql_async("token", "SELECT * FROM kpi_overview"))
+
+    assert after_purge == [{"call": 2}]
+    assert len(calls) == 2
+
+
 def test_sql_runtime_supports_pattern_matched_cache_tiers_and_invalidation_opt_out():
     calls = []
 

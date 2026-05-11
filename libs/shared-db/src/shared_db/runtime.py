@@ -104,6 +104,13 @@ def apply_max_rows_guard(statement: str, max_rows: int | None) -> str:
 
 @dataclass(frozen=True)
 class CacheTier:
+    """A process-local read cache tier with explicit retention limits.
+
+    The SQL runtime cache is intentionally in-memory only. Cached rows may hold
+    Confidential manufacturing data, so tiers must use short TTLs and bounded
+    sizes. Use ``bypass_cache=True`` for user-specific or Restricted data.
+    """
+
     name: str
     maxsize: int = 100
     ttl_seconds: int = 300
@@ -122,6 +129,13 @@ class CacheTier:
 
 @dataclass(frozen=True)
 class CachePolicy:
+    """Named cache tiers for read-only SQL results.
+
+    Retention is enforced by ``cachetools.TTLCache`` per process. Entries are
+    additionally purged by LRU eviction, write invalidation, explicit
+    ``SqlRuntime.clear_cache()``, and Databricks App restarts/redeploys.
+    """
+
     tiers: tuple[CacheTier, ...]
 
     @classmethod
@@ -136,9 +150,11 @@ class CachePolicy:
 
     @classmethod
     def manufacturing(cls, *, row_limit: int = 1000) -> "CachePolicy":
-        """
-        Returns the standard tiered cache policy for manufacturing cockpits.
-        Includes tiers for metadata (15m), scorecards (5m), and charts (3m).
+        """Return the standard tiered policy for manufacturing cockpits.
+
+        Retention limits are intentionally short because cached rows can include
+        quality, inventory, and traceability data:
+        metadata 15m, scorecards 5m, charts 3m.
         """
         return cls.tiered(
             CacheTier(
@@ -230,6 +246,7 @@ class SqlRuntime:
         self.slow_query_threshold_ms = slow_query_threshold_ms
 
     def clear_cache(self) -> None:
+        """Purge every configured in-memory cache tier for this process."""
         with self.cache_lock:
             for cache in self._tier_caches.values():
                 cache.clear()
