@@ -87,3 +87,4 @@ To prevent "Spaghetti Code," we enforce the following boundaries via `scripts/va
 - **Domain Isolation**: Domain packages MUST NOT import from `fastapi`, `pydantic` (transport), or `sql` (infra).
 - **One-Way Dependencies**: App layers can only depend on layers below them: `Router → Application → Domain`.
 - **Context Integrity**: Bounded contexts cannot import from sibling contexts; communication must be cross-app or via shared libraries.
+- **AI-First Standards**: See [docs/AI_AGENT_STANDARDS.md](docs/AI_AGENT_STANDARDS.md) for agent-specific conventions and patterns.
