@@ -2,7 +2,7 @@
   "name": "shared-frontend-i18n",
   "projectType": "library",
   "root": "libs/shared-frontend-i18n",
-  "tags": ["scope:shared", "type:lib"],
+  "tags": ["scope:shared", "type:frontend"],
   "targets": {
     "typecheck": {
       "executor": "nx:run-commands",

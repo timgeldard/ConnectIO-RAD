@@ -1,7 +1,7 @@
 {
   "name": "shared-auth",
   "projectType": "library",
-  "tags": ["scope:shared", "type:lib"],
+  "tags": ["scope:shared", "type:backend"],
   "targets": {
     "lint": {
       "executor": "nx:run-commands",
