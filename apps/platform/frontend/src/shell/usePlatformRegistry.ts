@@ -7,12 +7,21 @@ import {
 } from './moduleManifest'
 
 export interface PlatformRegistryState {
+  /** Manifest currently driving shell registration. */
   manifest: PlatformManifest
+  /** Modules after static merge, feature-flag filtering, and permission filtering. */
   modules: ReturnType<typeof getPlatformModules>
+  /** Whether the registry came from the backend endpoint or bundled fallback. */
   source: 'local' | 'backend'
 }
 
-/** Load backend-served module registration, falling back to the bundled manifest. */
+/**
+ * Loads backend-served module registration, falling back to the bundled manifest.
+ *
+ * @param staticModules Mature modules declared directly by the platform shell.
+ * @param userPermissions Identity groups granted to the current platform user.
+ * @returns Manifest source and visible module registrations for shell rendering.
+ */
 export function usePlatformRegistry(
   staticModules: ConnectIOModule[],
   userPermissions: string[],

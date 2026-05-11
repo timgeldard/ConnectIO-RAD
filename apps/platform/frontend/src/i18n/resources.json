@@ -1,0 +1,28 @@
+{
+  "en": {
+    "platform.home.welcome": "Welcome",
+    "platform.home.welcomeBack": "Welcome back, {{name}}",
+    "platform.home.registeredApps": "{{count}} registered apps",
+    "platform.home.domains": "{{count}} domains",
+    "platform.home.searchLabel": "Search apps",
+    "platform.home.searchPlaceholder": "Quality, SPC, trace, warehouse...",
+    "platform.home.emptySearch": "No registered apps match your search.",
+    "platform.home.status.liveApi": "Live API",
+    "platform.home.status.static": "Static"
+  },
+  "da": {},
+  "de": {},
+  "es": {},
+  "fr": {},
+  "ga": {},
+  "id": {},
+  "ja": {},
+  "ms": {},
+  "nl": {},
+  "pl": {},
+  "pt": {},
+  "uk": {},
+  "vi": {},
+  "zh-Hans": {},
+  "zh-Hant": {}
+}

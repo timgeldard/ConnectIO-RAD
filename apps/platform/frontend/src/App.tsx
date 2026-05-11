@@ -12,6 +12,7 @@ import { usePlatformSession } from './shell/usePlatformSession'
 import { ModuleContentPanel } from './shell/ModuleContentPanel'
 import { CrossAppContextBar } from './shell/CrossAppContextBar'
 import { GenieDrawer } from './genie/GenieDrawer'
+import resources from './i18n/resources.json'
 import './genie/genie.css'
 
 /** Platform shell root — wires shell state, module routing, and the Genie AI drawer. */
@@ -71,7 +72,7 @@ export function App() {
 /** Root provider — wraps App with i18n and PlantProvider context. */
 export function Root() {
   return (
-    <I18nProvider appName="platform">
+    <I18nProvider appName="platform" resources={resources}>
       <PlantProvider appName="platform">
         <App />
       </PlantProvider>

@@ -1,39 +1,63 @@
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
 import manifest from './module-manifest.json'
 
+/** Runtime availability status for a registered platform module. */
 export type ModuleHealthStatus = 'available' | 'degraded' | 'missing' | 'unknown'
 
+/** Route descriptor used by the shell to open local, remote, or external apps. */
 export interface PlatformModuleRoute {
+  /** Route loading strategy. */
   kind: 'local' | 'remote' | 'external'
+  /** Browser path or external URL. */
   path: string
+  /** Module-federation remote entry URL when kind is remote. */
   remoteEntry?: string
+  /** Module-federation exposed module name when kind is remote. */
   exposedModule?: string
 }
 
+/** Health metadata surfaced by the platform app dashboard. */
 export interface PlatformModuleHealth {
+  /** Optional API endpoint the platform can probe for module readiness. */
   endpoint?: string
+  /** Last-known or declared status for the module. */
   status?: ModuleHealthStatus
+  /** Short human-readable badge text. */
   badge?: string
 }
 
+/** Manifest registration for a module that can be discovered by the platform shell. */
 export type PlatformModuleRegistration = ConnectIOModule & {
+  /** Sidebar and home-dashboard grouping label. */
   category?: string
+  /** Searchable plain-language module description. */
   description?: string
+  /** Identity groups that can see the module; empty means authenticated users. */
   permissions?: string[]
+  /** Feature flags controlling module visibility. */
   featureFlags?: Record<string, boolean>
+  /** Additional searchable terms for global app search. */
   searchKeywords?: string[]
+  /** Navigation target used by generated or remote modules. */
   route?: PlatformModuleRoute
+  /** Dashboard health metadata. */
   health?: PlatformModuleHealth
 }
 
+/** Backend and bundled manifest payload shape. */
 export interface PlatformManifest {
+  /** Manifest schema version. */
   version?: number
+  /** Registered platform modules. */
   modules?: PlatformModuleRegistration[]
+  /** Effective feature flags keyed by flag name. */
   featureFlags?: Record<string, boolean>
 }
 
 interface PlatformModuleOptions {
+  /** Manifest to merge; defaults to the bundled local manifest. */
   manifest?: PlatformManifest
+  /** Current user's identity groups or permissions. */
   userPermissions?: string[]
 }
 

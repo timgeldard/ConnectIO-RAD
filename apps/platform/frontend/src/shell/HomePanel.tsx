@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
+import { useI18n } from '@connectio/shared-frontend-i18n'
 import { MODULES } from './modules'
 import { moduleHref } from './LandingCard'
 import {
@@ -9,7 +10,9 @@ import {
 } from './moduleManifest'
 
 interface HomePanelProps {
+  /** Modules currently visible to the platform user after registry filtering. */
   modules?: ConnectIOModule[]
+  /** Friendly user name already loaded by the shell session hook. */
   sessionName?: string
 }
 
@@ -20,13 +23,19 @@ const categoryLabel = (category: string): string =>
     .map((part) => part[0].toUpperCase() + part.slice(1))
     .join(' ')
 
-const moduleStatus = (mod: PlatformModuleRegistration): string => {
+const moduleStatus = (mod: PlatformModuleRegistration, t: (key: string) => string): string => {
   if (mod.health?.badge) return mod.health.badge
   if (mod.health?.status && mod.health.status !== 'unknown') return mod.health.status
-  return mod.backendPrefix ? 'Live API' : 'Static'
+  return mod.backendPrefix ? t('platform.home.status.liveApi') : t('platform.home.status.static')
 }
 
+/**
+ * Renders the platform home dashboard for registered manufacturing apps.
+ *
+ * @returns Searchable, grouped app launch cards with shell status metadata.
+ */
 export function HomePanel({ modules = MODULES, sessionName }: HomePanelProps) {
+  const { t } = useI18n()
   const [name, setName] = useState(sessionName ?? '')
   const [query, setQuery] = useState('')
 
@@ -54,19 +63,19 @@ export function HomePanel({ modules = MODULES, sessionName }: HomePanelProps) {
       <div className="plat-home-hero">
         <div>
           <h1 className="plat-home-greeting">
-            {name ? `Welcome back, ${name}` : 'Welcome'}
+            {name ? t('platform.home.welcomeBack', { name }) : t('platform.home.welcome')}
           </h1>
           <div className="plat-home-summary">
-            <span>{cards.length} registered apps</span>
-            <span>{groups.length} domains</span>
+            <span>{t('platform.home.registeredApps', { count: cards.length })}</span>
+            <span>{t('platform.home.domains', { count: groups.length })}</span>
           </div>
         </div>
         <label className="plat-home-search">
-          <span>Search apps</span>
+          <span>{t('platform.home.searchLabel')}</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Quality, SPC, trace, warehouse..."
+            placeholder={t('platform.home.searchPlaceholder')}
           />
         </label>
       </div>
@@ -88,7 +97,7 @@ export function HomePanel({ modules = MODULES, sessionName }: HomePanelProps) {
                 <div className="plat-home-card-body">
                   <div className="plat-home-card-meta">
                     <div className="plat-landing-tag">{mod.landingCard!.tag}</div>
-                    <span className="plat-home-status">{moduleStatus(mod)}</span>
+                    <span className="plat-home-status">{moduleStatus(mod, t)}</span>
                   </div>
                   <div className="plat-home-card-name">{mod.displayName}</div>
                   <p className="plat-home-card-desc">{mod.landingCard!.desc}</p>
@@ -98,7 +107,7 @@ export function HomePanel({ modules = MODULES, sessionName }: HomePanelProps) {
           </div>
         </section>
       ))}
-      {cards.length === 0 ? <div className="plat-empty">No registered apps match your search.</div> : null}
+      {cards.length === 0 ? <div className="plat-empty">{t('platform.home.emptySearch')}</div> : null}
     </div>
   )
 }
