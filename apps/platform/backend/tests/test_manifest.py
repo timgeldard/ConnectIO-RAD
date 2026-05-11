@@ -42,4 +42,6 @@ def test_platform_status_endpoint_reports_registered_modules():
     response = _client().get("/api/platform/apps/status")
 
     assert response.status_code == 200
-    assert response.json()["template"]["badge"] == "Demo"
+    template = response.json()["template"]
+    assert template["badge"] == "Demo"
+    assert template["status"] == "degraded"

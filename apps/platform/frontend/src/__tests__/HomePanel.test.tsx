@@ -85,4 +85,11 @@ describe('HomePanel', () => {
     expect(screen.getByText('No registered apps match your search.')).toBeTruthy()
     expect(fetch).not.toHaveBeenCalled()
   })
+
+  it('can skip standalone session fetch when parent shell owns session loading', () => {
+    renderHomePanel(<HomePanel sessionName={undefined} fetchSessionFallback={false} />)
+
+    expect(fetch).not.toHaveBeenCalled()
+    expect(screen.getByText('Welcome')).toBeTruthy()
+  })
 })

@@ -125,6 +125,21 @@ def _static_status(module: dict[str, Any]) -> str:
     return "missing"
 
 
+def _module_status(module: dict[str, Any]) -> str:
+    """Resolve the effective status for a registered module.
+
+    Args:
+        module: Single module registration from the platform manifest.
+
+    Returns:
+        Declared status when meaningful, otherwise static asset availability.
+    """
+    declared_status = module.get("health", {}).get("status")
+    if declared_status and declared_status != "unknown":
+        return str(declared_status)
+    return _static_status(module)
+
+
 @router.get("/manifest")
 async def get_app_manifest() -> dict[str, Any]:
     """Return the dynamic app registration manifest consumed by the shell.
@@ -156,7 +171,7 @@ async def get_app_status() -> dict[str, dict[str, str]]:
     manifest = _with_env_feature_flags(await _read_manifest())
     return {
         str(module["moduleId"]): {
-            "status": module.get("health", {}).get("status") or _static_status(module),
+            "status": _module_status(module),
             "badge": module.get("health", {}).get("badge") or "Registered",
         }
         for module in manifest.get("modules", [])

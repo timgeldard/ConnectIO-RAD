@@ -57,6 +57,7 @@ export function App() {
         modules={modules}
         activeTabId={state.tabState[state.activeModuleId]}
         sessionName={session.name}
+        fetchSessionFallback={false}
       />
       <GenieDrawer
         open={genieOpen}

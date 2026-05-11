@@ -14,6 +14,8 @@ interface HomePanelProps {
   modules?: ConnectIOModule[]
   /** Friendly user name already loaded by the shell session hook. */
   sessionName?: string
+  /** Enables the standalone fallback session lookup when no parent session is provided. */
+  fetchSessionFallback?: boolean
 }
 
 const categoryLabel = (category: string): string =>
@@ -34,7 +36,11 @@ const moduleStatus = (mod: PlatformModuleRegistration, t: (key: string) => strin
  *
  * @returns Searchable, grouped app launch cards with shell status metadata.
  */
-export function HomePanel({ modules = MODULES, sessionName }: HomePanelProps) {
+export function HomePanel({
+  modules = MODULES,
+  sessionName,
+  fetchSessionFallback = true,
+}: HomePanelProps) {
   const { t } = useI18n()
   const [name, setName] = useState(sessionName ?? '')
   const [query, setQuery] = useState('')
@@ -44,13 +50,17 @@ export function HomePanel({ modules = MODULES, sessionName }: HomePanelProps) {
       setName(sessionName)
       return
     }
+    if (!fetchSessionFallback) {
+      setName('')
+      return
+    }
     fetch('/api/platform/me')
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { name?: string } | null) => {
         if (data?.name) setName(data.name)
       })
       .catch(() => {})
-  }, [sessionName])
+  }, [fetchSessionFallback, sessionName])
 
   const normalizedQuery = query.trim().toLowerCase()
   const cards = (modules as PlatformModuleRegistration[])
