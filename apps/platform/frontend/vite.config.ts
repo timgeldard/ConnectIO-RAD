@@ -36,7 +36,7 @@ export default defineConfig({
       exclude: ['src/__tests__/**', 'src/main.tsx'],
       // Ratchet baseline 2026-05-07. Current actuals are below the 75% mandate;
       // raise both numbers each sprint until they reach 75/75/75/75. See TODO.md.
-      thresholds: { lines: 60, functions: 65, branches: 75, statements: 60 },
+      thresholds: { lines: 75, functions: 75, branches: 75, statements: 75 },
     },
   },
 })
