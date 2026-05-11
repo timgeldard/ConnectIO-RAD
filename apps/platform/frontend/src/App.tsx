@@ -4,10 +4,11 @@ import { PlantProvider } from '@connectio/shared-app-context'
 import { PlatformShell } from '@connectio/shared-ui/shell'
 import { COMPOSITION } from './shell/composition'
 import { MODULES } from './shell/modules'
-import { getPlatformModules } from './shell/moduleManifest'
 import { useShellState } from './shell/useShellState'
 import { usePinnedModules } from './shell/usePinnedModules'
 import { useBadgeCounts } from './shell/useBadgeCounts'
+import { usePlatformRegistry } from './shell/usePlatformRegistry'
+import { usePlatformSession } from './shell/usePlatformSession'
 import { ModuleContentPanel } from './shell/ModuleContentPanel'
 import { CrossAppContextBar } from './shell/CrossAppContextBar'
 import { GenieDrawer } from './genie/GenieDrawer'
@@ -16,7 +17,15 @@ import './genie/genie.css'
 /** Platform shell root — wires shell state, module routing, and the Genie AI drawer. */
 export function App() {
   const [state, handlers] = useShellState()
-  const modules = useMemo(() => getPlatformModules(MODULES), [])
+  const session = usePlatformSession()
+  const { modules } = usePlatformRegistry(MODULES, session.groups)
+  const composition = useMemo(
+    () => ({
+      ...COMPOSITION,
+      enabledModules: modules.map((module) => module.moduleId),
+    }),
+    [modules],
+  )
   const selectableModuleIds = useMemo(
     () => modules.filter((m) => m.isUserSelectable && !m.isMandatory).map((m) => m.moduleId),
     [modules],
@@ -27,7 +36,7 @@ export function App() {
 
   return (
     <PlatformShell
-      composition={COMPOSITION}
+      composition={composition}
       modules={modules}
       activeModule={state.activeModuleId}
       tabState={state.tabState}
@@ -46,6 +55,7 @@ export function App() {
         moduleId={state.activeModuleId}
         modules={modules}
         activeTabId={state.tabState[state.activeModuleId]}
+        sessionName={session.name}
       />
       <GenieDrawer
         open={genieOpen}

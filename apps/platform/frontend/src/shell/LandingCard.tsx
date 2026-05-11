@@ -1,7 +1,11 @@
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
+import type { PlatformModuleRegistration } from './moduleManifest'
 
 /** Derives the navigation URL for a module, optionally landing on a specific tab view. */
 export function moduleHref(mod: ConnectIOModule, activeTabId?: string): string {
+  const route = (mod as PlatformModuleRegistration).route
+  if (route?.kind === 'external') return route.path
+  if (route?.kind === 'local' && route.path.endsWith('/')) return route.path
   const tab = activeTabId ?? mod.defaultTab
   // Standalone apps have routeBase ending in '/'; navigate there directly.
   if (mod.routeBase.endsWith('/')) return mod.routeBase

@@ -99,6 +99,13 @@ npx nx g @connectio/rad:bounded-context --name=supplier-quality --domain=quality
 
 The generator creates `backend`, `frontend`, and `e2e` projects; Databricks deployment files; `.ai-dev-kit` guidance; 16 i18n locale stubs; Nx targets; uv workspace registration; DDD guardrail registration; and platform manifest registration.
 
+Generated apps are discoverable in the Platform shell through
+`apps/platform/frontend/src/shell/module-manifest.json` and the backend endpoint
+`/api/platform/apps/manifest`. Keep the generated `permissions` list empty for
+demo-first modules, then add identity groups before production rollout. Feature
+flags use the `<module-id>.enabled` convention and can be overridden with
+`PLATFORM_FEATURE_<MODULE_ID>_ENABLED=false`.
+
 Validate the scaffold before adding domain-specific logic:
 
 ```bash

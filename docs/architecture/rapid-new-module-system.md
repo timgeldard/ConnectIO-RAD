@@ -114,4 +114,11 @@ npx nx run supplierquality-frontend:test
 
 Generated demo apps are intentionally platform-visible before deep cross-app wiring. Keep demo repository data in `dal/` until the Databricks gold views are ready, then replace only the repository implementation.
 
+Platform registration is manifest-driven:
+
+- The generator appends an entry to `apps/platform/frontend/src/shell/module-manifest.json`.
+- The platform backend serves the merged registration contract from `/api/platform/apps/manifest`.
+- The shell uses manifest `category`, `permissions`, `featureFlags`, `searchKeywords`, `route`, and `health` fields for dynamic navigation, search, visibility, and dashboard badges.
+- Existing static apps can migrate gradually; see `docs/architecture/platform-dynamic-registration.md`.
+
 See `docs/architecture/shared-library-usage-examples.md` for examples of the shared backend factory, domain primitives, and frontend hooks that generated apps are expected to use.

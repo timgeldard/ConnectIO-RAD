@@ -10,10 +10,12 @@ interface ModuleContentPanelProps {
   modules: ConnectIOModule[]
   /** The tab currently active in the shell SubNav for this module. */
   activeTabId?: string
+  /** Friendly user name from the platform session. */
+  sessionName?: string
 }
 
 /** Renders the content panel for the active module. */
-export function ModuleContentPanel({ moduleId, modules, activeTabId }: ModuleContentPanelProps) {
+export function ModuleContentPanel({ moduleId, modules, activeTabId, sessionName }: ModuleContentPanelProps) {
   const mod = modules.find((m) => m.moduleId === moduleId)
 
   // Selecting any non-home module navigates directly into the sub-app,
@@ -25,7 +27,7 @@ export function ModuleContentPanel({ moduleId, modules, activeTabId }: ModuleCon
   }, [moduleId, mod, activeTabId])
 
   if (moduleId === 'home' || !mod) {
-    return <HomePanel />
+    return <HomePanel modules={modules} sessionName={sessionName} />
   }
 
   // Render nothing while the navigation fires.

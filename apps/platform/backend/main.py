@@ -26,6 +26,7 @@ from shared_api import (
     register_spa_routes,
 )
 from backend.routes.badges import router as badges_router
+from backend.routes.manifest import router as manifest_router
 from backend.routes.session import router as session_router
 from backend.utils import (
     _optional_attr,
@@ -173,6 +174,7 @@ def _include_required_routers() -> None:
 
 _include_required_routers()
 app.include_router(badges_router)
+app.include_router(manifest_router)
 app.include_router(session_router)
 
 
