@@ -1,7 +1,14 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import type { CSSProperties } from "react";
 
-export type GraphViewMode = "lineage" | "tree" | "network" | "radial" | "advanced";
+export type GraphViewMode =
+  | "lineage"
+  | "tree"
+  | "network"
+  | "radial"
+  | "advanced"
+  | "sankey"
+  | "table";
 
 interface Props {
   value: GraphViewMode;
@@ -22,6 +29,8 @@ const DEFAULT_LABELS: Record<GraphViewMode, string> = {
   network: "Network",
   radial: "Blast radius",
   advanced: "Advanced",
+  sankey: "Sankey",
+  table: "Table",
 };
 
 const DEFAULT_MODES: GraphViewMode[] = [
@@ -30,6 +39,8 @@ const DEFAULT_MODES: GraphViewMode[] = [
   "network",
   "radial",
   "advanced",
+  "sankey",
+  "table",
 ];
 
 /**

@@ -1,6 +1,6 @@
 # trace2 advanced traceability visualisation
 
-- **Status:** Phase 0 + Phase 1 complete (including finishing items); Phases 2–4 not started
+- **Status:** Phase 0 + Phase 1 + Phase 2 complete; Phases 3–4 not started
 - **Date:** 2026-05-12
 - **Owner:** TBD (trace2 frontend lead)
 
@@ -90,18 +90,30 @@ designed so each one slots in without rework.
   (k/M shortening for compactness).  Zero-qty edges fall back to width
   `1` — no fabricated visuals.
 
-### Phase 2 — Sankey + table views
+### Phase 2 — Sankey + table views — ✅ shipped (2026-05-12)
 
-- **`SankeyFlowView`.**  ECharts is already in `shared-reporting`'s
-  dep tree, so the renderer is cheap; the blocker is that the lineage
-  endpoint currently emits only per-node `qty` with no aggregated
-  flow magnitude.  Either:
-  1. Backend adds a `flow_qty` per edge in the lineage DAL, or
-  2. Frontend rolls qty up per `(source, target, link)` tuple.
-  Option (1) is correct long-term; option (2) is acceptable for a
-  spike.  Add the field to the entities.yaml entry for
-  `vw_gold_batch_lineage` before merging.
-- **Table view** with the same filters + a CSV export.
+- **Backend `flow_qty`.**  `libs/shared-trace/src/shared_trace/dal.py`
+  now emits a per-edge `flow_qty` alongside the existing per-node
+  cumulative `qty` for both bottom-up and top-down lineage.  A new
+  `edge_agg` CTE groups by the full (parent triple → child triple)
+  tuple and `SUM(QUANTITY)`; the final SELECT left-joins it on the
+  canonical parent picked by the existing `MIN()` logic.  Back-compat
+  for `qty` is preserved.  `entities.yaml` documents both the
+  `gold_batch_lineage.QUANTITY` source column and the derived
+  `flow_qty` measure.
+- **`SankeyFlowView`.**  ECharts Sankey via the shared `EChart`
+  wrapper.  Honours direction / depth / link / group filters by
+  delegating to `buildLineageGraph` and re-encoding its output as
+  Sankey nodes + links.  Falls back gracefully when filters strip
+  all edges (shows a placeholder, not an empty chart).  3 smoke
+  tests.
+- **`LineageTableView`.**  Sortable HTML table with focal row, side
+  badges, link, `flow_qty`, `qty`, UOM.  CSV export action via a
+  hidden anchor.  Honours every filter the other two views honour.
+  6 unit tests.
+- Frontend transform now prefers `flow_qty` for edge weight when
+  present, falling back to `qty` for older payloads (4 dedicated
+  back-compat tests).
 
 ### Phase 3 — Polish + manufacturing fit
 
@@ -161,6 +173,9 @@ A future cleanup can hoist the CSS import into the AppShell.
 | `viewState.test.ts` | 5 | URL parse defaults, enum rejection, depth clamp, round-trip including `groupBy`+`enabledLinks`, selectedId null behaviour |
 | `AdvancedLineageGraph.test.tsx` | 4 | Smoke mount, layout hint, no spurious callback, empty data |
 | `TraceFilterControls.test.tsx` | 6 | Default visibility, hide-on-direction, segmented click, link-chip toggle, last-link safety net, slider numeric emit |
+| `flow_qty.test.ts` | 4 | flow_qty drives weight, fall-back to qty, zero-flow → weight 1, NaN → fall-back |
+| `SankeyFlowView.test.tsx` | 3 | Smoke render, empty-filter placeholder, link filter applied |
+| `LineageTableView.test.tsx` | 6 | Render focal + rows, flow_qty shown, sort toggle (aria-sort), enabledLinks filter, row click forwards id, export button state |
 
-Total: **35 tests, all passing**.
+Total: **48 tests, all passing**.
 The classic `LineageGraph.test.tsx` is unchanged and still passes.

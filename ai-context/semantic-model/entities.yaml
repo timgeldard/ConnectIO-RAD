@@ -179,7 +179,24 @@ entities:
       - name: LINK_DATE
         type: DATE
         description: Date the lineage edge was created (goods movement date)
-    important_measures: []
+      - name: QUANTITY
+        type: DECIMAL(18,3)
+        description: >
+          Material quantity moved along this lineage edge in the row's UOM.
+          For PRODUCTION links this is the output qty; for BATCH_TRANSFER /
+          STO_TRANSFER it is the transferred qty.  Aggregate via SUM to derive
+          per-node totals or per-edge flow.
+      - name: BASE_UNIT_OF_MEASURE
+        type: STRING
+        description: Unit of measure for QUANTITY (e.g. KG, L, PC)
+    important_measures:
+      - name: flow_qty
+        derivation: SUM(QUANTITY) grouped by (parent triple, child triple)
+        description: >
+          Aggregated material flow along one (parent → child) edge.  Used by
+          trace2 frontend Sankey + path-weight overlays.  Distinct from the
+          per-node cumulative SUM(qty) that the recursive walk produces —
+          ``flow_qty`` is per-edge, ``qty`` is per-node.
     forbidden_usage:
       - "NEVER traverse lineage without WITH RECURSIVE — plain CTEs cannot self-reference"
       - "NEVER omit cycle detection — data can contain circular references from reversals"

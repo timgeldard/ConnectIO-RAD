@@ -175,6 +175,33 @@ export function isLinkVisible(
 /** Tests rely on the set of canonical link types being stable. */
 export { KNOWN_LINKS as TRACE_KNOWN_LINKS }
 
+/**
+ * Project a {@link TraceViewState} into the filter-subset that
+ * {@link import('./TraceFilterControls').TraceFilterControls} consumes.
+ *
+ * Kept as a free function rather than a hook so consumers can call it in
+ * the render body without paying for an extra memoisation layer; the
+ * returned object is cheap to recreate.
+ *
+ * @param state The shared trace view state owned by the page.
+ * @returns The five filter fields the controls toolbar knows about.
+ */
+export function toFilterValue(state: TraceViewState): {
+  direction: LineageDirection
+  depthUpstream: number
+  depthDownstream: number
+  groupBy: TraceGroupBy
+  enabledLinks: ReadonlySet<AdvancedLinkType>
+} {
+  return {
+    direction: state.direction,
+    depthUpstream: state.depthUpstream,
+    depthDownstream: state.depthDownstream,
+    groupBy: state.groupBy,
+    enabledLinks: state.enabledLinks,
+  }
+}
+
 function clampDepth(raw: string | null, fallback: number): number {
   if (raw == null) return fallback
   const n = Number.parseInt(raw, 10)

@@ -9,15 +9,26 @@ import { CytoscapeGraph, type CytoscapeMode } from "../components/CytoscapeGraph
 import { GraphViewToggle, type GraphViewMode } from "../components/GraphViewToggle";
 import {
   AdvancedLineageGraph,
+  LineageTableView,
+  SankeyFlowView,
   TraceFilterControls,
-  type TraceFilterValue,
+  toFilterValue,
+  useTraceViewState,
 } from "@connectio/shared-reporting";
 import "@xyflow/react/dist/style.css";
 import { usePersistentMode } from "../hooks/usePersistentMode";
 
 // TopDown adds the "Blast radius" radial layout for recall impact analysis;
 // BottomUp omits it (radial blast radius doesn't map to upstream auditing).
-const TOP_DOWN_VIEWS: GraphViewMode[] = ["lineage", "tree", "network", "radial", "advanced"];
+const TOP_DOWN_VIEWS: GraphViewMode[] = [
+  "lineage",
+  "tree",
+  "network",
+  "radial",
+  "advanced",
+  "sankey",
+  "table",
+];
 import { Card, DataTable, DepthControl, KPI, SectionHeader, fmtN, fmtInt } from "../ui";
 import { useI18n } from "@connectio/shared-frontend-i18n";
 import { plural, template, traceCopy } from "../i18n/pageCopy";
@@ -81,13 +92,8 @@ function TopDownBody({
     TOP_DOWN_VIEWS,
   );
   // TopDown is downstream-only — hide the direction segment in the toolbar.
-  const [filterValue, setFilterValue] = useState<TraceFilterValue>(() => ({
-    direction: "downstream",
-    depthUpstream: 99,
-    depthDownstream: 99,
-    groupBy: "none",
-    enabledLinks: new Set(),
-  }));
+  // URL-synced via shared TraceViewState so investigators can share links.
+  const [traceView, updateTraceView] = useTraceViewState({ direction: "downstream" });
   const { language } = useI18n();
   const copy = traceCopy(language);
   const focal = focalFromBatch(batch);
@@ -141,34 +147,68 @@ function TopDownBody({
               }
             }}
           />
-        ) : graphView === "advanced" ? (
+        ) : graphView === "advanced" || graphView === "sankey" || graphView === "table" ? (
           <div>
             <TraceFilterControls
-              value={filterValue}
-              onChange={(patch) =>
-                setFilterValue((prev) => ({ ...prev, ...patch }))
-              }
+              value={toFilterValue(traceView)}
+              onChange={updateTraceView}
               show={{ direction: false }}
               maxDepth={Math.max(8, maxLevel)}
             />
             <div style={{ padding: "0 14px 14px" }}>
-              <AdvancedLineageGraph
-                data={{ focal, upstream: [], downstream: lineage }}
-                direction="downstream"
-                orientation="LR"
-                maxDownstreamLevel={filterValue.depthDownstream}
-                enabledLinks={filterValue.enabledLinks}
-                groupBy={filterValue.groupBy}
-                selectedId={selected?.id ?? null}
-                onNodeClick={(id) => {
-                  if (id === focal.id) {
-                    setSelected(null);
-                    return;
-                  }
-                  const next = lineage.find((n) => n.id === id) ?? null;
-                  setSelected(next);
-                }}
-              />
+              {graphView === "advanced" && (
+                <AdvancedLineageGraph
+                  data={{ focal, upstream: [], downstream: lineage }}
+                  direction="downstream"
+                  orientation="LR"
+                  maxDownstreamLevel={traceView.depthDownstream}
+                  enabledLinks={traceView.enabledLinks}
+                  groupBy={traceView.groupBy}
+                  selectedId={selected?.id ?? null}
+                  onNodeClick={(id) => {
+                    if (id === focal.id) {
+                      setSelected(null);
+                      return;
+                    }
+                    const next = lineage.find((n) => n.id === id) ?? null;
+                    setSelected(next);
+                  }}
+                />
+              )}
+              {graphView === "sankey" && (
+                <SankeyFlowView
+                  data={{ focal, upstream: [], downstream: lineage }}
+                  direction="downstream"
+                  maxDownstreamLevel={traceView.depthDownstream}
+                  enabledLinks={traceView.enabledLinks}
+                  groupBy={traceView.groupBy}
+                  onNodeClick={(id) => {
+                    if (id === focal.id) {
+                      setSelected(null);
+                      return;
+                    }
+                    const next = lineage.find((n) => n.id === id) ?? null;
+                    setSelected(next);
+                  }}
+                />
+              )}
+              {graphView === "table" && (
+                <LineageTableView
+                  data={{ focal, upstream: [], downstream: lineage }}
+                  direction="downstream"
+                  maxDownstreamLevel={traceView.depthDownstream}
+                  enabledLinks={traceView.enabledLinks}
+                  groupBy={traceView.groupBy}
+                  onRowClick={(id) => {
+                    if (id === focal.id) {
+                      setSelected(null);
+                      return;
+                    }
+                    const next = lineage.find((n) => n.id === id) ?? null;
+                    setSelected(next);
+                  }}
+                />
+              )}
             </div>
           </div>
         ) : (

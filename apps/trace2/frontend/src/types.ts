@@ -101,6 +101,12 @@ export interface LineageNode {
   batch: string;
   plant: string;
   qty: number;
+  /**
+   * Per-edge material flow (parent → this node), populated by the backend
+   * ``edge_agg`` CTE.  Optional because older payloads pre-flow_qty rollout
+   * may omit it; consumers should fall back to ``qty`` when absent.
+   */
+  flow_qty?: number;
   uom: string;
   supplier?: string;
   customer?: string;

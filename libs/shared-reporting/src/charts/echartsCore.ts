@@ -1,6 +1,12 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import * as echarts from 'echarts/core'
-import { BarChart, HeatmapChart, LineChart, ScatterChart } from 'echarts/charts'
+import {
+  BarChart,
+  HeatmapChart,
+  LineChart,
+  SankeyChart,
+  ScatterChart,
+} from 'echarts/charts'
 import {
   GridComponent,
   LegendComponent,
@@ -17,6 +23,7 @@ echarts.use([
   BarChart,
   HeatmapChart,
   LineChart,
+  SankeyChart,
   ScatterChart,
   GridComponent,
   LegendComponent,

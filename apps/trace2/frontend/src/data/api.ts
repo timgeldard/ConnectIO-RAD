@@ -644,6 +644,9 @@ interface RawLineageRow {
   plant_id?: Nullable<string>;
   plant: Nullable<string>;
   qty: NumLike;
+  /** Per-edge flow_qty from the backend ``edge_agg`` CTE.  Optional for
+   * back-compat with older payloads emitted before flow_qty rollout. */
+  flow_qty?: NumLike;
   uom: Nullable<string>;
   supplier?: Nullable<string>;
   customer?: Nullable<string>;
@@ -687,6 +690,7 @@ function mapLineage(
     batch: str(row.batch),
     plant: str(row.plant),
     qty: num(row.qty),
+    flow_qty: row.flow_qty != null ? num(row.flow_qty) : undefined,
     uom: str(row.uom, "KG"),
     supplier: row.supplier ? str(row.supplier) : undefined,
     customer: row.customer ? str(row.customer) : undefined,

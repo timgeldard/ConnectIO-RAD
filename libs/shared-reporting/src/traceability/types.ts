@@ -44,7 +44,14 @@ export interface AdvancedLineageNode {
   /** Batch identifier; named `batch` (not `batch_id`) to match the classic component. */
   batch: string
   plant: string
+  /** Per-node cumulative quantity across all parent paths reaching this node. */
   qty: number
+  /**
+   * Per-edge material flow (parent → this node) from the backend ``edge_agg``
+   * CTE.  Preferred for Sankey + path-weight overlays.  When undefined,
+   * consumers fall back to ``qty`` so older payloads still render.
+   */
+  flow_qty?: number
   uom: string
   supplier?: string
   customer?: string

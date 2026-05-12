@@ -14,6 +14,14 @@ export {
   type HybridTraceabilityPanelProps,
 } from './HybridTraceabilityPanel'
 export {
+  SankeyFlowView,
+  type SankeyFlowViewProps,
+} from './SankeyFlowView'
+export {
+  LineageTableView,
+  type LineageTableViewProps,
+} from './LineageTableView'
+export {
   buildLineageGraph,
   countNodesBySide,
   type FocalNodeData,
@@ -42,6 +50,7 @@ export {
   isLinkVisible,
   parseTraceViewState,
   serialiseTraceViewState,
+  toFilterValue,
   useTraceViewState,
   TRACE_KNOWN_LINKS,
   type TraceGroupBy,

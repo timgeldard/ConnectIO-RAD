@@ -168,12 +168,22 @@ export function buildLineageGraph(
     if (!keptIds.has(parentId)) continue // dangling
     const source = side === 'upstream' ? row.id : parentId
     const target = side === 'upstream' ? parentId : row.id
+    // Prefer per-edge ``flow_qty`` when the backend supplied it; otherwise
+    // fall back to the per-node ``qty`` so older payloads still produce
+    // a sensible weight.  Negative / non-finite values are treated as
+    // "no qty contribution" — flow weights must always be positive.
+    const edgeQty =
+      row.flow_qty != null && Number.isFinite(row.flow_qty)
+        ? row.flow_qty
+        : Number.isFinite(row.qty)
+          ? row.qty
+          : null
     rawEdges.push({
       source,
       target,
       link: row.link,
       direction: side,
-      qty: Number.isFinite(row.qty) ? row.qty : null,
+      qty: edgeQty,
     })
   }
 
