@@ -269,6 +269,7 @@ async def update_dashboard(
     "/{dashboard_id}",
     status_code=204,
     summary="Delete dashboard",
+    response_model=None,
     response_class=Response,
     tags=["Dashboards"],
 )
@@ -371,6 +372,7 @@ async def share_dashboard(
     "/{dashboard_id}/shares/{shared_with_email}",
     status_code=204,
     summary="Unshare dashboard",
+    response_model=None,
     response_class=Response,
     tags=["Dashboards"],
 )
