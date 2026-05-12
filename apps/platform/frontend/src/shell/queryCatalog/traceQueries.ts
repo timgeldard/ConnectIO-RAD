@@ -1,6 +1,429 @@
-import type { QueryRegistry } from '@connectio/shared-reporting';
+import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
+import { endpoint, fields as selectFields, params, postQuery, widgetCompatibility } from './common';
+
+/**
+ * Creates a traceability-specific field definition.
+ *
+ * @param path - Dot-path in the response payload.
+ * @param label - Human-readable field label.
+ * @param type - Expected value type.
+ * @param semantic - Optional semantic hint for mapping defaults.
+ * @returns Query field metadata for the registry.
+ */
+function traceField(
+  path: string,
+  label: string,
+  type: QueryValueType,
+  semantic?: QueryField['semantic'],
+): QueryField {
+  return { path, label, type, semantic };
+}
+
+const traceParams = params('plant_id', 'date_from', 'date_to', 'material_id', 'batch_id');
 
 /**
  * Traceability query definitions for the platform dashboard builder.
  */
-export const traceQueries: QueryRegistry = {};
+export const traceQueries: QueryRegistry = {
+  'trace.batchSummary': postQuery({
+    key: 'trace.batchSummary',
+    label: 'Batch Summary',
+    description: 'Summarises a selected batch with production, shipment, and status context for quick review.',
+    endpoint: endpoint('trace', 'batch-summary'),
+    compatibleWidgets: ['kpi', 'drill-down-table'],
+    params: traceParams,
+    fields: [
+      traceField('value', 'Produced quantity', 'number'),
+      traceField('subtext', 'KPI subtext', 'string'),
+      traceField('batch_status', 'Batch status', 'string', 'status'),
+      traceField('produced_qty', 'Produced quantity', 'number'),
+      traceField('consumed_qty', 'Consumed quantity', 'number'),
+      traceField('delivered_qty', 'Delivered quantity', 'number'),
+      traceField('remaining_qty', 'Remaining quantity', 'number'),
+      ...selectFields('material_id', 'material_description', 'batch_id', 'plant_id', 'uom'),
+      traceField('rows', 'Rows', 'array'),
+    ],
+    sampleResponse: {
+      value: 2480,
+      unit: 'KG',
+      subtext: 'remaining after shipment and consumption',
+      batch_status: 'Released',
+      produced_qty: 5200,
+      consumed_qty: 0,
+      delivered_qty: 2720,
+      remaining_qty: 2480,
+      material_id: '000000000020052009',
+      material_description: 'Breaded fillet strips 5kg',
+      batch_id: '0008602411',
+      plant_id: 'C061',
+      uom: 'KG',
+      rows: [
+        {
+          material_id: '000000000020052009',
+          material_description: 'Breaded fillet strips 5kg',
+          batch_id: '0008602411',
+          batch_status: 'Released',
+          produced_qty: 5200,
+          delivered_qty: 2720,
+          remaining_qty: 2480,
+          uom: 'KG',
+        },
+      ],
+    },
+  }),
+  'trace.batchLineage': postQuery({
+    key: 'trace.batchLineage',
+    label: 'Batch Lineage',
+    description: 'Returns lineage nodes and edges for the selected batch with a table-ready flattened view.',
+    endpoint: endpoint('trace', 'batch-lineage'),
+    compatibleWidgets: ['drill-down-table'],
+    params: [...traceParams, ...params('process_order_id')],
+    fields: [
+      traceField('lineage_nodes', 'Lineage nodes', 'array'),
+      traceField('lineage_edges', 'Lineage edges', 'array'),
+      traceField('rows', 'Rows', 'array'),
+      ...selectFields('material_id', 'batch_id', 'plant_id', 'process_order_id'),
+    ],
+    sampleResponse: {
+      lineage_nodes: [
+        { id: 'RM-001|0008100021', material_id: '000000000010000021', batch_id: '0008100021', level: 0 },
+        { id: 'FG-001|0008602411', material_id: '000000000020052009', batch_id: '0008602411', level: 1 },
+      ],
+      lineage_edges: [
+        {
+          source: 'RM-001|0008100021',
+          target: 'FG-001|0008602411',
+          process_order_id: '000147845120',
+          quantity: 5200,
+          uom: 'KG',
+        },
+      ],
+      rows: [
+        {
+          material_id: '000000000020052009',
+          batch_id: '0008602411',
+          plant_id: 'C061',
+          process_order_id: '000147845120',
+          relationship: 'Produced from RM batch 0008100021',
+        },
+      ],
+    },
+  }),
+  'trace.whereUsed': postQuery({
+    key: 'trace.whereUsed',
+    label: 'Where Used',
+    description: 'Shows downstream batches and orders that consumed or inherited the selected batch.',
+    endpoint: endpoint('trace', 'where-used'),
+    compatibleWidgets: widgetCompatibility.kpiBarTable,
+    params: traceParams,
+    fields: [
+      traceField('value', 'Affected batch count', 'number', 'count'),
+      traceField('affected_batch_count', 'Affected batch count', 'number', 'count'),
+      traceField('affected_order_count', 'Affected order count', 'number', 'count'),
+      traceField('categories', 'Categories', 'array'),
+      traceField('series', 'Series', 'array'),
+      traceField('rows', 'Rows', 'array'),
+      ...selectFields('material_id', 'material_description', 'batch_id', 'process_order_id'),
+    ],
+    sampleResponse: {
+      value: 4,
+      affected_batch_count: 4,
+      affected_order_count: 3,
+      categories: ['Batches', 'Orders'],
+      series: [{ name: 'Affected objects', data: [4, 3] }],
+      rows: [
+        {
+          material_id: '000000000020052009',
+          material_description: 'Breaded fillet strips 5kg',
+          batch_id: '0008602411',
+          process_order_id: '000147845120',
+          relationship: 'Consumed in finished goods run',
+        },
+      ],
+    },
+  }),
+  'trace.customerExposure': postQuery({
+    key: 'trace.customerExposure',
+    label: 'Customer Exposure',
+    description: 'Quantifies the downstream customer impact for a selected batch or material/batch pair.',
+    endpoint: endpoint('trace', 'customer-exposure'),
+    compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
+    params: [...traceParams, ...params('customer_id')],
+    fields: [
+      traceField('value', 'Customer count', 'number', 'count'),
+      traceField('customer_count', 'Customer count', 'number', 'count'),
+      traceField('affected_delivery_count', 'Affected delivery count', 'number', 'count'),
+      traceField('items', 'Pareto items', 'array'),
+      traceField('categories', 'Categories', 'array'),
+      traceField('series', 'Series', 'array'),
+      traceField('rows', 'Rows', 'array'),
+      ...selectFields('customer_id', 'material_id', 'material_description', 'batch_id'),
+      traceField('customer_name', 'Customer name', 'string'),
+      traceField('delivery_id', 'Delivery', 'string'),
+    ],
+    sampleResponse: {
+      value: 3,
+      customer_count: 3,
+      affected_delivery_count: 7,
+      categories: ['Kerry Foods UK', 'Major Grocer EU', 'Foodservice Nordics'],
+      series: [{ name: 'Deliveries', data: [3, 2, 2] }],
+      items: [
+        { label: 'Kerry Foods UK', value: 3 },
+        { label: 'Major Grocer EU', value: 2 },
+        { label: 'Foodservice Nordics', value: 2 },
+      ],
+      rows: [
+        {
+          customer_id: '1000432',
+          customer_name: 'Kerry Foods UK',
+          delivery_id: '0080012455',
+          affected_delivery_count: 3,
+          material_id: '000000000020052009',
+          batch_id: '0008602411',
+        },
+      ],
+    },
+  }),
+  'trace.supplierExposure': postQuery({
+    key: 'trace.supplierExposure',
+    label: 'Supplier Exposure',
+    description: 'Shows upstream supplier concentration and affected input batches for the selected trace context.',
+    endpoint: endpoint('trace', 'supplier-exposure'),
+    compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
+    params: [...traceParams, ...params('supplier_id')],
+    fields: [
+      traceField('value', 'Supplier count', 'number', 'count'),
+      traceField('supplier_count', 'Supplier count', 'number', 'count'),
+      traceField('affected_batch_count', 'Affected batch count', 'number', 'count'),
+      traceField('items', 'Pareto items', 'array'),
+      traceField('categories', 'Categories', 'array'),
+      traceField('series', 'Series', 'array'),
+      traceField('rows', 'Rows', 'array'),
+      ...selectFields('supplier_id', 'material_id', 'batch_id'),
+      traceField('supplier_name', 'Supplier name', 'string'),
+      traceField('purchase_order_id', 'Purchase order', 'string'),
+    ],
+    sampleResponse: {
+      value: 2,
+      supplier_count: 2,
+      affected_batch_count: 5,
+      categories: ['Protein supplier A', 'Seasoning supplier B'],
+      series: [{ name: 'Input batches', data: [3, 2] }],
+      items: [
+        { label: 'Protein supplier A', value: 3 },
+        { label: 'Seasoning supplier B', value: 2 },
+      ],
+      rows: [
+        {
+          supplier_id: '2000123',
+          supplier_name: 'Protein supplier A',
+          purchase_order_id: '4500123456',
+          affected_batch_count: 3,
+          material_id: '000000000010000021',
+          batch_id: '0008100021',
+        },
+      ],
+    },
+  }),
+  'trace.inventoryPosition': postQuery({
+    key: 'trace.inventoryPosition',
+    label: 'Inventory Position',
+    description: 'Shows unrestricted, quality, and blocked inventory positions for the selected batch.',
+    endpoint: endpoint('trace', 'inventory-position'),
+    compatibleWidgets: widgetCompatibility.kpiBarTable,
+    params: traceParams,
+    fields: [
+      traceField('value', 'Remaining quantity', 'number'),
+      traceField('stock_unrestricted_qty', 'Unrestricted stock', 'number'),
+      traceField('stock_quality_qty', 'Quality stock', 'number'),
+      traceField('stock_blocked_qty', 'Blocked stock', 'number'),
+      traceField('batch_status', 'Batch status', 'string', 'status'),
+      traceField('categories', 'Categories', 'array'),
+      traceField('series', 'Series', 'array'),
+      traceField('rows', 'Rows', 'array'),
+      ...selectFields('material_id', 'batch_id', 'plant_id', 'uom'),
+    ],
+    sampleResponse: {
+      value: 2480,
+      stock_unrestricted_qty: 2100,
+      stock_quality_qty: 280,
+      stock_blocked_qty: 100,
+      batch_status: 'Released',
+      categories: ['Unrestricted', 'Quality', 'Blocked'],
+      series: [{ name: 'Stock qty', data: [2100, 280, 100] }],
+      rows: [
+        {
+          material_id: '000000000020052009',
+          batch_id: '0008602411',
+          plant_id: 'C061',
+          stock_unrestricted_qty: 2100,
+          stock_quality_qty: 280,
+          stock_blocked_qty: 100,
+          uom: 'KG',
+        },
+      ],
+    },
+  }),
+  'trace.massBalance': postQuery({
+    key: 'trace.massBalance',
+    label: 'Mass Balance',
+    description: 'Compares produced, consumed, shipped, and on-hand quantities to expose unexplained variance.',
+    endpoint: endpoint('trace', 'mass-balance'),
+    compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
+    params: traceParams,
+    fields: [
+      traceField('value', 'Mass balance variance %', 'number', 'percentage'),
+      traceField('mass_balance_variance_qty', 'Mass balance variance quantity', 'number'),
+      traceField('mass_balance_variance_pct', 'Mass balance variance %', 'number', 'percentage'),
+      traceField('produced_qty', 'Produced quantity', 'number'),
+      traceField('consumed_qty', 'Consumed quantity', 'number'),
+      traceField('delivered_qty', 'Delivered quantity', 'number'),
+      traceField('remaining_qty', 'Remaining quantity', 'number'),
+      traceField('points', 'Points', 'array', 'timeseries'),
+      traceField('categories', 'Categories', 'array'),
+      traceField('series', 'Series', 'array'),
+      traceField('rows', 'Rows', 'array'),
+    ],
+    sampleResponse: {
+      value: 0.8,
+      mass_balance_variance_qty: 42,
+      mass_balance_variance_pct: 0.8,
+      produced_qty: 5200,
+      consumed_qty: 0,
+      delivered_qty: 2720,
+      remaining_qty: 2480,
+      points: [
+        { label: 'Produced', value: 5200 },
+        { label: 'Delivered', value: 2720 },
+        { label: 'Remaining', value: 2480 },
+      ],
+      categories: ['Produced', 'Delivered', 'Remaining', 'Variance'],
+      series: [{ name: 'Quantity', data: [5200, 2720, 2480, 42] }],
+      rows: [
+        {
+          material_id: '000000000020052009',
+          batch_id: '0008602411',
+          produced_qty: 5200,
+          delivered_qty: 2720,
+          remaining_qty: 2480,
+          mass_balance_variance_qty: 42,
+          mass_balance_variance_pct: 0.8,
+        },
+      ],
+    },
+  }),
+  'trace.movementHistory': postQuery({
+    key: 'trace.movementHistory',
+    label: 'Movement History',
+    description: 'Traces batch movements over time with movement type, posting date, and related process references.',
+    endpoint: endpoint('trace', 'movement-history'),
+    compatibleWidgets: widgetCompatibility.trendBarTable,
+    params: traceParams,
+    fields: [
+      traceField('points', 'Points', 'array', 'timeseries'),
+      traceField('categories', 'Categories', 'array'),
+      traceField('series', 'Series', 'array'),
+      traceField('rows', 'Rows', 'array'),
+      traceField('movement_type', 'Movement type', 'string'),
+      ...selectFields('posting_date', 'process_order_id', 'material_id', 'batch_id', 'quantity', 'uom'),
+      traceField('purchase_order_id', 'Purchase order', 'string'),
+      traceField('delivery_id', 'Delivery', 'string'),
+    ],
+    sampleResponse: {
+      points: [
+        { label: '2026-05-08', value: 5200 },
+        { label: '2026-05-09', value: -1200 },
+        { label: '2026-05-10', value: -1520 },
+      ],
+      categories: ['101', '601', '601'],
+      series: [{ name: 'Movement qty', data: [5200, 1200, 1520] }],
+      rows: [
+        {
+          posting_date: '2026-05-08',
+          movement_type: '101',
+          process_order_id: '000147845120',
+          material_id: '000000000020052009',
+          batch_id: '0008602411',
+          quantity: 5200,
+          uom: 'KG',
+        },
+        {
+          posting_date: '2026-05-10',
+          movement_type: '601',
+          delivery_id: '0080012455',
+          quantity: 1520,
+          uom: 'KG',
+        },
+      ],
+    },
+  }),
+  'trace.productionHistory': postQuery({
+    key: 'trace.productionHistory',
+    label: 'Production History',
+    description: 'Shows the production runs that created or consumed the selected batch and their resulting quantities.',
+    endpoint: endpoint('trace', 'production-history'),
+    compatibleWidgets: ['kpi', 'trend', 'drill-down-table'],
+    params: [...traceParams, ...params('process_order_id')],
+    fields: [
+      traceField('value', 'Produced quantity', 'number'),
+      traceField('points', 'Points', 'array', 'timeseries'),
+      traceField('rows', 'Rows', 'array'),
+      traceField('produced_qty', 'Produced quantity', 'number'),
+      traceField('consumed_qty', 'Consumed quantity', 'number'),
+      ...selectFields('process_order_id', 'posting_date', 'material_id', 'batch_id', 'uom'),
+    ],
+    sampleResponse: {
+      value: 5200,
+      points: [
+        { label: 'Run 1', value: 2200 },
+        { label: 'Run 2', value: 3000 },
+      ],
+      rows: [
+        {
+          process_order_id: '000147845120',
+          posting_date: '2026-05-08',
+          produced_qty: 3000,
+          consumed_qty: 2900,
+          material_id: '000000000020052009',
+          batch_id: '0008602411',
+          uom: 'KG',
+        },
+      ],
+    },
+  }),
+  'trace.batchComparison': postQuery({
+    key: 'trace.batchComparison',
+    label: 'Batch Comparison',
+    description: 'Compares production, stock, and delivery outcomes across batches for the selected material.',
+    endpoint: endpoint('trace', 'batch-comparison'),
+    compatibleWidgets: ['bar', 'drill-down-table'],
+    params: params('plant_id', 'date_from', 'date_to', 'material_id'),
+    fields: [
+      traceField('categories', 'Categories', 'array'),
+      traceField('series', 'Series', 'array'),
+      traceField('rows', 'Rows', 'array'),
+      traceField('produced_qty', 'Produced quantity', 'number'),
+      traceField('delivered_qty', 'Delivered quantity', 'number'),
+      traceField('remaining_qty', 'Remaining quantity', 'number'),
+      ...selectFields('material_id', 'material_description', 'batch_id', 'uom'),
+    ],
+    sampleResponse: {
+      categories: ['0008602411', '0008602422', '0008602433'],
+      series: [
+        { name: 'Produced qty', data: [5200, 4980, 5100] },
+        { name: 'Remaining qty', data: [2480, 1900, 2100] },
+      ],
+      rows: [
+        {
+          material_id: '000000000020052009',
+          material_description: 'Breaded fillet strips 5kg',
+          batch_id: '0008602411',
+          produced_qty: 5200,
+          delivered_qty: 2720,
+          remaining_qty: 2480,
+          uom: 'KG',
+        },
+      ],
+    },
+  }),
+};
