@@ -3,7 +3,8 @@ import type { ComposableWidget } from './types';
 import type { QueryRegistry } from '../data/queryRegistry';
 import { useWidgetDataBinding } from '../data/useWidgetDataBinding';
 import type { WidgetDataBinding } from '../data/types';
-import { Spinner } from '@connectio/shared-ui';
+// NOTE: shared-ui has no Spinner export today; using a minimal inline
+// loading dot to avoid expanding shared-ui's API surface for one caller.
 
 /** Props for the BoundWidgetRenderer component. */
 export interface BoundWidgetRendererProps {
@@ -64,7 +65,7 @@ export function BoundWidgetRenderer({
       {renderWidget(resolvedWidget)}
       {isLoading && (
         <div style={loadingOverlayStyle} aria-busy="true">
-          <Spinner size="small" />
+          <span style={loadingDotStyle} aria-label="Loading">…</span>
         </div>
       )}
     </div>
@@ -77,4 +78,11 @@ const loadingOverlayStyle: React.CSSProperties = {
   right: 4,
   zIndex: 10,
   padding: 4,
+};
+
+const loadingDotStyle: React.CSSProperties = {
+  display: 'inline-block',
+  fontSize: 12,
+  lineHeight: 1,
+  color: 'var(--color-text-muted, #888)',
 };
