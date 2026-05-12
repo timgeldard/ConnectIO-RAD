@@ -75,3 +75,22 @@ export const createDashboardBodySchema = z.object({
   isPublic: z.boolean().default(false),
   tags: z.array(z.string()).default([]),
 })
+
+/** A single explicit share record. */
+export const dashboardShareSchema = z.object({
+  dashboardId: z.string(),
+  sharedWithEmail: z.string(),
+  sharedByEmail: z.string(),
+  sharedAt: z.string(),
+})
+
+/** Response envelope for GET /api/dashboards/{id}/shares. */
+export const dashboardShareListResponseSchema = z.object({
+  shares: z.array(dashboardShareSchema),
+  total: z.number().int(),
+})
+
+/** Request body for POST /api/dashboards/{id}/shares. */
+export const shareRequestSchema = z.object({
+  email: z.string().min(1).max(254),
+})

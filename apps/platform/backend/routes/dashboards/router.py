@@ -19,7 +19,10 @@ from backend.routes.dashboards.models import (
     CreateDashboardRequest,
     DashboardDetail,
     DashboardListResponse,
+    DashboardShare,
+    DashboardShareListResponse,
     DashboardSummary,
+    ShareRequest,
     UpdateDashboardRequest,
 )
 
@@ -92,6 +95,23 @@ def _row_to_detail(row: dict) -> DashboardDetail:
     except Exception:
         config = ComposableDashboardConfig()
     return DashboardDetail(**summary.model_dump(), config=config)
+
+
+def _row_to_share(row: dict) -> DashboardShare:
+    """Convert a raw share DB row to a ``DashboardShare``.
+
+    Args:
+        row: Dict with keys from ``dal.list_shares``.
+
+    Returns:
+        Validated ``DashboardShare`` instance.
+    """
+    return DashboardShare(
+        dashboardId=row["dashboard_id"],
+        sharedWithEmail=row["shared_with_email"],
+        sharedByEmail=row["shared_by_email"],
+        sharedAt=str(row.get("shared_at", "")),
+    )
 
 
 @router.get(
@@ -267,4 +287,111 @@ async def delete_dashboard(
     """
     deleted = dal.delete_dashboard(user.raw_token, dashboard_id, user.email or "")
     if not deleted:
+        raise HTTPException(status_code=404, detail="Dashboard not found.")
+
+
+@router.get(
+    "/{dashboard_id}/shares",
+    response_model=DashboardShareListResponse,
+    summary="List dashboard shares",
+    tags=["Dashboards"],
+)
+async def list_dashboard_shares(
+    dashboard_id: str,
+    user: UserIdentity = Depends(require_proxy_user),
+) -> DashboardShareListResponse:
+    """Return all users that have been explicitly granted access to a dashboard.
+
+    Only the dashboard owner may call this endpoint. Non-owners receive 404 to
+    avoid leaking whether the dashboard exists.
+
+    Args:
+        dashboard_id: UUID of the dashboard to inspect.
+        user: Authenticated user identity; must be the dashboard owner.
+
+    Returns:
+        ``DashboardShareListResponse`` with a list of share records and a total count.
+
+    Raises:
+        HTTPException: 404 when the dashboard does not exist or the caller is
+            not the owner.
+    """
+    rows = dal.list_shares(user.raw_token, dashboard_id, user.email or "")
+    shares = [_row_to_share(r) for r in rows]
+    return DashboardShareListResponse(shares=shares, total=len(shares))
+
+
+@router.post(
+    "/{dashboard_id}/shares",
+    response_model=DashboardShare,
+    status_code=201,
+    summary="Share dashboard",
+    tags=["Dashboards"],
+)
+async def share_dashboard(
+    dashboard_id: str,
+    body: ShareRequest,
+    user: UserIdentity = Depends(require_proxy_user),
+) -> DashboardShare:
+    """Grant explicit view access to another user.
+
+    Idempotent — sharing with an already-shared user returns 201 with the
+    existing share record. Only the dashboard owner may share.
+
+    Args:
+        dashboard_id: UUID of the dashboard to share.
+        body: ``ShareRequest`` containing the recipient email.
+        user: Authenticated user identity; must be the dashboard owner.
+
+    Returns:
+        The created (or existing) ``DashboardShare`` record.
+
+    Raises:
+        HTTPException: 404 when the dashboard does not exist or the caller is
+            not the owner.
+    """
+    row = dal.share_dashboard(
+        user.raw_token,
+        dashboard_id,
+        user.email or "",
+        body.email,
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Dashboard not found.")
+    return _row_to_share(row)
+
+
+@router.delete(
+    "/{dashboard_id}/shares/{shared_with_email}",
+    status_code=204,
+    summary="Unshare dashboard",
+    tags=["Dashboards"],
+)
+async def unshare_dashboard(
+    dashboard_id: str,
+    shared_with_email: str,
+    user: UserIdentity = Depends(require_proxy_user),
+) -> None:
+    """Revoke explicit view access from a user.
+
+    Returns 204 whether or not the share row existed, provided the caller is
+    the owner. Returns 404 when the dashboard does not exist or the caller is
+    not the owner.
+
+    Args:
+        dashboard_id: UUID of the dashboard to modify.
+        shared_with_email: Email of the user whose access to revoke.
+        user: Authenticated user identity; must be the dashboard owner.
+
+    Raises:
+        HTTPException: 404 when the dashboard does not exist or the caller is
+            not the owner.
+    """
+    ok = dal.unshare_dashboard(
+        user.raw_token,
+        dashboard_id,
+        user.email or "",
+        shared_with_email,
+    )
+    if not ok:
         raise HTTPException(status_code=404, detail="Dashboard not found.")

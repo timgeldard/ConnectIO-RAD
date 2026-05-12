@@ -417,6 +417,174 @@ def update_dashboard(
     }
 
 
+def list_shares(token: str, dashboard_id: str, owner_email: str) -> list[dict]:
+    """Return all explicit share rows for a dashboard, ordered by share date.
+
+    Only the dashboard owner may call this; ownership is verified in the query so
+    an unauthorised caller receives an empty list (information not leaked).
+
+    Args:
+        token: Databricks access token.
+        dashboard_id: UUID of the dashboard whose shares to fetch.
+        owner_email: Email of the requesting user; must be the dashboard owner.
+
+    Returns:
+        List of row dicts with keys ``dashboard_id``, ``shared_with_email``,
+        ``shared_by_email``, ``shared_at``. Empty when the dashboard does not
+        exist, is deleted, or the caller is not the owner.
+    """
+    definitions = _dtbl("dashboard_definitions")
+    shares = _dtbl("dashboard_shares")
+
+    return run_sql(
+        token,
+        f"""
+        SELECT
+            s.dashboard_id,
+            s.shared_with_email,
+            s.shared_by_email,
+            s.shared_at
+        FROM {shares} s
+        JOIN {definitions} d ON d.id = s.dashboard_id
+        WHERE s.dashboard_id = :dashboard_id
+          AND d.owner_email  = :owner_email
+          AND d.is_deleted   = false
+        ORDER BY s.shared_at ASC
+        """,
+        [sql_param("dashboard_id", dashboard_id), sql_param("owner_email", owner_email)],
+        endpoint_hint="platform.dashboards.list_shares",
+    )
+
+
+def share_dashboard(
+    token: str,
+    dashboard_id: str,
+    owner_email: str,
+    shared_with_email: str,
+) -> Optional[dict]:
+    """Grant an explicit share to another user.
+
+    Verifies that the dashboard exists, is not deleted, and that ``owner_email``
+    is the owner before inserting the share row. Uses INSERT OR IGNORE semantics
+    via a SELECT-then-conditional-INSERT pattern to be idempotent.
+
+    Args:
+        token: Databricks access token.
+        dashboard_id: UUID of the dashboard to share.
+        owner_email: Email of the requesting user; must be the dashboard owner.
+        shared_with_email: Email of the user to share with.
+
+    Returns:
+        Row dict with share details on success, or ``None`` when the dashboard
+        does not exist, is deleted, or the caller is not the owner.
+    """
+    definitions = _dtbl("dashboard_definitions")
+    shares = _dtbl("dashboard_shares")
+
+    rows = run_sql(
+        token,
+        f"""
+        SELECT id FROM {definitions}
+        WHERE id          = :dashboard_id
+          AND owner_email = :owner_email
+          AND is_deleted  = false
+        """,
+        [sql_param("dashboard_id", dashboard_id), sql_param("owner_email", owner_email)],
+        endpoint_hint="platform.dashboards.share_check",
+    )
+    if not rows:
+        return None
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Upsert: only insert when no existing row matches the composite key.
+    existing = run_sql(
+        token,
+        f"""
+        SELECT dashboard_id FROM {shares}
+        WHERE dashboard_id      = :dashboard_id
+          AND shared_with_email = :shared_with_email
+        """,
+        [sql_param("dashboard_id", dashboard_id), sql_param("shared_with_email", shared_with_email)],
+        endpoint_hint="platform.dashboards.share_exists",
+    )
+    if not existing:
+        run_sql(
+            token,
+            f"""
+            INSERT INTO {shares}
+                (dashboard_id, shared_with_email, shared_by_email, shared_at)
+            VALUES
+                (:dashboard_id, :shared_with_email, :shared_by_email, :now)
+            """,
+            [
+                sql_param("dashboard_id", dashboard_id),
+                sql_param("shared_with_email", shared_with_email),
+                sql_param("shared_by_email", owner_email),
+                sql_param("now", now),
+            ],
+            endpoint_hint="platform.dashboards.share_insert",
+        )
+
+    return {
+        "dashboard_id": dashboard_id,
+        "shared_with_email": shared_with_email,
+        "shared_by_email": owner_email,
+        "shared_at": now,
+    }
+
+
+def unshare_dashboard(
+    token: str,
+    dashboard_id: str,
+    owner_email: str,
+    shared_with_email: str,
+) -> bool:
+    """Remove an explicit share row.
+
+    Verifies ownership before deleting. Returns ``False`` when the dashboard
+    does not exist, is deleted, or the caller is not the owner.
+
+    Args:
+        token: Databricks access token.
+        dashboard_id: UUID of the dashboard to modify.
+        owner_email: Email of the requesting user; must be the dashboard owner.
+        shared_with_email: Email of the user whose share access to revoke.
+
+    Returns:
+        ``True`` when the share was removed (or did not exist), ``False`` on
+        ownership / existence failure.
+    """
+    definitions = _dtbl("dashboard_definitions")
+    shares = _dtbl("dashboard_shares")
+
+    rows = run_sql(
+        token,
+        f"""
+        SELECT id FROM {definitions}
+        WHERE id          = :dashboard_id
+          AND owner_email = :owner_email
+          AND is_deleted  = false
+        """,
+        [sql_param("dashboard_id", dashboard_id), sql_param("owner_email", owner_email)],
+        endpoint_hint="platform.dashboards.unshare_check",
+    )
+    if not rows:
+        return False
+
+    run_sql(
+        token,
+        f"""
+        DELETE FROM {shares}
+        WHERE dashboard_id      = :dashboard_id
+          AND shared_with_email = :shared_with_email
+        """,
+        [sql_param("dashboard_id", dashboard_id), sql_param("shared_with_email", shared_with_email)],
+        endpoint_hint="platform.dashboards.unshare_delete",
+    )
+    return True
+
+
 def delete_dashboard(token: str, dashboard_id: str, email: str) -> bool:
     """Soft-delete a dashboard by setting ``is_deleted = true``.
 

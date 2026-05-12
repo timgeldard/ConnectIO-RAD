@@ -6,7 +6,12 @@
  * render appropriate fallback UI via React error boundaries or `isError` state.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { dashboardDetailSchema, dashboardListResponseSchema } from '../schema/composable'
+import {
+  dashboardDetailSchema,
+  dashboardListResponseSchema,
+  dashboardShareListResponseSchema,
+  dashboardShareSchema,
+} from '../schema/composable'
 import type { ComposableDashboardConfig, DashboardDetail, DashboardSummary } from '../composable/types'
 
 const BASE = '/api/dashboards'
@@ -33,6 +38,7 @@ export const dashboardKeys = {
   all: ['dashboards'] as const,
   list: (filters: object) => [...dashboardKeys.all, 'list', filters] as const,
   detail: (id: string) => [...dashboardKeys.all, 'detail', id] as const,
+  shares: (id: string) => [...dashboardKeys.all, 'shares', id] as const,
 }
 
 // ── List dashboards ──────────────────────────────────────────────────────────
@@ -165,6 +171,70 @@ export function useDeleteDashboard() {
     onSuccess: (_: void, id: string) => {
       qc.removeQueries({ queryKey: dashboardKeys.detail(id) })
       qc.invalidateQueries({ queryKey: dashboardKeys.all })
+    },
+  })
+}
+
+// ── Dashboard shares ─────────────────────────────────────────────────────────
+
+/**
+ * Fetches the list of users explicitly shared on a dashboard.
+ *
+ * Only the dashboard owner will receive a non-empty list; non-owners get an
+ * empty result (backend enforces ownership without exposing 403).
+ *
+ * @param dashboardId - UUID of the dashboard to inspect.
+ * @returns TanStack Query result containing `shares[]` and `total`.
+ */
+export function useDashboardShares(dashboardId: string | null | undefined) {
+  return useQuery({
+    queryKey: dashboardKeys.shares(dashboardId ?? ''),
+    queryFn: () =>
+      apiFetch(`${BASE}/${dashboardId}/shares`, dashboardShareListResponseSchema),
+    enabled: Boolean(dashboardId),
+    staleTime: 30_000,
+  })
+}
+
+/**
+ * Mutation hook for granting a user explicit access to a dashboard.
+ *
+ * On success, the shares cache for the dashboard is invalidated.
+ *
+ * @returns TanStack Mutation with `mutate({ dashboardId, email })`.
+ */
+export function useShareDashboard() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ dashboardId, email }: { dashboardId: string; email: string }) =>
+      apiFetch(`${BASE}/${dashboardId}/shares`, dashboardShareSchema, {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }),
+    onSuccess: (_data, { dashboardId }) => {
+      qc.invalidateQueries({ queryKey: dashboardKeys.shares(dashboardId) })
+    },
+  })
+}
+
+/**
+ * Mutation hook for revoking a user's explicit access to a dashboard.
+ *
+ * On success, the shares cache for the dashboard is invalidated.
+ *
+ * @returns TanStack Mutation with `mutate({ dashboardId, email })`.
+ */
+export function useUnshareDashboard() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ dashboardId, email }: { dashboardId: string; email: string }) =>
+      fetch(`${BASE}/${dashboardId}/shares/${encodeURIComponent(email)}`, {
+        method: 'DELETE',
+      }).then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      }),
+    onSuccess: (_: void, { dashboardId }) => {
+      qc.invalidateQueries({ queryKey: dashboardKeys.shares(dashboardId) })
     },
   })
 }

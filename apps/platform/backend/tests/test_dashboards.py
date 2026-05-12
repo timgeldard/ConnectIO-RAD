@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from backend.routes.dashboards.router import (
     _parse_tags,
     _row_to_detail,
+    _row_to_share,
     _row_to_summary,
     require_proxy_user,
     router,
@@ -416,3 +417,156 @@ class TestDeleteDashboard:
         args = mock.call_args[0]
         assert args[1] == "dash-xyz"
         assert args[2] == "owner@kerry.com"
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Unit tests — _row_to_share helper
+# ──────────────────────────────────────────────────────────────────────────
+
+def _share_row(
+    *,
+    dashboard_id: str = "dash-001",
+    shared_with_email: str = "guest@kerry.com",
+    shared_by_email: str = "owner@kerry.com",
+    shared_at: str = "2026-05-12T10:00:00+00:00",
+) -> dict:
+    return {
+        "dashboard_id": dashboard_id,
+        "shared_with_email": shared_with_email,
+        "shared_by_email": shared_by_email,
+        "shared_at": shared_at,
+    }
+
+
+class TestRowToShare:
+    def test_maps_fields_to_camel(self):
+        row = _share_row()
+        share = _row_to_share(row)
+        assert share.dashboardId == "dash-001"
+        assert share.sharedWithEmail == "guest@kerry.com"
+        assert share.sharedByEmail == "owner@kerry.com"
+        assert share.sharedAt == "2026-05-12T10:00:00+00:00"
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Integration tests — sharing endpoints (mocked DAL)
+# ──────────────────────────────────────────────────────────────────────────
+
+class TestListDashboardShares:
+    def test_returns_shares_and_total(self):
+        user = _make_user("owner@kerry.com")
+        app = _make_app(user)
+        rows = [_share_row(shared_with_email="a@kerry.com"), _share_row(shared_with_email="b@kerry.com")]
+
+        with patch("backend.routes.dashboards.router.dal.list_shares", return_value=rows):
+            resp = TestClient(app).get("/api/dashboards/dash-001/shares")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 2
+        assert len(data["shares"]) == 2
+
+    def test_empty_list_for_no_shares(self):
+        user = _make_user("owner@kerry.com")
+        app = _make_app(user)
+
+        with patch("backend.routes.dashboards.router.dal.list_shares", return_value=[]):
+            resp = TestClient(app).get("/api/dashboards/dash-001/shares")
+
+        assert resp.status_code == 200
+        assert resp.json() == {"shares": [], "total": 0}
+
+    def test_passes_owner_email_and_id_to_dal(self):
+        user = _make_user("owner@kerry.com")
+        app = _make_app(user)
+        mock = MagicMock(return_value=[])
+
+        with patch("backend.routes.dashboards.router.dal.list_shares", mock):
+            TestClient(app).get("/api/dashboards/dash-abc/shares")
+
+        args = mock.call_args[0]
+        assert args[1] == "dash-abc"
+        assert args[2] == "owner@kerry.com"
+
+
+class TestShareDashboard:
+    def test_creates_share_and_returns_201(self):
+        user = _make_user("owner@kerry.com")
+        app = _make_app(user)
+        returned_row = _share_row(shared_with_email="guest@kerry.com")
+
+        with patch("backend.routes.dashboards.router.dal.share_dashboard", return_value=returned_row):
+            resp = TestClient(app).post(
+                "/api/dashboards/dash-001/shares",
+                json={"email": "guest@kerry.com"},
+            )
+
+        assert resp.status_code == 201
+        assert resp.json()["sharedWithEmail"] == "guest@kerry.com"
+
+    def test_returns_404_when_dal_returns_none(self):
+        user = _make_user("owner@kerry.com")
+        app = _make_app(user)
+
+        with patch("backend.routes.dashboards.router.dal.share_dashboard", return_value=None):
+            resp = TestClient(app).post(
+                "/api/dashboards/nonexistent/shares",
+                json={"email": "guest@kerry.com"},
+            )
+
+        assert resp.status_code == 404
+
+    def test_rejects_empty_email(self):
+        user = _make_user("owner@kerry.com")
+        app = _make_app(user)
+
+        resp = TestClient(app).post("/api/dashboards/dash-001/shares", json={"email": ""})
+
+        assert resp.status_code == 422
+
+    def test_passes_recipient_email_to_dal(self):
+        user = _make_user("owner@kerry.com")
+        app = _make_app(user)
+        mock = MagicMock(return_value=_share_row())
+
+        with patch("backend.routes.dashboards.router.dal.share_dashboard", mock):
+            TestClient(app).post(
+                "/api/dashboards/dash-001/shares",
+                json={"email": "newuser@kerry.com"},
+            )
+
+        args = mock.call_args[0]
+        assert args[3] == "newuser@kerry.com"
+
+
+class TestUnshareDashboard:
+    def test_returns_204_on_success(self):
+        user = _make_user("owner@kerry.com")
+        app = _make_app(user)
+
+        with patch("backend.routes.dashboards.router.dal.unshare_dashboard", return_value=True):
+            resp = TestClient(app).delete("/api/dashboards/dash-001/shares/guest%40kerry.com")
+
+        assert resp.status_code == 204
+
+    def test_returns_404_when_dal_returns_false(self):
+        user = _make_user("owner@kerry.com")
+        app = _make_app(user)
+
+        with patch("backend.routes.dashboards.router.dal.unshare_dashboard", return_value=False):
+            resp = TestClient(app).delete("/api/dashboards/nonexistent/shares/guest%40kerry.com")
+
+        assert resp.status_code == 404
+
+    def test_passes_email_params_to_dal(self):
+        user = _make_user("owner@kerry.com")
+        app = _make_app(user)
+        mock = MagicMock(return_value=True)
+
+        with patch("backend.routes.dashboards.router.dal.unshare_dashboard", mock):
+            TestClient(app).delete("/api/dashboards/dash-001/shares/guest%40kerry.com")
+
+        args = mock.call_args[0]
+        assert args[1] == "dash-001"
+        assert args[2] == "owner@kerry.com"
+        assert args[3] == "guest@kerry.com"

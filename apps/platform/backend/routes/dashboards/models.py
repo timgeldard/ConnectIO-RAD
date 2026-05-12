@@ -109,6 +109,31 @@ class CreateDashboardRequest(BaseModel):
     tags: list[str] = Field(default_factory=list)
 
 
+class DashboardShare(BaseModel):
+    """A single share record — one user explicitly granted access to a dashboard."""
+
+    dashboardId: str
+    sharedWithEmail: str
+    sharedByEmail: str
+    sharedAt: str
+
+
+class DashboardShareListResponse(BaseModel):
+    """Response envelope for the dashboard shares list endpoint."""
+
+    shares: list[DashboardShare]
+    total: int
+
+
+class ShareRequest(BaseModel):
+    """Request body for ``POST /api/dashboards/{id}/shares``.
+
+    ``email`` is the recipient; the caller (owner) is taken from the proxy identity.
+    """
+
+    email: str = Field(min_length=1, max_length=254)
+
+
 class UpdateDashboardRequest(BaseModel):
     """Request body for ``PUT /api/dashboards/{id}``.
 

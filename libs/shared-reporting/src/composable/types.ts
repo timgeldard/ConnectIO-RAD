@@ -12,6 +12,8 @@ import type {
   composableDashboardConfigSchema,
   dashboardSummarySchema,
   dashboardDetailSchema,
+  dashboardShareSchema,
+  dashboardShareListResponseSchema,
 } from '../schema/composable'
 
 export type ComposableWidgetLayout = z.infer<typeof composableWidgetLayoutSchema>
@@ -19,6 +21,8 @@ export type ComposableWidget = z.infer<typeof composableWidgetSchema>
 export type ComposableDashboardConfig = z.infer<typeof composableDashboardConfigSchema>
 export type DashboardSummary = z.infer<typeof dashboardSummarySchema>
 export type DashboardDetail = z.infer<typeof dashboardDetailSchema>
+export type DashboardShare = z.infer<typeof dashboardShareSchema>
+export type DashboardShareListResponse = z.infer<typeof dashboardShareListResponseSchema>
 
 /** Unique identifier for a dashboard or widget instance (UUID string). */
 export type DashboardId = string
