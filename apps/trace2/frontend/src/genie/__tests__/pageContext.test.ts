@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'vitest'
+import type { LineageNodeContext } from '@connectio/shared-reporting'
 
-import { buildLineageContext, buildTransferContext } from '../pageContext'
+import {
+  buildLineageContext,
+  buildTransferContext,
+  fromLineageNodeContext,
+} from '../pageContext'
 import type { Batch, FocalNode, LineageNode } from '../../types'
 
 const focalNode: FocalNode = {
@@ -140,5 +145,84 @@ describe('buildTransferContext', () => {
       'upstream',
     )
     expect(ctx.selected?.flow_qty).toBeNull()
+  })
+})
+
+describe('fromLineageNodeContext', () => {
+  const baseCtx: LineageNodeContext = {
+    id: 'n-1',
+    side: 'upstream',
+    material_id: 'M-100',
+    material: 'Whey Concentrate',
+    batch_id: 'B-9001',
+    plant: 'Charleville',
+    link: 'INPUT_OF',
+    flow_qty: 1200,
+    qty: 1500,
+    uom: 'KG',
+    focal: {
+      id: 'focal',
+      material_id: 'M-FINAL',
+      material: 'Finished Blend',
+      batch_id: 'B-FINAL',
+      plant: 'Listowel',
+    },
+  }
+
+  test('maps upstream context into the trace2 GeniePageContext shape', () => {
+    const ctx = fromLineageNodeContext(baseCtx, 'bottom-up')
+    expect(ctx).toEqual({
+      mode: 'lineage_transfer',
+      view: 'bottom-up',
+      focal: {
+        material_id: 'M-FINAL',
+        material: 'Finished Blend',
+        batch_id: 'B-FINAL',
+        plant: 'Listowel',
+      },
+      selected: {
+        material_id: 'M-100',
+        material: 'Whey Concentrate',
+        batch_id: 'B-9001',
+        plant: 'Charleville',
+        link: 'INPUT_OF',
+        side: 'upstream',
+        flow_qty: 1200,
+        qty: 1500,
+        uom: 'KG',
+      },
+    })
+  })
+
+  test('passes the host view label through verbatim', () => {
+    const ctx = fromLineageNodeContext(
+      { ...baseCtx, side: 'downstream' },
+      'top-down',
+    )
+    expect(ctx.view).toBe('top-down')
+    expect(ctx.selected?.side).toBe('downstream')
+  })
+
+  test('coerces NaN flow_qty to null without fabricating values', () => {
+    const ctx = fromLineageNodeContext(
+      { ...baseCtx, flow_qty: Number.NaN },
+      'bottom-up',
+    )
+    expect(ctx.selected?.flow_qty).toBeNull()
+  })
+
+  test('coerces missing flow_qty (undefined) to null', () => {
+    const { flow_qty: _omit, ...rest } = baseCtx
+    void _omit
+    const ctx = fromLineageNodeContext(rest as LineageNodeContext, 'bottom-up')
+    expect(ctx.selected?.flow_qty).toBeNull()
+  })
+
+  test('preserves zero flow_qty (legitimate "no flow on this edge")', () => {
+    const ctx = fromLineageNodeContext(
+      { ...baseCtx, flow_qty: 0 },
+      'bottom-up',
+    )
+    expect(ctx.selected?.flow_qty).toBe(0)
   })
 })
