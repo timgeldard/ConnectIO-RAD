@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import type { QueryRegistry } from '../../data/queryRegistry'
+import type { QueryField, QueryRegistry, QueryRegistryEntry } from '../../data/queryRegistry'
 import type { WidgetDataBinding, QueryParamBinding, MappingValue, MappingTransform } from '../../data/types'
 
 interface DataBindingSectionProps {
@@ -10,6 +10,153 @@ interface DataBindingSectionProps {
   dashboardParams: Record<string, unknown>
   mappingFields: string[]
   defaultMappingTransforms?: Record<string, MappingTransform>
+}
+
+/**
+ * Normalizes a field path for case-insensitive matching.
+ *
+ * @param path - The query field path to normalize.
+ * @returns Lower-cased path string.
+ */
+function normalizePath(path: string): string {
+  return path.trim().toLowerCase()
+}
+
+/**
+ * Finds the first query field matching one of the preferred paths.
+ *
+ * Exact matches win, followed by suffix matches for nested payloads.
+ *
+ * @param entry - Query registry entry being inspected.
+ * @param preferredPaths - Candidate field paths in priority order.
+ * @param allowedTypes - Optional field types to allow.
+ * @returns The best matching field, if any.
+ */
+function findPreferredField(
+  entry: QueryRegistryEntry,
+  preferredPaths: string[],
+  allowedTypes?: QueryField['type'][],
+): QueryField | undefined {
+  const normalizedCandidates = preferredPaths.map(normalizePath)
+  const matchesType = (field: QueryField) => !allowedTypes || allowedTypes.includes(field.type)
+
+  for (const candidate of normalizedCandidates) {
+    const exact = entry.fields.find((field) => normalizePath(field.path) === candidate && matchesType(field))
+    if (exact) return exact
+
+    const nested = entry.fields.find((field) => normalizePath(field.path).endsWith(`.${candidate}`) && matchesType(field))
+    if (nested) return nested
+  }
+
+  return undefined
+}
+
+/**
+ * Finds the first field with the requested semantic hint.
+ *
+ * @param entry - Query registry entry being inspected.
+ * @param semantic - Semantic hint to search for.
+ * @param allowedTypes - Optional field types to allow.
+ * @returns Matching field, if one exists.
+ */
+function findSemanticField(
+  entry: QueryRegistryEntry,
+  semantic: QueryField['semantic'],
+  allowedTypes?: QueryField['type'][],
+): QueryField | undefined {
+  return entry.fields.find((field) => field.semantic === semantic && (!allowedTypes || allowedTypes.includes(field.type)))
+}
+
+/**
+ * Creates a mapping value, preserving transform metadata when needed.
+ *
+ * @param path - Query response field path.
+ * @param transform - Optional transform to apply.
+ * @returns A mapping value suitable for widget data binding.
+ */
+function buildMappingValue(path: string, transform?: MappingTransform): MappingValue {
+  return transform ? { path, transform } : path
+}
+
+/**
+ * Builds a useful starter mapping for the selected widget/query combination.
+ *
+ * The mapping is intentionally conservative: it prefers canonical payload keys
+ * first and only falls back to broad numeric/semantic matches when the query
+ * does not expose the ideal field names.
+ *
+ * @param widgetType - Current widget type.
+ * @param entry - Selected query definition.
+ * @param mappingFields - Widget prop keys that support mapping.
+ * @param defaultMappingTransforms - Widget-level default transforms.
+ * @returns Suggested mapping configuration.
+ */
+function buildDefaultMapping(
+  widgetType: string,
+  entry: QueryRegistryEntry,
+  mappingFields: string[],
+  defaultMappingTransforms: Record<string, MappingTransform>,
+): Record<string, MappingValue> {
+  const mapping: Record<string, MappingValue> = {}
+  const supports = (propKey: string) => mappingFields.includes(propKey)
+  const assign = (propKey: string, field: QueryField | undefined, transform?: MappingTransform) => {
+    if (!supports(propKey) || !field) return
+    mapping[propKey] = buildMappingValue(field.path, transform ?? defaultMappingTransforms[propKey])
+  }
+
+  if (widgetType === 'kpi') {
+    const valueField =
+      findPreferredField(entry, ['value', 'avg_oee_pct', 'schedule_adherence_pct', 'failure_count', 'open_qty', 'blocked_batch_count'], ['number']) ??
+      findSemanticField(entry, 'percentage', ['number']) ??
+      entry.fields.find((field) => field.type === 'number')
+    const deltaField = findPreferredField(entry, ['delta'], ['string'])
+    const subtextField =
+      findPreferredField(entry, ['subtext', 'summary', 'status', 'quality_status', 'batch_status', 'usage_decision'], ['string']) ??
+      findSemanticField(entry, 'status', ['string'])
+    const progressField =
+      findPreferredField(entry, ['progressBar', 'schedule_adherence_pct', 'avg_oee_pct', 'yield_pct', 'failure_rate_pct', 'mass_balance_variance_pct'], ['number']) ??
+      findSemanticField(entry, 'percentage', ['number'])
+
+    assign('value', valueField)
+    assign('delta', deltaField)
+    assign('subtext', subtextField)
+    assign('progressBar', progressField)
+    return mapping
+  }
+
+  if (widgetType === 'trend') {
+    assign(
+      'points',
+      findPreferredField(entry, ['points', 'daily_history', 'history', 'trend'], ['array']) ??
+        findSemanticField(entry, 'timeseries', ['array']),
+      'timeseriesPoints',
+    )
+    return mapping
+  }
+
+  if (widgetType === 'bar') {
+    assign('categories', findPreferredField(entry, ['categories'], ['array']))
+    assign('series', findPreferredField(entry, ['series'], ['array']), 'barSeries')
+    return mapping
+  }
+
+  if (widgetType === 'pareto') {
+    assign('items', findPreferredField(entry, ['items', 'rows'], ['array']), 'paretoItems')
+    return mapping
+  }
+
+  if (widgetType === 'drill-down-table') {
+    assign('rows', findPreferredField(entry, ['rows'], ['array']), 'tableRows')
+    return mapping
+  }
+
+  if (widgetType === 'spc-control') {
+    assign('points', findPreferredField(entry, ['points'], ['array']), 'spcPoints')
+    assign('limits', findPreferredField(entry, ['summary.limits', 'limits'], ['object']), 'spcLimits')
+    return mapping
+  }
+
+  return mapping
 }
 
 export function DataBindingSection({
@@ -30,7 +177,9 @@ export function DataBindingSection({
     onDataChange({
       queryKey,
       params: entry?.params.reduce((acc, p) => ({ ...acc, [p.key]: { value: p.defaultValue } }), {}),
-      mapping: {},
+      mapping: entry
+        ? buildDefaultMapping(widgetType, entry, mappingFields, defaultMappingTransforms)
+        : {},
     })
   }
 
