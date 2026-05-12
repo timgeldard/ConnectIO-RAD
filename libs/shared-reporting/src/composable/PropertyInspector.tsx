@@ -9,6 +9,7 @@ import { ParetoWidgetForm } from './propertyForms/ParetoWidgetForm'
 import { TableWidgetForm } from './propertyForms/TableWidgetForm'
 import { SpcWidgetForm } from './propertyForms/SpcWidgetForm'
 import type { QueryRegistry } from '../data/queryRegistry'
+import type { WidgetDataBinding } from '../data/types'
 import { widgetPropsSchemaRegistry } from '../widgets/widgetProps'
 import type { 
   KpiWidgetProps, 
@@ -51,12 +52,13 @@ export function PropertyInspector({
     updateWidgetProps(widget.id, updates)
   }
 
-  const handleDataChange = (data: Record<string, unknown> | null) => {
+  const handleDataChange = (data: WidgetDataBinding | null) => {
     updateWidgetData(widget.id, data)
   }
 
   const renderTypedForm = () => {
     const commonProps = {
+      widgetId: widget.id,
       data: widget.data as any,
       onDataChange: handleDataChange,
       queryRegistry,

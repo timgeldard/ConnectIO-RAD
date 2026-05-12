@@ -3,7 +3,18 @@ import type { ComposableWidget } from './types';
 import type { QueryRegistry } from '../data/queryRegistry';
 import { useWidgetDataBinding } from '../data/useWidgetDataBinding';
 import type { WidgetDataBinding } from '../data/types';
-import { Spinner } from '@connectio/shared-ui';
+// Temporarily use a placeholder until Spinner is added to shared-ui
+const SpinnerPlaceholder = () => (
+  <span style={{ 
+    display: 'inline-block', 
+    width: 16, 
+    height: 16, 
+    border: '2px solid var(--border-subtle)', 
+    borderTopColor: 'var(--brand)', 
+    borderRadius: '50%', 
+    animation: 'spin 1s linear infinite' 
+  }} />
+);
 
 /** Props for the BoundWidgetRenderer component. */
 export interface BoundWidgetRendererProps {
@@ -64,7 +75,7 @@ export function BoundWidgetRenderer({
       {renderWidget(resolvedWidget)}
       {isLoading && (
         <div style={loadingOverlayStyle} aria-busy="true">
-          <Spinner size="small" />
+          <SpinnerPlaceholder />
         </div>
       )}
     </div>

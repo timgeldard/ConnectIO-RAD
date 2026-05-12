@@ -12,7 +12,7 @@ import {
   dashboardShareListResponseSchema,
   dashboardShareSchema,
 } from '../schema/composable'
-import type { ComposableDashboardConfig, DashboardDetail, DashboardSummary } from '../composable/types'
+import type { ComposableDashboardConfig, DashboardDetail } from '../composable/types'
 
 const BASE = '/api/dashboards'
 

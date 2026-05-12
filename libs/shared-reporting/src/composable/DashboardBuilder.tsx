@@ -15,7 +15,7 @@
  */
 import type { CSSProperties, ReactNode } from 'react'
 import { useState } from 'react'
-import type { ComposableWidget, DashboardMode } from './types'
+import type { ComposableWidget } from './types'
 import { useDashboardEditStore } from './store'
 import { DashboardGrid } from './DashboardGrid'
 import { PropertyInspector } from './PropertyInspector'
