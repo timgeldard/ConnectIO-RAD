@@ -53,6 +53,7 @@ export const paretoItemSchema = z.object({
 })
 
 export const paretoChartWidgetPropsSchema = z.object({
+  title: z.string().optional(),
   items: z.array(paretoItemSchema).optional(),
   valueLabel: z.string().optional(),
   cumulativeLabel: z.string().optional(),
@@ -91,9 +92,12 @@ export const drillDownColumnSchema = z.object({
 })
 
 export const drillDownTableWidgetPropsSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
   columns: z.array(drillDownColumnSchema).optional(),
   rows: z.array(z.record(z.string(), z.unknown())).optional(),
   emptyMessage: z.string().optional(),
+  height: z.number().min(1).optional(),
   maxHeight: z.number().optional(),
 })
 

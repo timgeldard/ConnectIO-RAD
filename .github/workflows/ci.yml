@@ -175,6 +175,38 @@ jobs:
       - name: Build affected frontends
         run: npx nx affected -t build --base=$NX_BASE --head=$NX_HEAD --parallel=4
 
+  platform-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Set NX_BASE and NX_HEAD
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "NX_BASE=origin/${{ github.base_ref }}" >> $GITHUB_ENV
+            echo "NX_HEAD=${{ github.sha }}"             >> $GITHUB_ENV
+          else
+            echo "NX_BASE=${{ github.event.before }}"   >> $GITHUB_ENV
+            echo "NX_HEAD=${{ github.sha }}"             >> $GITHUB_ENV
+          fi
+
+      - name: Full platform build (affected)
+        run: npx nx affected -t platform-build --base=$NX_BASE --head=$NX_HEAD
+
   security:
     runs-on: ubuntu-latest
     permissions:

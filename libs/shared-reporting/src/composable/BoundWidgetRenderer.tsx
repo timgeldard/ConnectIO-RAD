@@ -1,21 +1,20 @@
-import type { ReactNode } from 'react';
-import type { ComposableWidget } from './types';
-import type { QueryRegistry } from '../data/queryRegistry';
-import { useWidgetDataBinding } from '../data/useWidgetDataBinding';
-import type { WidgetDataBinding } from '../data/types';
-// NOTE: shared-ui has no Spinner export today; using a minimal inline
-// loading dot to avoid expanding shared-ui's API surface for one caller.
+import type { ReactNode } from 'react'
+import { Spinner } from '@connectio/shared-ui'
+import type { ComposableWidget } from './types'
+import type { QueryRegistry } from '../data/queryRegistry'
+import { useWidgetDataBinding } from '../data/useWidgetDataBinding'
+import type { WidgetDataBinding } from '../data/types'
 
 /** Props for the BoundWidgetRenderer component. */
 export interface BoundWidgetRendererProps {
   /** The widget instance to render. */
-  widget: ComposableWidget;
+  widget: ComposableWidget
   /** Optional registry to resolve queries for data binding. */
-  queryRegistry?: QueryRegistry;
+  queryRegistry?: QueryRegistry
   /** Optional global parameters to pass to the query. */
-  dashboardParams?: Record<string, unknown>;
+  dashboardParams?: Record<string, unknown>
   /** Callback to render the actual widget component once props are resolved. */
-  renderWidget: (widget: ComposableWidget, data?: any) => ReactNode;
+  renderWidget: (widget: ComposableWidget, data?: any) => ReactNode
 }
 
 /**
@@ -31,7 +30,7 @@ export function BoundWidgetRenderer({
   dashboardParams,
   renderWidget,
 }: BoundWidgetRendererProps) {
-  const binding = widget.data as WidgetDataBinding | undefined;
+  const binding = widget.data as WidgetDataBinding | undefined
   
   // Only call hook if we have a registry and binding
   const { mappedProps, isLoading, error } = useWidgetDataBinding({
@@ -39,7 +38,7 @@ export function BoundWidgetRenderer({
     queryRegistry: queryRegistry ?? {},
     dashboardParams,
     enabled: !!queryRegistry && !!binding,
-  });
+  })
 
   // Merge mapped props over static props
   const resolvedWidget: ComposableWidget = {
@@ -48,7 +47,7 @@ export function BoundWidgetRenderer({
       ...widget.props,
       ...mappedProps,
     },
-  };
+  }
 
   if (error) {
     // Note: In a real app we'd use a structured logger here.
@@ -57,19 +56,25 @@ export function BoundWidgetRenderer({
       message: error.message,
       queryKey: binding?.queryKey,
       widgetId: widget.id,
-    });
+    })
   }
 
   return (
     <div style={{ height: '100%', position: 'relative' }}>
       {renderWidget(resolvedWidget)}
       {isLoading && (
-        <div style={loadingOverlayStyle} aria-busy="true">
-          <span style={loadingDotStyle} aria-label="Loading">…</span>
+        <div
+          style={loadingOverlayStyle}
+          aria-busy="true"
+          role="status"
+          aria-live="polite"
+          aria-label="Loading widget data"
+        >
+          <Spinner size={16} trackColor="var(--border-subtle)" />
         </div>
       )}
     </div>
-  );
+  )
 }
 
 const loadingOverlayStyle: React.CSSProperties = {
@@ -78,11 +83,4 @@ const loadingOverlayStyle: React.CSSProperties = {
   right: 4,
   zIndex: 10,
   padding: 4,
-};
-
-const loadingDotStyle: React.CSSProperties = {
-  display: 'inline-block',
-  fontSize: 12,
-  lineHeight: 1,
-  color: 'var(--color-text-muted, #888)',
-};
+}

@@ -41,9 +41,6 @@ interface DashboardGridProps {
   dashboardParams?: Record<string, unknown>
 }
 
-/** Minimum pixel width per column used to calculate grid container width. */
-const MIN_COL_PX = 80
-
 /**
  * Renders a composable dashboard grid using react-grid-layout.
  *

@@ -1,5 +1,3 @@
-import type { ComposableWidget } from '../types'
-
 export interface PropertyFormProps<T = Record<string, unknown>> {
   widgetId: string
   props: T

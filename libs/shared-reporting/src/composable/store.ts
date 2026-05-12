@@ -12,6 +12,7 @@ import type {
   DashboardDetail,
   DashboardMode,
 } from './types'
+import type { WidgetDataBinding } from '../data/types'
 
 /** Shape of the dashboard edit store. */
 export interface DashboardEditStore {
@@ -39,7 +40,7 @@ export interface DashboardEditStore {
   /** Update a widget's props (property inspector changes). Marks dirty. */
   updateWidgetProps: (widgetId: string, props: Record<string, unknown>) => void
   /** Update a widget's data binding configuration. Marks dirty. */
-  updateWidgetData: (widgetId: string, data: Record<string, unknown> | null) => void
+  updateWidgetData: (widgetId: string, data: WidgetDataBinding | null) => void
   /** Update a widget's title. Marks dirty. */
   updateWidgetTitle: (widgetId: string, title: string) => void
   /** Select a widget for property inspection. */

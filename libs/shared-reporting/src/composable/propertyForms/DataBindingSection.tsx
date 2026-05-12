@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
-import type { QueryRegistry, QueryParamBinding } from '../../data/queryRegistry'
-import type { WidgetDataBinding, MappingValue, MappingTransform } from '../../data/types'
+import type { QueryRegistry } from '../../data/queryRegistry'
+import type { WidgetDataBinding, QueryParamBinding, MappingValue, MappingTransform } from '../../data/types'
 
 interface DataBindingSectionProps {
   widgetType: string
