@@ -26,6 +26,7 @@ from shared_api import (
     register_spa_routes,
 )
 from backend.routes.badges import router as badges_router
+from backend.routes.dashboards.router import router as dashboards_router
 from backend.routes.manifest import router as manifest_router
 from backend.routes.session import router as session_router
 from backend.utils import (
@@ -94,23 +95,23 @@ SPC_ROUTERS: list[RouterEntry] = [
 ]
 
 POH_ROUTERS: list[RouterEntry] = [
-    (_required_router("processorderhistory_backend.order_execution.router_me"), "/api", None),
-    (_required_router("processorderhistory_backend.order_execution.router_orders"), "/api", None),
-    (_required_router("processorderhistory_backend.order_execution.router_order_detail"), "/api", None),
-    (_required_router("processorderhistory_backend.order_execution.router_pours"), "/api", None),
-    (_required_router("processorderhistory_backend.production_planning.router_planning"), "/api", None),
-    (_required_router("processorderhistory_backend.order_execution.router_day_view"), "/api", None),
-    (_required_router("processorderhistory_backend.order_execution.router_lineside_monitor"), "/api", None),
-    (_required_router("processorderhistory_backend.routers.plants_router"), "/api", None),
-    (_required_router("processorderhistory_backend.manufacturing_analytics.router_yield"), "/api", None),
-    (_required_router("processorderhistory_backend.manufacturing_analytics.router_quality"), "/api", None),
-    (_required_router("processorderhistory_backend.manufacturing_analytics.router_downtime"), "/api", None),
-    (_required_router("processorderhistory_backend.manufacturing_analytics.router_oee"), "/api", None),
-    (_required_router("processorderhistory_backend.manufacturing_analytics.router_adherence"), "/api", None),
-    (_required_router("processorderhistory_backend.genie_assist.router_genie"), "/api", None),
-    (_required_router("processorderhistory_backend.production_planning.router_vessel_planning"), "/api", None),
-    (_required_router("processorderhistory_backend.manufacturing_analytics.router_equipment_insights"), "/api", None),
-    (_required_router("processorderhistory_backend.manufacturing_analytics.router_equipment_insights2"), "/api", None),
+    (_required_router("processorderhistory_backend.order_execution.router_me"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.order_execution.router_orders"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.order_execution.router_order_detail"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.order_execution.router_pours"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.production_planning.router_planning"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.order_execution.router_day_view"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.order_execution.router_lineside_monitor"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.routers.plants_router"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_yield"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_quality"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_downtime"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_oee"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_adherence"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.genie_assist.router_genie"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.production_planning.router_vessel_planning"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_equipment_insights"), "/api/poh", None),
+    (_required_router("processorderhistory_backend.manufacturing_analytics.router_equipment_insights2"), "/api/poh", None),
 ]
 
 W360_ROUTERS: list[RouterEntry] = [
@@ -147,6 +148,11 @@ PI_SHEET_STATIC   = _STATIC / "pi-sheet"
 MAINTENANCE_STATIC = _STATIC / "maintenance"
 TPM_STATIC        = _STATIC / "tpm"
 PEX_E35_STATIC    = _STATIC / "pex-e-35"
+BST_STATIC        = _STATIC / "blue-sky-trace"
+TRACE_PORTFOLIO_STATIC = _STATIC / "traceability-portfolio"
+OPS_SUITE_STATIC       = _STATIC / "operations-suite"
+QUALITY_SUITE_STATIC   = _STATIC / "quality-suite"
+FACTORY_MOOD_STATIC    = _STATIC / "factory-mood-board"
 
 app = create_api_app(title="ConnectIO Platform API")
 
@@ -173,6 +179,7 @@ def _include_required_routers() -> None:
 
 
 _include_required_routers()
+app.include_router(dashboards_router, prefix="/api/dashboards")
 app.include_router(badges_router)
 app.include_router(manifest_router)
 app.include_router(session_router)
@@ -255,6 +262,21 @@ if TPM_STATIC.exists():
 
 if PEX_E35_STATIC.exists():
     app.mount("/pex-e-35", StaticFiles(directory=str(PEX_E35_STATIC), html=True), name="pex-e-35")
+
+if BST_STATIC.exists():
+    app.mount("/blue-sky-trace", StaticFiles(directory=str(BST_STATIC), html=True), name="blue-sky-trace")
+
+if TRACE_PORTFOLIO_STATIC.exists():
+    app.mount("/traceability-portfolio", StaticFiles(directory=str(TRACE_PORTFOLIO_STATIC), html=True), name="traceability-portfolio")
+
+if OPS_SUITE_STATIC.exists():
+    app.mount("/operations-suite", StaticFiles(directory=str(OPS_SUITE_STATIC), html=True), name="operations-suite")
+
+if QUALITY_SUITE_STATIC.exists():
+    app.mount("/quality-suite", StaticFiles(directory=str(QUALITY_SUITE_STATIC), html=True), name="quality-suite")
+
+if FACTORY_MOOD_STATIC.exists():
+    app.mount("/factory-mood-board", StaticFiles(directory=str(FACTORY_MOOD_STATIC), html=True), name="factory-mood-board")
 
 # Home SPA — served via the shared `register_spa_routes()` utility instead
 # of a raw StaticFiles mount. This gets us the same path-traversal-safe
