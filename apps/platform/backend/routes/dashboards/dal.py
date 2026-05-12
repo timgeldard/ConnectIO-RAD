@@ -436,6 +436,7 @@ def delete_dashboard(token: str, dashboard_id: str, email: str) -> bool:
     """
     definitions = _dtbl("dashboard_definitions")
 
+    # Non-atomic: concurrent deletes can both pass the SELECT. Acceptable for MVP.
     rows = run_sql(
         token,
         f"""

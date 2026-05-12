@@ -35,7 +35,7 @@ def _make_user(email: str = "test@kerry.com") -> UserIdentity:
 
 def _make_app(user: UserIdentity) -> FastAPI:
     app = FastAPI()
-    app.include_router(router)
+    app.include_router(router, prefix="/api/dashboards")
     app.dependency_overrides[require_proxy_user] = lambda: user
     return app
 
@@ -65,7 +65,7 @@ def _summary_row(
 
 def _detail_row(**kwargs) -> dict:
     row = _summary_row(**kwargs)
-    row["config_json"] = json.dumps({"columns": 12, "row_height": 80, "widgets": [], "global_filters": []})
+    row["config_json"] = json.dumps({"columns": 12, "rowHeight": 80, "widgets": [], "globalFilters": []})
     return row
 
 
@@ -117,12 +117,12 @@ class TestRowToSummary:
 
 class TestRowToDetail:
     def test_parses_config_json(self):
-        config_dict = {"columns": 6, "row_height": 100, "widgets": [], "global_filters": []}
+        config_dict = {"columns": 6, "rowHeight": 100, "widgets": [], "globalFilters": []}
         row = _detail_row()
         row["config_json"] = json.dumps(config_dict)
         detail = _row_to_detail(row)
         assert detail.config.columns == 6
-        assert detail.config.row_height == 100
+        assert detail.config.rowHeight == 100
 
     def test_degrades_to_empty_config_on_bad_json(self):
         row = _detail_row()
@@ -152,7 +152,7 @@ class TestListDashboards:
             new_callable=AsyncMock,
             return_value=rows,
         ):
-            resp = TestClient(app).get("/")
+            resp = TestClient(app).get("/api/dashboards")
 
         assert resp.status_code == 200
         data = resp.json()
@@ -169,7 +169,7 @@ class TestListDashboards:
             new_callable=AsyncMock,
             return_value=[],
         ):
-            resp = TestClient(app).get("/")
+            resp = TestClient(app).get("/api/dashboards")
 
         assert resp.status_code == 200
         assert resp.json() == {"dashboards": [], "total": 0}
@@ -180,7 +180,7 @@ class TestListDashboards:
         mock = AsyncMock(return_value=[])
 
         with patch("backend.routes.dashboards.router.dal.list_dashboards", mock):
-            TestClient(app).get("/?search=oee")
+            TestClient(app).get("/api/dashboards?search=oee")
 
         _, kwargs = mock.call_args
         assert kwargs["search"] == "oee"
@@ -191,7 +191,7 @@ class TestListDashboards:
         mock = AsyncMock(return_value=[])
 
         with patch("backend.routes.dashboards.router.dal.list_dashboards", mock):
-            TestClient(app).get("/?ownedByMe=true")
+            TestClient(app).get("/api/dashboards?ownedByMe=true")
 
         _, kwargs = mock.call_args
         assert kwargs["owned_by_me"] is True
@@ -208,7 +208,7 @@ class TestGetDashboard:
             new_callable=AsyncMock,
             return_value=row,
         ):
-            resp = TestClient(app).get("/dash-abc")
+            resp = TestClient(app).get("/api/dashboards/dash-abc")
 
         assert resp.status_code == 200
         data = resp.json()
@@ -224,7 +224,7 @@ class TestGetDashboard:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            resp = TestClient(app).get("/missing-id")
+            resp = TestClient(app).get("/api/dashboards/missing-id")
 
         assert resp.status_code == 404
 
@@ -234,7 +234,7 @@ class TestGetDashboard:
         mock = AsyncMock(return_value=_detail_row())
 
         with patch("backend.routes.dashboards.router.dal.get_dashboard", mock):
-            TestClient(app).get("/dash-001")
+            TestClient(app).get("/api/dashboards/dash-001")
 
         args = mock.call_args[0]
         assert args[2] == "ops@kerry.com"
@@ -251,7 +251,7 @@ class TestCreateDashboard:
             return_value=returned_row,
         ):
             resp = TestClient(app).post(
-                "/",
+                "/api/dashboards",
                 json={"title": "New Board", "tags": ["oee"]},
             )
 
@@ -262,7 +262,7 @@ class TestCreateDashboard:
         user = _make_user()
         app = _make_app(user)
 
-        resp = TestClient(app).post("/", json={"title": ""})
+        resp = TestClient(app).post("/api/dashboards", json={"title": ""})
 
         assert resp.status_code == 422
 
@@ -272,7 +272,7 @@ class TestCreateDashboard:
         mock = MagicMock(return_value=_detail_row(owner_email="plant@kerry.com"))
 
         with patch("backend.routes.dashboards.router.dal.create_dashboard", mock):
-            TestClient(app).post("/", json={"title": "Board"})
+            TestClient(app).post("/api/dashboards", json={"title": "Board"})
 
         _, kwargs = mock.call_args
         assert kwargs["owner_email"] == "plant@kerry.com"
@@ -284,7 +284,7 @@ class TestCreateDashboard:
 
         with patch("backend.routes.dashboards.router.dal.create_dashboard", mock):
             TestClient(app).post(
-                "/",
+                "/api/dashboards",
                 json={"title": "B", "config": {"columns": 6, "rowHeight": 80, "widgets": [], "globalFilters": []}},
             )
 
@@ -304,7 +304,7 @@ class TestUpdateDashboard:
             return_value=returned_row,
         ):
             resp = TestClient(app).put(
-                "/dash-001",
+                "/api/dashboards/dash-001",
                 json={"title": "Updated Board", "config": {"columns": 12, "rowHeight": 80, "widgets": []}},
             )
 
@@ -320,7 +320,7 @@ class TestUpdateDashboard:
             return_value=None,
         ):
             resp = TestClient(app).put(
-                "/nonexistent",
+                "/api/dashboards/nonexistent",
                 json={"config": {"columns": 12, "rowHeight": 80, "widgets": []}},
             )
 
@@ -330,7 +330,7 @@ class TestUpdateDashboard:
         user = _make_user()
         app = _make_app(user)
 
-        resp = TestClient(app).put("/dash-001", json={"title": "No Config"})
+        resp = TestClient(app).put("/api/dashboards/dash-001", json={"title": "No Config"})
 
         assert resp.status_code == 422
 
@@ -341,7 +341,7 @@ class TestUpdateDashboard:
 
         with patch("backend.routes.dashboards.router.dal.update_dashboard", mock):
             TestClient(app).put(
-                "/dash-001",
+                "/api/dashboards/dash-001",
                 json={"config": {"columns": 12, "rowHeight": 80, "widgets": []}},
             )
 
@@ -355,7 +355,7 @@ class TestUpdateDashboard:
 
         with patch("backend.routes.dashboards.router.dal.update_dashboard", mock):
             TestClient(app).put(
-                "/dash-001",
+                "/api/dashboards/dash-001",
                 json={"config": {"columns": 6, "rowHeight": 80, "widgets": []}},
             )
 
@@ -370,7 +370,7 @@ class TestUpdateDashboard:
 
         with patch("backend.routes.dashboards.router.dal.update_dashboard", mock):
             TestClient(app).put(
-                "/dash-001",
+                "/api/dashboards/dash-001",
                 json={"config": {"columns": 12, "rowHeight": 80, "widgets": []}},
             )
 
@@ -389,7 +389,7 @@ class TestDeleteDashboard:
             "backend.routes.dashboards.router.dal.delete_dashboard",
             return_value=True,
         ):
-            resp = TestClient(app).delete("/dash-001")
+            resp = TestClient(app).delete("/api/dashboards/dash-001")
 
         assert resp.status_code == 204
 
@@ -401,7 +401,7 @@ class TestDeleteDashboard:
             "backend.routes.dashboards.router.dal.delete_dashboard",
             return_value=False,
         ):
-            resp = TestClient(app).delete("/nonexistent")
+            resp = TestClient(app).delete("/api/dashboards/nonexistent")
 
         assert resp.status_code == 404
 
@@ -411,7 +411,7 @@ class TestDeleteDashboard:
         mock = MagicMock(return_value=True)
 
         with patch("backend.routes.dashboards.router.dal.delete_dashboard", mock):
-            TestClient(app).delete("/dash-xyz")
+            TestClient(app).delete("/api/dashboards/dash-xyz")
 
         args = mock.call_args[0]
         assert args[1] == "dash-xyz"
