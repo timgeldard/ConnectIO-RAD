@@ -7,7 +7,11 @@ import { LoadFrame, EmptyBlock } from "../components/LoadFrame";
 import { LineageGraph, NodeDetailPanel } from "../components/LineageGraph";
 import { CytoscapeGraph, type CytoscapeMode } from "../components/CytoscapeGraph";
 import { GraphViewToggle, type GraphViewMode } from "../components/GraphViewToggle";
-import { AdvancedLineageGraph } from "@connectio/shared-reporting";
+import {
+  AdvancedLineageGraph,
+  TraceFilterControls,
+  type TraceFilterValue,
+} from "@connectio/shared-reporting";
 import "@xyflow/react/dist/style.css";
 import { usePersistentMode } from "../hooks/usePersistentMode";
 
@@ -74,6 +78,15 @@ function BottomUpBody({
     "lineage",
     BOTTOM_UP_VIEWS,
   );
+  // BottomUp is by definition upstream-only — the filter bar surfaces depth
+  // + group + link toggles only; the direction segment is hidden via `show`.
+  const [filterValue, setFilterValue] = useState<TraceFilterValue>(() => ({
+    direction: "upstream",
+    depthUpstream: 99,
+    depthDownstream: 99,
+    groupBy: "none",
+    enabledLinks: new Set(),
+  }));
   const { language } = useI18n();
   const copy = traceCopy(language);
   const focal = focalFromBatch(batch);
@@ -133,21 +146,34 @@ function BottomUpBody({
             }}
           />
         ) : graphView === "advanced" ? (
-          <div style={{ padding: "0 14px 14px" }}>
-            <AdvancedLineageGraph
-              data={{ focal, upstream: lineage, downstream: [] }}
-              direction="upstream"
-              orientation="RL"
-              selectedId={selected?.id ?? null}
-              onNodeClick={(id) => {
-                if (id === focal.id) {
-                  setSelected(null);
-                  return;
-                }
-                const next = lineage.find((n) => n.id === id) ?? null;
-                setSelected(next);
-              }}
+          <div>
+            <TraceFilterControls
+              value={filterValue}
+              onChange={(patch) =>
+                setFilterValue((prev) => ({ ...prev, ...patch }))
+              }
+              show={{ direction: false }}
+              maxDepth={Math.max(8, maxLevel)}
             />
+            <div style={{ padding: "0 14px 14px" }}>
+              <AdvancedLineageGraph
+                data={{ focal, upstream: lineage, downstream: [] }}
+                direction="upstream"
+                orientation="RL"
+                maxUpstreamLevel={filterValue.depthUpstream}
+                enabledLinks={filterValue.enabledLinks}
+                groupBy={filterValue.groupBy}
+                selectedId={selected?.id ?? null}
+                onNodeClick={(id) => {
+                  if (id === focal.id) {
+                    setSelected(null);
+                    return;
+                  }
+                  const next = lineage.find((n) => n.id === id) ?? null;
+                  setSelected(next);
+                }}
+              />
+            </div>
           </div>
         ) : (
           <div style={{ padding: "0 14px 14px" }}>

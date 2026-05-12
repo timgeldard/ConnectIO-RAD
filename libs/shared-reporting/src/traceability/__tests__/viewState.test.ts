@@ -21,6 +21,8 @@ describe('parseTraceViewState', () => {
       depthUpstream: 3,
       depthDownstream: 2,
       selectedId: 'NODE-7',
+      groupBy: 'none',
+      enabledLinks: new Set(),
     })
   })
 
@@ -52,6 +54,8 @@ describe('serialiseTraceViewState', () => {
       depthUpstream: 2,
       depthDownstream: 4,
       selectedId: 'BATCH-9',
+      groupBy: 'plant' as const,
+      enabledLinks: new Set(['INTERNAL', 'RECEIPT'] as const),
     }
     const params = serialiseTraceViewState(start)
     expect(parseTraceViewState(`?${params.toString()}`)).toEqual(start)

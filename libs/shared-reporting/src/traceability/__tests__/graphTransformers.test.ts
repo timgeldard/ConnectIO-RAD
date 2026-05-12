@@ -143,6 +143,169 @@ describe('buildLineageGraph', () => {
   })
 })
 
+describe('buildLineageGraph link filter', () => {
+  test('drops rows whose link is not in enabledLinks', () => {
+    const data: AdvancedLineageData = {
+      focal,
+      upstream: [
+        up('U1', 1, focal.id, 'RECEIPT'),
+        up('U2', 1, focal.id, 'INTERNAL'),
+      ],
+      downstream: [],
+    }
+    const { nodes } = buildLineageGraph(data, {
+      enabledLinks: new Set(['RECEIPT']),
+    })
+    expect(new Set(nodes.map((n) => n.id))).toEqual(new Set([FOCAL_NODE_ID, 'U1']))
+  })
+
+  test('empty enabledLinks set means "all"', () => {
+    const data: AdvancedLineageData = {
+      focal,
+      upstream: [up('U1', 1, focal.id, 'INTERNAL')],
+      downstream: [],
+    }
+    const { nodes } = buildLineageGraph(data, { enabledLinks: new Set() })
+    expect(new Set(nodes.map((n) => n.id))).toEqual(new Set([FOCAL_NODE_ID, 'U1']))
+  })
+})
+
+describe('buildLineageGraph qty overlay', () => {
+  test('every edge carries a numeric weight in [1, 6]', () => {
+    const data: AdvancedLineageData = {
+      focal,
+      upstream: [
+        up('U1', 1, focal.id, 'RECEIPT'),
+        up('U2', 2, 'U1', 'RECEIPT'),
+      ],
+      downstream: [],
+    }
+    const { edges } = buildLineageGraph(data)
+    for (const e of edges) {
+      expect(e.data?.weight).toBeGreaterThanOrEqual(1)
+      expect(e.data?.weight).toBeLessThanOrEqual(6)
+    }
+  })
+
+  test('weight scales with qty across the graph (heavier edge gets higher weight)', () => {
+    const heavy = { ...up('U1', 1, focal.id), qty: 10_000 }
+    const light = { ...up('U2', 1, focal.id), qty: 100 }
+    const data: AdvancedLineageData = {
+      focal,
+      upstream: [heavy, light],
+      downstream: [],
+    }
+    const { edges } = buildLineageGraph(data)
+    const heavyEdge = edges.find((e) => e.source === 'U1')
+    const lightEdge = edges.find((e) => e.source === 'U2')
+    expect(heavyEdge?.data?.weight).toBeGreaterThan(lightEdge?.data?.weight ?? 0)
+  })
+
+  test('edges with no qty contribution fall back to weight 1', () => {
+    const data: AdvancedLineageData = {
+      focal,
+      upstream: [{ ...up('U1', 1, focal.id), qty: Number.NaN }],
+      downstream: [],
+    }
+    const { edges } = buildLineageGraph(data)
+    expect(edges[0].data?.qty).toBeNull()
+    expect(edges[0].data?.weight).toBe(1)
+  })
+})
+
+describe('buildLineageGraph grouping', () => {
+  function row(
+    id: string,
+    plant: string,
+    material: string,
+    parent = focal.id,
+  ): AdvancedLineageNode {
+    return {
+      id,
+      level: 1,
+      parent,
+      link: 'RECEIPT',
+      material_id: material,
+      material,
+      batch: id,
+      plant,
+      qty: 50,
+      uom: 'KG',
+    }
+  }
+
+  test('groupBy="plant" wraps same-plant rows in a single compound parent', () => {
+    const data: AdvancedLineageData = {
+      focal,
+      upstream: [
+        row('U1', 'RCN1', 'MAT-A'),
+        row('U2', 'RCN1', 'MAT-B'),
+        row('U3', 'RCN2', 'MAT-C'),
+      ],
+      downstream: [],
+    }
+    const { nodes } = buildLineageGraph(data, { groupBy: 'plant' })
+    const groups = nodes.filter((n) => n.id.startsWith('group::'))
+    expect(groups).toHaveLength(2)
+    const rcn1 = nodes.find((n) => n.id === 'group::plant:RCN1')
+    expect(rcn1?.data).toMatchObject({ kind: 'group', childCount: 2 })
+    // Children carry parentId pointing at their group
+    const u1 = nodes.find((n) => n.id === 'U1') as { parentId?: string }
+    expect(u1?.parentId).toBe('group::plant:RCN1')
+  })
+
+  test('groupBy="material" buckets by material_id', () => {
+    const data: AdvancedLineageData = {
+      focal,
+      upstream: [
+        row('U1', 'RCN1', 'MAT-A'),
+        row('U2', 'RCN2', 'MAT-A'),
+        row('U3', 'RCN1', 'MAT-B'),
+      ],
+      downstream: [],
+    }
+    const { nodes } = buildLineageGraph(data, { groupBy: 'material' })
+    const groupIds = nodes
+      .filter((n) => n.id.startsWith('group::'))
+      .map((n) => n.id)
+      .sort()
+    expect(groupIds).toEqual([
+      'group::material:MAT-A',
+      'group::material:MAT-B',
+    ])
+  })
+
+  test('edges between two nodes in the same group are dropped', () => {
+    const data: AdvancedLineageData = {
+      focal,
+      upstream: [
+        row('U1', 'RCN1', 'MAT-A'),
+        { ...row('U2', 'RCN1', 'MAT-B', 'U1'), level: 2 },
+      ],
+      downstream: [],
+    }
+    const { edges } = buildLineageGraph(data, { groupBy: 'plant' })
+    const intra = edges.find((e) => e.source === 'U2' && e.target === 'U1')
+    expect(intra).toBeUndefined()
+  })
+
+  test('cross-group edges are rewritten to point at the group ids', () => {
+    const data: AdvancedLineageData = {
+      focal,
+      upstream: [
+        row('U1', 'RCN1', 'MAT-A'),
+        { ...row('U2', 'RCN2', 'MAT-B', 'U1'), level: 2 },
+      ],
+      downstream: [],
+    }
+    const { edges } = buildLineageGraph(data, { groupBy: 'plant' })
+    const crossing = edges.find(
+      (e) => e.source === 'group::plant:RCN2' && e.target === 'group::plant:RCN1',
+    )
+    expect(crossing).toBeDefined()
+  })
+})
+
 describe('countNodesBySide', () => {
   test('counts unique non-focal node ids per side', () => {
     const counts = countNodesBySide({

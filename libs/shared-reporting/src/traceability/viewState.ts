@@ -14,7 +14,23 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import type { LineageDirection } from './types'
+import type { AdvancedLinkType, LineageDirection } from './types'
+
+/** Group-by strategy for the advanced lineage view.  Re-exported as a string
+ * union (rather than importing the toolbar) so this module has no React
+ * peer dependency cycle. */
+export type TraceGroupBy = 'none' | 'plant' | 'material'
+
+const VALID_GROUP_BY: readonly TraceGroupBy[] = ['none', 'plant', 'material']
+
+/** Canonical link types used for filter serialisation.  Backends may emit
+ * other values; those are kept as strings and serialised verbatim. */
+const KNOWN_LINKS: readonly AdvancedLinkType[] = [
+  'RECEIPT',
+  'INTERNAL',
+  'CONSUMPTION',
+  'SALES_ORDER',
+]
 
 /** All visualisations of the same data; persistable in URL. */
 export type TraceViewMode =
@@ -36,6 +52,10 @@ export interface TraceViewState {
   depthDownstream: number
   /** Currently-selected node id, or `null`. */
   selectedId: string | null
+  /** Compound-node grouping strategy. */
+  groupBy: TraceGroupBy
+  /** Link types currently visible; empty set means "show all". */
+  enabledLinks: ReadonlySet<AdvancedLinkType>
 }
 
 const DEFAULT_STATE: TraceViewState = {
@@ -44,6 +64,8 @@ const DEFAULT_STATE: TraceViewState = {
   depthUpstream: 99,
   depthDownstream: 99,
   selectedId: null,
+  groupBy: 'none',
+  enabledLinks: new Set<AdvancedLinkType>(),
 }
 
 /** Query-string keys; kept short so URLs stay tweet-able. */
@@ -53,6 +75,8 @@ const KEYS = {
   depthUp: 'du',
   depthDown: 'dd',
   selected: 'ts',
+  groupBy: 'tg',
+  links: 'tl',
 } as const
 
 const VALID_VIEWS: readonly TraceViewMode[] = [
@@ -80,6 +104,8 @@ export function parseTraceViewState(search: string): TraceViewState {
   const rawUp = params.get(KEYS.depthUp)
   const rawDown = params.get(KEYS.depthDown)
   const rawSel = params.get(KEYS.selected)
+  const rawGroup = params.get(KEYS.groupBy)
+  const rawLinks = params.get(KEYS.links)
 
   const view: TraceViewMode = (VALID_VIEWS as readonly string[]).includes(rawView ?? '')
     ? (rawView as TraceViewMode)
@@ -92,8 +118,30 @@ export function parseTraceViewState(search: string): TraceViewState {
   const depthUpstream = clampDepth(rawUp, DEFAULT_STATE.depthUpstream)
   const depthDownstream = clampDepth(rawDown, DEFAULT_STATE.depthDownstream)
   const selectedId = rawSel && rawSel.length > 0 ? rawSel : null
+  const groupBy: TraceGroupBy = (VALID_GROUP_BY as readonly string[]).includes(rawGroup ?? '')
+    ? (rawGroup as TraceGroupBy)
+    : DEFAULT_STATE.groupBy
+  const enabledLinks = parseLinks(rawLinks)
 
-  return { view, direction, depthUpstream, depthDownstream, selectedId }
+  return {
+    view,
+    direction,
+    depthUpstream,
+    depthDownstream,
+    selectedId,
+    groupBy,
+    enabledLinks,
+  }
+}
+
+/** Parse the comma-separated link filter, dropping empty tokens. */
+function parseLinks(raw: string | null): ReadonlySet<AdvancedLinkType> {
+  if (!raw) return new Set()
+  const parts = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  return new Set(parts as AdvancedLinkType[])
 }
 
 /** Serialise a state to a `URLSearchParams` (caller appends to its own URL). */
@@ -107,8 +155,25 @@ export function serialiseTraceViewState(state: TraceViewState): URLSearchParams 
   if (state.depthDownstream !== DEFAULT_STATE.depthDownstream)
     params.set(KEYS.depthDown, String(state.depthDownstream))
   if (state.selectedId) params.set(KEYS.selected, state.selectedId)
+  if (state.groupBy !== DEFAULT_STATE.groupBy) params.set(KEYS.groupBy, state.groupBy)
+  if (state.enabledLinks.size > 0) {
+    // Stable order so the URL is deterministic.
+    const ordered = [...state.enabledLinks].sort()
+    params.set(KEYS.links, ordered.join(','))
+  }
   return params
 }
+
+/** Convenience guard — true when the URL represents "show every link". */
+export function isLinkVisible(
+  state: TraceViewState,
+  link: AdvancedLinkType,
+): boolean {
+  return state.enabledLinks.size === 0 || state.enabledLinks.has(link)
+}
+
+/** Tests rely on the set of canonical link types being stable. */
+export { KNOWN_LINKS as TRACE_KNOWN_LINKS }
 
 function clampDepth(raw: string | null, fallback: number): number {
   if (raw == null) return fallback

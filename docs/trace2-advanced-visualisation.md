@@ -1,6 +1,6 @@
 # trace2 advanced traceability visualisation
 
-- **Status:** Phase 0 + Phase 1 scaffold shipped; Phases 2–4 not started
+- **Status:** Phase 0 + Phase 1 complete (including finishing items); Phases 2–4 not started
 - **Date:** 2026-05-12
 - **Owner:** TBD (trace2 frontend lead)
 
@@ -69,18 +69,26 @@ These were in the original 5-phase plan and are tracked for follow-up.
 None of them are blocked by anything in this PR — the foundations were
 designed so each one slots in without rework.
 
-### Phase 1 finishing items
+### Phase 1 finishing items — ✅ shipped (2026-05-12 follow-up)
 
-- **Smart node grouping** (collapse by Plant or Material Family).
-  The `buildLineageGraph` API has room for a `groupBy` option; needs a
-  UI for expand/collapse and a transform that builds compound nodes.
-- **Depth slider + filter chips wired into `useTraceViewState`.**
-  Today the consumer passes `maxUpstreamLevel` / `maxDownstreamLevel`
-  as props; the URL-synced shared state is ready but the UI surfaces
-  are not built yet.
-- **Path analysis overlays.**  Stroke thickness scaled to qty, colour
-  intensity by risk or age.  Requires either a new field on the
-  lineage rows or a frontend roll-up.
+- **Smart node grouping** — `buildLineageGraph` now accepts
+  `groupBy: 'none' | 'plant' | 'material'`.  Compound parent nodes wrap
+  same-group rows; intra-group edges collapse, cross-group edges are
+  rewritten to the group ids.  ELK lays out the compound graph via the
+  `INCLUDE_CHILDREN` hierarchy mode.
+- **Filter controls UI** — `TraceFilterControls` exposes direction,
+  per-side depth sliders, group-by selector, and link-type chips.
+  Both BottomUp and TopDown render it above the advanced graph (with
+  the direction segment hidden since each page is inherently one
+  direction).  State is currently local to each page; `useTraceViewState`
+  has been extended with `groupBy` + `enabledLinks` so wiring the URL
+  sync in a follow-up is a one-line change per page.
+- **Path-quantity overlay** — edges aggregate qty across parallel rows
+  and carry a `weight` field in `1..6` derived from a log-scaled
+  normalisation across the graph.  `AdvancedLineageGraph` translates
+  weight into stroke width and shows a short qty label on each edge
+  (k/M shortening for compactness).  Zero-qty edges fall back to width
+  `1` — no fabricated visuals.
 
 ### Phase 2 — Sankey + table views
 
@@ -149,9 +157,10 @@ A future cleanup can hoist the CSS import into the AppShell.
 
 | File | Tests | What it covers |
 |---|---|---|
-| `graphTransformers.test.ts` | 11 | Edge direction, dedup, depth cap, direction filter, link-type edge-id, self-transfer drop |
-| `viewState.test.ts` | 5 | URL parse defaults, enum rejection, depth clamp, round-trip, selectedId null behaviour |
+| `graphTransformers.test.ts` | 22 | Edge direction, dedup, depth cap, direction filter, link-type edge-id, self-transfer drop, link filter ratchet, qty weight scaling, no-qty fallback, group-by plant/material, intra-group collapse, cross-group rewrite |
+| `viewState.test.ts` | 5 | URL parse defaults, enum rejection, depth clamp, round-trip including `groupBy`+`enabledLinks`, selectedId null behaviour |
 | `AdvancedLineageGraph.test.tsx` | 4 | Smoke mount, layout hint, no spurious callback, empty data |
+| `TraceFilterControls.test.tsx` | 6 | Default visibility, hide-on-direction, segmented click, link-chip toggle, last-link safety net, slider numeric emit |
 
-Total: **20 new tests, all passing**.
+Total: **35 tests, all passing**.
 The classic `LineageGraph.test.tsx` is unchanged and still passes.

@@ -8,7 +8,7 @@
  */
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 
-import type { FocalNodeData, LineageNodeData } from './graphTransformers'
+import type { FocalNodeData, GroupNodeData, LineageNodeData } from './graphTransformers'
 import type { AdvancedLinkType } from './types'
 
 /** Stroke colours indexed by link type — matches LINK_STYLE in LineageGraph.tsx. */
@@ -120,6 +120,50 @@ export function LineageNodeView({ data, selected }: NodeProps) {
         Batch <strong>{node.batch}</strong> · {node.plant}
       </div>
       <div style={{ fontSize: 12, opacity: 0.75, marginTop: 2 }}>{fmtQty(node.qty, node.uom)}</div>
+      <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Right} style={{ opacity: 0 }} />
+    </div>
+  )
+}
+
+/**
+ * Compound (group) node card — shown when group-by is active.
+ *
+ * Rendered as a dashed-border container that visually wraps its children.
+ * React Flow positions children inside via the `parentNode`+`extent: 'parent'`
+ * relationship; we just need to give the container a header strip with the
+ * group label, child count, and roll-up qty.  Children render at their own
+ * z-index above this card.
+ */
+export function GroupNodeView({ data, selected }: NodeProps) {
+  const { label, childCount, totalQty } = data as GroupNodeData
+  return (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        background: 'rgba(248, 250, 252, 0.85)',
+        border: `1px dashed ${selected ? '#F24A00' : 'var(--ink-3, #94a3b8)'}`,
+        borderRadius: 8,
+        padding: 8,
+        boxSizing: 'border-box',
+        fontFamily: 'var(--font-sans, system-ui)',
+      }}
+    >
+      <div
+        style={{
+          fontSize: 10.5,
+          letterSpacing: '0.05em',
+          color: 'var(--ink-3, #6b7280)',
+          textTransform: 'uppercase',
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--ink-2, #4b5563)', marginTop: 2 }}>
+        {childCount} batch{childCount === 1 ? '' : 'es'}
+        {totalQty != null ? ` · Σ ${totalQty.toLocaleString()}` : ''}
+      </div>
       <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
       <Handle type="source" position={Position.Right} style={{ opacity: 0 }} />
     </div>

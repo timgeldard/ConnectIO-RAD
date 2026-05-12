@@ -17,6 +17,8 @@ export {
   buildLineageGraph,
   countNodesBySide,
   type FocalNodeData,
+  type GroupByMode,
+  type GroupNodeData,
   type LineageEdgeData,
   type LineageNodeData,
   type LineageReactFlowEdge,
@@ -30,15 +32,26 @@ export {
 } from './layoutEngines'
 export { colourForLink } from './nodes'
 export {
+  TraceFilterControls,
+  type TraceFilterControlsProps,
+  type TraceFilterValue,
+  type TraceFilterVisibility,
+  type GroupByMode as ControlsGroupByMode,
+} from './TraceFilterControls'
+export {
+  isLinkVisible,
   parseTraceViewState,
   serialiseTraceViewState,
   useTraceViewState,
+  TRACE_KNOWN_LINKS,
+  type TraceGroupBy,
   type TraceViewMode,
   type TraceViewState,
 } from './viewState'
 export {
   FOCAL_NODE_ID,
   FOCAL_NODE_TYPE,
+  GROUP_NODE_TYPE,
   LINEAGE_NODE_TYPE,
   type AdvancedLinkType,
   type AdvancedLineageData,

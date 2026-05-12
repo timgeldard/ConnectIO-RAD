@@ -43,16 +43,19 @@ import {
 
 import {
   buildLineageGraph,
+  type GroupByMode,
   type LineageReactFlowEdge,
   type LineageReactFlowNode,
 } from './graphTransformers'
 import { applyLayout, type LayoutDirection } from './layoutEngines'
-import { colourForLink, FocalNodeView, LineageNodeView } from './nodes'
+import { colourForLink, FocalNodeView, GroupNodeView, LineageNodeView } from './nodes'
 import {
   FOCAL_NODE_ID,
   FOCAL_NODE_TYPE,
+  GROUP_NODE_TYPE,
   LINEAGE_NODE_TYPE,
   type AdvancedLineageData,
+  type AdvancedLinkType,
   type LineageDirection,
 } from './types'
 
@@ -68,6 +71,10 @@ export interface AdvancedLineageGraphProps {
   maxUpstreamLevel?: number
   /** Cap downstream depth.  Default unlimited. */
   maxDownstreamLevel?: number
+  /** Subset of link types to keep visible; empty/undefined means "all". */
+  enabledLinks?: ReadonlySet<AdvancedLinkType>
+  /** Compound-node grouping strategy.  Default `'none'`. */
+  groupBy?: GroupByMode
   /** Visual orientation. `'LR'` (default) puts upstream on the left. */
   orientation?: Orientation
   /** Currently selected node id (used to highlight one node). */
@@ -82,6 +89,7 @@ export interface AdvancedLineageGraphProps {
 const NODE_TYPES = {
   [FOCAL_NODE_TYPE]: FocalNodeView,
   [LINEAGE_NODE_TYPE]: LineageNodeView,
+  [GROUP_NODE_TYPE]: GroupNodeView,
 }
 
 /**
@@ -94,6 +102,8 @@ function AdvancedLineageGraphInner({
   direction = 'both',
   maxUpstreamLevel,
   maxDownstreamLevel,
+  enabledLinks,
+  groupBy = 'none',
   orientation = 'LR',
   selectedId,
   onNodeClick,
@@ -107,8 +117,10 @@ function AdvancedLineageGraphInner({
         direction,
         maxUpstreamLevel,
         maxDownstreamLevel,
+        enabledLinks,
+        groupBy,
       }),
-    [data, direction, maxUpstreamLevel, maxDownstreamLevel],
+    [data, direction, maxUpstreamLevel, maxDownstreamLevel, enabledLinks, groupBy],
   )
 
   // Step 2: ELK is async — keep the previous positioned graph on screen
@@ -144,17 +156,30 @@ function AdvancedLineageGraphInner({
   }, [positioned, selectedId, data.focal.id])
 
   // Step 4: style edges by link type — matches the classic LINK_STYLE map.
+  // Width is driven by the `weight` field set during transform (qty roll-up
+  // in 1..6), so heavy material flows are visually obvious without a
+  // dedicated "show flow" toggle.
   const styledEdges = useMemo<LineageReactFlowEdge[]>(() => {
     if (!positioned) return []
     return positioned.edges.map((e) => {
       const link = e.data?.link ?? ''
       const dashed = link === 'CONSUMPTION' || link === 'INTERNAL'
+      const weight = e.data?.weight ?? 1
+      const qty = e.data?.qty
       return {
         ...e,
         animated: false,
+        // Surface the qty in the native edge tooltip via React Flow's `label`.
+        // Keep it tiny so it does not interfere with the graph at scale.
+        label: qty != null ? formatQtyShort(qty) : undefined,
+        labelStyle: { fontSize: 10, fill: 'var(--ink-3, #6b7280)' },
+        labelBgStyle: { fill: 'rgba(255,255,255,0.85)' },
+        labelBgPadding: [3, 1] as [number, number],
         style: {
           stroke: colourForLink(link),
-          strokeWidth: 1.5,
+          // 0.75 base + weight in pixels — 1.75..6.75 — gives strong visual
+          // contrast without making heavy edges overlap node text.
+          strokeWidth: 0.75 + weight,
           strokeDasharray: dashed ? '4 3' : undefined,
         },
       }
@@ -227,4 +252,17 @@ export function AdvancedLineageGraph(props: AdvancedLineageGraphProps) {
       <AdvancedLineageGraphInner {...props} />
     </ReactFlowProvider>
   )
+}
+
+/**
+ * Format a qty roll-up for inline edge labels.  Aggressive shortening
+ * (kilos → ``k``, millions → ``M``) keeps the label visually compact even
+ * at a fitted-view zoom level.
+ */
+function formatQtyShort(qty: number): string {
+  const abs = Math.abs(qty)
+  if (abs >= 1_000_000) return `${(qty / 1_000_000).toFixed(1)}M`
+  if (abs >= 1_000) return `${(qty / 1_000).toFixed(1)}k`
+  if (abs >= 10) return qty.toFixed(0)
+  return qty.toFixed(1)
 }

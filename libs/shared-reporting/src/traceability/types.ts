@@ -78,3 +78,6 @@ export const FOCAL_NODE_TYPE = 'lineageFocal'
 
 /** Custom node type registered with React Flow for each upstream/downstream batch. */
 export const LINEAGE_NODE_TYPE = 'lineageBatch'
+
+/** Custom node type for compound (group) nodes when group-by is active. */
+export const GROUP_NODE_TYPE = 'lineageGroup'

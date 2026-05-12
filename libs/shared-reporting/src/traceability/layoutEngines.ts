@@ -16,7 +16,7 @@
  */
 import ELK, { type ElkNode } from 'elkjs/lib/elk.bundled.js'
 
-import { FOCAL_NODE_ID } from './types'
+import { FOCAL_NODE_ID, GROUP_NODE_TYPE } from './types'
 import type { LineageReactFlowEdge, LineageReactFlowNode } from './graphTransformers'
 
 /** Approximate node dimensions used as ELK hints. Matches AdvancedLineageGraph CSS. */
@@ -60,6 +60,37 @@ export async function applyLayout(
 
   const elk = getElk()
 
+  // Build a parent-id map so children can be nested under their group node
+  // when grouping is on.  ELK supports compound graphs natively — we just
+  // need to reproduce the parent/child structure when we serialise.
+  const childrenByParent = new Map<string | undefined, LineageReactFlowNode[]>()
+  for (const n of nodes) {
+    const key = (n as { parentId?: string }).parentId
+    const arr = childrenByParent.get(key) ?? []
+    arr.push(n)
+    childrenByParent.set(key, arr)
+  }
+
+  const buildElkNode = (n: LineageReactFlowNode): ElkNode => {
+    const isFocal = n.id === FOCAL_NODE_ID
+    const isGroup = n.type === GROUP_NODE_TYPE
+    const directChildren = (childrenByParent.get(n.id) ?? []).map(buildElkNode)
+    return {
+      id: n.id,
+      // For group nodes, omit width/height so ELK computes the wrapper from
+      // children + padding.  For leaves, supply the renderer hint sizes.
+      width: isGroup ? undefined : isFocal ? FOCAL_NODE_WIDTH : DEFAULT_NODE_WIDTH,
+      height: isGroup ? undefined : isFocal ? FOCAL_NODE_HEIGHT : DEFAULT_NODE_HEIGHT,
+      children: directChildren.length > 0 ? directChildren : undefined,
+      // Per-group padding keeps the dashed border off the children.
+      layoutOptions: isGroup
+        ? { 'elk.padding': '[top=32,left=12,bottom=12,right=12]' }
+        : undefined,
+    }
+  }
+
+  const rootChildren = (childrenByParent.get(undefined) ?? []).map(buildElkNode)
+
   const elkGraph: ElkNode = {
     id: 'root',
     layoutOptions: {
@@ -68,15 +99,12 @@ export async function applyLayout(
       'elk.layered.spacing.nodeNodeBetweenLayers': '80',
       'elk.spacing.nodeNode': '40',
       'elk.padding': '[top=24,left=24,bottom=24,right=24]',
-      // Stable ordering — investigations should see the same layout each
-      // visit unless data changes.  `NODES_AND_EDGES` keeps both axes pinned.
+      // Lets the layered algorithm route edges in and out of compound
+      // nodes cleanly when grouping is on.
+      'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
       'elk.layered.crossingMinimization.semiInteractive': 'true',
     },
-    children: nodes.map((n) => ({
-      id: n.id,
-      width: n.id === FOCAL_NODE_ID ? FOCAL_NODE_WIDTH : DEFAULT_NODE_WIDTH,
-      height: n.id === FOCAL_NODE_ID ? FOCAL_NODE_HEIGHT : DEFAULT_NODE_HEIGHT,
-    })),
+    children: rootChildren,
     edges: edges.map((e) => ({
       id: e.id,
       sources: [e.source],
@@ -86,14 +114,33 @@ export async function applyLayout(
 
   try {
     const laidOut = await elk.layout(elkGraph)
-    const positions = new Map<string, { x: number; y: number }>()
-    for (const child of laidOut.children ?? []) {
-      positions.set(child.id, { x: child.x ?? 0, y: child.y ?? 0 })
+    const positions = new Map<string, { x: number; y: number; w?: number; h?: number }>()
+    const walk = (node: ElkNode) => {
+      if (node.id !== 'root') {
+        positions.set(node.id, {
+          x: node.x ?? 0,
+          y: node.y ?? 0,
+          w: node.width,
+          h: node.height,
+        })
+      }
+      for (const c of node.children ?? []) walk(c)
     }
-    return nodes.map((n) => ({
-      ...n,
-      position: positions.get(n.id) ?? n.position,
-    }))
+    walk(laidOut)
+    return nodes.map((n) => {
+      const pos = positions.get(n.id)
+      if (!pos) return n
+      const isGroup = n.type === GROUP_NODE_TYPE
+      return {
+        ...n,
+        position: { x: pos.x, y: pos.y },
+        // Replace the placeholder group dimensions with the real ones ELK
+        // computed from the children + padding.
+        ...(isGroup && pos.w && pos.h
+          ? { style: { ...(n.style ?? {}), width: pos.w, height: pos.h } }
+          : {}),
+      }
+    })
   } catch (err) {
     // Fall back to a simple grid; React Flow will still render and the
     // user can pan around manually.  Worth a console.warn so QA notices.
