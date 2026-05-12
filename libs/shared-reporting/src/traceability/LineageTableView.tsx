@@ -36,6 +36,8 @@ export interface LineageTableViewProps {
   height?: number | string
   /** Optional click handler — receives the lineage node id. */
   onRowClick?: (id: string) => void
+  /** Visual theme.  ``'high-contrast'`` flips to dark-on-light for plant tablets. */
+  theme?: 'default' | 'high-contrast'
 }
 
 type ColumnKey =
@@ -86,7 +88,16 @@ export function LineageTableView({
   groupBy = 'none',
   height = 600,
   onRowClick,
+  theme = 'default',
 }: LineageTableViewProps) {
+  const isHC = theme === 'high-contrast'
+  const bg = isHC ? '#0f172a' : 'var(--bg-surface, #ffffff)'
+  const bg2 = isHC ? '#1e293b' : 'var(--bg-surface-2, #f1f5f9)'
+  const fg = isHC ? '#f8fafc' : 'var(--ink-1, #16202a)'
+  const fg2 = isHC ? '#cbd5e1' : 'var(--ink-2, #4b5563)'
+  const line = isHC ? '#334155' : 'var(--line, #e3e7ec)'
+  const accent = isHC ? '#FFFF00' : 'var(--brand, #003C52)'
+  const focalRowBg = isHC ? 'rgba(255, 255, 0, 0.08)' : 'rgba(0, 60, 82, 0.05)'
   const [sortKey, setSortKey] = useState<ColumnKey>('level')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
 
@@ -219,16 +230,17 @@ export function LineageTableView({
 
   return (
     <div
-      style={{ height, display: 'flex', flexDirection: 'column' }}
+      style={{ height, display: 'flex', flexDirection: 'column', background: bg }}
       data-testid="lineage-table-view"
+      data-theme={theme}
     >
       <div
         style={{
           display: 'flex',
           justifyContent: 'flex-end',
           padding: '6px 10px',
-          background: 'var(--bg-surface-2, #f1f5f9)',
-          borderBottom: '1px solid var(--line, #e3e7ec)',
+          background: bg2,
+          borderBottom: `1px solid ${line}`,
         }}
       >
         <button
@@ -239,8 +251,8 @@ export function LineageTableView({
             padding: '4px 12px',
             fontFamily: 'var(--font-sans, system-ui)',
             fontSize: 12,
-            background: 'var(--brand, #003C52)',
-            color: '#fff',
+            background: accent,
+            color: isHC ? '#000000' : '#fff',
             border: 'none',
             borderRadius: 4,
             cursor: sortedRows.length === 0 ? 'not-allowed' : 'pointer',
@@ -257,7 +269,7 @@ export function LineageTableView({
             style={{
               padding: 24,
               textAlign: 'center',
-              color: 'var(--ink-3, #6b7280)',
+              color: fg2,
               fontFamily: 'var(--font-sans, system-ui)',
               fontSize: 13,
             }}
@@ -284,16 +296,14 @@ export function LineageTableView({
                       style={{
                         textAlign: c.align,
                         padding: '8px 10px',
-                        background: 'var(--bg-surface, #ffffff)',
-                        borderBottom: '1px solid var(--line, #e3e7ec)',
+                        background: bg,
+                        borderBottom: `1px solid ${line}`,
                         cursor: 'pointer',
                         userSelect: 'none',
                         position: 'sticky',
                         top: 0,
                         width: c.width,
-                        color: isSorted
-                          ? 'var(--brand, #003C52)'
-                          : 'var(--ink-2, #4b5563)',
+                        color: isSorted ? accent : fg2,
                         fontWeight: 600,
                       }}
                       aria-sort={
@@ -318,7 +328,7 @@ export function LineageTableView({
                   onClick={() => onRowClick?.(r.id)}
                   style={{
                     cursor: onRowClick ? 'pointer' : 'default',
-                    background: r.side === 'focal' ? 'rgba(0, 60, 82, 0.05)' : 'transparent',
+                    background: r.side === 'focal' ? focalRowBg : 'transparent',
                   }}
                 >
                   {COLUMNS.map((c) => {
@@ -337,8 +347,8 @@ export function LineageTableView({
                         style={{
                           textAlign: c.align,
                           padding: '6px 10px',
-                          borderBottom: '1px solid var(--line, #e3e7ec)',
-                          color: 'var(--ink-1, #16202a)',
+                          borderBottom: `1px solid ${line}`,
+                          color: fg,
                           whiteSpace: 'nowrap',
                           maxWidth: 240,
                           overflow: 'hidden',

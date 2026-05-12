@@ -1,6 +1,6 @@
 # trace2 advanced traceability visualisation
 
-- **Status:** Phase 0 + Phase 1 + Phase 2 complete; Phases 3–4 not started
+- **Status:** Phase 0 + Phase 1 + Phase 2 + Phase 3a (lib surface) complete; Phase 3b (trace2 Genie wiring) + Phase 4 not started
 - **Date:** 2026-05-12
 - **Owner:** TBD (trace2 frontend lead)
 
@@ -115,21 +115,65 @@ designed so each one slots in without rework.
   present, falling back to `qty` for older payloads (4 dedicated
   back-compat tests).
 
-### Phase 3 — Polish + manufacturing fit
+### Phase 3a — Lib-side polish — ✅ shipped (2026-05-12)
 
-- **Genie integration.**  Right-click a node → "Explain this transfer".
-  Trace2 already wires Genie at the page level (see
-  `apps/processorderhistory/.../genie_assist/`); the contract is
-  stable, this is integration work only.
-- **PNG / SVG / PDF export.**  React Flow exposes the viewport DOM
-  node; html-to-image is the standard companion library.
-- **High-contrast / factory-mode theming.**  Hook the CSS variables
-  the custom node renderers already read from (`--ink-1`, `--line`,
-  `--brand`).  Add a Vitest snapshot per theme.
-- **Performance.**  Virtualise nodes when count exceeds ~150 (React
-  Flow supports `onlyRenderVisibleElements`).  Lazy-load ELK for
-  deep graphs (it is already async — we just don't show a busy state
-  for re-layouts).
+- **Performance.**  `AdvancedLineageGraph` now honours React Flow's
+  `onlyRenderVisibleElements` once node count exceeds a configurable
+  threshold (default 150).  A small ``virtualised · N nodes`` badge
+  appears in the bottom-right so QA can see the mode is active.  A
+  ``Re-laying out…`` indicator appears in the top-right while ELK
+  recomputes a layout after a filter change, so users know the brief
+  unresponsiveness is expected.
+- **PNG + SVG export.**  New `LineageExportMenu` floating button on
+  both `AdvancedLineageGraph` and `SankeyFlowView`.  `Advanced` view
+  captures the React Flow viewport via lazy-loaded `html-to-image`
+  (PNG + SVG); `Sankey` uses ECharts' native `getDataURL` (PNG) and
+  `renderToSVGString` (SVG, with a data-URL fallback).  Filenames
+  follow the pattern
+  `lineage-<material_id>-<batch_id>-<view>-<yyyymmddTHHMM>.<ext>`,
+  sanitised against filesystem-unsafe characters.  Table view's
+  CSV export landed in Phase 2.
+- **High-contrast theming.**  New `LineageTheme` palette (default +
+  high-contrast) plumbed via a `LineageThemeContext` so every custom
+  React Flow node renderer (focal, lineage, group) reads the active
+  palette without prop drilling.  Edge stroke colours, label
+  contrast, MiniMap colours, and the export background all flip
+  with the theme.  `SankeyFlowView` and `LineageTableView` accept
+  the same `theme` prop and re-skin their containers.  High-contrast
+  is tuned for plant-floor tablet screens in bright environments.
+- **Genie ("Explain this transfer") dispatch surface.**  Right-click
+  on any non-focal node opens a small context menu with an
+  *Explain this transfer* item.  The lib emits a structured
+  `LineageNodeContext` to the host-supplied `onExplainNode` callback.
+  Two helper functions package that context for Genie:
+  `buildExplainTransferPrompt(ctx)` (user-facing prompt string) and
+  `buildExplainTransferContext(ctx)` (structured `page_context` block).
+  When the host omits `onExplainNode` the right-click menu stays
+  hidden — the lib stays agnostic to whichever AI assistant a host
+  app wires up.
+
+### Phase 3b — trace2 Genie wiring — not in this PR
+
+Trace2 currently has no Genie router or drawer.  Porting POH's
+`genie_assist/` backend + `genie/` frontend (drawer + hook + page
+context builder + multi-space routing through the platform shell) is
+roughly 1,000 LOC of mostly mechanical port work plus a deploy-time
+`GENIE_SPACE_ID` env var.  Scoping that into a dedicated PR keeps the
+lib changes reviewable and lets the trace2 team make their own
+Genie-space ownership decisions.
+
+When that PR lands, wiring is one prop change per page:
+
+```tsx
+const { ask } = useTrace2Genie()  // hypothetical, follow-up PR
+<AdvancedLineageGraph
+  …existing props…
+  onExplainNode={(ctx) => ask({
+    prompt: buildExplainTransferPrompt(ctx),
+    pageContext: buildExplainTransferContext(ctx),
+  })}
+/>
+```
 
 ### Phase 4 — Validation
 
@@ -176,6 +220,10 @@ A future cleanup can hoist the CSS import into the AppShell.
 | `flow_qty.test.ts` | 4 | flow_qty drives weight, fall-back to qty, zero-flow → weight 1, NaN → fall-back |
 | `SankeyFlowView.test.tsx` | 3 | Smoke render, empty-filter placeholder, link filter applied |
 | `LineageTableView.test.tsx` | 6 | Render focal + rows, flow_qty shown, sort toggle (aria-sort), enabledLinks filter, row click forwards id, export button state |
+| `exportHelpers.test.ts` | 11 | filename pattern + sanitisation + fallback, PNG data-URL → Blob, SVG string → Blob, anchor-click trigger, delayed URL revoke |
+| `LineageExportMenu.test.tsx` | 6 | render-when-empty, toggle, item visibility per handler, dispatch, busy state, failure clears busy + logs |
+| `geniePrompt.test.ts` | 6 | upstream / downstream phrasing, optional flow clause, fixed ask questions, deterministic JSON context, optional flow_qty |
+| `theme.test.tsx` | 3 | palette uniqueness, every key populated, `data-theme` attribute |
 
-Total: **48 tests, all passing**.
+Total: **71 tests, all passing**.
 The classic `LineageGraph.test.tsx` is unchanged and still passes.

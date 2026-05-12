@@ -5,23 +5,113 @@
  * (`apps/trace2/frontend/src/components/LineageGraph.tsx`) so the two
  * views are visually consistent: yellow accent on the focal node, plant
  * + qty subtext, link-type colour on the left edge for lineage nodes.
+ *
+ * A `LineageThemeContext` lets the host component flip the whole palette
+ * to high-contrast for plant-floor tablets in bright environments.  We
+ * use a context (rather than threading a `theme` prop through React Flow)
+ * because React Flow passes only its own typed `NodeProps` to custom
+ * renderers and won't forward arbitrary props.
  */
+import { createContext, useContext } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 
 import type { FocalNodeData, GroupNodeData, LineageNodeData } from './graphTransformers'
 import type { AdvancedLinkType } from './types'
 
-/** Stroke colours indexed by link type — matches LINK_STYLE in LineageGraph.tsx. */
-const LINK_COLOR: Record<string, string> = {
-  RECEIPT: '#289BA2',
-  CONSUMPTION: '#F9C20A',
-  INTERNAL: '#8A9E6A',
-  SALES_ORDER: '#005776',
+/** Logical theme name.  Renderers read this via context. */
+export type LineageTheme = 'default' | 'high-contrast'
+
+/** Resolved palette derived from a {@link LineageTheme}. */
+export interface LineagePalette {
+  /** Focal-node background. */
+  focalBg: string
+  /** Focal-node text. */
+  focalFg: string
+  /** Focal-node yellow accent bar. */
+  focalAccent: string
+  /** Upstream lineage node background. */
+  upstreamBg: string
+  /** Downstream lineage node background. */
+  downstreamBg: string
+  /** Lineage node text. */
+  lineageFg: string
+  /** Selection outline (for both focal and lineage). */
+  selectionOutline: string
+  /** Group-node dashed border. */
+  groupBorder: string
+  /** Group-node text. */
+  groupFg: string
+  /** Group-node background fill (rgba ok). */
+  groupBg: string
+  /** Link-type stroke palette.  Falls back to ink-3 for unknown links. */
+  linkColors: Record<string, string>
 }
 
+/** Default palette — matches the classic SVG `LineageGraph` colours. */
+const DEFAULT_PALETTE: LineagePalette = {
+  focalBg: '#003C52',
+  focalFg: '#F2F6F8',
+  focalAccent: '#DFFF11',
+  upstreamBg: '#E3EEF3',
+  downstreamBg: '#F1F1E5',
+  lineageFg: 'var(--ink-1, #16202a)',
+  selectionOutline: '#F24A00',
+  groupBorder: 'var(--ink-3, #94a3b8)',
+  groupFg: 'var(--ink-3, #6b7280)',
+  groupBg: 'rgba(248, 250, 252, 0.85)',
+  linkColors: {
+    RECEIPT: '#289BA2',
+    CONSUMPTION: '#F9C20A',
+    INTERNAL: '#8A9E6A',
+    SALES_ORDER: '#005776',
+  },
+}
+
+/**
+ * High-contrast palette tuned for bright plant-floor tablet screens.
+ *
+ * Background slabs are near-black; foreground is white; link colours
+ * shift toward primaries with WCAG-AAA contrast against the dark
+ * background.  Focal yellow accent is retained as the brand "you are
+ * here" cue but pushed brighter.
+ */
+const HIGH_CONTRAST_PALETTE: LineagePalette = {
+  focalBg: '#000000',
+  focalFg: '#FFFFFF',
+  focalAccent: '#FFFF00',
+  upstreamBg: '#1f2937',
+  downstreamBg: '#374151',
+  lineageFg: '#FFFFFF',
+  selectionOutline: '#FF8000',
+  groupBorder: '#FFFFFF',
+  groupFg: '#FFFFFF',
+  groupBg: 'rgba(15, 23, 42, 0.7)',
+  linkColors: {
+    RECEIPT: '#00E5FF',
+    CONSUMPTION: '#FFEE00',
+    INTERNAL: '#7CFF6B',
+    SALES_ORDER: '#FF66CC',
+  },
+}
+
+/** Resolve a theme name to a palette.  Exported for tests + Sankey/Table reuse. */
+export function paletteFor(theme: LineageTheme): LineagePalette {
+  return theme === 'high-contrast' ? HIGH_CONTRAST_PALETTE : DEFAULT_PALETTE
+}
+
+/**
+ * Theme context consumed by node renderers.  Defaults to the standard
+ * palette so renderers stay safe when used outside a provider (e.g.
+ * unit tests that mount one node in isolation).
+ */
+export const LineageThemeContext = createContext<LineagePalette>(DEFAULT_PALETTE)
+
 /** Helper used by the custom edge renderer; exported for reuse. */
-export function colourForLink(link: AdvancedLinkType): string {
-  return LINK_COLOR[link] ?? 'var(--ink-3, #6b7280)'
+export function colourForLink(
+  link: AdvancedLinkType,
+  palette: LineagePalette = DEFAULT_PALETTE,
+): string {
+  return palette.linkColors[link] ?? 'var(--ink-3, #6b7280)'
 }
 
 /** Format quantity with thousands separators, fixed precision when needed. */
@@ -42,17 +132,18 @@ function fmtQty(qty: number, uom: string): string {
  */
 export function FocalNodeView({ data, selected }: NodeProps) {
   const focal = (data as FocalNodeData).focal
+  const palette = useContext(LineageThemeContext)
   return (
     <div
       style={{
         width: 280,
         minHeight: 112,
-        background: '#003C52',
-        color: '#F2F6F8',
+        background: palette.focalBg,
+        color: palette.focalFg,
         borderRadius: 6,
         padding: '12px 14px',
         boxShadow: selected
-          ? '0 0 0 2px #F24A00, 0 6px 14px rgba(0,0,0,0.16)'
+          ? `0 0 0 2px ${palette.selectionOutline}, 0 6px 14px rgba(0,0,0,0.16)`
           : '0 4px 10px rgba(0,0,0,0.14)',
         position: 'relative',
         fontFamily: 'var(--font-sans, system-ui)',
@@ -66,7 +157,7 @@ export function FocalNodeView({ data, selected }: NodeProps) {
           top: 8,
           bottom: 8,
           width: 4,
-          background: '#DFFF11',
+          background: palette.focalAccent,
           borderRadius: 2,
         }}
       />
@@ -93,19 +184,20 @@ export function FocalNodeView({ data, selected }: NodeProps) {
  */
 export function LineageNodeView({ data, selected }: NodeProps) {
   const { node, direction } = data as LineageNodeData
-  const bg = direction === 'upstream' ? '#E3EEF3' : '#F1F1E5'
-  const accent = colourForLink(node.link)
+  const palette = useContext(LineageThemeContext)
+  const bg = direction === 'upstream' ? palette.upstreamBg : palette.downstreamBg
+  const accent = colourForLink(node.link, palette)
   return (
     <div
       style={{
         width: 240,
         minHeight: 96,
         background: bg,
-        color: 'var(--ink-1, #16202a)',
+        color: palette.lineageFg,
         borderRadius: 6,
         padding: '10px 12px',
         boxShadow: selected
-          ? '0 0 0 2px #F24A00, 0 4px 10px rgba(0,0,0,0.10)'
+          ? `0 0 0 2px ${palette.selectionOutline}, 0 4px 10px rgba(0,0,0,0.10)`
           : '0 2px 6px rgba(0,0,0,0.08)',
         position: 'relative',
         fontFamily: 'var(--font-sans, system-ui)',
@@ -137,13 +229,14 @@ export function LineageNodeView({ data, selected }: NodeProps) {
  */
 export function GroupNodeView({ data, selected }: NodeProps) {
   const { label, childCount, totalQty } = data as GroupNodeData
+  const palette = useContext(LineageThemeContext)
   return (
     <div
       style={{
         width: '100%',
         height: '100%',
-        background: 'rgba(248, 250, 252, 0.85)',
-        border: `1px dashed ${selected ? '#F24A00' : 'var(--ink-3, #94a3b8)'}`,
+        background: palette.groupBg,
+        border: `1px dashed ${selected ? palette.selectionOutline : palette.groupBorder}`,
         borderRadius: 8,
         padding: 8,
         boxSizing: 'border-box',
@@ -154,13 +247,13 @@ export function GroupNodeView({ data, selected }: NodeProps) {
         style={{
           fontSize: 10.5,
           letterSpacing: '0.05em',
-          color: 'var(--ink-3, #6b7280)',
+          color: palette.groupFg,
           textTransform: 'uppercase',
         }}
       >
         {label}
       </div>
-      <div style={{ fontSize: 11, color: 'var(--ink-2, #4b5563)', marginTop: 2 }}>
+      <div style={{ fontSize: 11, color: palette.groupFg, marginTop: 2 }}>
         {childCount} batch{childCount === 1 ? '' : 'es'}
         {totalQty != null ? ` · Σ ${totalQty.toLocaleString()}` : ''}
       </div>

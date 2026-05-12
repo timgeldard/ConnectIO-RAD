@@ -8,7 +8,30 @@
 export {
   AdvancedLineageGraph,
   type AdvancedLineageGraphProps,
+  type LineageNodeContext,
 } from './AdvancedLineageGraph'
+export {
+  buildExplainTransferContext,
+  buildExplainTransferPrompt,
+  type GenieLineageContext,
+} from './geniePrompt'
+export {
+  buildExportFilename,
+  downloadBlob,
+  pngDataUrlToBlob,
+  svgStringToBlob,
+  type LineageExportFormat,
+} from './exportHelpers'
+export {
+  LineageExportMenu,
+  type LineageExportMenuProps,
+} from './LineageExportMenu'
+export {
+  paletteFor,
+  LineageThemeContext,
+  type LineagePalette,
+  type LineageTheme,
+} from './nodes'
 export {
   HybridTraceabilityPanel,
   type HybridTraceabilityPanelProps,

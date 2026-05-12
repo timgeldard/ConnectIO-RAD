@@ -27,12 +27,19 @@
  * - Self-transfers (rows whose id equals the focal) are dropped — they
  *   carry no flow into or out of the focal in Sankey semantics.
  */
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import type { EChartsOption } from 'echarts'
 
 import { EChart } from '../charts/EChart'
 import { ensureReportingEChartsTheme } from '../charts/echartsCore'
+import {
+  buildExportFilename,
+  downloadBlob,
+  pngDataUrlToBlob,
+  svgStringToBlob,
+} from './exportHelpers'
 import { buildLineageGraph, type GroupByMode } from './graphTransformers'
+import { LineageExportMenu } from './LineageExportMenu'
 import { colourForLink } from './nodes'
 import {
   FOCAL_NODE_ID,
@@ -58,6 +65,10 @@ export interface SankeyFlowViewProps {
   height?: number | string
   /** Optional node-click handler; receives the React Flow node id. */
   onNodeClick?: (id: string) => void
+  /** Whether to render the Export ▾ menu.  Default `true`. */
+  showExportMenu?: boolean
+  /** Visual theme — propagates to the export background colour. */
+  theme?: 'default' | 'high-contrast'
 }
 
 /**
@@ -76,8 +87,19 @@ export function SankeyFlowView({
   groupBy = 'none',
   height = 600,
   onNodeClick,
+  showExportMenu = true,
+  theme = 'default',
 }: SankeyFlowViewProps) {
   ensureReportingEChartsTheme()
+  // Capture the ECharts instance via onChartReady so the Export menu
+  // can call getDataURL (PNG) and renderToSVGString (when available).
+  // We avoid the React ref approach because our `EChart` wrapper does
+  // not forward refs — adding forwardRef there would cascade through
+  // every consumer of the wrapper.
+  const echartsInstanceRef = useRef<{
+    getDataURL: (opts: { type: 'png' | 'svg'; backgroundColor?: string }) => string
+    renderToSVGString?: () => string
+  } | null>(null)
 
   const option = useMemo<EChartsOption>(() => {
     // We piggyback on buildLineageGraph so the Sankey honours every
@@ -161,14 +183,46 @@ export function SankeyFlowView({
     Array.isArray((option.series as { links?: unknown[] }[])?.[0]?.links) &&
     ((option.series as { links?: unknown[] }[])[0].links ?? []).length > 0
 
+  const bg = theme === 'high-contrast' ? '#0f172a' : '#ffffff'
+
+  const exportPng = async (): Promise<void> => {
+    const inst = echartsInstanceRef.current
+    if (!inst) throw new Error('chart instance not ready')
+    const dataUrl = inst.getDataURL({ type: 'png', backgroundColor: bg })
+    downloadBlob(pngDataUrlToBlob(dataUrl), buildExportFilename(data.focal, 'sankey', 'png'))
+  }
+
+  const exportSvg = async (): Promise<void> => {
+    const inst = echartsInstanceRef.current
+    if (!inst) throw new Error('chart instance not ready')
+    // Prefer ECharts' direct SVG string when the SVG renderer is on; fall
+    // back to a data-URL bridge otherwise.  Either path produces a clean
+    // vector that opens cleanly in Illustrator / Figma.
+    let svgString: string
+    if (typeof inst.renderToSVGString === 'function') {
+      svgString = inst.renderToSVGString()
+    } else {
+      const dataUrl = inst.getDataURL({ type: 'svg', backgroundColor: bg })
+      svgString = decodeURIComponent(dataUrl.replace(/^data:image\/svg\+xml(;[^,]*)?,/, ''))
+    }
+    downloadBlob(svgStringToBlob(svgString), buildExportFilename(data.focal, 'sankey', 'svg'))
+  }
+
   return (
-    <div style={{ height, width: '100%' }} data-testid="sankey-flow-view">
+    <div
+      style={{ height, width: '100%', position: 'relative' }}
+      data-testid="sankey-flow-view"
+      data-theme={theme}
+    >
       {hasContent ? (
         <EChart
           option={option}
           style={{ height: '100%', width: '100%' }}
           ariaLabel="Lineage Sankey flow diagram"
           testId="sankey-flow-chart"
+          onChartReady={(inst: unknown) => {
+            echartsInstanceRef.current = inst as typeof echartsInstanceRef extends { current: infer T } ? T : never
+          }}
           onEvents={
             onNodeClick
               ? {
@@ -198,6 +252,9 @@ export function SankeyFlowView({
         >
           No lineage flow to display — adjust direction / depth / link filters.
         </div>
+      )}
+      {showExportMenu && hasContent && (
+        <LineageExportMenu onPng={exportPng} onSvg={exportSvg} />
       )}
     </div>
   )
