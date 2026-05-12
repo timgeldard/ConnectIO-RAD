@@ -180,6 +180,73 @@ class ConnectIoApp:
             )
         self.app.include_router(router, **kwargs)
 
+    def include_versioned_router(
+        self,
+        router: APIRouter,
+        *,
+        prefix: str,
+        version: str = "v1",
+        deprecated_alias: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        """Register a router under the versioned ``/api/{version}{prefix}`` namespace.
+
+        This is the C-3 architecture-review fix.  Endpoints registered this
+        way live at ``/api/v1/...`` (or whatever ``version`` is supplied).
+        When ``deprecated_alias`` is True (default), the same router is also
+        mounted at the legacy ``/api{prefix}`` path so existing frontend
+        callers continue to work for one deprecation cycle.
+
+        Migration guidance:
+
+        1. **New app or new module:** call ``include_versioned_router`` for
+           every API surface.  Frontend should hit ``/api/v1/...`` URLs.
+        2. **Existing module:** switch from
+           ``include_router(router, prefix="/api/spc")`` to
+           ``include_versioned_router(router, prefix="/api/spc")``.  Both URL
+           shapes will resolve while frontends migrate.
+        3. **After one release cycle:** flip ``deprecated_alias=False`` to
+           remove the legacy path.
+
+        Args:
+            router: The FastAPI ``APIRouter`` to register.
+            prefix: The route prefix *without* the version segment, e.g.
+                ``"/api/spc"`` or ``"/api/trace"``.  Must start with ``/api``.
+            version: API version label, e.g. ``"v1"`` (default), ``"v2"``.
+            deprecated_alias: When True (default) also register the router at
+                the legacy non-versioned prefix.  Set False after the
+                deprecation window has elapsed.
+            **kwargs: Forwarded to FastAPI's ``include_router``.
+
+        Raises:
+            ValueError: If ``prefix`` does not start with ``/api``.
+            RuntimeError: If called after the SPA has been mounted.
+        """
+        if self._spa_mounted:
+            raise RuntimeError(
+                "ConnectIoApp.include_versioned_router was called after "
+                "mount_spa(); the SPA catch-all would shadow this router."
+            )
+        # ``startswith("/api")`` alone would accept malformed inputs like
+        # ``/apiary`` and produce nonsensical routes like ``/api/v1ary``.
+        # Require an exact ``/api`` or a proper ``/api/...`` boundary.
+        if prefix != "/api" and not prefix.startswith("/api/"):
+            raise ValueError(
+                f"versioned router prefix must be '/api' or start with '/api/', "
+                f"got {prefix!r}"
+            )
+        # The canonical versioned path: /api/v1/spc, /api/v1/trace, ...
+        suffix = prefix[len("/api"):]  # "" or "/spc" or "/trace"
+        versioned_prefix = f"/api/{version}{suffix}"
+        self.app.include_router(router, prefix=versioned_prefix, **kwargs)
+
+        if deprecated_alias:
+            # Same router, legacy path — kept while frontends migrate.
+            # ``include_in_schema=False`` would hide the alias from OpenAPI;
+            # we keep it visible so consumers can see both forms during the
+            # transition window.
+            self.app.include_router(router, prefix=prefix, **kwargs)
+
     def mount_spa(self) -> None:
         """Register SPA serving routes on the FastAPI app.
 

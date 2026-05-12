@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 from spc_backend.main import app
 from spc_backend.chart_config.application import commands as chart_config_commands

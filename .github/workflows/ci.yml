@@ -79,6 +79,21 @@ jobs:
       - name: DDD architecture guardrails
         run: uv run --with pytest pytest scripts/tests/test_ddd_architecture_guardrails.py --tb=short
 
+      # Semantic-model governance — every tbl()/silver_tbl() call must reference
+      # an entity in ai-context/semantic-model/entities.yaml (or the
+      # APPROVED_BUT_UNLISTED ratchet list). Also asserts no hard-coded
+      # `connected_plant_uat` catalog references in Python or SQL view DDL.
+      - name: Semantic-model governance
+        run: uv run --with pytest --with pyyaml pytest scripts/tests/test_semantic_model_governance.py --tb=short
+
+      # OpenAPI drift check — regenerate every backend's openapi.json in a
+      # temp directory and diff against the committed copy. Fails the build
+      # if a backend Pydantic schema changes without a regen. Frontend types
+      # are generated locally via `npm run openapi:generate`; this gate is
+      # spec-only because npx codegen needs npm install (already done above).
+      - name: OpenAPI spec drift check
+        run: uv run --no-sync python scripts/generate_openapi.py --check
+
       # Docstring presence gate. Each pyproject.toml has a [tool.interrogate]
       # block with fail-under set at the current floor (see TODO.md ratchet
       # entry). Regression below that floor fails CI; ratchet up sprint by
@@ -93,6 +108,25 @@ jobs:
                      libs/shared-api libs/shared-auth libs/shared-db libs/shared-domain; do
             echo "::group::interrogate $cfg"
             uv tool run interrogate --config "$cfg/pyproject.toml" "$cfg"
+            echo "::endgroup::"
+          done
+
+      # Databricks bundle validation — catches malformed databricks.yml,
+      # missing resource references, and rendered app.yaml issues at PR time
+      # rather than at deploy time. We run --target uat against every bundle;
+      # cheap (no API calls beyond syntax/resource resolution) and gives a
+      # fast signal that deploys will not fail closed at the wrong moment.
+      - uses: databricks/setup-cli@v0.240.0
+      - name: Databricks bundle validate (all apps)
+        env:
+          DATABRICKS_HOST: https://example.cloud.databricks.com
+          DATABRICKS_TOKEN: dummy-token-for-syntax-validation
+        run: |
+          set -e
+          for bundle in apps/*/databricks.yml; do
+            app_dir=$(dirname "$bundle")
+            echo "::group::bundle validate $app_dir"
+            (cd "$app_dir" && databricks bundle validate --target uat) || exit 1
             echo "::endgroup::"
           done
 
@@ -217,7 +251,7 @@ jobs:
     environment: uat
     strategy:
       matrix:
-        app: [warehouse360, spc, trace2, platform]
+        app: [warehouse360, spc, trace2, platform, envmon, processorderhistory]
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
@@ -232,6 +266,20 @@ jobs:
         run: npm ci
       - name: Sync Python environments
         run: uv sync --all-packages
+
+      # Gold-view contract test — every entity in entities.yaml must answer
+      # SELECT * LIMIT 1 and return its declared important_dimensions columns.
+      # Run once per matrix shard (cheap; the same warehouse for every app),
+      # before Playwright so a schema drift fails fast.
+      - name: Gold-view SQL contract smoke
+        if: matrix.app == 'warehouse360'  # run once; not per-app
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.E2E_DATABRICKS_UAT_TOKEN }}
+          DATABRICKS_WAREHOUSE_HTTP_PATH: ${{ secrets.DATABRICKS_WAREHOUSE_HTTP_PATH }}
+          TRACE_CATALOG: ${{ secrets.UAT_TRACE_CATALOG }}
+        run: uv run --with pytest --with pyyaml pytest scripts/tests/test_gold_view_contracts.py -v --tb=short
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
       - name: Run E2E — ${{ matrix.app }}
@@ -243,7 +291,8 @@ jobs:
         run: |
           npx playwright test \
             --config=apps/${{ matrix.app }}/e2e/playwright.config.ts \
-            --reporter=blob
+            --reporter=blob \
+            --workers=2
       - name: Upload blob report
         uses: actions/upload-artifact@v4
         if: always()

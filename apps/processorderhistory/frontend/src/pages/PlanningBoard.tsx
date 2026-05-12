@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../i18n/context'
 import {

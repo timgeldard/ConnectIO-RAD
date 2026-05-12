@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { MarkerData } from '~/types';
 
 interface TooltipProps {

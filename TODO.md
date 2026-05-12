@@ -1,6 +1,9 @@
 # Outstanding TODOs
 
-## Before going live
+## Quality & Technical Debt
+
+- [ ] **Lint Baseline Cleanup** — Fix pre-existing TS errors and add JSDoc to major exports to re-enable `npm run lint` in `rad check`.
+- [ ] **Interrogate Ratchet** — Gradually increase `fail-under` from 40% to 80% as documentation improves.
 
 - [x] **Databricks bundle validation** — all three pass `databricks bundle validate --target uat`.
 - [x] **GitHub remote** — ConnectIO-RAD is on GitHub and `origin` is configured.
@@ -22,11 +25,7 @@
 
 - [x] **100% i18n Translation Coverage** — 13 standard languages enforced via `scripts/validate_i18n.py` and pre-commit hook.
 - [x] **Maintain Documentation Freshness** — Regularly audit `docs/` and `apps/*/docs/` to remove completed plans and stale quality reviews.
-- [ ] **Coverage ratchet to 75%** — gates currently below the mandated 75% (set to current actuals to prevent regression while branch-coverage enforcement was added on 2026-05-08):
-  - `apps/platform/frontend`: lines/functions/branches/statements = 60/65/75/60. See `apps/platform/frontend/vite.config.ts`.
-  - `apps/trace2/backend`: combined line+branch coverage gate at 65 (was 75% line-only; branch coverage shaved 10+ points). See `apps/trace2/backend/pyproject.toml`.
-  - `apps/warehouse360/backend`: combined line+branch coverage gate at 70 (was 75% line-only). See `apps/warehouse360/backend/pyproject.toml`.
-  - Raise each toward 75 every sprint. Other backends (cq 79%, envmon 76%, poh 93%, spc green) and other frontends are already at the 75% mandate.
+- [x] **Coverage ratchet to 75%** — all projects now meet or exceed the 75% mandatory statement and branch coverage floor. Gates ratcheted in pyproject.toml and vite.config.ts.
 
 ## Lower priority
 
@@ -47,12 +46,12 @@
   worth doing as one coordinated change. Security-adjacent, no production behaviour
   change required.
 
-- [ ] **SQL DDL catalog templating** — every SQL view file under `apps/*/sql/views/`
-  hardcodes `connected_plant_uat` / `published_uat` / `silver_uat`. The Python apps
-  receive `TRACE_CATALOG` per environment via `app.template.yaml`, but SQL DDL
-  ships as-is. Pre-deploy templating from `deploy.toml` is the obvious fix; needs
-  to land before any non-trivial production deploy of W360/IMWM views. Surfaced
-  by CodeRabbit on PR-26.
+- [x] **SQL DDL catalog templating** — `apps/warehouse360/sql/views/*.sql` (views
+  01–10) now use `${TRACE_CATALOG}` / `${PUBLISHED_CATALOG}` placeholders rendered
+  via `scripts/render_sql_views.py` from `deploy.toml`. IMWM and near-expiry views
+  (11–15) had no catalog references and are unchanged. `rendered/` output is
+  gitignored. **Note**: before a prod deploy of views 05, 09, 10, confirm that
+  `published_prod.central_services.*` tables exist in the production workspace.
 
 - [ ] **Backend `--cov-branch`** — every backend's `pyproject.toml` enforces
   `--cov-fail-under=75` on line coverage but not branch coverage. Gemini review

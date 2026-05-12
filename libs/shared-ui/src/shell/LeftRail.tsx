@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useState, useEffect, useRef } from 'react'
 import { Icon } from '../components/Icon'
 import type { ConnectIOModule, SidebarBottomItem } from './types'

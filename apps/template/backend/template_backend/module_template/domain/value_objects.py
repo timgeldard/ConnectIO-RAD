@@ -1,7 +1,8 @@
 """Value objects for the module_template bounded context."""
 from dataclasses import dataclass
 
-from shared_domain import PlantId, ValueObject
+from shared_ddd import ValueObject
+from shared_manufacturing import PlantId
 
 
 @dataclass(frozen=True)

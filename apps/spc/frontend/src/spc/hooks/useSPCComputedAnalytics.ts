@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { computeAnalytics } from '../computeAnalytics'
 import type {

@@ -1,15 +1,23 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import React from 'react'
-import { Icon as SharedIcon, StatusPill as SharedStatusPill } from '@connectio/shared-ui'
+import { 
+  Icon as SharedIcon, 
+  StatusPill as SharedStatusPill, 
+  KPI as SharedKPI, 
+  Card as SharedCard, 
+  DataTable as SharedDataTable 
+} from '@connectio/shared-ui'
 
 /** Props for the Icon component. */
 interface IconProps {
   name: string
   size?: number
   style?: React.CSSProperties
+  color?: string
 }
 
 /** SVG icon library (Lucide-style line icons, 24px grid, 1.75 stroke). */
-const Icon = ({ name, size = 18, style }: IconProps) => {
+const Icon = ({ name, size = 18, style, color }: IconProps) => {
   const mapping: Record<string, string> = {
     dashboard: 'grid',
     factory: 'factory',
@@ -52,7 +60,7 @@ const Icon = ({ name, size = 18, style }: IconProps) => {
     link: 'link',
     thermometer: 'thermometer',
   }
-  return <SharedIcon name={mapping[name] || name} size={size} style={style} />
+  return <SharedIcon name={mapping[name] || name} size={size} style={{ ...style, color: color || style?.color }} />
 }
 
 
@@ -174,5 +182,25 @@ const SparkBars = ({ data, tone = 'slate', height = 36 }: SparkBarsProps) => {
   );
 };
 
+export const KPI = (props: any) => {
+  let { tone, barPct, target, ...rest } = props;
+  if (tone === 'critical') tone = 'risk';
+  return <SharedKPI tone={tone} {...rest} />;
+};
+
+export const Card = (props: any) => {
+  const { eyebrow, tight, actions, action, ...rest } = props;
+  return <SharedCard action={action || actions} meta={eyebrow} {...rest} />;
+};
+
+export const DataTable = (props: any) => {
+  const { noDataLabel, rowKey, rowKeyVal, ...rest } = props;
+  let rk = rowKey || rowKeyVal;
+  if (typeof rk === 'string') {
+    const s = rk;
+    rk = (row: any) => (row as any)[s];
+  }
+  return <SharedDataTable rowKey={rk} {...rest} />;
+};
 
 export { Icon, Pill, Progress, RiskDot, riskLabel, riskTone, Donut, Hbar, SparkBars }

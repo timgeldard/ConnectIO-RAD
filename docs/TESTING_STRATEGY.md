@@ -24,7 +24,7 @@ graph BT
 The foundation of our pyramid.
 - **Backend**: Every function/class in `domain/` and `application/` must have a corresponding test in `tests/`.
 - **Frontend**: Components and hooks are tested using Vitest and React Testing Library.
-- **Standard**: ≥75% coverage is mandatory. Use realistic SAP IDs via `shared_domain.test_data`.
+- **Standard**: ≥75% coverage is mandatory. Use realistic SAP IDs via `shared_manufacturing.test_data`.
 
 ---
 

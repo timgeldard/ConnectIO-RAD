@@ -41,6 +41,12 @@ class PreferencesPayload(BaseModel):
     pinned_modules: list[str]
 
 
+class SavePreferencesResponse(BaseModel):
+    """Response for POST /api/me/preferences."""
+
+    ok: bool
+
+
 @router.get("/me/preferences")
 @limiter.limit("60/minute")
 async def get_preferences(
@@ -56,7 +62,7 @@ async def get_preferences(
     return {"pinned_modules": pinned}
 
 
-@router.post("/me/preferences")
+@router.post("/me/preferences", response_model=SavePreferencesResponse)
 @limiter.limit("60/minute")
 async def save_preferences(
     payload: PreferencesPayload,

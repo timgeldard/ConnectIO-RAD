@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useState, useEffect } from 'react'
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
 import { useI18n } from '@connectio/shared-frontend-i18n'

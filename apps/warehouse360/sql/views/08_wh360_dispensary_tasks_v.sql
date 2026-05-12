@@ -1,5 +1,5 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.wh360_dispensary_tasks_v
+-- View : ${TRACE_CATALOG}.wh360.wh360_dispensary_tasks_v
 -- Phase: 1 -- direct join on raw SAP tables
 -- Sources: sap.reservationrequirement_resb (RESB)
 --          sap.productionorderobject_afko  (AFKO)
@@ -12,7 +12,7 @@
 -- Purpose: Outstanding dispensary pick tasks for production orders
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.wh360_dispensary_tasks_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.wh360_dispensary_tasks_v AS
 
 SELECT
   r.RSNUM                                                        AS reservation_no,
@@ -44,10 +44,10 @@ SELECT
     ELSE NULL
   END                                                            AS mins_to_start
 
-FROM connected_plant_uat.sap.reservationrequirement_resb AS r
-LEFT JOIN connected_plant_uat.sap.productionorderobject_afko AS ak
+FROM ${TRACE_CATALOG}.sap.reservationrequirement_resb AS r
+LEFT JOIN ${TRACE_CATALOG}.sap.productionorderobject_afko AS ak
   ON  ak.AUFNR = r.AUFNR
-LEFT JOIN connected_plant_uat.silver.silver_material_description AS md
+LEFT JOIN ${TRACE_CATALOG}.silver.silver_material_description AS md
   ON LPAD(md.MATERIAL_ID, 18, '0') = r.MATNR
   AND md.LANGUAGE_ID = 'E'
 

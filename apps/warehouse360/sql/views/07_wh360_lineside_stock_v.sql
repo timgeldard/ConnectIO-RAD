@@ -1,5 +1,5 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.wh360_lineside_stock_v
+-- View : ${TRACE_CATALOG}.wh360.wh360_lineside_stock_v
 -- Phase: 1 -- direct query on raw SAP table
 -- Sources: sap.quant_lqua (LQUA)
 -- Filter : LQUA.WERKS is populated and q.GESME > 0
@@ -10,7 +10,7 @@
 -- Purpose: Live stock in production supply / lineside bins for replenishment view
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.wh360_lineside_stock_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.wh360_lineside_stock_v AS
 
 SELECT
   q.LGNUM                                                          AS lgnum,
@@ -48,8 +48,8 @@ SELECT
   q.BETYP                                                          AS ref_type,
   md.MATERIAL_NAME                                               AS material_name
 
-FROM connected_plant_uat.sap.quant_lqua AS q
-LEFT JOIN connected_plant_uat.silver.silver_material_description AS md
+FROM ${TRACE_CATALOG}.sap.quant_lqua AS q
+LEFT JOIN ${TRACE_CATALOG}.silver.silver_material_description AS md
   ON LPAD(md.MATERIAL_ID, 18, '0') = q.MATNR
   AND md.LANGUAGE_ID = 'E'
 

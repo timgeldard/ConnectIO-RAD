@@ -1,7 +1,10 @@
 {
   "name": "shared-api",
   "projectType": "library",
-  "tags": ["scope:shared", "type:backend"],
+  "tags": [
+    "scope:shared",
+    "type:backend"
+  ],
   "targets": {
     "sync": {
       "executor": "nx:run-commands",
@@ -16,8 +19,10 @@
         "command": "PYTHONPATH=libs/shared-api/src uv run --no-sync --package shared-api python -m pytest libs/shared-api/tests",
         "cwd": "{workspaceRoot}"
       },
-      "inputs": ["pyFiles", "sharedGlobals"],
-      "cache": true
+      "inputs": [
+        "pyFiles",
+        "sharedGlobals"
+      ]
     },
     "lint": {
       "executor": "nx:run-commands",
@@ -25,7 +30,10 @@
         "command": "uv run --no-sync ruff check .",
         "cwd": "libs/shared-api"
       },
-      "inputs": ["pyFiles", "sharedGlobals"],
+      "inputs": [
+        "pyFiles",
+        "sharedGlobals"
+      ],
       "cache": true
     }
   }

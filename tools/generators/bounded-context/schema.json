@@ -35,9 +35,14 @@
     },
     "skipPlatform": {
       "type": "boolean",
-      "description": "Skip platform manifest registration.",
+      "description": "Skip platform manifest registration",
+      "default": false
+    },
+    "minimal": {
+      "type": "boolean",
+      "description": "Scaffold a minimal concept module without full DDD layers",
       "default": false
     }
-  },
-  "required": ["name"]
-}
+    },
+    "required": ["name"]
+    }

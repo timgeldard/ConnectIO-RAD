@@ -34,10 +34,8 @@ def tmp_app(tmp_path):
     """), encoding="utf-8")
 
     (views_dir / "01_test_v.sql").write_text(
-        "SELECT * FROM ${TRACE_CATALOG}.schema.table
-"
-        "JOIN ${PUBLISHED_CATALOG}.cs.batches ON 1=1
-",
+        "SELECT * FROM ${TRACE_CATALOG}.schema.table\n"
+        "JOIN ${PUBLISHED_CATALOG}.cs.batches ON 1=1\n",
         encoding="utf-8",
     )
     return tmp_path, app_dir, views_dir

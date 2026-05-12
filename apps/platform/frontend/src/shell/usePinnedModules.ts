@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useState, useCallback } from 'react'
 
 const STORAGE_KEY = 'connectio.pinnedModules'

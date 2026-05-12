@@ -773,6 +773,21 @@ class TraceCoreDal:
                 MIN(parent_plant_id) AS parent_plant_id
               FROM walk
               GROUP BY material_id, batch_id, plant_id
+            ),
+            -- Per-edge qty roll-up: SUM(qty) keyed by the full edge tuple
+            -- (parent triple -> child triple).  Used to populate ``flow_qty``
+            -- alongside the per-node cumulative ``qty`` so the frontend
+            -- Sankey + path-weight overlays can render true material flow
+            -- between adjacent nodes without losing back-compat for ``qty``.
+            edge_agg AS (
+              SELECT
+                material_id, batch_id, plant_id,
+                parent_material_id, parent_batch_id, parent_plant_id,
+                SUM(qty) AS flow_qty
+              FROM walk
+              GROUP BY
+                material_id, batch_id, plant_id,
+                parent_material_id, parent_batch_id, parent_plant_id
             )
             SELECT
               a.level,
@@ -782,6 +797,7 @@ class TraceCoreDal:
               COALESCE(a.plant_id, '') AS plant_id,
               COALESCE(p.PLANT_NAME, a.plant_id, '') AS plant,
               COALESCE(a.qty, 0) AS qty,
+              COALESCE(e.flow_qty, 0) AS flow_qty,
               COALESCE(a.uom, 'KG') AS uom,
               COALESCE(s.SUPPLIER_NAME, a.supplier_id, '') AS supplier,
               a.link,
@@ -789,6 +805,13 @@ class TraceCoreDal:
               a.parent_batch_id,
               COALESCE(a.parent_plant_id, '') AS parent_plant_id
             FROM agg a
+            LEFT JOIN edge_agg e
+              ON e.material_id = a.material_id
+             AND e.batch_id = a.batch_id
+             AND COALESCE(e.plant_id, '') = COALESCE(a.plant_id, '')
+             AND COALESCE(e.parent_material_id, '') = COALESCE(a.parent_material_id, '')
+             AND COALESCE(e.parent_batch_id, '') = COALESCE(a.parent_batch_id, '')
+             AND COALESCE(e.parent_plant_id, '') = COALESCE(a.parent_plant_id, '')
             LEFT JOIN {self.tbl('gold_material')} m
               ON m.MATERIAL_ID = a.material_id AND m.LANGUAGE_ID = 'E'
             LEFT JOIN {self.tbl('gold_plant')} p
@@ -869,6 +892,19 @@ class TraceCoreDal:
               FROM walk
               WHERE material_id IS NOT NULL AND batch_id IS NOT NULL
               GROUP BY material_id, batch_id, plant_id
+            ),
+            -- Per-edge qty roll-up keyed by (parent -> child) tuple.
+            -- See ``flow_qty`` notes in fetch_bottom_up.
+            edge_agg AS (
+              SELECT
+                material_id, batch_id, plant_id,
+                parent_material_id, parent_batch_id, parent_plant_id,
+                SUM(qty) AS flow_qty
+              FROM walk
+              WHERE material_id IS NOT NULL AND batch_id IS NOT NULL
+              GROUP BY
+                material_id, batch_id, plant_id,
+                parent_material_id, parent_batch_id, parent_plant_id
             )
             SELECT
               a.level,
@@ -878,6 +914,7 @@ class TraceCoreDal:
               COALESCE(a.plant_id, '') AS plant_id,
               COALESCE(p.PLANT_NAME, a.plant_id, '') AS plant,
               COALESCE(a.qty, 0) AS qty,
+              COALESCE(e.flow_qty, 0) AS flow_qty,
               COALESCE(a.uom, 'KG') AS uom,
               COALESCE(a.customer_id, '') AS customer,
               a.link,
@@ -885,6 +922,13 @@ class TraceCoreDal:
               a.parent_batch_id,
               COALESCE(a.parent_plant_id, '') AS parent_plant_id
             FROM agg a
+            LEFT JOIN edge_agg e
+              ON e.material_id = a.material_id
+             AND e.batch_id = a.batch_id
+             AND COALESCE(e.plant_id, '') = COALESCE(a.plant_id, '')
+             AND COALESCE(e.parent_material_id, '') = COALESCE(a.parent_material_id, '')
+             AND COALESCE(e.parent_batch_id, '') = COALESCE(a.parent_batch_id, '')
+             AND COALESCE(e.parent_plant_id, '') = COALESCE(a.parent_plant_id, '')
             LEFT JOIN {self.tbl('gold_material')} m
               ON m.MATERIAL_ID = a.material_id AND m.LANGUAGE_ID = 'E'
             LEFT JOIN {self.tbl('gold_plant')} p

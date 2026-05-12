@@ -1,14 +1,14 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.wh360_inbound_v
+-- View : ${TRACE_CATALOG}.wh360.wh360_inbound_v
 -- Phase: 1 -- direct join on raw SAP tables (cross-plant source for PO)
--- Sources: published_uat.central_services.procurementorderobject_ekko (EKKO)
---          published_uat.central_services.procurementorderobject_ekpo (EKPO)
---          connected_plant_uat.sap.inspection_qals (QALS)
+-- Sources: ${PUBLISHED_CATALOG}.central_services.procurementorderobject_ekko (EKKO)
+--          ${PUBLISHED_CATALOG}.central_services.procurementorderobject_ekpo (EKPO)
+--          ${TRACE_CATALOG}.sap.inspection_qals (QALS)
 -- Filter : EKPO.WERKS is populated and EKPO.ELIKZ != 'X'
 -- Purpose: Open inbound PO lines with GR progress and QA inspection status
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.wh360_inbound_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.wh360_inbound_v AS
 
 WITH qa_latest AS (
   SELECT
@@ -23,7 +23,7 @@ WITH qa_latest AS (
       PARTITION BY EBELN, EBELP
       ORDER BY ENSTEHDAT DESC, PRUEFLOS DESC
     )                                                            AS rn
-  FROM connected_plant_uat.sap.inspection_qals
+  FROM ${TRACE_CATALOG}.sap.inspection_qals
   WHERE EBELN IS NOT NULL
     AND LENGTH(TRIM(EBELN)) > 0
 )
@@ -56,17 +56,17 @@ SELECT
     ELSE 'released'
   END                                                            AS qa_status
 
-FROM published_uat.central_services.procurementorderobject_ekko AS ek
-JOIN published_uat.central_services.procurementorderobject_ekpo AS ep
+FROM ${PUBLISHED_CATALOG}.central_services.procurementorderobject_ekko AS ek
+JOIN ${PUBLISHED_CATALOG}.central_services.procurementorderobject_ekpo AS ep
   ON  ep.EBELN = ek.EBELN
 LEFT JOIN qa_latest AS qa
   ON  qa.EBELN  = ep.EBELN
   AND qa.EBELP  = ep.EBELP
   AND qa.rn = 1
 
-LEFT JOIN published_uat.central_services.vendormaster_lfa1 AS vn
+LEFT JOIN ${PUBLISHED_CATALOG}.central_services.vendormaster_lfa1 AS vn
   ON vn.LIFNR = ek.LIFNR
-LEFT JOIN connected_plant_uat.silver.silver_material_description AS md
+LEFT JOIN ${TRACE_CATALOG}.silver.silver_material_description AS md
   ON LPAD(md.MATERIAL_ID, 18, '0') = ep.MATNR
   AND md.LANGUAGE_ID = 'E'
 

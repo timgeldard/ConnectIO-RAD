@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { test as base, expect } from '@playwright/test'
 import { PlantContextBarPO } from '../pages/PlantContextBar.po'
 import { DataTablePO } from '../pages/DataTable.po'

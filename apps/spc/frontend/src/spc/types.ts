@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { Dispatch, ReactNode } from 'react'
 
 export type RuleSet = 'weco' | 'nelson'

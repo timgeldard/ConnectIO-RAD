@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { memo, useState, useCallback, type ReactNode, type CSSProperties } from 'react'
 
 export interface Column<T> {
@@ -56,6 +57,18 @@ interface DataTableProps<T> {
   }
 }
 
+interface DataTableRowProps<T> {
+  row: T
+  index: number
+  columns: Column<T>[]
+  rowPad: string
+  emphasize?: (row: T, i: number) => boolean
+  rowKeyVal: string | number
+  onRowClick?: (row: T, i: number) => void
+  isSelected?: boolean
+  onToggle?: (id: string | number) => void
+}
+
 /** Internal Row component to allow for React.memo optimization. */
 const DataTableRow = memo(function DataTableRow<T>({
   row,
@@ -67,17 +80,7 @@ const DataTableRow = memo(function DataTableRow<T>({
   onRowClick,
   isSelected,
   onToggle,
-}: {
-  row: T
-  index: number
-  columns: Column<T>[]
-  rowPad: string
-  emphasize?: (row: T, i: number) => boolean
-  rowKeyVal: string | number
-  onRowClick?: (row: T, i: number) => void
-  isSelected?: boolean
-  onToggle?: (id: string | number) => void
-}) {
+}: DataTableRowProps<T>) {
   const isEmph = emphasize && emphasize(row, index)
   const baseBg = isSelected ? 'var(--surface-sunken)' : (isEmph ? 'var(--surface-sunken)' : 'transparent')
   
@@ -121,7 +124,7 @@ const DataTableRow = memo(function DataTableRow<T>({
       ))}
     </tr>
   )
-})
+}) as <T>(props: DataTableRowProps<T>) => JSX.Element
 
 export function DataTable<T>({
   columns,

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Unit tests for ScorecardView.
  * Covers the ready, loading, error, and empty-data render branches.

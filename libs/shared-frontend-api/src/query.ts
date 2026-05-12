@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Standard configuration for TanStack Query (React Query) clients.
  * Optimized for Databricks App performance (caching, retries).

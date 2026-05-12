@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { renderHook, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useGenieConversation } from '../useGenieConversation'
@@ -31,12 +32,13 @@ describe('useGenieConversation', () => {
   })
 
   it('starts a new conversation on the first ask', async () => {
-    const mockResponse = {
+    const mockResponse: api.GenieMessageResponse = {
       conversationId: 'c1',
       messageId: 'm1',
       status: 'COMPLETED',
       answer: 'Hello world',
       spaceId: 's1',
+      attachments: [],
     }
     vi.mocked(api.startGenieConversation).mockResolvedValue(mockResponse)
 
@@ -57,11 +59,25 @@ describe('useGenieConversation', () => {
       conversationId: 'c1',
       messageId: 'm1',
       status: 'IN_PROGRESS',
+      answer: '',
+      attachments: [],
     })
 
     vi.mocked(api.fetchGenieMessage)
-      .mockResolvedValueOnce({ status: 'IN_PROGRESS' })
-      .mockResolvedValueOnce({ status: 'COMPLETED', answer: 'Done' })
+      .mockResolvedValueOnce({
+        conversationId: 'c1',
+        messageId: 'm1',
+        status: 'IN_PROGRESS',
+        answer: '',
+        attachments: [],
+      })
+      .mockResolvedValueOnce({
+        conversationId: 'c1',
+        messageId: 'm1',
+        status: 'COMPLETED',
+        answer: 'Done',
+        attachments: [],
+      })
 
     const { result } = renderHook(() => useGenieConversation('m1', getContext))
 
@@ -100,7 +116,8 @@ describe('useGenieConversation', () => {
       conversationId: 'c1',
       messageId: 'm1',
       status: 'COMPLETED',
-      attachments: [{ attachmentId: 'att1', type: 'query' }],
+      answer: 'Here is your data',
+      attachments: [{ attachmentId: 'att1', type: 'query', text: null, sql: 'SELECT 1' }],
       spaceId: 's1',
     })
 

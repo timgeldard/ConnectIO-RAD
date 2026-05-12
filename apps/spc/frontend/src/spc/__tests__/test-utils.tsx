@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { render, type RenderOptions } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { I18nProvider } from '@connectio/shared-frontend-i18n'

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useCallback, useMemo } from 'react';
 import { I18nProvider, LanguageSelector, useI18n } from '@connectio/shared-frontend-i18n';
 import enResources from '../../i18n/locales/en.json';

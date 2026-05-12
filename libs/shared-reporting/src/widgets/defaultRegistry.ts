@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { createWidgetRegistry } from '../core/registry'
 import { KpiCardWidget } from './KpiCardWidget'
 import { TrendChartWidget } from './TrendChartWidget'

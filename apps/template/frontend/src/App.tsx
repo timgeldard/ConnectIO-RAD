@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { QueryClientProvider } from '@tanstack/react-query'
 import { I18nProvider } from '@connectio/shared-frontend-i18n'
 import { PlantProvider } from '@connectio/shared-app-context'

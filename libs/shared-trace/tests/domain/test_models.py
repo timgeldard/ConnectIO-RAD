@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 import pytest
-from shared_domain.exceptions import BusinessRuleValidationException
+from shared_ddd import BusinessRuleValidationException
 from shared_trace.domain.models import Batch, BatchId, MaterialId, BatchIdentity, BatchOnlyIdentity, Material
 
 def test_batch_id_trims_input():

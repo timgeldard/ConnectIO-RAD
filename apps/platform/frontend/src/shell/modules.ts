@@ -1,6 +1,7 @@
-import type { PlatformModuleRegistration } from './moduleManifest'
+/* eslint-disable jsdoc/require-jsdoc */
+import type { ConnectIOModule } from '@connectio/shared-ui/shell'
 
-export const MODULES: PlatformModuleRegistration[] = [
+export const MODULES: ConnectIOModule[] = [
   // ── Analytics ────────────────────────────────────────────────────────────
   {
     moduleId: 'dashboards',

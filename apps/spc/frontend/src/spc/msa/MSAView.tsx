@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useState } from 'react'
 import { shallowEqual, useSPCSelector } from '../SPCContext'
 import { useMSACalculate } from '../hooks/useMSACalculate'

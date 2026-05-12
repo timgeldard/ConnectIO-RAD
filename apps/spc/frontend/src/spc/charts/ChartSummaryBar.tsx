@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { ReactNode } from 'react'
 import type { NormalityResult } from '../types'
 

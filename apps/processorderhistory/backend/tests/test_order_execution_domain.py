@@ -1,6 +1,7 @@
 """Domain tests for process-order execution models."""
 
-from shared_domain import ValueObject, test_data
+from shared_ddd import ValueObject
+from shared_manufacturing import test_data
 
 from processorderhistory_backend.order_execution.domain.movements import (
     GoodsMovement,

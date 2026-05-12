@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useMemo } from 'react';
 import type { PlantInfo } from '~/types';
 import { plantsToFeatureCollection } from './mapUtils';

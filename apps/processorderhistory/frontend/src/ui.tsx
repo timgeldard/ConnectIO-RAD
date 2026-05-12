@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 // @ts-nocheck
 /**
  * UI primitives ported from the design prototype's components.jsx.

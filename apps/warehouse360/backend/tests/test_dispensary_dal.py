@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from warehouse360_backend.dispensary_ops.dal import dispensary
 
 

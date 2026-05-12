@@ -1,8 +1,4 @@
 {
-  "shared.plant.selector": "Plant",
-  "shared.plant.loading": "Loading plants...",
-  "shared.plant.none": "No plants available",
-  "shared.plant.unavailable": "Plant context unavailable",
   "poh.actionDuplicate": "Duplicate",
   "poh.actionExport": "Export",
   "poh.actionExportBundle": "Export bundle",
@@ -281,7 +277,6 @@
   "poh.wmShowHide": "WM transfers",
   "poh.wmTransferOrder": "Transfer order",
   "poh.zoomLabel": "Zoom",
-  "shared.language.label": "Language",
   "poh.genieAsk": "Ask Genie",
   "poh.genieEyebrow": "Databricks Genie",
   "poh.genieNewChat": "New chat",

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { LanguageCode } from "@connectio/shared-frontend-i18n";
 
 type Copy = typeof en;

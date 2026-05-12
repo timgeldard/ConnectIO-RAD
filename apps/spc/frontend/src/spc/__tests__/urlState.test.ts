@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { describe, expect, it, beforeEach, afterEach } from 'vitest'
 import { reducer, initialState } from '../SPCContext'
 

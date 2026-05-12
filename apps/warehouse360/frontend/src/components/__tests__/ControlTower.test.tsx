@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { ControlTower } from '../ControlTower'

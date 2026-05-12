@@ -6,7 +6,7 @@ a position on a floor plan relative to its dimensions.
 
 from dataclasses import dataclass
 
-from shared_domain import ValueObject
+from shared_ddd import ValueObject
 
 
 @dataclass(frozen=True)

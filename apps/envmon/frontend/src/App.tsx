@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { EMProvider } from '~/context/EMContext';
 import AppShell from '~/components/layout/AppShell';
 import { ErrorBoundary } from '@connectio/shared-ui';

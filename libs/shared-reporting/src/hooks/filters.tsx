@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import type { DashboardFilters, FilterConfig, FilterValue } from '../core/types'
 

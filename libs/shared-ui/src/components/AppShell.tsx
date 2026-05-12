@@ -1,8 +1,10 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { ReactNode, CSSProperties } from 'react'
 
 interface AppShellProps {
   sidebar?: ReactNode
   topbar?: ReactNode
+  contextBar?: ReactNode
   filterBar?: ReactNode
   children: ReactNode
   className?: string
@@ -12,6 +14,7 @@ interface AppShellProps {
 export function AppShell({
   sidebar,
   topbar,
+  contextBar,
   filterBar,
   children,
   className,
@@ -32,6 +35,19 @@ export function AppShell({
       {sidebar}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
         {topbar}
+        {contextBar && (
+          <div style={{
+            height: '40px',
+            borderBottom: '1px solid var(--line-1)',
+            background: 'var(--surface-1)',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 20px',
+            flexShrink: 0,
+          }}>
+            {contextBar}
+          </div>
+        )}
         {filterBar && (
           <div style={{
             height: 'var(--filter-h, 48px)',

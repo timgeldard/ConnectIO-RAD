@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import type { FeatureCollection, Point as GeoPoint } from 'geojson';

@@ -27,7 +27,7 @@ workflows — filter-to-chart pipelines in SPC, forward/reverse trace in Trace2,
 dispensary flows in Warehouse360, and cross-app navigation in the Platform shell.
 
 **Why now:** The recent architectural consolidation (shared-ui `DataTable`/`KPI`/`PlatformShell`,
-shared-app-context `PlantProvider`, shared-db DAL, shared-domain entities) introduced a class of
+shared-app-context `PlantProvider`, shared-db DAL, shared-ddd / shared-manufacturing entities) introduced a class of
 bugs that unit tests cannot catch: cross-boundary regressions where a shared component change
 silently breaks an app that consumes it. E2E tests are the only reliable gate for these.
 

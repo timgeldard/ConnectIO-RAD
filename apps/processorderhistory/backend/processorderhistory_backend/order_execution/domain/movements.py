@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from shared_domain import ValueObject
+from shared_ddd import ValueObject
 
 
 @dataclass(frozen=True)

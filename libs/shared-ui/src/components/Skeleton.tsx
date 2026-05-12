@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type React from 'react'
 
 interface SkeletonProps {

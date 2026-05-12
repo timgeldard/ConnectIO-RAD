@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import pytest
 
-from trace2_backend.batch_trace.domain.trace_tree import build_trace_tree, node_status_style
 from trace2_backend.lineage_analysis.domain.lineage import LineageDepth
 from trace2_backend.lineage_analysis.domain.risk import normalize_risk, supplier_risk_score
 from trace2_backend.quality_record.domain.mass_balance import (

@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import AsyncMock
-from shared_domain import test_data
 from warehouse360_backend.inventory_management.dal import inbound
 
 

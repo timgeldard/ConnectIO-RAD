@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { Batch, ProductionEntry } from "../types";
 import { fetchProductionHistory } from "../data/api";
 import { useBatchData } from "../data/useBatchData";

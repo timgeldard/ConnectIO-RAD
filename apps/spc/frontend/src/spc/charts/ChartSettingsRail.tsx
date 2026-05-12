@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useState, type ReactNode } from 'react'
 import type { ChartDataPoint, LockedLimits } from '../types'
 

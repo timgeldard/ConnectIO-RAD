@@ -2,6 +2,18 @@
 
 An enterprise-grade spatial visualisation tool for monitoring environmental inspection results. Built as a **Databricks App**, it provides a real-time (and historical) view of facility health using interactive floor plans and heatmaps.
 
+## Scope clarification
+
+In the **food-safety / GFSI** sense, "Environmental Monitoring" refers to *microbiological surface and air surveillance* — swab sampling for pathogens (Listeria, Salmonella) and indicators (ATP, total plate count) at defined sanitation points. This app implements **exactly that**: spatial visualisation of swab inspection lots, MIC-level results, organism-specific risk decay, and SPC early-warning trends.
+
+It is **not** an industrial-controls environmental monitoring system. The following are out of scope and would belong in a separate app or BMS integration:
+- HVAC sensor streams (temperature, relative humidity, differential pressure)
+- Cleanroom particle counters (ISO 14644 class monitoring)
+- Cold-chain / freezer alarm telemetry
+- Compressed-air dew-point sensors
+
+If a future requirement covers those, prefer a sibling app (`facilities-monitoring` or similar) over expanding envmon, to keep the bounded context — *microbial swab analytics* — clear.
+
 ## 📚 Documentation
 
 Detailed documentation is available in the `docs/` folder:

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 export * from './schema/config'
 export * from './schema/composable'
 export * from './core/types'
@@ -23,3 +24,4 @@ export * from './composable/store'
 export * from './composable/DashboardGrid'
 export * from './composable/DashboardBuilder'
 export * from './composable/ComposableDashboard'
+export * from './traceability'

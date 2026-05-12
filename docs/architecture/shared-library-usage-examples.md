@@ -27,7 +27,7 @@ app = rad_app.fastapi_app
 ## Domain Primitives
 
 ```python
-from shared_domain import AuditMixin, AuditStamp, Batch, BatchId, MaterialId, Measurement, PlantId, Specification
+from shared_ddd import ... and shared_manufacturing import AuditMixin, AuditStamp, Batch, BatchId, MaterialId, Measurement, PlantId, Specification
 
 batch = Batch(batch_id=BatchId("B-100"), material_id=MaterialId("M-200"), plant_id=PlantId("P001"))
 measurement = Measurement.now(5.2, "kg")

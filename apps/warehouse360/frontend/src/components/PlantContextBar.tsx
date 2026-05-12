@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { PlantContextBar as SharedPlantContextBar } from '@connectio/shared-app-context'
 import { useI18n } from '@connectio/shared-frontend-i18n'
 

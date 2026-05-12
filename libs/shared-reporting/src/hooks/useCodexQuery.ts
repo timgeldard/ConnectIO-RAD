@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useQuery, type QueryKey, type UseQueryOptions } from '@tanstack/react-query'
 
 export interface CodexQueryState<TData> {

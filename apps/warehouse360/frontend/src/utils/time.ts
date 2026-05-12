@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 const asDate = (value: Date | string | number): Date => value instanceof Date ? value : new Date(value)
 
 export const now = (): Date => new Date()

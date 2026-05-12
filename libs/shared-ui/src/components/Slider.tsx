@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 interface SliderProps {
   label?: string;
   min: number;

@@ -74,6 +74,7 @@ async def batch_details(
     body: BatchDetailsRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Return granular attribute and quality data for a specific material/batch pair."""
     check_warehouse_config()
     identity = BatchIdentity.from_strings(body.material_id, body.batch_id)
     try:
@@ -108,6 +109,7 @@ async def batch_header(
     body: BatchPageRequest,
     user: UserIdentity = Depends(require_proxy_user),
 ):
+    """Return summary header fields (status, dates, quantities) for a batch page."""
     check_warehouse_config()
     identity = BatchIdentity.from_strings(body.material_id, body.batch_id)
     try:

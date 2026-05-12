@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /** Module and tab definitions ported from cq-icons.jsx. */
 
 export type ModuleId = 'home' | 'lab' | 'alarms' | 'admin'

@@ -1,7 +1,7 @@
 import asyncio
 import pytest
 from unittest.mock import AsyncMock
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from spc_backend.process_control.dal import charts as spc_charts_dal
 from spc_backend.chart_config.dal import locked_limits as locked_limits_dal
 from spc_backend.chart_config.domain.locked_limits import LockedLimits

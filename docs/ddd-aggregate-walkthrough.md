@@ -116,7 +116,7 @@ This allows coordinates to be compared in tests and used in sets without any cus
 
 ## 3. `Entity.__eq__` — The Symmetry Requirement
 
-**File:** `libs/shared-domain/src/shared_domain/models.py`
+**File:** `libs/shared-ddd / shared-manufacturing/src/shared_ddd / shared_manufacturing/models.py`
 
 ### The bug that was fixed (and why it matters)
 

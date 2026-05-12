@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useQuery } from '@tanstack/react-query'
 import { fetchProcessFlow } from '../../api/spc'
 import type { ProcessFlowResult } from '../types'

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect } from 'react'
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
 import { moduleHref } from './LandingCard'

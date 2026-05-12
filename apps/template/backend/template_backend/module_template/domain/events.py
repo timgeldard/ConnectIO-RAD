@@ -1,7 +1,7 @@
 """Domain events for the module_template bounded context."""
 from dataclasses import dataclass
 
-from shared_domain import DomainEvent
+from shared_ddd import DomainEvent
 
 
 @dataclass(frozen=True)

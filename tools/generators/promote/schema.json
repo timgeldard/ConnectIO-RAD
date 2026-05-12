@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "cli": "nx",
+  "$id": "PromoteModule",
+  "title": "Promote Module",
+  "description": "Promote a minimal concept module to a full 5-layer DDD architecture.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the module to promote (e.g., my-new-idea)",
+      "x-prompt": "Which module would you like to promote?"
+    }
+  },
+  "required": ["name"]
+}

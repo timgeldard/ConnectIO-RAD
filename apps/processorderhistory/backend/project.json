@@ -1,8 +1,14 @@
 {
   "name": "processorderhistory-backend",
   "projectType": "application",
-  "tags": ["scope:processorderhistory", "type:backend"],
-  "implicitDependencies": ["shared-api", "shared-db"],
+  "tags": [
+    "scope:processorderhistory",
+    "type:backend"
+  ],
+  "implicitDependencies": [
+    "shared-api",
+    "shared-db"
+  ],
   "targets": {
     "sync": {
       "executor": "nx:run-commands",
@@ -21,11 +27,8 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run --no-sync --package processorderhistory-backend python -m pytest",
-        "cwd": "apps/processorderhistory/backend"
-      },
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
-      "cache": true
+        "command": "uv run --no-sync --package processorderhistory-backend python -m pytest"
+      }
     },
     "lint": {
       "executor": "nx:run-commands",
@@ -33,7 +36,11 @@
         "command": "uv run --no-sync ruff check apps/processorderhistory/backend",
         "cwd": "{workspaceRoot}"
       },
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "inputs": [
+        "pyFiles",
+        "^pyFiles",
+        "sharedGlobals"
+      ],
       "cache": true
     }
   }

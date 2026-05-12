@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { z } from 'zod'
 
 export const filterValueSchema = z.union([

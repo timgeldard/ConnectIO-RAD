@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { 
   fetchPlants, 

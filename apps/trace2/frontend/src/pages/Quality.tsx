@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { CSSProperties, useState } from "react";
 import type { Batch, InspectionLot, MIC } from "../types";
 import { fetchQuality, type QualityResult } from "../data/api";

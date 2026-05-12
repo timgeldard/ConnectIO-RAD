@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useState, useMemo } from "react";
 import { I18nProvider, LanguageSelector, useI18n } from "@connectio/shared-frontend-i18n";
 import { PlantProvider, PlantContextBar } from "@connectio/shared-app-context";

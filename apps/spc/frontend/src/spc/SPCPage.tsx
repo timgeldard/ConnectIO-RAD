@@ -1,7 +1,9 @@
-import { Suspense, lazy, type ComponentType, type LazyExoticComponent, useCallback, useEffect } from 'react'
+/* eslint-disable jsdoc/require-jsdoc */
+import React, { Suspense, lazy, type ComponentType, type LazyExoticComponent, useCallback, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppShell } from '../components/layout'
 import { PlantProvider, usePlantSelection } from '@connectio/shared-app-context'
+import type { Plant } from '@connectio/shared-app-context'
 import { ErrorBoundary } from '@connectio/shared-ui'
 import { fetchPlants } from '../api/spc'
 import { SPCProvider, useSPCSelector, useSPCDispatch } from './SPCContext'
@@ -53,7 +55,6 @@ interface SPCPageProps {
 
 function SPCContent({ dark = false, onToggleDark }: SPCPageProps) {
   const activeTab = useSPCSelector(state => state.activeTab)
-  const selectedMaterial = useSPCSelector(state => state.selectedMaterial)
   const spcSelectedPlant = useSPCSelector(state => state.selectedPlant)
   const dispatch = useSPCDispatch()
   const { selectedPlant, setSelectedPlantId } = usePlantSelection()
@@ -84,7 +85,7 @@ function SPCContent({ dark = false, onToggleDark }: SPCPageProps) {
   )
 
   return (
-    <AppShell dark={dark} onToggleDark={onToggleDark} filterBar={filterBar}>
+    <AppShell dark={dark} onToggleDark={onToggleDark} filterBar={filterBar as React.ReactNode}>
       <Suspense fallback={<HeaderLoadingState />}>
         <SPCPageHeader />
       </Suspense>
@@ -112,35 +113,40 @@ function SPCContent({ dark = false, onToggleDark }: SPCPageProps) {
 }
 
 function SPCPlantProvider({ children, materialId }: { children: React.ReactNode, materialId: string | null }) {
-  const fetcher = useCallback((signal: AbortSignal) => {
-    if (!materialId) return Promise.resolve([])
-    return fetchPlants(materialId, signal)
+  const fetcher = useCallback(async (signal: AbortSignal): Promise<Plant[]> => {
+    if (!materialId) return []
+    const refs = await fetchPlants(materialId, signal)
+    return refs.map(r => ({
+      plant_id: r.plant_id,
+      plant_name: r.plant_name ?? r.plant_id
+    }))
   }, [materialId])
 
   return (
     <PlantProvider appName="spc" fetcher={fetcher}>
-      {children}
+      {children as any}
     </PlantProvider>
   )
+}
+
+/**
+ * MaterialConsumer component to provide materialId from SPC context.
+ */
+function MaterialConsumer({ children }: { children: (materialId: string | null) => React.ReactNode }) {
+  const materialId = useSPCSelector(state => state.selectedMaterial?.material_id ?? null)
+  return <>{children(materialId)}</>
 }
 
 export default function SPCPage({ dark = false, onToggleDark }: SPCPageProps) {
   return (
     <SPCProvider>
-      <useSPCSelector.MaterialConsumer>
+      <MaterialConsumer>
         {materialId => (
           <SPCPlantProvider materialId={materialId}>
             <SPCContent dark={dark} onToggleDark={onToggleDark} />
           </SPCPlantProvider>
         )}
-      </useSPCSelector.MaterialConsumer>
+      </MaterialConsumer>
     </SPCProvider>
   )
 }
-
-// Helper to access materialId from SPCProvider
-useSPCSelector.MaterialConsumer = ({ children }: { children: (materialId: string | null) => React.ReactNode }) => {
-  const materialId = useSPCSelector(state => state.selectedMaterial?.material_id ?? null)
-  return <>{children(materialId)}</>
-}
-

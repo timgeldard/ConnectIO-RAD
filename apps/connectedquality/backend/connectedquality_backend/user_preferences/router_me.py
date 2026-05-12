@@ -31,6 +31,12 @@ class PreferencesPayload(BaseModel):
     pinned_modules: list[str]
 
 
+class SavePreferencesResponse(BaseModel):
+    """Response for POST /api/cq/me/preferences."""
+
+    ok: bool
+
+
 @router.get("/me/preferences")
 async def get_preferences(
     app_id: str,
@@ -41,7 +47,7 @@ async def get_preferences(
     return {"pinned_modules": pinned}
 
 
-@router.post("/me/preferences")
+@router.post("/me/preferences", response_model=SavePreferencesResponse)
 async def save_preferences(
     payload: PreferencesPayload,
     user: UserIdentity = Depends(require_proxy_user),

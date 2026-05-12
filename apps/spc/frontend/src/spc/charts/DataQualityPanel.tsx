@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { DataQualitySummary } from '../../api/spc'
 
 interface DataQualityPanelProps {

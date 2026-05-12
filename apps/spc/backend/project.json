@@ -1,8 +1,16 @@
 {
   "name": "spc-backend",
   "projectType": "application",
-  "tags": ["scope:spc", "type:backend"],
-  "implicitDependencies": ["shared-db", "shared-api", "shared-geo", "shared-trace"],
+  "tags": [
+    "scope:spc",
+    "type:backend"
+  ],
+  "implicitDependencies": [
+    "shared-db",
+    "shared-api",
+    "shared-geo",
+    "shared-trace"
+  ],
   "targets": {
     "sync": {
       "executor": "nx:run-commands",
@@ -21,11 +29,8 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv run --no-sync --package spc-backend python -m pytest",
-        "cwd": "apps/spc/backend"
-      },
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
-      "cache": true
+        "command": "uv run --no-sync --package spc-backend python -m pytest"
+      }
     },
     "lint": {
       "executor": "nx:run-commands",
@@ -33,7 +38,11 @@
         "command": "PYTHONPATH=apps/spc:libs/shared-db/src:libs/shared-api/src:libs/shared-geo/src:libs/shared-trace/src uv run --no-sync ruff check apps/spc/backend",
         "cwd": "{workspaceRoot}"
       },
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "inputs": [
+        "pyFiles",
+        "^pyFiles",
+        "sharedGlobals"
+      ],
       "cache": true
     },
     "deploy": {

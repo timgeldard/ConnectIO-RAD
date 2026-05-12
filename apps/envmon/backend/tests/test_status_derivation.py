@@ -1,6 +1,5 @@
 """Tests for status derivation logic."""
 
-import pytest
 from envmon_backend.inspection_analysis.domain.status import derive_location_status, lot_status
 
 

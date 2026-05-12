@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   deleteLockedLimits as deleteLockedLimitsRequest,

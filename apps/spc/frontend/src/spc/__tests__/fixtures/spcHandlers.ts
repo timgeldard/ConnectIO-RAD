@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { http, HttpResponse } from 'msw'
 import type { PlantRef, MicRef, ScorecardRow } from '../../types'
 

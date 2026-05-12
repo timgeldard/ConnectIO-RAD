@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 // Kerry Design System multi-series palette
 // Source: Kerry Brand Guidelines 2024 FINAL (v1, July 2024)
 export const SPC_ECHARTS_THEME = {

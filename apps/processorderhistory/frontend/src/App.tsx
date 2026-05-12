@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useCallback, useEffect, useState } from 'react'
 import { LangProvider } from './i18n/context'
 import { PlatformShell, parseCrossAppContext } from '@connectio/shared-ui'

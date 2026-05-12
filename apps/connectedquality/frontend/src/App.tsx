@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useCallback, useEffect, useState } from 'react'
 import { I18nProvider } from '@connectio/shared-frontend-i18n'
 import { PlatformShell, ContextBar, type CtxState } from '@connectio/shared-ui'

@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 from processorderhistory_backend.main import app
 import processorderhistory_backend.genie_assist.router_genie as genie_router

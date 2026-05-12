@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import React, { memo } from 'react';
 import type { MarkerData, HeatmapMode } from '~/types';
 

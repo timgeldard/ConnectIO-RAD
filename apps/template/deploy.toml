@@ -3,3 +3,12 @@ name = "template"
 display_name = "Template Module"
 backend_project = "template-backend"
 frontend_project = "template-frontend"
+
+[bundle]
+include_target = true
+
+[targets.prod.env]
+DATABRICKS_WAREHOUSE_ID = "161e0117e7a3507f"
+DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/161e0117e7a3507f"
+TRACE_CATALOG = "prod"
+POH_CATALOG = "prod"

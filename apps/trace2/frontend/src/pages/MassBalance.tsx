@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { Batch, MassBalanceEvent } from "../types";
 import { fetchMassBalance } from "../data/api";
 import { useBatchData } from "../data/useBatchData";

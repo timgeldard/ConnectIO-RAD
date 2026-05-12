@@ -1,5 +1,5 @@
 -- =============================================================================
--- View : connected_plant_uat.wh360.wh360_transfer_orders_v
+-- View : ${TRACE_CATALOG}.wh360.wh360_transfer_orders_v
 -- Phase: 1 -- direct join on raw SAP tables
 -- Sources: sap.transferorderobjects_ltak (LTAK)
 --          sap.transferorderobjects_ltap (LTAP)
@@ -7,7 +7,7 @@
 -- Purpose: WM transfer order header + item detail with age and confirmation status
 -- =============================================================================
 
-CREATE OR REPLACE VIEW connected_plant_uat.wh360.wh360_transfer_orders_v AS
+CREATE OR REPLACE VIEW ${TRACE_CATALOG}.wh360.wh360_transfer_orders_v AS
 
 SELECT
   lk.TANUM                                                       AS to_id,
@@ -42,8 +42,8 @@ SELECT
   lt.PQUIT                                                       AS item_confirmed,
   lt.VFDAT                                                       AS expiry_date
 
-FROM connected_plant_uat.sap.transferorderobjects_ltak AS lk
-JOIN connected_plant_uat.sap.transferorderobjects_ltap AS lt
+FROM ${TRACE_CATALOG}.sap.transferorderobjects_ltak AS lk
+JOIN ${TRACE_CATALOG}.sap.transferorderobjects_ltap AS lt
   ON  lt.LGNUM = lk.LGNUM
   AND lt.TANUM = lk.TANUM
 

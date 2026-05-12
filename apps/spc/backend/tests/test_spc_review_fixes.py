@@ -3,7 +3,7 @@ import asyncio
 from fastapi import HTTPException
 from pydantic import ValidationError
 from starlette.requests import Request
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 from spc_backend.process_control.dal import analysis as spc_analysis_dal
 from spc_backend.process_control.dal import charts as spc_charts_dal
@@ -121,6 +121,60 @@ def test_apply_chart_row_formatting_raises_on_bad_numeric_value():
         assert "'not-a-number'" in message
     else:  # pragma: no cover
         raise AssertionError("Expected ValueError")
+
+
+def _base_chart_row(**overrides) -> dict:
+    """Minimal valid chart row for USL/LSL derivation tests."""
+    row = {
+        "batch_id": "B-1",
+        "cursor_sample_id": "S-1",
+        "value": "10.0",
+        "nominal": "5.0",
+        "tolerance": "0.5",
+        "lsl": None,
+        "usl": None,
+        "sample_seq": "1",
+        "attribut": "",
+    }
+    row.update(overrides)
+    return row
+
+
+def test_apply_chart_row_formatting_derives_both_sides_when_both_missing():
+    """When usl and lsl are both None, derive both from nominal ± tolerance."""
+    rows = [_base_chart_row(lsl=None, usl=None)]
+    spc_charts_dal._apply_chart_row_formatting(rows)
+    assert rows[0]["usl"] == 5.5
+    assert rows[0]["lsl"] == 4.5
+
+
+def test_apply_chart_row_formatting_preserves_supplied_usl_when_lsl_missing():
+    """A supplied USL must NOT be overwritten when only LSL is missing.
+
+    Regression for the asymmetric-spec bug surfaced in the PR-51 review:
+    one-sided specs (USL or LSL alone) emitted by the view were being
+    silently replaced by ``nominal ± tolerance``.
+    """
+    rows = [_base_chart_row(usl="10.0", lsl=None)]
+    spc_charts_dal._apply_chart_row_formatting(rows)
+    assert rows[0]["usl"] == 10.0  # preserved
+    assert rows[0]["lsl"] == 4.5   # derived
+
+
+def test_apply_chart_row_formatting_preserves_supplied_lsl_when_usl_missing():
+    """A supplied LSL must NOT be overwritten when only USL is missing."""
+    rows = [_base_chart_row(usl=None, lsl="2.0")]
+    spc_charts_dal._apply_chart_row_formatting(rows)
+    assert rows[0]["lsl"] == 2.0   # preserved
+    assert rows[0]["usl"] == 5.5   # derived
+
+
+def test_apply_chart_row_formatting_leaves_both_none_when_nominal_or_tol_missing():
+    """If nominal or tolerance is None, USL/LSL stay None — no fabricated bounds."""
+    rows = [_base_chart_row(nominal=None, tolerance=None)]
+    spc_charts_dal._apply_chart_row_formatting(rows)
+    assert rows[0]["usl"] is None
+    assert rows[0]["lsl"] is None
 
 
 def test_get_exclusions_query_rejects_invalid_stratify_by():

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { fetchJson as baseFetch, postJson as basePost, deleteJson as baseDelete } from '@connectio/shared-frontend-api'
 import { resolvePohApiPath } from './apiBase'
 

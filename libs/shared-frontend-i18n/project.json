@@ -2,25 +2,25 @@
   "name": "shared-frontend-i18n",
   "projectType": "library",
   "root": "libs/shared-frontend-i18n",
-  "tags": ["scope:shared", "type:lib"],
+  "tags": ["scope:shared", "type:frontend"],
   "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run build",
+        "cwd": "libs/shared-frontend-i18n"
+      }
+    },
     "typecheck": {
       "executor": "nx:run-commands",
       "options": {
         "command": "tsc --noEmit -p tsconfig.json",
         "cwd": "libs/shared-frontend-i18n"
       },
-      "inputs": ["tsFiles", "sharedGlobals"],
       "cache": true
     },
     "test": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "npm run test",
-        "cwd": "libs/shared-frontend-i18n"
-      },
-      "inputs": ["tsFiles", "sharedGlobals"],
-      "cache": true
+      "executor": "nx:run-commands"
     }
   }
 }

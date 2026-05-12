@@ -1,9 +1,4 @@
 {
-  "shared.plant.selector": "Plant",
-  "shared.plant.loading": "Loading plants...",
-  "shared.plant.none": "No plants available",
-  "shared.plant.unavailable": "Plant context unavailable",
-  "shared.language.label": "Language",
   "trace.nav.group.360": "360°",
   "trace.nav.group.lineage": "Lineage",
   "trace.nav.group.quality": "Quality & production",

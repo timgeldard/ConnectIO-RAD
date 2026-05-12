@@ -1,11 +1,11 @@
 [project]
 name = "shared-trace"
-version = "0.1.0"
+version = "0.2.0"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.110",
   "pydantic>=2",
-  "shared-domain",
+  "shared-ddd", "shared-manufacturing",
 ]
 
 [build-system]

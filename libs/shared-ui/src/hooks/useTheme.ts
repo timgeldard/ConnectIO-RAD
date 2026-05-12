@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useState, useEffect } from 'react';
 
 export type Theme = 'light' | 'dark' | 'high-contrast';

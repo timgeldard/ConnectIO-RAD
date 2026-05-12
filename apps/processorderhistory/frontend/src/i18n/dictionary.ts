@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 ﻿// @ts-nocheck
 /* i18n — English / French / German / Spanish.
  * Ported from the Claude Design handoff prototype. The shared monorepo i18n

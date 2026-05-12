@@ -2,7 +2,7 @@
 import asyncio
 from datetime import datetime, timedelta, timezone as dt_timezone
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from processorderhistory_backend.manufacturing_analytics.dal import adherence_analytics_dal as dal
 
 

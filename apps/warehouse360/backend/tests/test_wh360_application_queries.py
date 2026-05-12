@@ -1,7 +1,7 @@
 """Application query tests for Warehouse360 non-inventory contexts."""
 
 import pytest
-from shared_domain import test_data
+from shared_manufacturing import test_data
 
 from warehouse360_backend.dispensary_ops.application import queries as dispensary_queries
 from warehouse360_backend.operations_control_tower.application import queries as control_tower_queries

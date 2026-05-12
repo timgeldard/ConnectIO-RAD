@@ -11,6 +11,11 @@
       "factory": "./bounded-context/index",
       "schema": "./bounded-context/schema.json",
       "description": "Alias for bounded-context."
+    },
+    "promote": {
+      "factory": "./promote/index",
+      "schema": "./promote/schema.json",
+      "description": "Promote a minimal concept module to a full 5-layer DDD architecture."
     }
   }
 }

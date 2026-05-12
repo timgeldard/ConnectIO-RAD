@@ -2,7 +2,7 @@
 
 import pytest
 
-from shared_domain import test_data
+from shared_manufacturing import test_data
 from processorderhistory_backend.order_execution.application import queries
 
 

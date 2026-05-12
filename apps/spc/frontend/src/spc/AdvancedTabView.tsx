@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
 import type { SPCState } from './types'
 

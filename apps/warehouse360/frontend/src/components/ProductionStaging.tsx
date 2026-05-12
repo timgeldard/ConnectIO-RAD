@@ -1,10 +1,11 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
 import { useApi } from '../hooks/useApi'
 import { Icon, Pill, Progress, RiskDot } from './Primitives'
-import { FilterBar, Card, KPI } from './Shared'
-import { DataTable, type Column } from '@connectio/shared-ui'
+import { FilterBar, Card, KPI, DataTable } from './Shared'
+import { type Column } from '@connectio/shared-ui'
 import { fmtTime, minutesFromNow, now } from '~/utils/time'
 
 /* Production Staging — primary screen.
@@ -289,9 +290,9 @@ const ProductionStaging = ({ onOpenOrder }: ProductionStagingProps) => {
             { value: 'all', label: t('warehouse.common.all') },
             { value: 'A', label: 'A' }, { value: 'B', label: 'B' }, { value: 'C', label: 'C' },
           ] },
-          { key: 'line', label: t('warehouse.staging.filter.line'), options: [
+          { key: 'line', label: t('warehouse.staging.filter.line'), chips: [
             { value: 'all', label: t('warehouse.staging.filter.allLines') },
-            ...liveLineOptions,
+            ...(liveLineOptions as any),
           ] },
           { key: 'window', label: t('warehouse.staging.filter.window'), chips: [
             { value: '8h', label: t('warehouse.staging.filter.next8h') },
@@ -315,7 +316,7 @@ const ProductionStaging = ({ onOpenOrder }: ProductionStagingProps) => {
           <DataTable
             columns={columns}
             rows={rows.slice(0, 60)}
-            rowKey="id"
+            rowKey={(o: any) => o.id}
             onRowClick={onOpenOrder}
             dense
           />

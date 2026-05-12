@@ -15,6 +15,11 @@ from typing import Any
 import anyio
 from fastapi import APIRouter, HTTPException
 
+from backend.utils import (
+    discover_app_manifests,
+    discover_active_modules,
+)
+
 router = APIRouter(prefix="/api/platform/apps", tags=["Platform"])
 
 PLATFORM_ROOT = Path(__file__).resolve().parents[2]
@@ -147,7 +152,20 @@ async def get_app_manifest() -> dict[str, Any]:
     Returns:
         Platform app manifest with effective feature flags applied.
     """
-    return _with_env_feature_flags(await _read_manifest())
+    manifest = await _read_manifest()
+    
+    # Discover app-specific manifests from the filesystem/environment
+    active_packages = discover_active_modules()
+    discovered_modules = discover_app_manifests(active_packages)
+    
+    # Merge discovered modules into the manifest, avoiding duplicates
+    existing_ids = {m["moduleId"] for m in manifest.get("modules", [])}
+    for mod in discovered_modules:
+        if mod["moduleId"] not in existing_ids:
+            manifest.setdefault("modules", []).append(mod)
+            existing_ids.add(mod["moduleId"])
+
+    return _with_env_feature_flags(manifest)
 
 
 @router.get("/feature-flags")

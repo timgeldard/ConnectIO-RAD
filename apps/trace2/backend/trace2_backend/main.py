@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from trace2_backend.batch_trace.router import router as batch_trace_router
@@ -22,11 +21,11 @@ STATIC_DIR: Path = Path(__file__).parent.parent / "frontend" / "dist"
 async def trace_readiness_check() -> dict:
     """Readiness probe logic — verifies warehouse connectivity."""
     from fastapi import HTTPException
-    
-    # Trace2 has a specific check for missing warehouse config that returns a custom message
+    from shared_db.errors import WarehouseNotConfiguredError
+
     try:
         check_warehouse_config()
-    except HTTPException:
+    except WarehouseNotConfiguredError:
         from shared_api import not_ready
         raise not_ready(
             "warehouse_config_missing",

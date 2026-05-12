@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { Batch, MIC } from "../types";
 import { fetchCoa } from "../data/api";
 import { useBatchData } from "../data/useBatchData";

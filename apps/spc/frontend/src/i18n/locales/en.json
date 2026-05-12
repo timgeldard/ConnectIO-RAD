@@ -1,9 +1,4 @@
 {
-  "shared.plant.selector": "Plant",
-  "shared.plant.loading": "Loading plants...",
-  "shared.plant.none": "No plants available",
-  "shared.plant.unavailable": "Plant context unavailable",
-  "shared.language.label": "Language",
   "spc.loading.workspace": "Loading SPC workspace…",
   "spc.nav.primary": "Primary",
   "spc.nav.advanced": "Advanced",

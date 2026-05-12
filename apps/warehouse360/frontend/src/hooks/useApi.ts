@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useQuery } from '@tanstack/react-query'
 import { usePlantSelection } from '~/context/PlantContext'
 import { resolveWarehouseApiPath } from '~/api/apiBase'

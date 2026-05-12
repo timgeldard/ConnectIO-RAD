@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * React Query hooks for all EM API endpoints.
  * All fetches are unauthenticated from the frontend — the Databricks Apps

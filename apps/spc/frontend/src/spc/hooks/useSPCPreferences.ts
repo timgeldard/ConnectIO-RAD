@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect } from 'react'
 import { shallowEqual, useSPCSelector } from '../SPCContext'
 import { PREF_EXCLUDE_OUTLIERS, PREF_LIMITS_MODE, PREF_RULE_SET } from '../SPCContext'

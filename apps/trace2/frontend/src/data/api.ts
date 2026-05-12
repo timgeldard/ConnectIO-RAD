@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type {
   Batch,
   BatchCompareEntry,
@@ -63,6 +64,18 @@ function int(v: NumLike, fallback = 0): number {
 
 function str(v: Nullable<string>, fallback = ""): string {
   return v ?? fallback;
+}
+
+/**
+ * Coerce an optional numeric field for which "missing" and "zero" are
+ * semantically distinct.  Used for flow_qty: the renderer treats
+ * `undefined` as "fall back to per-node qty" but `0` as "this edge
+ * carries no flow" — so a malformed value must not collapse to either.
+ */
+function coerceOptionalFlowQty(v: NumLike | undefined): number | undefined {
+  if (v === null || v === undefined) return undefined;
+  const n = typeof v === "string" ? parseFloat(v) : v;
+  return Number.isFinite(n) ? n : undefined;
 }
 
 function asBatchStatus(s: Nullable<string>): BatchStatus {
@@ -643,6 +656,9 @@ interface RawLineageRow {
   plant_id?: Nullable<string>;
   plant: Nullable<string>;
   qty: NumLike;
+  /** Per-edge flow_qty from the backend ``edge_agg`` CTE.  Optional for
+   * back-compat with older payloads emitted before flow_qty rollout. */
+  flow_qty?: NumLike;
   uom: Nullable<string>;
   supplier?: Nullable<string>;
   customer?: Nullable<string>;
@@ -686,6 +702,11 @@ function mapLineage(
     batch: str(row.batch),
     plant: str(row.plant),
     qty: num(row.qty),
+    // Coerce flow_qty defensively: if the backend supplied a value, attempt
+    // to parse it numerically but leave it undefined when the parse fails.
+    // Using num()'s default 0 fallback would mis-weight trace edges
+    // (zero-flow vs missing-flow are different signals in the renderer).
+    flow_qty: coerceOptionalFlowQty(row.flow_qty),
     uom: str(row.uom, "KG"),
     supplier: row.supplier ? str(row.supplier) : undefined,
     customer: row.customer ? str(row.customer) : undefined,

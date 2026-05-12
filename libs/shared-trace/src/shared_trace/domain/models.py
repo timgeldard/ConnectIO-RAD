@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from shared_domain import AggregateRoot, ValueObject, BusinessRuleValidationException
+from shared_ddd import AggregateRoot, BusinessRuleValidationException, ValueObject
 
 class BatchId(str):
     """

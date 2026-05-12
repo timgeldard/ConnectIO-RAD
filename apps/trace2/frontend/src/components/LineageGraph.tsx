@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@connectio/shared-frontend-i18n";
 import { traceCopy } from "../i18n/pageCopy";

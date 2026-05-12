@@ -1,7 +1,10 @@
 {
   "name": "platform-backend",
   "projectType": "application",
-  "tags": ["scope:platform", "type:backend"],
+  "tags": [
+    "scope:platform",
+    "type:backend"
+  ],
   "implicitDependencies": [
     "shared-api",
     "shared-auth",
@@ -29,9 +32,7 @@
       "options": {
         "command": "PYTHONPATH=apps/platform uv run --no-sync --package platform-backend python -m pytest apps/platform/backend/tests",
         "cwd": "{workspaceRoot}"
-      },
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
-      "cache": true
+      }
     },
     "lint": {
       "executor": "nx:run-commands",
@@ -39,7 +40,11 @@
         "command": "PYTHONPATH=apps/platform uv run --no-sync --package platform-backend ruff check apps/platform/backend",
         "cwd": "{workspaceRoot}"
       },
-      "inputs": ["pyFiles", "^pyFiles", "sharedGlobals"],
+      "inputs": [
+        "pyFiles",
+        "^pyFiles",
+        "sharedGlobals"
+      ],
       "cache": true
     }
   }

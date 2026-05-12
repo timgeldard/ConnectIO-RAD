@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import { QueryClient } from '@tanstack/react-query'
 import { queryClientDefaultOptions } from '@connectio/shared-frontend-api/query'
 

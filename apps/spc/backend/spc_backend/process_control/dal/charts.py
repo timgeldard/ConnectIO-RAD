@@ -1,392 +1,67 @@
-import logging
-import math
-from dataclasses import dataclass, field
-from typing import Optional
-from urllib.parse import quote, unquote
+"""SPC chart DAL — async fetch functions for chart pages, normality, control limits,
+attribute charts, capability drift, and data-quality summaries.
 
-from spc_backend.process_control.domain.capability import infer_spec_type
+The helpers used by these fetch functions live in three sibling modules
+extracted to keep this file focused on orchestration:
+
+- ``_chart_coercion`` — row-type coercion and USL/LSL derivation.
+- ``_chart_cursor``   — cursor encode/decode and batch-sequence stamping.
+- ``_chart_filters``  — ``ChartFilterSpec`` plus filter and CTE/SQL builders.
+
+Symbols imported by ``application/`` and tests are re-exported below so callers
+can continue to ``from spc_backend.process_control.dal import charts as ...``.
+"""
+import logging
+from typing import Optional
+
+from spc_backend.process_control.dal._chart_coercion import (
+    _apply_chart_row_formatting,
+)
+from spc_backend.process_control.dal._chart_cursor import (
+    _assign_batch_sequence,
+    decode_chart_cursor,
+    encode_chart_cursor,
+)
+from spc_backend.process_control.dal._chart_filters import (
+    ChartFilterSpec,
+    _build_chart_filters,
+    _build_chart_page_query,
+    _build_chart_values_query,
+)
 from spc_backend.utils.db import TRACE_CATALOG, TRACE_SCHEMA, run_sql_async, sql_param, tbl
 from spc_backend.utils.schema_contract import detect_optional_columns
-from shared_trace import schema
 
 logger = logging.getLogger(__name__)
 
 _NORMALITY_MAX_POINTS = 5000
 _FULL_CHART_MAX_ROWS = 10000
 _ATTRIBUTE_CHART_MAX_ROWS = 10000
-_ALLOWED_STRATIFY_COLUMNS = {
-    "plant_id": "bd.plant_id",
-    "inspection_lot_id": "CAST(r.INSPECTION_LOT_ID AS STRING)",
-    "operation_id": "CAST(r.OPERATION_ID AS STRING)",
-    "phase_name": "p.PHASE_NAME",
-}
 
 
-def _format_chart_row_error(field_name: str, raw_value: object, row: dict) -> str:
-    batch_id = row.get("batch_id")
-    sample_id = (
-        row.get("SAMPLE_ID")
-        if row.get("SAMPLE_ID") is not None
-        else (
-            row.get("cursor_sample_id")
-            if row.get("cursor_sample_id") is not None
-            else row.get("sample_seq")
-        )
-    )
-    return (
-        f"Invalid chart row value for field '{field_name}' in batch_id={batch_id!r}, "
-        f"sample_id={sample_id!r}: {raw_value!r}; row={row!r}"
-    )
-
-
-def _coerce_chart_float(row: dict, field_name: str) -> None:
-    value = row.get(field_name)
-    if value is None:
-        return
-    try:
-        f = float(value)
-        if math.isnan(f) or math.isinf(f):
-            row[field_name] = None
-            return
-        row[field_name] = f
-    except (ValueError, TypeError) as exc:
-        raise ValueError(_format_chart_row_error(field_name, value, row)) from exc
-
-
-def _coerce_chart_int(row: dict, field_name: str) -> None:
-    value = row.get(field_name)
-    if value is None:
-        return
-    try:
-        row[field_name] = int(float(value))
-    except (ValueError, TypeError) as exc:
-        raise ValueError(_format_chart_row_error(field_name, value, row)) from exc
-
-
-def _apply_chart_row_formatting(rows: list[dict]) -> list[dict]:
-    for row in rows:
-        for field_name in ["value", "nominal", "tolerance", "lsl", "usl"]:
-            _coerce_chart_float(row, field_name)
-        _coerce_chart_int(row, "sample_seq")
-        row["is_outlier"] = row.get("attribut") == "*"
-        usl = row.get("usl")
-        lsl = row.get("lsl")
-        if usl is None or lsl is None:
-            nominal = row.get("nominal")
-            tol = row.get("tolerance")
-            if nominal is not None and tol is not None:
-                usl = nominal + tol
-                lsl = nominal - tol
-        row["usl"] = round(usl, 6) if usl is not None else None
-        row["lsl"] = round(lsl, 6) if lsl is not None else None
-        row["spec_type"] = infer_spec_type(row["usl"], row["lsl"], row.get("nominal"))
-        if "plant_id" not in row:
-            row["plant_id"] = None
-        row.pop("cursor_batch_date_epoch", None)
-        row.pop("cursor_sample_id", None)
-        row.pop("cursor_inspection_lot_id", None)
-        row.pop("cursor_operation_id", None)
-    return rows
-
-
-def encode_chart_cursor(
-    batch_date_epoch: int,
-    batch_id: str,
-    sample_id: str,
-    inspection_lot_id: str,
-    operation_id: str,
-) -> str:
-    return ":".join(
-        [
-            str(batch_date_epoch),
-            quote(batch_id, safe=""),
-            quote(sample_id, safe=""),
-            quote(inspection_lot_id, safe=""),
-            quote(operation_id, safe=""),
-        ]
-    )
-
-
-def decode_chart_cursor(cursor: str) -> tuple[int, str, str, str, str]:
-    try:
-        (
-            batch_date_epoch_str,
-            batch_id_raw,
-            sample_id_raw,
-            inspection_lot_id_raw,
-            operation_id_raw,
-        ) = cursor.split(":", 4)
-        batch_date_epoch = int(batch_date_epoch_str)
-    except (AttributeError, TypeError, ValueError) as exc:
-        raise ValueError(
-            "cursor must be formatted as "
-            "'batch_date(epoch):batch_id:sample_id:inspection_lot_id:operation_id'"
-        ) from exc
-
-    batch_id = unquote(batch_id_raw)
-    sample_id = unquote(sample_id_raw)
-    if not batch_id:
-        raise ValueError("cursor batch_id must not be empty")
-    return (
-        batch_date_epoch,
-        batch_id,
-        sample_id,
-        unquote(inspection_lot_id_raw),
-        unquote(operation_id_raw),
-    )
-
-
-def _assign_batch_sequence(rows: list[dict]) -> list[dict]:
-    batch_seq = 0
-    last_batch_key: Optional[tuple[Optional[str], Optional[str]]] = None
-    for row in rows:
-        batch_key = (row.get("batch_date"), row.get("batch_id"))
-        if batch_key != last_batch_key:
-            batch_seq += 1
-            last_batch_key = batch_key
-        row["batch_seq"] = batch_seq
-    return rows
-
-
-@dataclass
-class ChartFilterSpec:
-    params: list[dict]
-    batch_date_conditions: list[str] = field(default_factory=list)
-    quality_conditions: list[str] = field(default_factory=list)
-    final_where_conditions: list[str] = field(default_factory=list)
-    stratify_by: Optional[str] = None
-    stratify_select_sql: Optional[str] = None
-
-
-def _where_clause(conditions: list[str]) -> str:
-    if not conditions:
-        return ""
-    return "WHERE " + " AND ".join(conditions)
-
-
-def _build_chart_filters(
-    material_id: str,
-    mic_id: str,
-    mic_name: Optional[str],
-    plant_id: Optional[str],
-    date_from: Optional[str],
-    date_to: Optional[str],
-    stratify_by: Optional[str] = None,
-    operation_id: Optional[str] = None,
-) -> ChartFilterSpec:
-    params = [
-        sql_param("material_id", material_id),
-        sql_param("mic_id", mic_id),
-    ]
-    batch_date_conditions = [
-        "MATERIAL_ID = :material_id",
-    ]
-    quality_conditions = [
-        "r.MATERIAL_ID = :material_id",
-        "r.MIC_ID = :mic_id",
-        "r.QUANTITATIVE_RESULT IS NOT NULL",
-        "(r.QUALITATIVE_RESULT IS NULL OR r.QUALITATIVE_RESULT = '')",
-    ]
-    final_where_conditions: list[str] = []
-
-    if operation_id:
-        params.append(sql_param("operation_id", operation_id))
-        quality_conditions.append("r.OPERATION_ID = :operation_id")
-    if date_from:
-        batch_date_conditions.append("batch_date >= :date_from")
-        params.append(sql_param("date_from", date_from))
-    if date_to:
-        batch_date_conditions.append("batch_date <= :date_to")
-        params.append(sql_param("date_to", date_to))
-    if plant_id:
-        params.append(sql_param("plant_id", plant_id))
-        quality_conditions.append("(bd.plant_id = :plant_id OR bd.plant_id IS NULL)")
-    stratify_select_sql = None
-    if stratify_by:
-        stratify_select_sql = _ALLOWED_STRATIFY_COLUMNS.get(stratify_by)
-        if stratify_select_sql is None:
-            raise ValueError(
-                f"stratify_by must be one of {sorted(_ALLOWED_STRATIFY_COLUMNS)}"
-            )
-    return ChartFilterSpec(
-        params=params,
-        batch_date_conditions=batch_date_conditions,
-        quality_conditions=quality_conditions,
-        final_where_conditions=final_where_conditions,
-        stratify_by=stratify_by,
-        stratify_select_sql=stratify_select_sql,
-    )
-
-
-def _build_batch_dates_cte_sql(filters: ChartFilterSpec) -> str:
-    return f"""
-        batch_dates AS (
-            SELECT
-                MATERIAL_ID,
-                BATCH_ID,
-                batch_date,
-                plant_id
-            FROM {tbl('spc_batch_dim_mv')}
-            {_where_clause(filters.batch_date_conditions)}
-        )
-    """
-
-
-def _build_quality_data_cte_sql(filters: ChartFilterSpec) -> str:
-    stratify_select = ""
-    if filters.stratify_select_sql:
-        stratify_select = f",\n                {filters.stratify_select_sql} AS stratify_value"
-    return f"""
-        quality_data AS (
-            SELECT
-                r.BATCH_ID AS batch_id,
-                r.INSPECTION_LOT_ID,
-                r.OPERATION_ID,
-                p.PHASE_NAME AS phase_name,
-                p.PHASE_NUMBER AS phase_number,
-                r.SAMPLE_ID,
-                r.attribute AS attribut,
-                TRY_CAST(r.QUANTITATIVE_RESULT AS DOUBLE) AS value,
-                TRY_CAST(r.TARGET_VALUE AS DOUBLE) AS nominal,
-                TRY_CAST(
-                    CASE
-                        WHEN LOCATE('...', r.TOLERANCE) > 0
-                        THEN SUBSTRING(r.TOLERANCE, 1, LOCATE('...', r.TOLERANCE) - 1)
-                    END AS DOUBLE
-                ) AS lsl,
-                TRY_CAST(
-                    CASE
-                        WHEN LOCATE('...', r.TOLERANCE) > 0
-                        THEN SUBSTRING(r.TOLERANCE, LOCATE('...', r.TOLERANCE) + 3)
-                    END AS DOUBLE
-                ) AS usl,
-                CASE
-                    WHEN LOCATE('...', r.TOLERANCE) = 0 THEN TRY_CAST(r.TOLERANCE AS DOUBLE)
-                END AS tolerance,
-                r.INSPECTION_RESULT_VALUATION AS valuation,
-                bd.batch_date,
-                bd.plant_id,
-                COALESCE(UNIX_TIMESTAMP(CAST(bd.batch_date AS TIMESTAMP)), 253402214400) AS cursor_batch_date_epoch,
-                COALESCE(CAST(r.SAMPLE_ID AS STRING), '') AS cursor_sample_id,
-                COALESCE(CAST(r.INSPECTION_LOT_ID AS STRING), '') AS cursor_inspection_lot_id,
-                COALESCE(CAST(r.OPERATION_ID AS STRING), '') AS cursor_operation_id,
-                ROW_NUMBER() OVER (
-                    PARTITION BY r.BATCH_ID
-                    ORDER BY COALESCE(CAST(r.SAMPLE_ID AS STRING), ''), r.INSPECTION_LOT_ID, r.OPERATION_ID
-                ) AS sample_seq
-                {stratify_select}
-            FROM {tbl('gold_batch_quality_result_v')} r
-            INNER JOIN batch_dates bd
-                ON bd.MATERIAL_ID = r.MATERIAL_ID
-               AND bd.BATCH_ID = r.BATCH_ID
-            LEFT JOIN {tbl(schema.GOLD_INSPECTION_LOT)} l
-                ON l.INSPECTION_LOT_ID = r.INSPECTION_LOT_ID
-            LEFT JOIN {tbl(schema.GOLD_PROCESS_PHASE)} p
-                ON p.ORDER_ID = l.PROCESS_ORDER_ID
-               AND p.PHASE_ID = l.PHASE_ID
-            {_where_clause(filters.quality_conditions)}
-        )
-    """
-
-
-def _build_chart_page_query(filters: ChartFilterSpec, cursor: Optional[str], limit: int) -> tuple[str, list[dict]]:
-    params = list(filters.params)
-    if cursor:
-        (
-            cursor_batch_date_epoch,
-            cursor_batch_id,
-            cursor_sample_id,
-            cursor_inspection_lot_id,
-            cursor_operation_id,
-        ) = decode_chart_cursor(cursor)
-        params.extend(
-            [
-                sql_param("cursor_batch_date_epoch", cursor_batch_date_epoch),
-                sql_param("cursor_batch_id", cursor_batch_id),
-                sql_param("cursor_sample_id", cursor_sample_id),
-                sql_param("cursor_inspection_lot_id", cursor_inspection_lot_id),
-                sql_param("cursor_operation_id", cursor_operation_id),
-            ]
-        )
-        filters.final_where_conditions.extend(
-            [
-                "("
-                "cursor_batch_date_epoch > :cursor_batch_date_epoch "
-                "OR (cursor_batch_date_epoch = :cursor_batch_date_epoch AND batch_id > :cursor_batch_id) "
-                "OR (cursor_batch_date_epoch = :cursor_batch_date_epoch AND batch_id = :cursor_batch_id "
-                "AND cursor_sample_id > :cursor_sample_id) "
-                "OR (cursor_batch_date_epoch = :cursor_batch_date_epoch AND batch_id = :cursor_batch_id "
-                "AND cursor_sample_id = :cursor_sample_id "
-                "AND cursor_inspection_lot_id > :cursor_inspection_lot_id) "
-                "OR (cursor_batch_date_epoch = :cursor_batch_date_epoch AND batch_id = :cursor_batch_id "
-                "AND cursor_sample_id = :cursor_sample_id "
-                "AND cursor_inspection_lot_id = :cursor_inspection_lot_id "
-                "AND cursor_operation_id > :cursor_operation_id)"
-                ")"
-            ]
-        )
-    stratify_select = ""
-    if filters.stratify_select_sql:
-        stratify_select = ",\n            stratify_value"
-
-    # CRITICAL: ORDER BY must use the same columns as the cursor WHERE clause,
-    # otherwise keyset pagination silently skips rows at page boundaries when
-    # raw INSPECTION_LOT_ID / OPERATION_ID (BIGINT) sort order differs from the
-    # string-casted cursor columns. Manifests as missing X-bar / Range points
-    # in the X-R chart (each paginated gap drops samples from a subgroup).
-    final_query = f"""
-        WITH
-        {_build_batch_dates_cte_sql(filters)},
-        {_build_quality_data_cte_sql(filters)}
-        SELECT
-            batch_id,
-            CAST(batch_date AS STRING) AS batch_date,
-            sample_seq,
-            attribut,
-            value,
-            nominal,
-            tolerance,
-            lsl,
-            usl,
-            valuation,
-            plant_id,
-            cursor_batch_date_epoch,
-            cursor_sample_id,
-            cursor_inspection_lot_id,
-            cursor_operation_id
-            {stratify_select}
-        FROM quality_data
-        {_where_clause(filters.final_where_conditions)}
-        ORDER BY
-            cursor_batch_date_epoch,
-            batch_id,
-            cursor_sample_id,
-            cursor_inspection_lot_id,
-            cursor_operation_id
-        LIMIT {limit + 1}
-    """
-    return final_query, params
-
-
-def _build_chart_values_query(filters: ChartFilterSpec, max_points: int) -> tuple[str, list[dict]]:
-    final_query = f"""
-        WITH
-        {_build_batch_dates_cte_sql(filters)}
-        SELECT
-            CAST(r.QUANTITATIVE_RESULT AS DOUBLE) AS value
-        FROM {tbl('gold_batch_quality_result_v')} r
-        INNER JOIN batch_dates bd
-            ON bd.MATERIAL_ID = r.MATERIAL_ID
-           AND bd.BATCH_ID = r.BATCH_ID
-        {_where_clause(filters.quality_conditions)}
-        ORDER BY
-            bd.batch_date,
-            r.BATCH_ID,
-            r.SAMPLE_ID,
-            r.INSPECTION_LOT_ID
-        LIMIT {max_points}
-    """
-    return final_query, list(filters.params)
+# ---------------------------------------------------------------------------
+# Re-exports — kept for backward compatibility with tests / application layer
+# that import these names from ``spc_backend.process_control.dal.charts``.
+# New code should import from the focused sibling modules above.
+# ---------------------------------------------------------------------------
+__all__ = [
+    # Public cursor API
+    "encode_chart_cursor",
+    "decode_chart_cursor",
+    # Test-visible internals (preserved during the M-5 split)
+    "_apply_chart_row_formatting",
+    "_build_chart_filters",
+    "ChartFilterSpec",
+    # Public async fetch surface (defined below)
+    "fetch_chart_data_page",
+    "fetch_chart_data_values",
+    "fetch_normality_summary",
+    "fetch_control_limits",
+    "fetch_chart_data",
+    "fetch_p_chart_data",
+    "fetch_count_chart_data",
+    "fetch_spec_drift_summary",
+    "fetch_data_quality_summary",
+]
 
 
 async def fetch_chart_data_page(

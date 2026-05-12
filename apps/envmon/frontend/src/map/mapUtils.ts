@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import type { Feature, FeatureCollection, Point } from 'geojson';
 import type { PlantInfo } from '~/types';
 

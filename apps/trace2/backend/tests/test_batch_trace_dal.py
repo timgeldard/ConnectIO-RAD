@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 from shared_trace.domain.models import BatchIdentity, BatchOnlyIdentity
 from trace2_backend.batch_trace.dal import trace
 
