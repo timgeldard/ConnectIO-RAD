@@ -36,6 +36,13 @@ ROUTER_FORBIDDEN_PARTS = (".dal",)
 ROUTER_FORBIDDEN_NAMES = ("run_sql_async", "tbl", "silver_tbl", "sql_param", "instrument_tbl")
 APPLICATION_TRANSPORT_EXCEPTIONS = {
     Path("apps/processorderhistory/backend/processorderhistory_backend/genie_assist/application/genie_client.py"),
+    # trace2's Genie client mirrors POH's transport (Databricks Genie REST
+    # API).  Carrying a bearer token + raising HTTPException from the
+    # application layer is the same intentional exemption POH has — both
+    # flag the SSRF risk and 401 path at the call site.  Long-term these
+    # will share a common shared-api Genie helper; tracked in the Phase 3b
+    # commit message as known tech debt.
+    Path("apps/trace2/backend/trace2_backend/genie_assist/application/genie_client.py"),
 }
 
 ALLOWED_CONTEXTS = {
@@ -43,7 +50,7 @@ ALLOWED_CONTEXTS = {
     "envmon": {"inspection_analysis", "spatial_config"},
     "processorderhistory": {"order_execution", "manufacturing_analytics", "production_planning", "genie_assist"},
     "spc": {"chart_config", "process_control"},
-    "trace2": {"batch_trace", "lineage_analysis", "quality_record"},
+    "trace2": {"batch_trace", "lineage_analysis", "quality_record", "genie_assist"},
     "template": {"module_template"},
     "warehouse360": {"inventory_management", "dispensary_ops", "order_fulfillment", "operations_control_tower"},
 }

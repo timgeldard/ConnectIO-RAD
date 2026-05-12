@@ -14,6 +14,8 @@ import {
 import type { Batch, PageId, Tweaks } from "./types";
 import { BATCH } from "./data/mock";
 import { fetchBatchHeader } from "./data/api";
+import { GenieDrawer } from "./genie/GenieDrawer";
+import { buildLineageContext } from "./genie/pageContext";
 import { ParamField, SimBanner, StatusPill } from "./ui";
 import { PageRecallReadiness } from "./pages/RecallReadiness";
 import { PageBottomUp } from "./pages/BottomUp";
@@ -191,6 +193,12 @@ function TraceApp() {
   const [maxLevels, setMaxLevels] = useState(3);
   const [maxInputDepth, setMaxInputDepth] = useState(3);
   const [sim, setSim] = useState(false);
+  // Genie drawer state.  Open/close is a single state slot at the
+  // app shell so a deep child (e.g. a lineage-graph right-click) can
+  // request the drawer to open without prop-drilling.  We hand that
+  // capability out via the `useTrace2GenieDispatch` hook in a
+  // follow-up (see Phase 3b docs).
+  const [genieOpen, setGenieOpen] = useState(false);
   const [tweaks, _setTweaksState] = useState<Tweaks>(() => {
     try {
       const raw = localStorage.getItem("mi:tweaks");
@@ -383,8 +391,33 @@ function TraceApp() {
           />
         )}
       </div>
+      {batch && (
+        <GenieDrawer
+          open={genieOpen}
+          onOpen={() => setGenieOpen(true)}
+          onClose={() => setGenieOpen(false)}
+          pageContext={buildLineageContext({
+            view: viewForPage(page),
+            batch,
+          })}
+        />
+      )}
     </AppShell>
   );
+}
+
+/** Map a trace2 page id to the Genie `view` field used in page context. */
+function viewForPage(page: PageId): string {
+  switch (page) {
+    case "bottom_up":
+      return "bottom-up";
+    case "top_down":
+      return "top-down";
+    case "overview":
+      return "overview";
+    default:
+      return String(page);
+  }
 }
 
 export default function App() {
