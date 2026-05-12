@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "build": "vite build",
     "test": "vitest",
@@ -12,6 +15,9 @@
   },
   "dependencies": {
     "@connectio/shared-ui": "file:../shared-ui",
+    "@xyflow/react": "^12.3.5",
+    "elkjs": "^0.9.3",
+    "html-to-image": "^1.11.13",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
