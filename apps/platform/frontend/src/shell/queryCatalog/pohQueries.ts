@@ -177,6 +177,7 @@ export const pohQueries: QueryRegistry = {
       ...pohSummaryFields,
     ],
     sampleResponse: {
+      ...pohSummarySample,
       points: [
         { label: '2026-05-08', value: 21.4 },
         { label: '2026-05-09', value: 20.7 },
@@ -198,7 +199,6 @@ export const pohQueries: QueryRegistry = {
           resource_name: 'Cook Line 07',
         },
       ],
-      ...pohSummarySample,
     },
   }),
   'poh.productionTrend': postQuery({
@@ -219,6 +219,7 @@ export const pohQueries: QueryRegistry = {
       ...pohSummaryFields,
     ],
     sampleResponse: {
+      ...pohSummarySample,
       value: 47180,
       unit: 'KG',
       delta: '+3.4%',
@@ -235,7 +236,6 @@ export const pohQueries: QueryRegistry = {
         { name: 'Planned qty', data: [15000, 16250, 17000] },
       ],
       rows: pohSummarySample.rows,
-      ...pohSummarySample,
     },
   }),
   'poh.productionByMaterial': postQuery({
