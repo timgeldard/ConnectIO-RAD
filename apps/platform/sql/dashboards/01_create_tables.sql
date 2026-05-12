@@ -18,11 +18,11 @@ CREATE TABLE IF NOT EXISTS `${CATALOG}`.`dashboards`.`dashboard_definitions` (
   title              STRING    NOT NULL  COMMENT 'Display title (max 200 chars)',
   description        STRING              COMMENT 'Optional long description (max 2000 chars)',
   owner_email        STRING    NOT NULL  COMMENT 'Email of the user who created this dashboard',
-  is_public          BOOLEAN   NOT NULL  DEFAULT false COMMENT 'When true any authenticated user can view',
-  tags               STRING    NOT NULL  DEFAULT '[]' COMMENT 'JSON array of string tags',
-  current_version_id STRING              COMMENT 'FK → dashboard_versions.id for the live config',
-  is_deleted         BOOLEAN   NOT NULL  DEFAULT false COMMENT 'Soft-delete flag',
-  created_at         TIMESTAMP NOT NULL  COMMENT 'UTC creation timestamp (ISO-8601 string stored via SQL INSERT)',
+  is_public          BOOLEAN   NOT NULL  COMMENT 'When true any authenticated user can view',
+  tags               STRING    NOT NULL  COMMENT 'JSON array of string tags',
+  current_version_id STRING              COMMENT 'FK to dashboard_versions.id for the live config',
+  is_deleted         BOOLEAN   NOT NULL  COMMENT 'Soft-delete flag',
+  created_at         TIMESTAMP NOT NULL  COMMENT 'UTC creation timestamp',
   updated_at         TIMESTAMP NOT NULL  COMMENT 'UTC last-modified timestamp'
 )
 USING DELTA
