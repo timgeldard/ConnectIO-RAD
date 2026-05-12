@@ -415,3 +415,48 @@ def update_dashboard(
         "created_at": str(existing["created_at"]),
         "updated_at": now,
     }
+
+
+def delete_dashboard(token: str, dashboard_id: str, email: str) -> bool:
+    """Soft-delete a dashboard by setting ``is_deleted = true``.
+
+    Only the dashboard owner can delete their own dashboard. Two sequential
+    ``run_sql`` calls: the first verifies existence and ownership; the second
+    performs the soft-delete UPDATE.
+
+    Args:
+        token: Databricks access token.
+        dashboard_id: UUID of the dashboard to delete.
+        email: Email of the requesting user; must match ``owner_email``.
+
+    Returns:
+        ``True`` when the dashboard was found, owned by ``email``, and
+        successfully soft-deleted. ``False`` when the dashboard does not exist,
+        is already deleted, or the caller is not the owner.
+    """
+    definitions = _dtbl("dashboard_definitions")
+
+    rows = run_sql(
+        token,
+        f"""
+        SELECT id FROM {definitions}
+        WHERE id = :dashboard_id
+          AND owner_email = :email
+          AND is_deleted = false
+        """,
+        [
+            sql_param("dashboard_id", dashboard_id),
+            sql_param("email", email),
+        ],
+        endpoint_hint="platform.dashboards.delete_check",
+    )
+    if not rows:
+        return False
+
+    run_sql(
+        token,
+        f"UPDATE {definitions} SET is_deleted = true WHERE id = :dashboard_id",
+        [sql_param("dashboard_id", dashboard_id)],
+        endpoint_hint="platform.dashboards.delete_execute",
+    )
+    return True

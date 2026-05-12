@@ -239,3 +239,32 @@ async def update_dashboard(
     if row is None:
         raise HTTPException(status_code=404, detail="Dashboard not found.")
     return _row_to_detail(row)
+
+
+@router.delete(
+    "/{dashboard_id}",
+    status_code=204,
+    summary="Delete dashboard",
+    tags=["Dashboards"],
+)
+async def delete_dashboard(
+    dashboard_id: str,
+    user: UserIdentity = Depends(require_proxy_user),
+) -> None:
+    """Soft-delete a dashboard (sets ``is_deleted = true``).
+
+    Only the dashboard owner may delete their own dashboard. Returns 404 for
+    both "not found" and "not owner" to avoid disclosing dashboard existence
+    to unauthorised callers.
+
+    Args:
+        dashboard_id: UUID of the dashboard to delete.
+        user: Authenticated user identity; must be the dashboard owner.
+
+    Raises:
+        HTTPException: 404 when the dashboard does not exist or the caller is
+            not the owner.
+    """
+    deleted = dal.delete_dashboard(user.raw_token, dashboard_id, user.email or "")
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Dashboard not found.")

@@ -14,7 +14,8 @@
     "jsx": "react-jsx",
     "strict": true,
     "paths": {
-      "@connectio/shared-ui/*": ["../../../libs/shared-ui/src/*"]
+      "@connectio/shared-ui/*": ["../../../libs/shared-ui/src/*"],
+      "@connectio/shared-reporting": ["../../../libs/shared-reporting/src/index.ts"]
     }
   },
   "include": ["src"]

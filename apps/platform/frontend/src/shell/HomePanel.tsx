@@ -66,7 +66,11 @@ export function HomePanel({
   const cards = (modules as PlatformModuleRegistration[])
     .filter((m) => m.isUserSelectable && m.landingCard)
     .filter((m) => !normalizedQuery || moduleSearchText(m).includes(normalizedQuery))
-  const groups = [...groupModulesByCategory(cards).entries()]
+  const groups = [...groupModulesByCategory(cards).entries()].sort(([a], [b]) => {
+    if (a === 'demo') return 1
+    if (b === 'demo') return -1
+    return a.localeCompare(b)
+  })
 
   return (
     <div className="plat-home">

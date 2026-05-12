@@ -378,3 +378,41 @@ class TestUpdateDashboard:
         assert kwargs["title"] is None
         assert kwargs["is_public"] is None
         assert kwargs["tags"] is None
+
+
+class TestDeleteDashboard:
+    def test_returns_204_on_success(self):
+        user = _make_user()
+        app = _make_app(user)
+
+        with patch(
+            "backend.routes.dashboards.router.dal.delete_dashboard",
+            return_value=True,
+        ):
+            resp = TestClient(app).delete("/dash-001")
+
+        assert resp.status_code == 204
+
+    def test_returns_404_when_dal_returns_false(self):
+        user = _make_user()
+        app = _make_app(user)
+
+        with patch(
+            "backend.routes.dashboards.router.dal.delete_dashboard",
+            return_value=False,
+        ):
+            resp = TestClient(app).delete("/nonexistent")
+
+        assert resp.status_code == 404
+
+    def test_passes_email_and_id_to_dal(self):
+        user = _make_user("owner@kerry.com")
+        app = _make_app(user)
+        mock = MagicMock(return_value=True)
+
+        with patch("backend.routes.dashboards.router.dal.delete_dashboard", mock):
+            TestClient(app).delete("/dash-xyz")
+
+        args = mock.call_args[0]
+        assert args[1] == "dash-xyz"
+        assert args[2] == "owner@kerry.com"
