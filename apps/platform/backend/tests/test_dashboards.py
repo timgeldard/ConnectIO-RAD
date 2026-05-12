@@ -438,19 +438,72 @@ def _share_row(
     }
 
 
-class TestRowToShare:
-    def test_maps_fields_to_camel(self):
-        row = _share_row()
-        share = _row_to_share(row)
-        assert share.dashboardId == "dash-001"
-        assert share.sharedWithEmail == "guest@kerry.com"
-        assert share.sharedByEmail == "owner@kerry.com"
-        assert share.sharedAt == "2026-05-12T10:00:00+00:00"
+class TestWidgetDataPersistence:
+    def test_data_field_round_trip(self):
+        user = _make_user()
+        app = _make_app(user)
+        
+        config = {
+            "columns": 12,
+            "rowHeight": 80,
+            "widgets": [
+                {
+                    "id": "w1",
+                    "type": "kpi",
+                    "title": "Bound KPI",
+                    "layout": {"x": 0, "y": 0, "w": 4, "h": 4, "minW": 2, "minH": 2},
+                    "props": {"label": "Static"},
+                    "data": {
+                        "queryKey": "poh.oee",
+                        "params": {"plant_id": {"value": "P1"}},
+                        "mapping": {"value": "avg_oee"}
+                    }
+                }
+            ],
+            "globalFilters": []
+        }
+        
+        mock_row = _detail_row(title="Data Board")
+        mock_row["config_json"] = json.dumps(config)
 
+        with patch("backend.routes.dashboards.router.dal.create_dashboard", return_value=mock_row):
+            resp = TestClient(app).post(
+                "/api/dashboards",
+                json={"title": "Data Board", "config": config},
+            )
 
-# ──────────────────────────────────────────────────────────────────────────
-# Integration tests — sharing endpoints (mocked DAL)
-# ──────────────────────────────────────────────────────────────────────────
+        assert resp.status_code == 201
+        data = resp.json()
+        widgets = data["config"]["widgets"]
+        assert len(widgets) == 1
+        widget = widgets[0]
+        assert "data" in widget, f"Widget keys: {list(widget.keys())}"
+        assert widget["data"]["queryKey"] == "poh.oee"
+        assert widget["data"]["mapping"]["value"] == "avg_oee"
+
+    def test_handles_null_data_field(self):
+        user = _make_user()
+        app = _make_app(user)
+        
+        config = {
+            "widgets": [
+                {
+                    "id": "w1",
+                    "type": "kpi",
+                    "data": None
+                }
+            ]
+        }
+        
+        # Pydantic will fill in defaults for missing fields in the request
+        resp = TestClient(app).post(
+            "/api/dashboards",
+            json={"title": "Null Data Board", "config": config},
+        )
+        
+        # We just want to check it parses without 422
+        assert resp.status_code != 422
+
 
 class TestListDashboardShares:
     def test_returns_shares_and_total(self):

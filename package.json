@@ -78,7 +78,6 @@
   },
   "dependencies": {
     "esbuild": "^0.28.0",
-    "lightningcss-win32-x64-msvc": "^1.32.0",
     "zod": "^4.4.3"
   }
 }

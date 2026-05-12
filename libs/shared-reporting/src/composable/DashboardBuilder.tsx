@@ -18,6 +18,8 @@ import { useState } from 'react'
 import type { ComposableWidget, DashboardMode } from './types'
 import { useDashboardEditStore } from './store'
 import { DashboardGrid } from './DashboardGrid'
+import { PropertyInspector } from './PropertyInspector'
+import type { QueryRegistry } from '../data/queryRegistry'
 
 interface WidgetDefinition {
   /** Registry key that matches `ComposableWidget.type`. */
@@ -43,6 +45,10 @@ interface DashboardBuilderProps {
   onSave: () => void
   /** Called when the user cancels edits. */
   onCancel: () => void
+  /** Registry of available queries for live data binding. */
+  queryRegistry?: QueryRegistry
+  /** Values for parameters used in data binding queries. */
+  dashboardParams?: Record<string, unknown>
 }
 
 /**
@@ -57,6 +63,8 @@ export function DashboardBuilder({
   gridWidth = 1100,
   onSave,
   onCancel,
+  queryRegistry,
+  dashboardParams,
 }: DashboardBuilderProps) {
   const { editConfig, isDirty, addWidget, selectedWidgetId } = useDashboardEditStore()
   const [paletteFilter, setPaletteFilter] = useState('')
@@ -135,6 +143,8 @@ export function DashboardBuilder({
               mode="edit"
               renderWidget={renderWidget}
               width={gridWidth}
+              queryRegistry={queryRegistry}
+              dashboardParams={dashboardParams}
             />
           ) : (
             <div style={emptyGridStyle}>No dashboard loaded</div>
@@ -145,7 +155,11 @@ export function DashboardBuilder({
         <aside style={inspectorStyle} aria-label="Property inspector">
           <div className="eyebrow" style={sidebarHeadingStyle}>Properties</div>
           {selectedWidget ? (
-            <PropertyInspector widget={selectedWidget} />
+            <PropertyInspector
+              widget={selectedWidget}
+              queryRegistry={queryRegistry}
+              dashboardParams={dashboardParams}
+            />
           ) : (
             <div style={emptyInspectorStyle}>Select a widget to edit its properties.</div>
           )}
@@ -188,51 +202,6 @@ function DashboardToolbarStrip({ isDirty, onSave, onCancel }: DashboardToolbarSt
           {isDirty ? 'Save changes' : 'Saved'}
         </button>
       </div>
-    </div>
-  )
-}
-
-// ──────────────────────────────────────────────────────────────────────────
-// Property inspector (internal — simple key/value editor for MVP)
-// ──────────────────────────────────────────────────────────────────────────
-
-function PropertyInspector({ widget }: { widget: ComposableWidget }) {
-  const { updateWidgetTitle, updateWidgetProps } = useDashboardEditStore()
-
-  return (
-    <div style={inspectorBodyStyle}>
-      <label style={propLabelStyle}>
-        <span>Title</span>
-        <input
-          type="text"
-          value={widget.title ?? ''}
-          onChange={(e) => updateWidgetTitle(widget.id, e.target.value)}
-          style={propInputStyle}
-          placeholder={widget.type}
-          aria-label="Widget title"
-        />
-      </label>
-      <div className="eyebrow" style={{ ...sidebarHeadingStyle, marginTop: 12 }}>
-        Type
-      </div>
-      <code style={propCodeStyle}>{widget.type}</code>
-      <div className="eyebrow" style={{ ...sidebarHeadingStyle, marginTop: 12 }}>
-        Props
-      </div>
-      <textarea
-        style={propsTextareaStyle}
-        value={JSON.stringify(widget.props, null, 2)}
-        onChange={(e) => {
-          try {
-            const parsed = JSON.parse(e.target.value)
-            updateWidgetProps(widget.id, parsed)
-          } catch {
-            // Allow invalid JSON while typing without clobbering state
-          }
-        }}
-        aria-label="Widget props JSON"
-        spellCheck={false}
-      />
     </div>
   )
 }
@@ -322,13 +291,6 @@ const inspectorStyle: CSSProperties = {
   padding: '12px 8px',
 }
 
-const inspectorBodyStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 8,
-  paddingTop: 8,
-}
-
 const sidebarHeadingStyle: CSSProperties = {
   fontSize: 10,
   color: 'var(--text-4)',
@@ -408,44 +370,4 @@ const emptyInspectorStyle: CSSProperties = {
   color: 'var(--text-4)',
   paddingTop: 8,
   lineHeight: 1.5,
-}
-
-const propLabelStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 4,
-  fontSize: 12,
-  color: 'var(--text-3)',
-}
-
-const propInputStyle: CSSProperties = {
-  background: 'var(--surface-2)',
-  border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
-  color: 'var(--text-1)',
-  padding: '5px 8px',
-  borderRadius: 4,
-  fontSize: 12,
-}
-
-const propCodeStyle: CSSProperties = {
-  fontSize: 11,
-  color: 'var(--text-3)',
-  fontFamily: 'var(--font-mono, "IBM Plex Mono", monospace)',
-  background: 'var(--surface-2)',
-  padding: '2px 6px',
-  borderRadius: 3,
-}
-
-const propsTextareaStyle: CSSProperties = {
-  width: '100%',
-  minHeight: 120,
-  background: 'var(--surface-2)',
-  border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
-  color: 'var(--text-1)',
-  fontFamily: 'var(--font-mono, "IBM Plex Mono", monospace)',
-  fontSize: 11,
-  padding: '6px',
-  borderRadius: 4,
-  resize: 'vertical',
-  boxSizing: 'border-box',
 }

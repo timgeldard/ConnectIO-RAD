@@ -16,6 +16,8 @@ import { useCallback } from 'react'
 import ReactGridLayout, { type Layout } from 'react-grid-layout'
 import type { ComposableWidget, DashboardMode } from './types'
 import { useDashboardEditStore } from './store'
+import { BoundWidgetRenderer } from './BoundWidgetRenderer'
+import type { QueryRegistry } from '../data/queryRegistry'
 
 interface DashboardGridProps {
   /** Widgets to render. In view mode all widgets are rendered read-only. */
@@ -33,6 +35,10 @@ interface DashboardGridProps {
   renderWidget: (widget: ComposableWidget) => ReactNode
   /** Called when the grid width changes (e.g. window resize). */
   width?: number
+  /** Registry of available queries for live data binding. */
+  queryRegistry?: QueryRegistry
+  /** Values for parameters used in data binding queries. */
+  dashboardParams?: Record<string, unknown>
 }
 
 /** Minimum pixel width per column used to calculate grid container width. */
@@ -51,6 +57,8 @@ export function DashboardGrid({
   mode,
   renderWidget,
   width = 1200,
+  queryRegistry,
+  dashboardParams,
 }: DashboardGridProps) {
   const updateLayouts = useDashboardEditStore((s) => s.updateLayouts)
   const removeWidget = useDashboardEditStore((s) => s.removeWidget)
@@ -123,7 +131,12 @@ export function DashboardGrid({
             </div>
           )}
           <div style={cellBodyStyle(isEdit)}>
-            {renderWidget(widget)}
+            <BoundWidgetRenderer
+              widget={widget}
+              queryRegistry={queryRegistry}
+              dashboardParams={dashboardParams}
+              renderWidget={renderWidget}
+            />
           </div>
         </div>
       ))}
