@@ -1,6 +1,331 @@
-import type { QueryRegistry } from '@connectio/shared-reporting';
+import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
+import { endpoint, fields as selectFields, params, postQuery, widgetCompatibility } from './common';
+
+/**
+ * Creates a Quality-specific field definition.
+ *
+ * @param path - Dot-path in the response payload.
+ * @param label - Human-readable field label.
+ * @param type - Expected value type.
+ * @param semantic - Optional semantic hint for mapping defaults.
+ * @returns Query field metadata for the registry.
+ */
+function qualityField(
+  path: string,
+  label: string,
+  type: QueryValueType,
+  semantic?: QueryField['semantic'],
+): QueryField {
+  return { path, label, type, semantic };
+}
+
+const qualityParams = params(
+  'plant_id',
+  'date_from',
+  'date_to',
+  'timezone',
+  'material_id',
+  'batch_id',
+  'inspection_lot_id',
+);
 
 /**
  * Quality query definitions for the platform dashboard builder.
  */
-export const qualityQueries: QueryRegistry = {};
+export const qualityQueries: QueryRegistry = {
+  'quality.batchReleaseQueue': postQuery({
+    key: 'quality.batchReleaseQueue',
+    label: 'Batch Release Queue',
+    description: 'Open inspection lots waiting for usage decision, prioritised by release age and business impact.',
+    endpoint: endpoint('quality', 'batch-release-queue'),
+    compatibleWidgets: widgetCompatibility.kpiBarTable,
+    params: qualityParams,
+    fields: [
+      qualityField('value', 'Open lot count', 'number', 'count'),
+      qualityField('delta', 'Open lot delta', 'string'),
+      qualityField('subtext', 'KPI subtext', 'string'),
+      qualityField('open_lot_count', 'Open lot count', 'number', 'count'),
+      qualityField('release_age_hours', 'Release age (hours)', 'number', 'duration'),
+      qualityField('usage_decision', 'Usage decision', 'string', 'status'),
+      ...selectFields('inspection_lot_id', 'plant_id', 'material_id', 'material_description', 'batch_id', 'status'),
+      qualityField('rows', 'Rows', 'array'),
+      qualityField('categories', 'Categories', 'array'),
+      qualityField('series', 'Series', 'array'),
+    ],
+    sampleResponse: {
+      value: 14,
+      delta: '-2',
+      trend: 'down',
+      subtext: 'lots awaiting release',
+      open_lot_count: 14,
+      release_age_hours: 31.5,
+      categories: ['0-8h', '8-24h', '24h+'],
+      series: [{ name: 'Lots', data: [5, 4, 5] }],
+      rows: [
+        {
+          inspection_lot_id: '050001284731',
+          plant_id: 'C061',
+          material_id: '000000000020052009',
+          material_description: 'Breaded fillet strips 5kg',
+          batch_id: '0008602411',
+          release_age_hours: 31.5,
+          usage_decision: 'Pending',
+          status: 'Awaiting release',
+        },
+      ],
+    },
+  }),
+  'quality.micFailurePareto': postQuery({
+    key: 'quality.micFailurePareto',
+    label: 'MIC Failure Pareto',
+    description: 'Ranks failing MICs by count and failure rate to focus investigation on the dominant quality drivers.',
+    endpoint: endpoint('quality', 'mic-failure-pareto'),
+    compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
+    params: qualityParams,
+    fields: [
+      qualityField('value', 'Failure count', 'number', 'count'),
+      qualityField('failure_count', 'Failure count', 'number', 'count'),
+      qualityField('failure_rate_pct', 'Failure rate %', 'number', 'percentage'),
+      qualityField('mic_id', 'MIC', 'string'),
+      qualityField('mic_description', 'MIC description', 'string'),
+      qualityField('items', 'Pareto items', 'array'),
+      qualityField('rows', 'Rows', 'array'),
+      qualityField('categories', 'Categories', 'array'),
+      qualityField('series', 'Series', 'array'),
+    ],
+    sampleResponse: {
+      value: 21,
+      failure_count: 21,
+      failure_rate_pct: 6.8,
+      categories: ['Moisture', 'pH', 'Salt'],
+      series: [{ name: 'Failures', data: [12, 6, 3] }],
+      items: [
+        { label: 'Moisture', value: 12 },
+        { label: 'pH', value: 6 },
+        { label: 'Salt', value: 3 },
+      ],
+      rows: [
+        { mic_id: 'MIC-001', mic_description: 'Moisture', failure_count: 12, failure_rate_pct: 3.9 },
+        { mic_id: 'MIC-019', mic_description: 'pH', failure_count: 6, failure_rate_pct: 1.9 },
+      ],
+    },
+  }),
+  'quality.resultTrend': postQuery({
+    key: 'quality.resultTrend',
+    label: 'Quality Result Trend',
+    description: 'Trends quantitative MIC results with their target and spec thresholds over time.',
+    endpoint: endpoint('quality', 'result-trend'),
+    compatibleWidgets: ['kpi', 'trend', 'spc-control', 'drill-down-table'],
+    params: qualityParams,
+    fields: [
+      qualityField('value', 'Latest result value', 'number'),
+      qualityField('delta', 'Result delta', 'string'),
+      qualityField('subtext', 'KPI subtext', 'string'),
+      qualityField('result_value', 'Result value', 'number'),
+      qualityField('target_value', 'Target value', 'number'),
+      qualityField('lsl', 'Lower spec limit', 'number'),
+      qualityField('usl', 'Upper spec limit', 'number'),
+      qualityField('sample_date', 'Sample date', 'date'),
+      qualityField('daily_history', 'Daily history', 'array', 'timeseries'),
+      qualityField('points', 'SPC points', 'array'),
+      qualityField('summary.limits', 'Summary limits', 'object'),
+      qualityField('rows', 'Rows', 'array'),
+      qualityField('inspection_lot_id', 'Inspection lot', 'string'),
+      qualityField('mic_id', 'MIC', 'string'),
+      qualityField('mic_description', 'MIC description', 'string'),
+    ],
+    sampleResponse: {
+      value: 5.2,
+      delta: '+0.1',
+      subtext: 'latest moisture reading',
+      result_value: 5.2,
+      target_value: 5.0,
+      lsl: 4.6,
+      usl: 5.4,
+      sample_date: '2026-05-12',
+      daily_history: [
+        { label: 'Mon', value: 4.9 },
+        { label: 'Tue', value: 5.1 },
+        { label: 'Wed', value: 5.2 },
+      ],
+      points: [
+        { label: 'Sample 1', value: 4.9, signal: false, excluded: false },
+        { label: 'Sample 2', value: 5.1, signal: false, excluded: false },
+        { label: 'Sample 3', value: 5.2, signal: false, excluded: false },
+      ],
+      summary: {
+        limits: {
+          ucl: 5.4,
+          cl: 5.0,
+          lcl: 4.6,
+        },
+      },
+      rows: [
+        {
+          inspection_lot_id: '050001284731',
+          mic_id: 'MIC-001',
+          mic_description: 'Moisture',
+          result_value: 5.2,
+          target_value: 5.0,
+          lsl: 4.6,
+          usl: 5.4,
+          sample_date: '2026-05-12',
+        },
+      ],
+    },
+  }),
+  'quality.inspectionLots': postQuery({
+    key: 'quality.inspectionLots',
+    label: 'Inspection Lots',
+    description: 'Summarises inspection lots by status, decision state, and ageing to support release prioritisation.',
+    endpoint: endpoint('quality', 'inspection-lots'),
+    compatibleWidgets: widgetCompatibility.kpiBarTable,
+    params: qualityParams,
+    fields: [
+      qualityField('value', 'Open lot count', 'number', 'count'),
+      qualityField('open_lot_count', 'Open lot count', 'number', 'count'),
+      qualityField('usage_decision', 'Usage decision', 'string', 'status'),
+      qualityField('quality_status', 'Quality status', 'string', 'status'),
+      ...selectFields('inspection_lot_id', 'plant_id', 'material_id', 'material_description', 'batch_id', 'status'),
+      qualityField('rows', 'Rows', 'array'),
+      qualityField('categories', 'Categories', 'array'),
+      qualityField('series', 'Series', 'array'),
+    ],
+    sampleResponse: {
+      value: 27,
+      open_lot_count: 27,
+      categories: ['Pending', 'Accepted', 'Rejected'],
+      series: [{ name: 'Lots', data: [14, 11, 2] }],
+      rows: [
+        {
+          inspection_lot_id: '050001284731',
+          plant_id: 'C061',
+          material_id: '000000000020052009',
+          material_description: 'Breaded fillet strips 5kg',
+          batch_id: '0008602411',
+          usage_decision: 'Pending',
+          quality_status: 'Open',
+          status: 'Awaiting results',
+        },
+      ],
+    },
+  }),
+  'quality.deviationSummary': postQuery({
+    key: 'quality.deviationSummary',
+    label: 'Deviation Summary',
+    description: 'Aggregates quality deviations by category, failure count, and impacted lots.',
+    endpoint: endpoint('quality', 'deviation-summary'),
+    compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
+    params: qualityParams,
+    fields: [
+      qualityField('value', 'Deviation count', 'number', 'count'),
+      qualityField('failure_count', 'Failure count', 'number', 'count'),
+      qualityField('failure_rate_pct', 'Failure rate %', 'number', 'percentage'),
+      qualityField('items', 'Pareto items', 'array'),
+      qualityField('rows', 'Rows', 'array'),
+      qualityField('categories', 'Categories', 'array'),
+      qualityField('series', 'Series', 'array'),
+      qualityField('quality_status', 'Quality status', 'string', 'status'),
+    ],
+    sampleResponse: {
+      value: 9,
+      failure_count: 9,
+      failure_rate_pct: 2.9,
+      categories: ['Spec breach', 'Missing result', 'Label issue'],
+      series: [{ name: 'Deviations', data: [5, 3, 1] }],
+      items: [
+        { label: 'Spec breach', value: 5 },
+        { label: 'Missing result', value: 3 },
+        { label: 'Label issue', value: 1 },
+      ],
+      rows: [
+        { quality_status: 'Spec breach', failure_count: 5, failure_rate_pct: 1.6 },
+        { quality_status: 'Missing result', failure_count: 3, failure_rate_pct: 1.0 },
+      ],
+    },
+  }),
+  'quality.specDrift': postQuery({
+    key: 'quality.specDrift',
+    label: 'Spec Drift',
+    description: 'Tracks drift against target and specification boundaries to highlight creeping process movement.',
+    endpoint: endpoint('quality', 'spec-drift'),
+    compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
+    params: qualityParams,
+    fields: [
+      qualityField('value', 'Average deviation from target', 'number'),
+      qualityField('delta', 'Deviation delta', 'string'),
+      qualityField('subtext', 'KPI subtext', 'string'),
+      qualityField('result_value', 'Result value', 'number'),
+      qualityField('target_value', 'Target value', 'number'),
+      qualityField('lsl', 'Lower spec limit', 'number'),
+      qualityField('usl', 'Upper spec limit', 'number'),
+      qualityField('daily_history', 'Daily history', 'array', 'timeseries'),
+      qualityField('categories', 'Categories', 'array'),
+      qualityField('series', 'Series', 'array'),
+      qualityField('rows', 'Rows', 'array'),
+    ],
+    sampleResponse: {
+      value: 0.18,
+      delta: '+0.04',
+      subtext: 'avg deviation from target',
+      result_value: 5.2,
+      target_value: 5.0,
+      lsl: 4.6,
+      usl: 5.4,
+      daily_history: [
+        { label: 'Mon', value: 0.08 },
+        { label: 'Tue', value: 0.14 },
+        { label: 'Wed', value: 0.18 },
+      ],
+      categories: ['Mon', 'Tue', 'Wed'],
+      series: [{ name: 'Drift vs target', data: [0.08, 0.14, 0.18] }],
+      rows: [
+        {
+          inspection_lot_id: '050001284731',
+          mic_id: 'MIC-001',
+          result_value: 5.2,
+          target_value: 5.0,
+          lsl: 4.6,
+          usl: 5.4,
+        },
+      ],
+    },
+  }),
+  'quality.blockedStockSummary': postQuery({
+    key: 'quality.blockedStockSummary',
+    label: 'Blocked Stock Summary',
+    description: 'Shows blocked batches and associated stock quantities awaiting release or disposition.',
+    endpoint: endpoint('quality', 'blocked-stock-summary'),
+    compatibleWidgets: widgetCompatibility.kpiBarTable,
+    params: qualityParams,
+    fields: [
+      qualityField('value', 'Blocked batch count', 'number', 'count'),
+      qualityField('blocked_batch_count', 'Blocked batch count', 'number', 'count'),
+      qualityField('quantity', 'Blocked quantity', 'number'),
+      qualityField('uom', 'Unit of measure', 'string'),
+      ...selectFields('plant_id', 'material_id', 'material_description', 'batch_id', 'status'),
+      qualityField('rows', 'Rows', 'array'),
+      qualityField('categories', 'Categories', 'array'),
+      qualityField('series', 'Series', 'array'),
+    ],
+    sampleResponse: {
+      value: 6,
+      blocked_batch_count: 6,
+      quantity: 1820,
+      uom: 'KG',
+      categories: ['C061', 'C351', 'C102'],
+      series: [{ name: 'Blocked qty', data: [920, 610, 290] }],
+      rows: [
+        {
+          plant_id: 'C061',
+          material_id: '000000000020052009',
+          material_description: 'Breaded fillet strips 5kg',
+          batch_id: '0008602411',
+          quantity: 420,
+          uom: 'KG',
+          status: 'Blocked',
+        },
+      ],
+    },
+  }),
+};
