@@ -7,11 +7,11 @@ Visibility rules (owned / public / explicitly-shared) are enforced in the DAL.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 from functools import partial
 from typing import Optional
 
-import anyio
 from fastapi import APIRouter, Depends, HTTPException, Query
 from shared_auth.identity import UserIdentity, require_proxy_user
 
@@ -36,7 +36,7 @@ def _parse_tags(raw: object) -> list[str]:
 
     The database stores tags as a JSON string (e.g. ``'["oee","downtime"]'``).
     Delta may also deserialise it as a Python list when the connector supports
-    complex types — both cases are handled.
+    complex types -- both cases are handled.
 
     Args:
         raw: Raw tags value from a DB row (string, list, or None).
@@ -81,7 +81,7 @@ def _row_to_detail(row: dict) -> DashboardDetail:
     """Convert a raw DB row (including ``config_json``) to a ``DashboardDetail``.
 
     Degrades gracefully to an empty config when ``config_json`` is absent or
-    malformed — the dashboard record is still usable, only the widget layout is lost.
+    malformed -- the dashboard record is still usable, only the widget layout is lost.
 
     Args:
         row: Dict from ``dal.get_dashboard`` or ``dal.create_dashboard``.
@@ -205,17 +205,15 @@ async def create_dashboard(
         Newly created ``DashboardDetail``.
     """
     config_json = body.config.model_dump_json()
-    row = await anyio.to_thread.run_sync(
-        partial(
-            dal.create_dashboard,
-            user.raw_token,
-            title=body.title,
-            description=body.description,
-            config_json=config_json,
-            owner_email=user.email or "",
-            is_public=body.is_public,
-            tags=body.tags,
-        )
+    row = await asyncio.to_thread(
+        dal.create_dashboard,
+        user.raw_token,
+        title=body.title,
+        description=body.description,
+        config_json=config_json,
+        owner_email=user.email or "",
+        is_public=body.is_public,
+        tags=body.tags,
     )
     return _row_to_detail(row)
 
@@ -234,7 +232,7 @@ async def update_dashboard(
     """Save a new config version and patch metadata for an existing dashboard.
 
     Only the dashboard owner may call this endpoint. The full widget config must
-    always be supplied (PUT semantics — no partial config merging). Metadata
+    always be supplied (PUT semantics -- no partial config merging). Metadata
     fields (``title``, ``description``, ``isPublic``, ``tags``) are optional;
     omitting them keeps the current values.
 
@@ -251,18 +249,16 @@ async def update_dashboard(
             not the owner (ownership is not disclosed to avoid information leakage).
     """
     config_json = body.config.model_dump_json()
-    row = await anyio.to_thread.run_sync(
-        partial(
-            dal.update_dashboard,
-            user.raw_token,
-            dashboard_id,
-            user.email or "",
-            title=body.title,
-            description=body.description,
-            config_json=config_json,
-            is_public=body.is_public,
-            tags=body.tags,
-        )
+    row = await asyncio.to_thread(
+        dal.update_dashboard,
+        user.raw_token,
+        dashboard_id,
+        user.email or "",
+        title=body.title,
+        description=body.description,
+        config_json=config_json,
+        is_public=body.is_public,
+        tags=body.tags,
     )
     if row is None:
         raise HTTPException(status_code=404, detail="Dashboard not found.")
@@ -293,8 +289,8 @@ async def delete_dashboard(
         HTTPException: 404 when the dashboard does not exist or the caller is
             not the owner.
     """
-    deleted = await anyio.to_thread.run_sync(
-        partial(dal.delete_dashboard, user.raw_token, dashboard_id, user.email or "")
+    deleted = await asyncio.to_thread(
+        dal.delete_dashboard, user.raw_token, dashboard_id, user.email or ""
     )
     if not deleted:
         raise HTTPException(status_code=404, detail="Dashboard not found.")
@@ -326,8 +322,8 @@ async def list_dashboard_shares(
         HTTPException: 404 when the dashboard does not exist or the caller is
             not the owner.
     """
-    rows = await anyio.to_thread.run_sync(
-        partial(dal.list_shares, user.raw_token, dashboard_id, user.email or "")
+    rows = await asyncio.to_thread(
+        dal.list_shares, user.raw_token, dashboard_id, user.email or ""
     )
     shares = [_row_to_share(r) for r in rows]
     return DashboardShareListResponse(shares=shares, total=len(shares))
@@ -347,7 +343,7 @@ async def share_dashboard(
 ) -> DashboardShare:
     """Grant explicit view access to another user.
 
-    Idempotent — sharing with an already-shared user returns 201 with the
+    Idempotent -- sharing with an already-shared user returns 201 with the
     existing share record. Only the dashboard owner may share.
 
     Args:
@@ -362,8 +358,8 @@ async def share_dashboard(
         HTTPException: 404 when the dashboard does not exist or the caller is
             not the owner.
     """
-    row = await anyio.to_thread.run_sync(
-        partial(dal.share_dashboard, user.raw_token, dashboard_id, user.email or "", body.email)
+    row = await asyncio.to_thread(
+        dal.share_dashboard, user.raw_token, dashboard_id, user.email or "", body.email
     )
     if row is None:
         raise HTTPException(status_code=404, detail="Dashboard not found.")
@@ -396,8 +392,8 @@ async def unshare_dashboard(
         HTTPException: 404 when the dashboard does not exist or the caller is
             not the owner.
     """
-    ok = await anyio.to_thread.run_sync(
-        partial(dal.unshare_dashboard, user.raw_token, dashboard_id, user.email or "", shared_with_email)
+    ok = await asyncio.to_thread(
+        dal.unshare_dashboard, user.raw_token, dashboard_id, user.email or "", shared_with_email
     )
     if not ok:
         raise HTTPException(status_code=404, detail="Dashboard not found.")
