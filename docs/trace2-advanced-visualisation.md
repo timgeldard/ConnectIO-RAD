@@ -1,6 +1,6 @@
 # trace2 advanced traceability visualisation
 
-- **Status:** Phase 0 + Phase 1 + Phase 2 + Phase 3a (lib surface) complete; Phase 3b (trace2 Genie wiring) + Phase 4 not started
+- **Status:** Phase 0 + Phase 1 + Phase 2 + Phase 3a (lib surface) complete; Phase 3b (trace2 Genie wiring) shipped on `feat/trace2-genie-integration`; Phase 4 (perf benchmarks + visual regression + usability prep) shipped on `feat/trace2-advanced-traceability-phase4`
 - **Date:** 2026-05-12
 - **Owner:** TBD (trace2 frontend lead)
 
@@ -175,12 +175,41 @@ const { ask } = useTrace2Genie()  // hypothetical, follow-up PR
 />
 ```
 
-### Phase 4 — Validation
+### Phase 4 — Validation — ✅ shipped (2026-05-12)
 
-- **Visual regression** baselines via Playwright `toHaveScreenshot()`.
-- **Synthetic graph benchmarks** at 50 / 100 / 200 nodes.  React Flow's
-  `useNodesState` reconciler is the hot path.
-- **Usability sessions** with a QA investigator on a real recall.
+Branch: `feat/trace2-advanced-traceability-phase4` (stacks on PR #54).
+
+- **Synthetic graph benchmarks.**  New
+  `libs/shared-reporting/src/traceability/testFixtures.ts` produces
+  deterministic 50/100/200-node lineage payloads keyed on a PRNG seed
+  (Numerical Recipes LCG — not cryptographic; just enough to spread
+  ids).  New `perf.bench.test.ts` measures
+  `buildLineageGraph()` + `applyLayout()` wall-clock under per-case
+  budgets, with an ELK warmup `beforeAll` so the budgets reflect
+  steady-state cost rather than the one-time WASM/worker
+  instantiation.  Budgets are deliberately loose for CI variability
+  (transform ≤ 20-80 ms, layout ≤ 800-3000 ms); they catch O(n²)
+  regressions, not laptop noise.
+- **Visual-regression baselines.**  New
+  `apps/trace2/e2e/tests/advanced-traceability.spec.ts` tagged
+  `@visual` so it runs nightly / post-merge rather than on every PR.
+  Captures `toHaveScreenshot()` baselines for the Advanced graph
+  (default + depth-1), Sankey, and Table views, with deterministic
+  layout settle via the existing `Re-laying out…` indicator.  The
+  spec is `test.skip()`-honest about cases that need a Phase 4b
+  follow-up (high-contrast toggle in the trace2 chrome,
+  virtualisation past the seed batch's natural size).
+- **Usability-session prep kit.**  `docs/trace2-phase4-usability-prep.md`
+  contains 3 scenarios (cross-site recall, single-plant deviation,
+  supplier-quality investigation), 8 task scripts per session, an
+  observation template, a post-session debrief protocol, and a
+  next-day synthesis bucketing (Bug / Affordance miss / Mental-model
+  mismatch).  The actual sessions still need a recruited investigator
+  + a quiet hour — this is the operator-side prep.
+
+Total added at Phase 4: 1 new fixture module + 1 new vitest perf
+file (+10 tests) + 1 new Playwright spec (+4 visual baselines, 2
+skipped pending Phase 4b) + 1 prep doc.
 
 ## Rollout policy
 
