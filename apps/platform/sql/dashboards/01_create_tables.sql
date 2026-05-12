@@ -47,15 +47,14 @@ COMMENT 'Append-only version history for composable dashboard configs';
 -- ──────────────────────────────────────────────────────────────────────────
 -- 3. dashboard_shares
 --    Explicit user-level shares. Public dashboards do not require a row here.
---    permission_level: ''view'' (read-only) | ''edit'' (can save new versions).
+--    All shares are view-only for MVP; write access is always owner-only.
 -- ──────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `${CATALOG}`.`dashboards`.`dashboard_shares` (
   id                 STRING    NOT NULL  COMMENT 'UUID primary key',
   dashboard_id       STRING    NOT NULL  COMMENT 'FK → dashboard_definitions.id',
-  shared_with_email  STRING    NOT NULL  COMMENT 'Email of the user being granted access',
-  permission_level   STRING    NOT NULL  DEFAULT 'view' COMMENT '''view'' or ''edit''',
-  created_at         TIMESTAMP NOT NULL  COMMENT 'UTC timestamp when the share was created',
-  created_by_email   STRING    NOT NULL  COMMENT 'Email of the user who created the share'
+  shared_with_email  STRING    NOT NULL  COMMENT 'Email of the user being granted view access',
+  shared_by_email    STRING    NOT NULL  COMMENT 'Email of the owner who created the share',
+  shared_at          TIMESTAMP NOT NULL  COMMENT 'UTC timestamp when the share was created'
 )
 USING DELTA
-COMMENT 'User-level access grants for composable dashboards';
+COMMENT 'Explicit view-access grants for composable dashboards';

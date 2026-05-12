@@ -4,13 +4,17 @@
  * Renders within ModuleContentPanel when moduleId === 'dashboards'.
  * Shows a list of all visible dashboards; clicking one opens ComposableDashboard
  * for full view/edit. A "New Dashboard" button creates an empty dashboard and
- * navigates directly into it.
+ * navigates directly into it. The Share button opens an inline dialog for
+ * granting or revoking explicit view access to other users.
  */
 import type { CSSProperties } from 'react'
 import { useCallback, useState } from 'react'
 import {
   useDashboardList,
   useCreateDashboard,
+  useDashboardShares,
+  useShareDashboard,
+  useUnshareDashboard,
   ComposableDashboard,
   createDefaultReportingRegistry,
 } from '@connectio/shared-reporting'
@@ -100,6 +104,7 @@ function DashboardListView({ onSelect }: DashboardListViewProps) {
 
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createTitle, setCreateTitle] = useState('')
+  const [sharingDashboard, setSharingDashboard] = useState<DashboardSummary | null>(null)
 
   const handleCreate = useCallback(async () => {
     const title = createTitle.trim()
@@ -110,79 +115,93 @@ function DashboardListView({ onSelect }: DashboardListViewProps) {
     onSelect(created.id)
   }, [createTitle, createDashboard, onSelect])
 
+  const handleShare = useCallback((dashboard: DashboardSummary, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setSharingDashboard(dashboard)
+  }, [])
+
   return (
-    <div style={listPanelStyle}>
-      <header style={listHeaderStyle}>
-        <div>
-          <div style={listTitleStyle}>Dashboards</div>
-          <div style={listSubtitleStyle}>Build and share composable analytics dashboards</div>
-        </div>
-        {!showCreateForm && (
-          <button
-            style={primaryButtonStyle}
-            onClick={() => setShowCreateForm(true)}
-            aria-label="Create new dashboard"
-          >
-            + New Dashboard
-          </button>
+    <>
+      <div style={listPanelStyle}>
+        <header style={listHeaderStyle}>
+          <div>
+            <div style={listTitleStyle}>Dashboards</div>
+            <div style={listSubtitleStyle}>Build and share composable analytics dashboards</div>
+          </div>
+          {!showCreateForm && (
+            <button
+              style={primaryButtonStyle}
+              onClick={() => setShowCreateForm(true)}
+              aria-label="Create new dashboard"
+            >
+              + New Dashboard
+            </button>
+          )}
+        </header>
+
+        {showCreateForm && (
+          <div style={createFormStyle}>
+            <input
+              type="text"
+              value={createTitle}
+              onChange={(e) => setCreateTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
+              placeholder="Dashboard name…"
+              style={createInputStyle}
+              autoFocus
+              aria-label="New dashboard title"
+            />
+            <button
+              style={primaryButtonStyle}
+              onClick={handleCreate}
+              disabled={isCreating || !createTitle.trim()}
+            >
+              {isCreating ? 'Creating…' : 'Create'}
+            </button>
+            <button
+              style={ghostButtonStyle}
+              onClick={() => { setShowCreateForm(false); setCreateTitle('') }}
+            >
+              Cancel
+            </button>
+          </div>
         )}
-      </header>
 
-      {showCreateForm && (
-        <div style={createFormStyle}>
-          <input
-            type="text"
-            value={createTitle}
-            onChange={(e) => setCreateTitle(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
-            placeholder="Dashboard name…"
-            style={createInputStyle}
-            autoFocus
-            aria-label="New dashboard title"
-          />
-          <button
-            style={primaryButtonStyle}
-            onClick={handleCreate}
-            disabled={isCreating || !createTitle.trim()}
-          >
-            {isCreating ? 'Creating…' : 'Create'}
-          </button>
-          <button
-            style={ghostButtonStyle}
-            onClick={() => { setShowCreateForm(false); setCreateTitle('') }}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
+        {isPending && (
+          <div style={stateMessageStyle}>Loading dashboards…</div>
+        )}
 
-      {isPending && (
-        <div style={stateMessageStyle}>Loading dashboards…</div>
-      )}
+        {isError && (
+          <div style={errorMessageStyle}>
+            Failed to load dashboards.{' '}
+            <button style={retryLinkStyle} onClick={() => refetch()}>Retry</button>
+          </div>
+        )}
 
-      {isError && (
-        <div style={errorMessageStyle}>
-          Failed to load dashboards.{' '}
-          <button style={retryLinkStyle} onClick={() => refetch()}>Retry</button>
-        </div>
-      )}
+        {!isPending && !isError && (!dashboards || dashboards.length === 0) && (
+          <div style={emptyStateStyle}>
+            <div style={emptyIconStyle}>▦</div>
+            <div style={emptyTitleStyle}>No dashboards yet</div>
+            <div style={emptyDescStyle}>Create your first dashboard to get started.</div>
+          </div>
+        )}
 
-      {!isPending && !isError && (!dashboards || dashboards.length === 0) && (
-        <div style={emptyStateStyle}>
-          <div style={emptyIconStyle}>▦</div>
-          <div style={emptyTitleStyle}>No dashboards yet</div>
-          <div style={emptyDescStyle}>Create your first dashboard to get started.</div>
-        </div>
-      )}
+        {dashboards && dashboards.length > 0 && (
+          <ul style={cardGridStyle} aria-label="Dashboard list">
+            {dashboards.map((d) => (
+              <DashboardCard key={d.id} dashboard={d} onSelect={onSelect} onShare={handleShare} />
+            ))}
+          </ul>
+        )}
+      </div>
 
-      {dashboards && dashboards.length > 0 && (
-        <ul style={cardGridStyle} aria-label="Dashboard list">
-          {dashboards.map((d) => (
-            <DashboardCard key={d.id} dashboard={d} onSelect={onSelect} />
-          ))}
-        </ul>
+      {sharingDashboard && (
+        <ShareDialog
+          dashboard={sharingDashboard}
+          onClose={() => setSharingDashboard(null)}
+        />
       )}
-    </div>
+    </>
   )
 }
 
@@ -191,9 +210,11 @@ function DashboardListView({ onSelect }: DashboardListViewProps) {
 function DashboardCard({
   dashboard,
   onSelect,
+  onShare,
 }: {
   dashboard: DashboardSummary
   onSelect: (id: string) => void
+  onShare: (dashboard: DashboardSummary, e: React.MouseEvent) => void
 }) {
   const updatedDate = new Date(dashboard.updatedAt).toLocaleDateString(undefined, {
     day: 'numeric',
@@ -223,8 +244,115 @@ function DashboardCard({
             ))}
           </div>
         )}
+        <div style={cardActionsStyle}>
+          <button
+            style={shareButtonStyle}
+            onClick={(e) => onShare(dashboard, e)}
+            aria-label={`Manage sharing for ${dashboard.title}`}
+          >
+            Share
+          </button>
+        </div>
       </button>
     </li>
+  )
+}
+
+// ── Share dialog ──────────────────────────────────────────────────────────────
+
+function ShareDialog({
+  dashboard,
+  onClose,
+}: {
+  dashboard: DashboardSummary
+  onClose: () => void
+}) {
+  const { data, isPending, isError } = useDashboardShares(dashboard.id)
+  const { mutate: shareDashboard, isPending: isSharing, error: shareError } = useShareDashboard()
+  const { mutate: unshareDashboard, isPending: isUnsharing } = useUnshareDashboard()
+
+  const [emailInput, setEmailInput] = useState('')
+
+  const handleAdd = useCallback(() => {
+    const email = emailInput.trim()
+    if (!email) return
+    shareDashboard(
+      { dashboardId: dashboard.id, email },
+      { onSuccess: () => setEmailInput('') },
+    )
+  }, [emailInput, dashboard.id, shareDashboard])
+
+  const handleRemove = useCallback((email: string) => {
+    unshareDashboard({ dashboardId: dashboard.id, email })
+  }, [dashboard.id, unshareDashboard])
+
+  const shares = data?.shares ?? []
+  const notOwner = shareError instanceof Error && shareError.message.includes('404')
+
+  return (
+    <>
+      <div style={backdropStyle} onClick={onClose} aria-hidden />
+      <div style={dialogStyle} role="dialog" aria-modal aria-label={`Share: ${dashboard.title}`}>
+        <div style={dialogHeaderStyle}>
+          <span style={dialogTitleStyle}>Share: {dashboard.title}</span>
+          <button style={closeButtonStyle} onClick={onClose} aria-label="Close share dialog">✕</button>
+        </div>
+
+        <div style={dialogBodyStyle}>
+          {isPending && <div style={stateMessageStyle}>Loading shares…</div>}
+          {isError && <div style={errorMessageStyle}>Could not load shares.</div>}
+
+          {!isPending && !isError && (
+            <>
+              {shares.length === 0 && (
+                <div style={emptySharesStyle}>Not shared with anyone yet.</div>
+              )}
+              {shares.length > 0 && (
+                <ul style={shareListStyle} aria-label="People with access">
+                  {shares.map((s) => (
+                    <li key={s.sharedWithEmail} style={shareRowStyle}>
+                      <span style={shareEmailStyle}>{s.sharedWithEmail}</span>
+                      <button
+                        style={removeButtonStyle}
+                        onClick={() => handleRemove(s.sharedWithEmail)}
+                        disabled={isUnsharing}
+                        aria-label={`Remove access for ${s.sharedWithEmail}`}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {notOwner ? (
+                <div style={warningStyle}>Only the owner can manage shares.</div>
+              ) : (
+                <div style={addRowStyle}>
+                  <input
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
+                    placeholder="Email address…"
+                    style={createInputStyle}
+                    autoFocus
+                    aria-label="Email to share with"
+                  />
+                  <button
+                    style={primaryButtonStyle}
+                    onClick={handleAdd}
+                    disabled={isSharing || !emailInput.trim()}
+                  >
+                    {isSharing ? 'Adding…' : 'Add'}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -437,4 +565,140 @@ const tagStyle: CSSProperties = {
   fontFamily: 'var(--font-condensed, "Noto Sans Condensed", sans-serif)',
   textTransform: 'uppercase',
   letterSpacing: '0.06em',
+}
+
+const cardActionsStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'flex-end',
+  marginTop: 6,
+}
+
+const shareButtonStyle: CSSProperties = {
+  background: 'none',
+  border: '1px solid var(--border-subtle, rgba(255,255,255,0.12))',
+  borderRadius: 3,
+  color: 'var(--text-3)',
+  cursor: 'pointer',
+  fontSize: 11,
+  padding: '3px 10px',
+  letterSpacing: '0.04em',
+}
+
+// ── Share dialog styles ───────────────────────────────────────────────────────
+
+const backdropStyle: CSSProperties = {
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(0,0,0,0.45)',
+  zIndex: 400,
+}
+
+const dialogStyle: CSSProperties = {
+  position: 'fixed',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  zIndex: 401,
+  background: 'var(--surface-1)',
+  border: '1px solid var(--border-subtle, rgba(255,255,255,0.12))',
+  borderRadius: 8,
+  width: 440,
+  maxWidth: 'calc(100vw - 48px)',
+  maxHeight: 'calc(100vh - 80px)',
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+  boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+}
+
+const dialogHeaderStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: '16px 20px',
+  borderBottom: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
+  flexShrink: 0,
+}
+
+const dialogTitleStyle: CSSProperties = {
+  fontSize: 14,
+  fontWeight: 600,
+  color: 'var(--text-1)',
+  fontFamily: 'var(--font-condensed, "Noto Sans Condensed", sans-serif)',
+}
+
+const closeButtonStyle: CSSProperties = {
+  background: 'none',
+  border: 'none',
+  color: 'var(--text-3)',
+  cursor: 'pointer',
+  fontSize: 14,
+  padding: '2px 6px',
+}
+
+const dialogBodyStyle: CSSProperties = {
+  padding: '16px 20px',
+  overflow: 'auto',
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 12,
+}
+
+const emptySharesStyle: CSSProperties = {
+  fontSize: 13,
+  color: 'var(--text-3)',
+  textAlign: 'center',
+  padding: '12px 0',
+}
+
+const shareListStyle: CSSProperties = {
+  listStyle: 'none',
+  padding: 0,
+  margin: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+}
+
+const shareRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+  padding: '6px 10px',
+  background: 'var(--surface-2)',
+  borderRadius: 4,
+}
+
+const shareEmailStyle: CSSProperties = {
+  fontSize: 13,
+  color: 'var(--text-1)',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+}
+
+const removeButtonStyle: CSSProperties = {
+  background: 'none',
+  border: '1px solid var(--status-risk, #e05)',
+  borderRadius: 3,
+  color: 'var(--status-risk, #e05)',
+  cursor: 'pointer',
+  fontSize: 11,
+  padding: '2px 8px',
+  flexShrink: 0,
+}
+
+const addRowStyle: CSSProperties = {
+  display: 'flex',
+  gap: 8,
+  alignItems: 'center',
+  marginTop: 4,
+}
+
+const warningStyle: CSSProperties = {
+  fontSize: 12,
+  color: 'var(--text-3)',
+  padding: '8px 0',
 }

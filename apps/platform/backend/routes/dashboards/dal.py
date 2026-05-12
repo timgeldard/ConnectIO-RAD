@@ -509,15 +509,17 @@ def share_dashboard(
         endpoint_hint="platform.dashboards.share_exists",
     )
     if not existing:
+        share_id = str(uuid.uuid4())
         run_sql(
             token,
             f"""
             INSERT INTO {shares}
-                (dashboard_id, shared_with_email, shared_by_email, shared_at)
+                (id, dashboard_id, shared_with_email, shared_by_email, shared_at)
             VALUES
-                (:dashboard_id, :shared_with_email, :shared_by_email, :now)
+                (:share_id, :dashboard_id, :shared_with_email, :shared_by_email, :now)
             """,
             [
+                sql_param("share_id", share_id),
                 sql_param("dashboard_id", dashboard_id),
                 sql_param("shared_with_email", shared_with_email),
                 sql_param("shared_by_email", owner_email),
