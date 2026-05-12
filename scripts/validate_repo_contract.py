@@ -31,15 +31,15 @@ REQUIRED_PROD_ENV_KEYS = (
     "AUTH_JWT_AUDIENCE",
 )
 FORBIDDEN_PRODUCTION_PATTERNS = {
-    '"gold_views_pending"': "Use a domain-specific unavailable reason instead of the legacy placeholder.",
+    r'"gold_views_pending"': "Use a domain-specific unavailable reason instead of the legacy placeholder.",
     "Feature coming soon": "Production apps must render actionable empty/loading/error states.",
     "demo robustness": "Production endpoints must not preserve demo-only behavior.",
     "Good morning, Niamh": "Demo identities must not be baked into production UI.",
     "Sarah Keane": "Demo identities must not be baked into production UI.",
-    "../data/mockData": "Production pages must use API-backed hooks, not bundled mock data.",
-    "~/data/mockData": "Production pages must use API-backed hooks, not bundled mock data.",
-    'useState("20582002")': "Material context must come from session, search, or deep link.",
-    'useState("0008898869")': "Batch context must come from session, search, or deep link.",
+    r"\.\./data/\s*mockData": "Production pages must use API-backed hooks, not bundled mock data.",
+    r"~/data/\s*mockData": "Production pages must use API-backed hooks, not bundled mock data.",
+    r"useState\s*\(\s*['\"]20582002['\"]\s*\)": "Material context must come from session, search, or deep link.",
+    r"useState\s*\(\s*['\"]0008898869['\"]\s*\)": "Batch context must come from session, search, or deep link.",
 }
 PLACEHOLDER_SCAN_EXTENSIONS = {".py", ".ts", ".tsx", ".js", ".jsx"}
 PLACEHOLDER_SCAN_EXCLUDED_PARTS = {
@@ -309,7 +309,7 @@ def validate_forbidden_placeholders(errors: list[str]) -> None:
                 continue
             text = path.read_text(encoding="utf-8", errors="ignore")
             for pattern, message in FORBIDDEN_PRODUCTION_PATTERNS.items():
-                if pattern in text:
+                if re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE):
                     errors.append(f"{path.relative_to(ROOT)}: forbidden placeholder `{pattern}`. {message}")
 
 

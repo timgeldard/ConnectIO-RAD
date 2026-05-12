@@ -1,0 +1,125 @@
+[importlinter]
+root_packages =
+    connectedquality_backend
+    envmon_backend
+    processorderhistory_backend
+    spc_backend
+    template_backend
+    trace2_backend
+    warehouse360_backend
+    shared_ddd
+    shared_manufacturing
+include_external_packages = True
+
+[importlinter:contract:domain-layer-purity]
+name = App domain layers stay transport and infrastructure agnostic
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    connectedquality_backend.user_preferences.domain
+    envmon_backend.inspection_analysis.domain
+    envmon_backend.spatial_config.domain
+    processorderhistory_backend.genie_assist.domain
+    processorderhistory_backend.manufacturing_analytics.domain
+    processorderhistory_backend.order_execution.domain
+    processorderhistory_backend.production_planning.domain
+    spc_backend.chart_config.domain
+    spc_backend.process_control.domain
+    template_backend.module_template.domain
+    trace2_backend.batch_trace.domain
+    trace2_backend.lineage_analysis.domain
+    trace2_backend.quality_record.domain
+    warehouse360_backend.dispensary_ops.domain
+    warehouse360_backend.inventory_management.domain
+    warehouse360_backend.operations_control_tower.domain
+    warehouse360_backend.order_fulfillment.domain
+forbidden_modules =
+    fastapi
+    shared_auth
+    shared_db
+    *.application
+    *.dal
+    *.router
+    *.routers
+    *.schemas
+    *.db
+    *.utils.db
+
+[importlinter:contract:domain-context-independence]
+name = Bounded-context domain packages remain independent
+type = independence
+modules =
+    connectedquality_backend.user_preferences.domain
+    envmon_backend.inspection_analysis.domain
+    envmon_backend.spatial_config.domain
+    processorderhistory_backend.genie_assist.domain
+    processorderhistory_backend.manufacturing_analytics.domain
+    processorderhistory_backend.order_execution.domain
+    processorderhistory_backend.production_planning.domain
+    spc_backend.chart_config.domain
+    spc_backend.process_control.domain
+    template_backend.module_template.domain
+    trace2_backend.batch_trace.domain
+    trace2_backend.lineage_analysis.domain
+    trace2_backend.quality_record.domain
+    warehouse360_backend.dispensary_ops.domain
+    warehouse360_backend.inventory_management.domain
+    warehouse360_backend.operations_control_tower.domain
+    warehouse360_backend.order_fulfillment.domain
+
+[importlinter:contract:application-layer-no-fastapi]
+name = Application services stay transport agnostic
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    connectedquality_backend.user_preferences.application
+    envmon_backend.inspection_analysis.application
+    envmon_backend.spatial_config.application
+    processorderhistory_backend.manufacturing_analytics.application
+    processorderhistory_backend.order_execution.application
+    processorderhistory_backend.production_planning.application
+    spc_backend.chart_config.application
+    spc_backend.process_control.application
+    template_backend.module_template.application
+    trace2_backend.batch_trace.application
+    trace2_backend.lineage_analysis.application
+    trace2_backend.quality_record.application
+    warehouse360_backend.dispensary_ops.application
+    warehouse360_backend.inventory_management.application
+    warehouse360_backend.operations_control_tower.application
+    warehouse360_backend.order_fulfillment.application
+forbidden_modules =
+    fastapi
+
+[importlinter:contract:shared-kernel-purity]
+name = shared DDD and manufacturing kernels remain infrastructure-free
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    shared_ddd
+    shared_manufacturing
+forbidden_modules =
+    databricks
+    fastapi
+    pydantic
+    sqlalchemy
+
+[importlinter:contract:connectedquality-aggregator-boundary]
+name = ConnectedQuality may only aggregate approved sibling DAL modules
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    connectedquality_backend
+forbidden_modules =
+    envmon_backend
+    processorderhistory_backend
+    spc_backend
+    trace2_backend
+    warehouse360_backend
+ignore_imports =
+    connectedquality_backend.application.alarms -> envmon_backend.inspection_analysis.dal.plants
+    connectedquality_backend.application.alarms -> spc_backend.process_control.dal.analysis
+    connectedquality_backend.application.envmon -> envmon_backend.inspection_analysis.dal.plants
+    connectedquality_backend.application.envmon -> envmon_backend.spatial_config.dal.floors
+    connectedquality_backend.application.spc -> spc_backend.process_control.dal.analysis
+    connectedquality_backend.application.trace -> trace2_backend.dal.trace_dal
