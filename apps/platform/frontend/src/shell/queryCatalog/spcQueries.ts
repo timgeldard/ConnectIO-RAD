@@ -1,5 +1,5 @@
 import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
-import { endpoint, params, postQuery, widgetCompatibility } from './common';
+import { endpoint, getQuery, params, postQuery, widgetCompatibility } from './common';
 
 /**
  * Creates an SPC-specific field definition.
@@ -25,13 +25,16 @@ const limitParam = { key: 'limit', label: 'Sample count', type: 'number' as cons
 
 /**
  * Statistical process control query definitions for the platform dashboard builder.
+ *
+ * This `QueryRegistry` maps SPC-oriented bindings onto the current platform SPC
+ * API surface so dashboard widgets execute against real process-control routes.
  */
 export const spcQueries: QueryRegistry = {
   'spc.qualityControl': postQuery({
     key: 'spc.qualityControl',
     label: 'SPC Quality Control',
     description: 'Primary SPC control chart for a selected MIC with control limits and per-sample signals.',
-    endpoint: endpoint('spc', 'quality-control'),
+    endpoint: endpoint('spc', 'chart-data'),
     compatibleWidgets: widgetCompatibility.spcOnly,
     params: [...spcParams, micParam, limitParam],
     fields: [
@@ -67,7 +70,7 @@ export const spcQueries: QueryRegistry = {
     key: 'spc.attributeControlHistory',
     label: 'Attribute Control History',
     description: 'Historical SPC view of a MIC with trend-ready points and tabular sample details.',
-    endpoint: endpoint('spc', 'attribute-control-history'),
+    endpoint: endpoint('spc', 'chart-data'),
     compatibleWidgets: widgetCompatibility.spcTrendTable,
     params: [...spcParams, micParam, limitParam],
     fields: [
@@ -102,7 +105,7 @@ export const spcQueries: QueryRegistry = {
       mic_description: 'Moisture',
     },
   }),
-  'spc.lockedLimits': postQuery({
+  'spc.lockedLimits': getQuery({
     key: 'spc.lockedLimits',
     label: 'Locked Limits',
     description: 'Displays fixed SPC limit sets for governed attributes and the samples assessed against them.',
@@ -147,7 +150,7 @@ export const spcQueries: QueryRegistry = {
     key: 'spc.signalSummary',
     label: 'Signal Summary',
     description: 'Summarises SPC rule violations by signal type so teams can prioritise the dominant control issues.',
-    endpoint: endpoint('spc', 'signal-summary'),
+    endpoint: endpoint('spc', 'data-quality'),
     compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
     params: [...spcParams, micParam],
     fields: [

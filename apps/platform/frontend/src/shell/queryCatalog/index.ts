@@ -10,6 +10,10 @@ import { wmQueries } from './wmQueries';
 
 /**
  * Platform-owned manufacturing query catalog grouped by business domain.
+ *
+ * Query keys must be unique across all domain registries. Because the catalog
+ * is composed via object spread, later entries would silently overwrite earlier
+ * ones if a duplicate key slipped in.
  */
 export const queryCatalog: QueryRegistry = {
   ...pohQueries,

@@ -1,5 +1,5 @@
 import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
-import { endpoint, fields as selectFields, params, postQuery, widgetCompatibility } from './common';
+import { fields as selectFields, params, postQuery, widgetCompatibility } from './common';
 
 /**
  * Creates a traceability-specific field definition.
@@ -29,7 +29,7 @@ export const traceQueries: QueryRegistry = {
     key: 'trace.batchSummary',
     label: 'Batch Summary',
     description: 'Summarises a selected batch with production, shipment, and status context for quick review.',
-    endpoint: endpoint('trace', 'batch-summary'),
+    endpoint: '/api/summary',
     compatibleWidgets: ['kpi', 'drill-down-table'],
     params: traceParams,
     fields: [
@@ -75,7 +75,7 @@ export const traceQueries: QueryRegistry = {
     key: 'trace.batchLineage',
     label: 'Batch Lineage',
     description: 'Returns lineage nodes and edges for the selected batch with a table-ready flattened view.',
-    endpoint: endpoint('trace', 'batch-lineage'),
+    endpoint: '/api/trace',
     compatibleWidgets: ['drill-down-table'],
     params: [...traceParams, ...params('process_order_id')],
     fields: [
@@ -113,7 +113,7 @@ export const traceQueries: QueryRegistry = {
     key: 'trace.whereUsed',
     label: 'Where Used',
     description: 'Shows downstream batches and orders that consumed or inherited the selected batch.',
-    endpoint: endpoint('trace', 'where-used'),
+    endpoint: '/api/top-down',
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: traceParams,
     fields: [
@@ -146,7 +146,7 @@ export const traceQueries: QueryRegistry = {
     key: 'trace.customerExposure',
     label: 'Customer Exposure',
     description: 'Quantifies the downstream customer impact for a selected batch or material/batch pair.',
-    endpoint: endpoint('trace', 'customer-exposure'),
+    endpoint: '/api/impact',
     compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
     params: [...traceParams, ...params('customer_id')],
     fields: [
@@ -188,7 +188,7 @@ export const traceQueries: QueryRegistry = {
     key: 'trace.supplierExposure',
     label: 'Supplier Exposure',
     description: 'Shows upstream supplier concentration and affected input batches for the selected trace context.',
-    endpoint: endpoint('trace', 'supplier-exposure'),
+    endpoint: '/api/supplier-risk',
     compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
     params: [...traceParams, ...params('supplier_id')],
     fields: [
@@ -229,7 +229,7 @@ export const traceQueries: QueryRegistry = {
     key: 'trace.inventoryPosition',
     label: 'Inventory Position',
     description: 'Shows unrestricted, quality, and blocked inventory positions for the selected batch.',
-    endpoint: endpoint('trace', 'inventory-position'),
+    endpoint: '/api/batch-header',
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: traceParams,
     fields: [
@@ -268,7 +268,7 @@ export const traceQueries: QueryRegistry = {
     key: 'trace.massBalance',
     label: 'Mass Balance',
     description: 'Compares produced, consumed, shipped, and on-hand quantities to expose unexplained variance.',
-    endpoint: endpoint('trace', 'mass-balance'),
+    endpoint: '/api/mass-balance',
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: traceParams,
     fields: [
@@ -316,7 +316,7 @@ export const traceQueries: QueryRegistry = {
     key: 'trace.movementHistory',
     label: 'Movement History',
     description: 'Traces batch movements over time with movement type, posting date, and related process references.',
-    endpoint: endpoint('trace', 'movement-history'),
+    endpoint: '/api/batch-details',
     compatibleWidgets: widgetCompatibility.trendBarTable,
     params: traceParams,
     fields: [
@@ -361,7 +361,7 @@ export const traceQueries: QueryRegistry = {
     key: 'trace.productionHistory',
     label: 'Production History',
     description: 'Shows the production runs that created or consumed the selected batch and their resulting quantities.',
-    endpoint: endpoint('trace', 'production-history'),
+    endpoint: '/api/production-history',
     compatibleWidgets: ['kpi', 'trend', 'drill-down-table'],
     params: [...traceParams, ...params('process_order_id')],
     fields: [
@@ -395,7 +395,7 @@ export const traceQueries: QueryRegistry = {
     key: 'trace.batchComparison',
     label: 'Batch Comparison',
     description: 'Compares production, stock, and delivery outcomes across batches for the selected material.',
-    endpoint: endpoint('trace', 'batch-comparison'),
+    endpoint: '/api/batch-compare',
     compatibleWidgets: ['bar', 'drill-down-table'],
     params: params('plant_id', 'date_from', 'date_to', 'material_id'),
     fields: [

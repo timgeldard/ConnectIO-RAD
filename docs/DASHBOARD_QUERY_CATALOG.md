@@ -23,7 +23,7 @@ The query registry gives the property inspector a typed list of business-friendl
   - `inventory.*`
   - `procurement.*`
   - `sales.*`
-- Endpoints use consistent POST naming, for example `/api/poh/order-summary` or `/api/quality/batch-release-queue`.
+- Endpoints must align with real platform routes, for example `/api/orders`, `/api/quality/analytics`, `/api/spc/chart-data`, `/api/summary`, or `/api/wh/deliveries`.
 
 ## Required query fields
 
@@ -122,7 +122,7 @@ export const qualityQueries: QueryRegistry = {
 ## How to add a new query
 
 1. Choose the correct domain file under `apps/platform/frontend/src/shell/queryCatalog/`.
-2. Pick a `domain.name` key and a matching POST endpoint path.
+2. Pick a `domain.name` key and map it to a real platform endpoint path.
 3. Reuse `common.ts` helpers for shared params, fields, and widget compatibility where possible.
 4. Define a complete `fields` list with mapping-friendly paths.
 5. Add a realistic `sampleResponse`.
@@ -134,5 +134,5 @@ export const qualityQueries: QueryRegistry = {
 1. Run the platform registry test:
    - `cd apps/platform/frontend && npx vitest run src/shell/queryCatalog/__tests__/dashboardQueryRegistry.test.ts`
 2. Run the shared-reporting binding tests:
-   - `cd libs/shared-reporting && npx vitest run src/composable/__tests__/KpiWidgetForm.test.tsx src/composable/__tests__/DataBindingSection.test.tsx`
+   - `cd libs/shared-reporting && npx vitest run src/composable/__tests__`
 3. Open the platform dashboard builder, add a supported widget, switch to **Data Binding**, and confirm the query picker offers the new query with a prefilled mapping.

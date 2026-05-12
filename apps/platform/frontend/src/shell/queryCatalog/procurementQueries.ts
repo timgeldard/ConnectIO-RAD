@@ -1,5 +1,5 @@
 import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
-import { endpoint, fields as selectFields, params, postQuery, widgetCompatibility } from './common';
+import { endpoint, fields as selectFields, getQuery, params, widgetCompatibility } from './common';
 
 /**
  * Creates a procurement field definition.
@@ -25,11 +25,11 @@ const procurementParams = params('plant_id', 'date_from', 'date_to', 'material_i
  * Procurement query definitions for the platform dashboard builder.
  */
 export const procurementQueries: QueryRegistry = {
-  'procurement.openPurchaseOrders': postQuery({
+  'procurement.openPurchaseOrders': getQuery({
     key: 'procurement.openPurchaseOrders',
     label: 'Open Purchase Orders',
     description: 'Open purchase order quantities by supplier and material.',
-    endpoint: endpoint('procurement', 'open-purchase-orders'),
+    endpoint: endpoint('wh', 'inbound'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: procurementParams,
     fields: [
@@ -56,11 +56,11 @@ export const procurementQueries: QueryRegistry = {
       ],
     },
   }),
-  'procurement.inboundSchedule': postQuery({
+  'procurement.inboundSchedule': getQuery({
     key: 'procurement.inboundSchedule',
     label: 'Inbound Schedule',
     description: 'Scheduled inbound purchase and STO arrivals over time.',
-    endpoint: endpoint('procurement', 'inbound-schedule'),
+    endpoint: endpoint('wh', 'inbound'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: procurementParams,
     fields: [
@@ -87,11 +87,11 @@ export const procurementQueries: QueryRegistry = {
       ],
     },
   }),
-  'procurement.vendorPerformance': postQuery({
+  'procurement.vendorPerformance': getQuery({
     key: 'procurement.vendorPerformance',
     label: 'Vendor Performance',
     description: 'Supplier performance by delivery adherence and inbound quality.',
-    endpoint: endpoint('procurement', 'vendor-performance'),
+    endpoint: endpoint('wh', 'inbound'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: procurementParams,
     fields: [
@@ -111,11 +111,11 @@ export const procurementQueries: QueryRegistry = {
       ],
     },
   }),
-  'procurement.importArrivalRisk': postQuery({
+  'procurement.importArrivalRisk': getQuery({
     key: 'procurement.importArrivalRisk',
     label: 'Import Arrival Risk',
     description: 'Risk-ranked import arrivals based on ETA slippage and exposure quantity.',
-    endpoint: endpoint('procurement', 'import-arrival-risk'),
+    endpoint: endpoint('wh', 'inbound'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: procurementParams,
     fields: [
@@ -135,11 +135,11 @@ export const procurementQueries: QueryRegistry = {
       ],
     },
   }),
-  'procurement.stoInbound': postQuery({
+  'procurement.stoInbound': getQuery({
     key: 'procurement.stoInbound',
     label: 'STO Inbound',
     description: 'Inbound stock transport order receipts by source and destination.',
-    endpoint: endpoint('procurement', 'sto-inbound'),
+    endpoint: endpoint('wh', 'inbound'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: procurementParams,
     fields: [

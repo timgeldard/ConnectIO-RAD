@@ -1,5 +1,5 @@
 import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
-import { endpoint, fields as selectFields, params, postQuery, widgetCompatibility } from './common';
+import { fields as selectFields, params, postQuery, widgetCompatibility } from './common';
 
 /**
  * Creates a Quality-specific field definition.
@@ -37,7 +37,7 @@ export const qualityQueries: QueryRegistry = {
     key: 'quality.batchReleaseQueue',
     label: 'Batch Release Queue',
     description: 'Open inspection lots waiting for usage decision, prioritised by release age and business impact.',
-    endpoint: endpoint('quality', 'batch-release-queue'),
+    endpoint: '/api/quality/analytics',
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: qualityParams,
     fields: [
@@ -79,7 +79,7 @@ export const qualityQueries: QueryRegistry = {
     key: 'quality.micFailurePareto',
     label: 'MIC Failure Pareto',
     description: 'Ranks failing MICs by count and failure rate to focus investigation on the dominant quality drivers.',
-    endpoint: endpoint('quality', 'mic-failure-pareto'),
+    endpoint: '/api/quality/analytics',
     compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
     params: qualityParams,
     fields: [
@@ -114,7 +114,7 @@ export const qualityQueries: QueryRegistry = {
     key: 'quality.resultTrend',
     label: 'Quality Result Trend',
     description: 'Trends quantitative MIC results with their target and spec thresholds over time.',
-    endpoint: endpoint('quality', 'result-trend'),
+    endpoint: '/api/quality/analytics',
     compatibleWidgets: ['kpi', 'trend', 'spc-control', 'drill-down-table'],
     params: qualityParams,
     fields: [
@@ -178,7 +178,7 @@ export const qualityQueries: QueryRegistry = {
     key: 'quality.inspectionLots',
     label: 'Inspection Lots',
     description: 'Summarises inspection lots by status, decision state, and ageing to support release prioritisation.',
-    endpoint: endpoint('quality', 'inspection-lots'),
+    endpoint: '/api/quality/analytics',
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: qualityParams,
     fields: [
@@ -214,7 +214,7 @@ export const qualityQueries: QueryRegistry = {
     key: 'quality.deviationSummary',
     label: 'Deviation Summary',
     description: 'Aggregates quality deviations by category, failure count, and impacted lots.',
-    endpoint: endpoint('quality', 'deviation-summary'),
+    endpoint: '/api/quality/analytics',
     compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
     params: qualityParams,
     fields: [
@@ -248,7 +248,7 @@ export const qualityQueries: QueryRegistry = {
     key: 'quality.specDrift',
     label: 'Spec Drift',
     description: 'Tracks drift against target and specification boundaries to highlight creeping process movement.',
-    endpoint: endpoint('quality', 'spec-drift'),
+    endpoint: '/api/quality/analytics',
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: qualityParams,
     fields: [
@@ -295,7 +295,7 @@ export const qualityQueries: QueryRegistry = {
     key: 'quality.blockedStockSummary',
     label: 'Blocked Stock Summary',
     description: 'Shows blocked batches and associated stock quantities awaiting release or disposition.',
-    endpoint: endpoint('quality', 'blocked-stock-summary'),
+    endpoint: '/api/quality/analytics',
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: qualityParams,
     fields: [

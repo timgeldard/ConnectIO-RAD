@@ -118,3 +118,18 @@ export function postQuery(
     method: 'POST',
   };
 }
+
+/**
+ * Returns a GET-backed query entry with the required registry shape.
+ *
+ * @param entry - Query metadata without the HTTP method.
+ * @returns Query registry entry with `method: 'GET'`.
+ */
+export function getQuery(
+  entry: Omit<QueryRegistryEntry, 'method'>,
+): QueryRegistryEntry {
+  return {
+    ...entry,
+    method: 'GET',
+  };
+}

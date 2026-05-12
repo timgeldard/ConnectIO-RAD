@@ -2,13 +2,23 @@ import type { CSSProperties } from 'react'
 import type { QueryField, QueryRegistry, QueryRegistryEntry } from '../../data/queryRegistry'
 import type { WidgetDataBinding, QueryParamBinding, MappingValue, MappingTransform } from '../../data/types'
 
+/**
+ * Props for the data-binding form section shown in widget property editors.
+ */
 interface DataBindingSectionProps {
+  /** Type of widget being configured, such as `kpi` or `trend`. */
   widgetType: string
+  /** Current data-binding configuration, if the widget already has one. */
   data?: WidgetDataBinding | null
+  /** Callback fired whenever the binding configuration changes. */
   onDataChange: (data: WidgetDataBinding | null) => void
+  /** Available query registry entries keyed by query name. */
   queryRegistry: QueryRegistry
+  /** Dashboard-level parameters available for parameter binding. */
   dashboardParams: Record<string, unknown>
+  /** Widget prop keys that can be mapped from query results. */
   mappingFields: string[]
+  /** Default transforms to apply for specific mapping fields. */
   defaultMappingTransforms?: Record<string, MappingTransform>
 }
 
@@ -159,6 +169,19 @@ function buildDefaultMapping(
   return mapping
 }
 
+/**
+ * Renders query selection, parameter binding, and field mapping controls for a widget.
+ *
+ * @param props - Component properties controlling the active widget binding state.
+ * @param props.widgetType - Widget type being configured.
+ * @param props.data - Existing widget binding configuration, if any.
+ * @param props.onDataChange - Callback used to persist binding updates.
+ * @param props.queryRegistry - Query metadata available to the property inspector.
+ * @param props.dashboardParams - Dashboard parameters that query params can bind to.
+ * @param props.mappingFields - Widget prop keys that should expose mapping controls.
+ * @param props.defaultMappingTransforms - Optional default transforms for specific mapping fields.
+ * @returns The data-binding configuration UI for the current widget.
+ */
 export function DataBindingSection({
   widgetType,
   data,

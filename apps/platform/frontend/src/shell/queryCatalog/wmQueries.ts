@@ -1,5 +1,5 @@
 import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
-import { endpoint, fields as selectFields, params, postQuery, widgetCompatibility } from './common';
+import { endpoint, fields as selectFields, getQuery, params, widgetCompatibility } from './common';
 
 /**
  * Creates a warehouse-management field definition.
@@ -35,11 +35,11 @@ const wmParams = params(
  * Warehouse-management query definitions for the platform dashboard builder.
  */
 export const wmQueries: QueryRegistry = {
-  'wm.stagingOverview': postQuery({
+  'wm.stagingOverview': getQuery({
     key: 'wm.stagingOverview',
     label: 'WM Staging Overview',
     description: 'High-level staging queue health across open, staged, and ageing supply positions.',
-    endpoint: endpoint('wm', 'staging-overview'),
+    endpoint: endpoint('wh', 'kpis'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: wmParams,
     fields: [
@@ -81,11 +81,11 @@ export const wmQueries: QueryRegistry = {
       ],
     },
   }),
-  'wm.transferRequirements': postQuery({
+  'wm.transferRequirements': getQuery({
     key: 'wm.transferRequirements',
     label: 'Transfer Requirements',
     description: 'Open transfer requirements by material, priority, and source staging demand.',
-    endpoint: endpoint('wm', 'transfer-requirements'),
+    endpoint: endpoint('wh', 'wh-cockpit'),
     compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
     params: wmParams,
     fields: [
@@ -125,11 +125,11 @@ export const wmQueries: QueryRegistry = {
       ],
     },
   }),
-  'wm.transferOrders': postQuery({
+  'wm.transferOrders': getQuery({
     key: 'wm.transferOrders',
     label: 'Transfer Orders',
     description: 'Open transfer orders with picked, staged, and remaining execution quantities.',
-    endpoint: endpoint('wm', 'transfer-orders'),
+    endpoint: endpoint('wh', 'deliveries'),
     compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
     params: wmParams,
     fields: [
@@ -168,11 +168,11 @@ export const wmQueries: QueryRegistry = {
       ],
     },
   }),
-  'wm.productionSupplyQueue': postQuery({
+  'wm.productionSupplyQueue': getQuery({
     key: 'wm.productionSupplyQueue',
     label: 'Production Supply Queue',
     description: 'Queues production supply tasks by order, due time, and open supply quantity.',
-    endpoint: endpoint('wm', 'production-supply-queue'),
+    endpoint: endpoint('wh', 'wh-cockpit'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: wmParams,
     fields: [
@@ -205,11 +205,11 @@ export const wmQueries: QueryRegistry = {
       ],
     },
   }),
-  'wm.inboundReceipts': postQuery({
+  'wm.inboundReceipts': getQuery({
     key: 'wm.inboundReceipts',
     label: 'Inbound Receipts',
     description: 'Tracks inbound receipt volume, ageing, and execution queue by purchase or STO reference.',
-    endpoint: endpoint('wm', 'inbound-receipts'),
+    endpoint: endpoint('wh', 'inbound'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: wmParams,
     fields: [
@@ -246,11 +246,11 @@ export const wmQueries: QueryRegistry = {
       ],
     },
   }),
-  'wm.outboundDeliveries': postQuery({
+  'wm.outboundDeliveries': getQuery({
     key: 'wm.outboundDeliveries',
     label: 'Outbound Deliveries',
     description: 'Warehouse execution view of outbound deliveries and their remaining handling quantities.',
-    endpoint: endpoint('wm', 'outbound-deliveries'),
+    endpoint: endpoint('wh', 'deliveries'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: wmParams,
     fields: [
@@ -286,11 +286,11 @@ export const wmQueries: QueryRegistry = {
       ],
     },
   }),
-  'wm.binStock': postQuery({
+  'wm.binStock': getQuery({
     key: 'wm.binStock',
     label: 'Bin Stock',
     description: 'Stock by warehouse bin, material, and staging status for replenishment and housekeeping decisions.',
-    endpoint: endpoint('wm', 'bin-stock'),
+    endpoint: endpoint('wh', 'inventory/bins'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: wmParams,
     fields: [
@@ -325,11 +325,11 @@ export const wmQueries: QueryRegistry = {
       ],
     },
   }),
-  'wm.exceptionQueue': postQuery({
+  'wm.exceptionQueue': getQuery({
     key: 'wm.exceptionQueue',
     label: 'Exception Queue',
     description: 'Highlights blocked, overdue, or exception-driven warehouse work that needs immediate intervention.',
-    endpoint: endpoint('wm', 'exception-queue'),
+    endpoint: endpoint('wh', 'imwm/exceptions'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: wmParams,
     fields: [
@@ -367,11 +367,11 @@ export const wmQueries: QueryRegistry = {
       ],
     },
   }),
-  'wm.stagingAging': postQuery({
+  'wm.stagingAging': getQuery({
     key: 'wm.stagingAging',
     label: 'Staging Aging',
     description: 'Measures how long staged stock has been waiting before handoff to production or shipping.',
-    endpoint: endpoint('wm', 'staging-aging'),
+    endpoint: endpoint('wh', 'imwm/analytics/aging'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: wmParams,
     fields: [
@@ -403,11 +403,11 @@ export const wmQueries: QueryRegistry = {
       ],
     },
   }),
-  'wm.capacityHotspots': postQuery({
+  'wm.capacityHotspots': getQuery({
     key: 'wm.capacityHotspots',
     label: 'Capacity Hotspots',
     description: 'Shows the warehouse areas, bins, or work centers with the highest queue pressure or occupancy.',
-    endpoint: endpoint('wm', 'capacity-hotspots'),
+    endpoint: endpoint('wh', 'inventory/bins/summary'),
     compatibleWidgets: widgetCompatibility.barParetoTable,
     params: wmParams,
     fields: [

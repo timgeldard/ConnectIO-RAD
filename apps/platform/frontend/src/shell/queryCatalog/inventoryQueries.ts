@@ -1,5 +1,5 @@
 import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
-import { endpoint, fields as selectFields, params, postQuery, widgetCompatibility } from './common';
+import { endpoint, fields as selectFields, getQuery, params, widgetCompatibility } from './common';
 
 /**
  * Creates an inventory field definition.
@@ -23,13 +23,16 @@ const inventoryParams = params('plant_id', 'date_from', 'date_to', 'material_id'
 
 /**
  * Inventory query definitions for the platform dashboard builder.
+ *
+ * This `QueryRegistry` exposes inventory-oriented bindings while reusing the
+ * existing Warehouse360 routes mounted into the platform shell.
  */
 export const inventoryQueries: QueryRegistry = {
-  'inventory.stockByMaterial': postQuery({
+  'inventory.stockByMaterial': getQuery({
     key: 'inventory.stockByMaterial',
     label: 'Stock by Material',
     description: 'Aggregated stock by material for KPI, bar, and drill-down table views.',
-    endpoint: endpoint('inventory', 'stock-by-material'),
+    endpoint: endpoint('wh', 'imwm/stock'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [
@@ -48,11 +51,11 @@ export const inventoryQueries: QueryRegistry = {
       ],
     },
   }),
-  'inventory.stockByBatch': postQuery({
+  'inventory.stockByBatch': getQuery({
     key: 'inventory.stockByBatch',
     label: 'Stock by Batch',
     description: 'Stock by batch with quantity, status, and ageing context.',
-    endpoint: endpoint('inventory', 'stock-by-batch'),
+    endpoint: endpoint('wh', 'inventory/bins'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [
@@ -71,11 +74,11 @@ export const inventoryQueries: QueryRegistry = {
       ],
     },
   }),
-  'inventory.stockByStatus': postQuery({
+  'inventory.stockByStatus': getQuery({
     key: 'inventory.stockByStatus',
     label: 'Stock by Status',
     description: 'Inventory split by unrestricted, quality, blocked, and other status buckets.',
-    endpoint: endpoint('inventory', 'stock-by-status'),
+    endpoint: endpoint('wh', 'imwm/stock'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [
@@ -95,11 +98,11 @@ export const inventoryQueries: QueryRegistry = {
       ],
     },
   }),
-  'inventory.expiryRisk': postQuery({
+  'inventory.expiryRisk': getQuery({
     key: 'inventory.expiryRisk',
     label: 'Expiry Risk',
     description: 'Batches nearing expiry, ranked by quantity and urgency.',
-    endpoint: endpoint('inventory', 'expiry-risk'),
+    endpoint: endpoint('wh', 'inventory/near-expiry'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [
@@ -118,11 +121,11 @@ export const inventoryQueries: QueryRegistry = {
       ],
     },
   }),
-  'inventory.blockedStock': postQuery({
+  'inventory.blockedStock': getQuery({
     key: 'inventory.blockedStock',
     label: 'Blocked Stock',
     description: 'Blocked inventory by material and batch with quantity details.',
-    endpoint: endpoint('inventory', 'blocked-stock'),
+    endpoint: endpoint('wh', 'imwm/exceptions'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [
@@ -141,11 +144,11 @@ export const inventoryQueries: QueryRegistry = {
       ],
     },
   }),
-  'inventory.qualityStock': postQuery({
+  'inventory.qualityStock': getQuery({
     key: 'inventory.qualityStock',
     label: 'Quality Stock',
     description: 'Stock in inspection hold by material and batch.',
-    endpoint: endpoint('inventory', 'quality-stock'),
+    endpoint: endpoint('wh', 'imwm/stock'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [
@@ -164,11 +167,11 @@ export const inventoryQueries: QueryRegistry = {
       ],
     },
   }),
-  'inventory.movementTrend': postQuery({
+  'inventory.movementTrend': getQuery({
     key: 'inventory.movementTrend',
     label: 'Movement Trend',
     description: 'Inventory movement trend across receipts, issues, and adjustments.',
-    endpoint: endpoint('inventory', 'movement-trend'),
+    endpoint: endpoint('wh', 'imwm/movements'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [
