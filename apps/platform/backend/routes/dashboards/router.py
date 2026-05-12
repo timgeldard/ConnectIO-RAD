@@ -12,7 +12,7 @@ import json
 from functools import partial
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from shared_auth.identity import UserIdentity, require_proxy_user
 
 from backend.routes.dashboards import dal
@@ -269,6 +269,7 @@ async def update_dashboard(
     "/{dashboard_id}",
     status_code=204,
     summary="Delete dashboard",
+    response_class=Response,
     tags=["Dashboards"],
 )
 async def delete_dashboard(
@@ -370,6 +371,7 @@ async def share_dashboard(
     "/{dashboard_id}/shares/{shared_with_email}",
     status_code=204,
     summary="Unshare dashboard",
+    response_class=Response,
     tags=["Dashboards"],
 )
 async def unshare_dashboard(
