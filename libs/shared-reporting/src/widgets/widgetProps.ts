@@ -97,7 +97,9 @@ export const drillDownTableWidgetPropsSchema = z.object({
   maxHeight: z.number().optional(),
 })
 
-/** Combined Widget Props Schema */
+/** 
+ * Registry of all supported widget types and their corresponding prop schemas.
+ */
 export const widgetPropsSchemaRegistry = {
   kpi: kpiWidgetPropsSchema,
   trend: trendChartWidgetPropsSchema,
@@ -107,11 +109,18 @@ export const widgetPropsSchemaRegistry = {
   'drill-down-table': drillDownTableWidgetPropsSchema,
 } as const
 
+/** String identifier for a supported widget type. */
 export type WidgetType = keyof typeof widgetPropsSchemaRegistry
 
+/** Props inferred from kpiWidgetPropsSchema for the KPI widget. */
 export type KpiWidgetProps = z.infer<typeof kpiWidgetPropsSchema>
+/** Props inferred from trendChartWidgetPropsSchema for the Trend chart. */
 export type TrendChartWidgetProps = z.infer<typeof trendChartWidgetPropsSchema>
+/** Props inferred from barChartWidgetPropsSchema for the Bar chart. */
 export type BarChartWidgetProps = z.infer<typeof barChartWidgetPropsSchema>
+/** Props inferred from paretoChartWidgetPropsSchema for the Pareto chart. */
 export type ParetoChartWidgetProps = z.infer<typeof paretoChartWidgetPropsSchema>
+/** Props inferred from spcControlChartWidgetPropsSchema for the SPC Control chart. */
 export type SpcControlChartWidgetProps = z.infer<typeof spcControlChartWidgetPropsSchema>
+/** Props inferred from drillDownTableWidgetPropsSchema for the Drill Down table. */
 export type DrillDownTableWidgetProps = z.infer<typeof drillDownTableWidgetPropsSchema>

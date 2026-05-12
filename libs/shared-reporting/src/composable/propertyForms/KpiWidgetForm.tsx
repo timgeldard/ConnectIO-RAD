@@ -7,13 +7,25 @@ import type { QueryRegistry } from '../../data/queryRegistry'
 import type { WidgetDataBinding } from '../../data/types'
 import { DataBindingSection } from './DataBindingSection'
 
-interface KpiWidgetFormProps extends PropertyFormProps<KpiWidgetProps> {
+/** Props for the KpiWidgetForm component. */
+export interface KpiWidgetFormProps extends PropertyFormProps<KpiWidgetProps> {
+  /** Optional data binding configuration. */
   data?: WidgetDataBinding | null
+  /** Callback triggered when the data binding configuration changes. */
   onDataChange: (data: WidgetDataBinding | null) => void
+  /** Registry of available queries for binding. */
   queryRegistry?: QueryRegistry
+  /** Optional dashboard-level parameters. */
   dashboardParams?: Record<string, unknown>
 }
 
+/**
+ * Property form for configured KPI widgets.
+ * Supports static metrics and live data binding.
+ * 
+ * @param props - Component properties
+ * @returns React element
+ */
 export function KpiWidgetForm({
   props,
   onChange,
@@ -193,40 +205,6 @@ const sectionStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: 12,
-}
-
-const subheadingStyle: CSSProperties = {
-  fontSize: 10,
-  textTransform: 'uppercase',
-  color: 'var(--text-4)',
-  marginTop: 8,
-  borderBottom: '1px solid var(--border-subtle)',
-  paddingBottom: 4,
-}
-
-const paramRowStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 4,
-}
-
-const paramLabelStyle: CSSProperties = {
-  fontSize: 11,
-  color: 'var(--text-2)',
-}
-
-const paramBindingStyle: CSSProperties = {
-  display: 'flex',
-  gap: 4,
-}
-
-const miniSelectStyle: CSSProperties = {
-  fontSize: 10,
-  padding: '2px 4px',
-  background: 'var(--surface-3)',
-  border: '1px solid var(--border-subtle)',
-  color: 'var(--text-1)',
-  borderRadius: 4,
 }
 
 const labelStyle: CSSProperties = {

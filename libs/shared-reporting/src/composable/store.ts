@@ -129,6 +129,13 @@ export const useDashboardEditStore = create<DashboardEditStore>((set, get) => ({
   updateWidgetData(widgetId, data) {
     const { editConfig } = get()
     if (!editConfig) return
+    
+    const widgetIndex = editConfig.widgets.findIndex((w) => w.id === widgetId)
+    if (widgetIndex === -1) return
+
+    const currentWidget = editConfig.widgets[widgetIndex]
+    if (JSON.stringify(currentWidget.data) === JSON.stringify(data)) return
+
     set({
       editConfig: {
         ...editConfig,

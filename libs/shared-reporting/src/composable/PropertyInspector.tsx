@@ -9,13 +9,35 @@ import { ParetoWidgetForm } from './propertyForms/ParetoWidgetForm'
 import { TableWidgetForm } from './propertyForms/TableWidgetForm'
 import { SpcWidgetForm } from './propertyForms/SpcWidgetForm'
 import type { QueryRegistry } from '../data/queryRegistry'
+import { widgetPropsSchemaRegistry } from '../widgets/widgetProps'
+import type { 
+  KpiWidgetProps, 
+  TrendChartWidgetProps, 
+  BarChartWidgetProps, 
+  ParetoChartWidgetProps, 
+  SpcControlChartWidgetProps, 
+  DrillDownTableWidgetProps 
+} from '../widgets/widgetProps'
 
-interface PropertyInspectorProps {
+/** Props for the PropertyInspector component. */
+export interface PropertyInspectorProps {
+  /** The widget instance to inspect and edit. */
   widget: ComposableWidget
+  /** Optional registry to resolve data binding queries. */
   queryRegistry?: QueryRegistry
+  /** Optional dashboard-level parameters for data binding. */
   dashboardParams?: Record<string, unknown>
 }
 
+/**
+ * Sidebar inspector for editing widget properties and data bindings.
+ * 
+ * Supports specialized forms for core widget types and an advanced JSON editor
+ * for all types. Updates the global DashboardEditStore on change.
+ * 
+ * @param props - Component properties
+ * @returns React element
+ */
 export function PropertyInspector({
   widget,
   queryRegistry,
@@ -35,26 +57,64 @@ export function PropertyInspector({
 
   const renderTypedForm = () => {
     const commonProps = {
-      onChange: handlePropsChange,
       data: widget.data as any,
       onDataChange: handleDataChange,
       queryRegistry,
       dashboardParams,
     }
 
+    // Narrowing types to avoid 'as any' where possible.
+    // While ComposableWidget.props is Record<string, unknown> in the schema,
+    // we cast it here to the specific widget prop type for each form.
     switch (widget.type) {
       case 'kpi':
-        return <KpiWidgetForm props={widget.props as any} {...commonProps} />
+        return (
+          <KpiWidgetForm 
+            props={widget.props as KpiWidgetProps} 
+            onChange={(p) => handlePropsChange(p as any)} 
+            {...commonProps} 
+          />
+        )
       case 'trend':
-        return <TrendWidgetForm props={widget.props as any} {...commonProps} />
+        return (
+          <TrendWidgetForm 
+            props={widget.props as TrendChartWidgetProps} 
+            onChange={(p) => handlePropsChange(p as any)} 
+            {...commonProps} 
+          />
+        )
       case 'bar':
-        return <BarWidgetForm props={widget.props as any} {...commonProps} />
+        return (
+          <BarWidgetForm 
+            props={widget.props as BarChartWidgetProps} 
+            onChange={(p) => handlePropsChange(p as any)} 
+            {...commonProps} 
+          />
+        )
       case 'pareto':
-        return <ParetoWidgetForm props={widget.props as any} {...commonProps} />
+        return (
+          <ParetoWidgetForm 
+            props={widget.props as ParetoChartWidgetProps} 
+            onChange={(p) => handlePropsChange(p as any)} 
+            {...commonProps} 
+          />
+        )
       case 'spc-control':
-        return <SpcWidgetForm props={widget.props as any} {...commonProps} />
+        return (
+          <SpcWidgetForm 
+            props={widget.props as SpcControlChartWidgetProps} 
+            onChange={(p) => handlePropsChange(p as any)} 
+            {...commonProps} 
+          />
+        )
       case 'drill-down-table':
-        return <TableWidgetForm props={widget.props as any} {...commonProps} />
+        return (
+          <TableWidgetForm 
+            props={widget.props as DrillDownTableWidgetProps} 
+            onChange={(p) => handlePropsChange(p as any)} 
+            {...commonProps} 
+          />
+        )
       default:
         return (
           <div style={unsupportedStyle}>
@@ -111,6 +171,17 @@ export function PropertyInspector({
               onChange={(e) => {
                 try {
                   const parsed = JSON.parse(e.target.value)
+                  
+                  // Validate against schema if we have one for this type
+                  const schema = (widgetPropsSchemaRegistry as any)[widget.type]
+                  if (schema) {
+                    const result = schema.safeParse(parsed)
+                    if (!result.success) {
+                      setJsonError(result.error.errors.map((err: any) => `${err.path.join('.')}: ${err.message}`).join(', '))
+                      return
+                    }
+                  }
+
                   updateWidgetProps(widget.id, parsed)
                   setJsonError(null)
                 } catch (err) {

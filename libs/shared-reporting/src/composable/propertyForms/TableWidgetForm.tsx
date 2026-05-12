@@ -7,13 +7,25 @@ import type { QueryRegistry } from '../../data/queryRegistry'
 import type { WidgetDataBinding } from '../../data/types'
 import { DataBindingSection } from './DataBindingSection'
 
-interface TableWidgetFormProps extends PropertyFormProps<DrilldownTableWidgetProps> {
+/** Props for the TableWidgetForm component. */
+export interface TableWidgetFormProps extends PropertyFormProps<DrilldownTableWidgetProps> {
+  /** Optional data binding configuration. */
   data?: WidgetDataBinding | null
+  /** Callback triggered when the data binding configuration changes. */
   onDataChange: (data: WidgetDataBinding | null) => void
+  /** Registry of available queries for binding. */
   queryRegistry?: QueryRegistry
+  /** Optional dashboard-level parameters. */
   dashboardParams?: Record<string, unknown>
 }
 
+/**
+ * Property form for configured Drill Down Table widgets.
+ * Supports static rows/columns and live data binding.
+ * 
+ * @param props - Component properties
+ * @returns React element
+ */
 export function TableWidgetForm({
   props,
   onChange,

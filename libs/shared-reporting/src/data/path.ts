@@ -3,6 +3,10 @@
  * Supports array indexes and nested objects. Returns undefined if the path is invalid.
  * 
  * This implementation is deliberately restrictive: no eval, no expressions.
+ * 
+ * @param payload - The source object to query
+ * @param path - Dot-separated path string
+ * @returns The resolved value, or undefined if not found
  */
 export function resolvePath(payload: any, path: string): any {
   if (!payload || !path) return undefined;

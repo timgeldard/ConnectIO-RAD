@@ -7,13 +7,25 @@ import type { QueryRegistry } from '../../data/queryRegistry'
 import type { WidgetDataBinding, MappingValue } from '../../data/types'
 import { DataBindingSection } from './DataBindingSection'
 
-interface SpcWidgetFormProps extends PropertyFormProps<SpcControlChartWidgetProps> {
+/** Props for the SpcWidgetForm component. */
+export interface SpcWidgetFormProps extends PropertyFormProps<SpcControlChartWidgetProps> {
+  /** Optional data binding configuration. */
   data?: WidgetDataBinding | null
+  /** Callback triggered when the data binding configuration changes. */
   onDataChange: (data: WidgetDataBinding | null) => void
+  /** Registry of available queries for binding. */
   queryRegistry?: QueryRegistry
+  /** Optional dashboard-level parameters. */
   dashboardParams?: Record<string, unknown>
 }
 
+/**
+ * Property form for configured SPC Control Chart widgets.
+ * Supports static limits/points and live data binding.
+ * 
+ * @param props - Component properties
+ * @returns React element
+ */
 export function SpcWidgetForm({
   props,
   onChange,

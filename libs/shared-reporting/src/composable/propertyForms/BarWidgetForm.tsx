@@ -7,13 +7,25 @@ import type { QueryRegistry } from '../../data/queryRegistry'
 import type { WidgetDataBinding } from '../../data/types'
 import { DataBindingSection } from './DataBindingSection'
 
-interface BarWidgetFormProps extends PropertyFormProps<BarChartWidgetProps> {
+/** Props for the BarWidgetForm component. */
+export interface BarWidgetFormProps extends PropertyFormProps<BarChartWidgetProps> {
+  /** Optional data binding configuration. */
   data?: WidgetDataBinding | null
+  /** Callback triggered when the data binding configuration changes. */
   onDataChange: (data: WidgetDataBinding | null) => void
+  /** Registry of available queries for binding. */
   queryRegistry?: QueryRegistry
+  /** Optional dashboard-level parameters. */
   dashboardParams?: Record<string, unknown>
 }
 
+/**
+ * Property form for configured Bar Chart widgets.
+ * Supports static series/categories and live data binding.
+ * 
+ * @param props - Component properties
+ * @returns React element
+ */
 export function BarWidgetForm({
   props,
   onChange,

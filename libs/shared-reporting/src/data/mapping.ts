@@ -78,6 +78,10 @@ function applyTransform(value: any, transform?: MappingTransform, config?: Recor
 
 /**
  * Maps a response payload to a partial widget props object based on a mapping configuration.
+ * 
+ * @param payload - The raw response from the query endpoint
+ * @param mapping - Configuration mapping prop names to dot-paths or transforms
+ * @returns A record of resolved widget props
  */
 export function mapResponseToWidgetProps(
   payload: any,

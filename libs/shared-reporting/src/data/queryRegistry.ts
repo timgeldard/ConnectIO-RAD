@@ -2,6 +2,9 @@
  * Registry types for platform-owned queries.
  */
 
+/** 
+ * Supported data types for query parameters and field values.
+ */
 export type QueryValueType =
   | 'string'
   | 'number'
@@ -56,4 +59,8 @@ export interface QueryRegistryEntry {
   sampleResponse?: unknown;
 }
 
+/**
+ * Registry of available manufacturing queries that widgets can bind to.
+ * Maps unique query keys to their endpoint, parameters, and field schemas.
+ */
 export type QueryRegistry = Record<string, QueryRegistryEntry>;

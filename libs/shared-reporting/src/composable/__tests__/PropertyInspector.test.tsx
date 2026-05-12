@@ -91,9 +91,9 @@ describe('PropertyInspector', () => {
     const toggle = screen.getByText(/Show Advanced/)
     fireEvent.click(toggle)
 
-    const jsonEditor = screen.getByLabelText('Widget props JSON')
+    const jsonEditor = screen.getByLabelText('Widget props JSON') as HTMLTextAreaElement
     expect(jsonEditor).toBeTruthy()
-    expect(jsonEditor.innerHTML).toContain('"custom": "value"')
+    expect(jsonEditor.value).toContain('"custom": "value"')
   })
 
   it('displays message for unsupported widget types in visual editor', () => {

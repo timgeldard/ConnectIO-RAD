@@ -439,7 +439,10 @@ def _share_row(
 
 
 class TestWidgetDataPersistence:
+    """Tests for the persistence of widget data binding configuration."""
+
     def test_data_field_round_trip(self):
+        """Verifies that the optional 'data' field in widgets is correctly persisted."""
         user = _make_user()
         app = _make_app(user)
         
@@ -482,6 +485,7 @@ class TestWidgetDataPersistence:
         assert widget["data"]["mapping"]["value"] == "avg_oee"
 
     def test_handles_null_data_field(self):
+        """Verifies that a null 'data' field is handled correctly and remains null."""
         user = _make_user()
         app = _make_app(user)
         

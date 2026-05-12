@@ -3,17 +3,26 @@ import type { ComposableWidget } from './types';
 import type { QueryRegistry } from '../data/queryRegistry';
 import { useWidgetDataBinding } from '../data/useWidgetDataBinding';
 import type { WidgetDataBinding } from '../data/types';
+import { Spinner } from '@connectio/shared-ui';
 
-interface BoundWidgetRendererProps {
+/** Props for the BoundWidgetRenderer component. */
+export interface BoundWidgetRendererProps {
+  /** The widget instance to render. */
   widget: ComposableWidget;
+  /** Optional registry to resolve queries for data binding. */
   queryRegistry?: QueryRegistry;
+  /** Optional global parameters to pass to the query. */
   dashboardParams?: Record<string, unknown>;
+  /** Callback to render the actual widget component once props are resolved. */
   renderWidget: (widget: ComposableWidget, data?: any) => ReactNode;
 }
 
 /**
  * Wraps a widget to provide live data binding if configured.
  * If no binding is present, it renders the widget normally with static props.
+ * 
+ * @param props - Component properties
+ * @returns React element
  */
 export function BoundWidgetRenderer({
   widget,
@@ -40,12 +49,14 @@ export function BoundWidgetRenderer({
     },
   };
 
-  // While loading, we might want to show a loading state on the widget
-  // but for now we just pass through and let the widget handle it via '...' etc.
-  // unless there's an error.
-  
   if (error) {
-    console.error(`Data binding error for widget ${widget.id}:`, error);
+    // Note: In a real app we'd use a structured logger here.
+    // For this prototype we'll keep the error in console but structured.
+    console.error(`[DataBinding] Error for widget ${widget.id} (${widget.type}):`, {
+      message: error.message,
+      queryKey: binding?.queryKey,
+      widgetId: widget.id,
+    });
   }
 
   return (
@@ -53,7 +64,7 @@ export function BoundWidgetRenderer({
       {renderWidget(resolvedWidget)}
       {isLoading && (
         <div style={loadingOverlayStyle} aria-busy="true">
-          <div style={spinnerStyle} />
+          <Spinner size="small" />
         </div>
       )}
     </div>
@@ -67,14 +78,3 @@ const loadingOverlayStyle: React.CSSProperties = {
   zIndex: 10,
   padding: 4,
 };
-
-const spinnerStyle: React.CSSProperties = {
-  width: 12,
-  height: 12,
-  border: '2px solid var(--border-subtle)',
-  borderTop: '2px solid var(--status-info)',
-  borderRadius: '50%',
-  animation: 'spin 1s linear infinite',
-};
-
-// Note: Ensure @keyframes spin { to { transform: rotate(360deg); } } is in global CSS

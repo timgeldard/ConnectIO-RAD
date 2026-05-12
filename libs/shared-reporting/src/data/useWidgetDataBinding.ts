@@ -3,10 +3,15 @@ import type { QueryRegistry } from './queryRegistry';
 import type { WidgetDataBinding, QueryParamBinding } from './types';
 import { mapResponseToWidgetProps } from './mapping';
 
-interface UseWidgetDataBindingOptions {
+/** Options for the useWidgetDataBinding hook. */
+export interface UseWidgetDataBindingOptions {
+  /** The data binding configuration from the widget. */
   binding?: WidgetDataBinding;
+  /** The registry of available queries. */
   queryRegistry: QueryRegistry;
+  /** Global dashboard parameters (e.g. from filters) for binding resolution. */
   dashboardParams?: Record<string, unknown>;
+  /** Whether the query is enabled. Defaults to true. */
   enabled?: boolean;
 }
 
@@ -30,6 +35,12 @@ function resolveParams(
 
 /**
  * Hook to execute a widget's data binding query and map the results to props.
+ * 
+ * Handles parameter resolution (dashboard vs static), fetching from the registry endpoint,
+ * and applying property transformations.
+ * 
+ * @param options - UseWidgetDataBindingOptions
+ * @returns An object containing query status, error, and mappedProps
  */
 export function useWidgetDataBinding({
   binding,
@@ -39,9 +50,12 @@ export function useWidgetDataBinding({
 }: UseWidgetDataBindingOptions) {
   const queryEntry = binding ? queryRegistry[binding.queryKey] : null;
   const resolvedParams = binding?.params ? resolveParams(binding.params, dashboardParams) : {};
+  
+  // Use a stable string representation for the query key to avoid cache churn
+  const stableParams = JSON.stringify(resolvedParams);
 
   const query = useQuery({
-    queryKey: ['widget-data', binding?.queryKey, resolvedParams],
+    queryKey: ['widget-data', binding?.queryKey, stableParams],
     queryFn: async () => {
       if (!queryEntry) throw new Error(`Query key "${binding?.queryKey}" not found in registry.`);
 
