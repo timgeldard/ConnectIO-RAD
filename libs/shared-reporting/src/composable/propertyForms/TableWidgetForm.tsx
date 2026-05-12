@@ -36,11 +36,14 @@ export function TableWidgetForm({
 }: TableWidgetFormProps) {
   const [activeTab, setActiveTab] = useState<'static' | 'data'>(data ? 'data' : 'static')
 
-  const handleChange = (field: keyof DrillDownTableWidgetProps, value: any) => {
+  const handleChange = <K extends keyof DrillDownTableWidgetProps>(
+    field: K,
+    value: DrillDownTableWidgetProps[K] | '',
+  ) => {
     const newProps = { ...props, [field]: value === '' ? undefined : value }
     const result = drillDownTableWidgetPropsSchema.safeParse(newProps)
     if (result.success) {
-      onChange({ [field]: result.data[field as keyof typeof result.data] } as any)
+      onChange({ [field]: result.data[field] } as Pick<DrillDownTableWidgetProps, K>)
     }
   }
 
@@ -87,6 +90,7 @@ export function TableWidgetForm({
             <span>Height</span>
             <input
               type="number"
+              min={1}
               value={props.height ?? ''}
               onChange={(e) => handleChange('height', e.target.value === '' ? undefined : Number(e.target.value))}
               style={inputStyle}

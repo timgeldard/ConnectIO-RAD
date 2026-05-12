@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 import { useMemo, useState, useEffect } from 'react'
 import { useT } from '../i18n/context'
 import { KPI, Icon, TopBar, Button, GlobalFilterBar, FilterGroup, FilterDivider, type Column } from '@connectio/shared-ui'
@@ -26,9 +25,15 @@ const _today = toISODate(new Date())
 const _sevenAgo = toISODate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
 const PAGE_SIZE = 50
 
-interface OrderListProps {
-  onOpen: (order: any) => void
+/**
+ * Props for the order list page.
+ */
+export interface OrderListProps {
+  /** Callback invoked when a user opens an order from the table. */
+  onOpen: (order: Order) => void
+  /** Active production line filter. Defaults to all lines. */
   lineFilter?: string
+  /** Optional setter for the active line filter. */
   setLineFilter?: (value: string) => void
 }
 
@@ -49,6 +54,12 @@ interface Order {
   }
 }
 
+/**
+ * Renders the process order history overview with KPIs, filters, and a paged data table.
+ *
+ * @param props - Page configuration and row-open callback.
+ * @returns The process order history list view.
+ */
 export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
   const { t } = useT()
   const { selectedPlantId } = usePlantSelection()

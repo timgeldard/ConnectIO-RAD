@@ -59,7 +59,7 @@ export function PropertyInspector({
   const renderTypedForm = () => {
     const commonProps = {
       widgetId: widget.id,
-      data: widget.data as any,
+      data: widget.data as WidgetDataBinding | null,
       onDataChange: handleDataChange,
       queryRegistry,
       dashboardParams,

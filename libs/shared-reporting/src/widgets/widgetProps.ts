@@ -97,7 +97,7 @@ export const drillDownTableWidgetPropsSchema = z.object({
   columns: z.array(drillDownColumnSchema).optional(),
   rows: z.array(z.record(z.string(), z.unknown())).optional(),
   emptyMessage: z.string().optional(),
-  height: z.number().optional(),
+  height: z.number().min(1).optional(),
   maxHeight: z.number().optional(),
 })
 
