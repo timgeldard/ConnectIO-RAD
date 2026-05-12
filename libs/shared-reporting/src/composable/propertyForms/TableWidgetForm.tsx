@@ -1,14 +1,14 @@
 import type { CSSProperties } from 'react'
 import { useState } from 'react'
 import type { PropertyFormProps } from './types'
-import type { DrilldownTableWidgetProps } from '../../widgets/widgetProps'
-import { drilldownTableWidgetPropsSchema } from '../../widgets/widgetProps'
+import type { DrillDownTableWidgetProps } from '../../widgets/widgetProps'
+import { drillDownTableWidgetPropsSchema } from '../../widgets/widgetProps'
 import type { QueryRegistry } from '../../data/queryRegistry'
 import type { WidgetDataBinding } from '../../data/types'
 import { DataBindingSection } from './DataBindingSection'
 
 /** Props for the TableWidgetForm component. */
-export interface TableWidgetFormProps extends PropertyFormProps<DrilldownTableWidgetProps> {
+export interface TableWidgetFormProps extends PropertyFormProps<DrillDownTableWidgetProps> {
   /** Optional data binding configuration. */
   data?: WidgetDataBinding | null
   /** Callback triggered when the data binding configuration changes. */
@@ -36,9 +36,9 @@ export function TableWidgetForm({
 }: TableWidgetFormProps) {
   const [activeTab, setActiveTab] = useState<'static' | 'data'>(data ? 'data' : 'static')
 
-  const handleChange = (field: keyof DrilldownTableWidgetProps, value: any) => {
+  const handleChange = (field: keyof DrillDownTableWidgetProps, value: any) => {
     const newProps = { ...props, [field]: value === '' ? undefined : value }
-    const result = drilldownTableWidgetPropsSchema.safeParse(newProps)
+    const result = drillDownTableWidgetPropsSchema.safeParse(newProps)
     if (result.success) {
       onChange({ [field]: result.data[field as keyof typeof result.data] } as any)
     }
