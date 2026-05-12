@@ -11,6 +11,10 @@ export {
   type LineageNodeContext,
 } from './AdvancedLineageGraph'
 export {
+  buildSyntheticLineage,
+  type SyntheticGraphOptions,
+} from './testFixtures'
+export {
   buildExplainTransferContext,
   buildExplainTransferPrompt,
   type GenieLineageContext,
