@@ -33,6 +33,14 @@ import { Card, DataTable, DepthControl, KPI, SectionHeader, StatusPill, fmtN } f
 import { useI18n } from "@connectio/shared-frontend-i18n";
 import { plural, template, traceCopy } from "../i18n/pageCopy";
 
+/**
+ * Bottom-up traceability page — renders upstream lineage for the
+ * supplied focal batch (KPIs, advanced/sankey/table views, inbound flow
+ * summary, flat lineage table).  Loads its own batch payload via
+ * `useBatchData(fetchBottomUp, ...)`.
+ *
+ * @returns The rendered bottom-up lineage view.
+ */
 export function PageBottomUp({
   batch: headerBatch,
   sim = false,
@@ -42,13 +50,23 @@ export function PageBottomUp({
   setMaxInputDepth,
   openGenie,
 }: {
+  /** Header batch from the App-level live-batch lookup. */
   batch: Batch;
+  /** Cross-page navigation handler (unused on this page but part of `PageProps`). */
   navigate: (id: PageId) => void;
+  /** Simulation banner toggle. */
   sim?: boolean;
+  /** Cap on lineage depth rendered in the classic graph. */
   maxLevels?: number;
+  /** Setter for the trace-depth slider. */
   setMaxLevels?: (v: number) => void;
+  /** Cap on input-depth rendered in the classic graph. */
   maxInputDepth?: number;
+  /** Setter for the input-depth slider. */
   setMaxInputDepth?: (v: number) => void;
+  /** Callback to open the shell-level Genie drawer with a pre-filled
+   * prompt and page context — used by the advanced graph's
+   * right-click "Explain this transfer" menu. */
   openGenie?: (opts: { prompt: string; pageContext: GeniePageContext }) => void;
 }) {
   const { language } = useI18n();

@@ -1,5 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { I18nProvider, LanguageSelector, useI18n } from "@connectio/shared-frontend-i18n";
 import { PlantProvider, PlantContextBar } from "@connectio/shared-app-context";
 import {
@@ -213,26 +213,34 @@ function TraceApp() {
   const [genieOpen, setGenieOpen] = useState(false);
   const [genieSeedPrompt, setGenieSeedPrompt] = useState<string | null>(null);
   const [genieContextOverride, setGenieContextOverride] = useState<GeniePageContext | null>(null);
-  const openGenie = ({
-    prompt,
-    pageContext,
-  }: {
-    prompt: string;
-    pageContext: GeniePageContext;
-  }) => {
-    setGenieSeedPrompt(prompt);
-    setGenieContextOverride(pageContext);
-    setGenieOpen(true);
-  };
+  // Memoised so the callback identity is stable across renders of
+  // `TraceApp` — `openGenie` is prop-drilled into the active page,
+  // and a fresh closure every render would re-render the page tree
+  // for no semantic reason.
+  const openGenie = useCallback(
+    ({
+      prompt,
+      pageContext,
+    }: {
+      prompt: string;
+      pageContext: GeniePageContext;
+    }) => {
+      setGenieSeedPrompt(prompt);
+      setGenieContextOverride(pageContext);
+      setGenieOpen(true);
+    },
+    [],
+  );
   // Whenever the drawer closes, drop the seed/override so the next
   // open via the floating trigger reverts to the default lineage
   // context rather than reusing the last transfer context the
-  // operator dismissed.
-  const handleGenieClose = () => {
+  // operator dismissed.  Memoised because it's passed as a prop to
+  // `GenieDrawer`.
+  const handleGenieClose = useCallback(() => {
     setGenieOpen(false);
     setGenieSeedPrompt(null);
     setGenieContextOverride(null);
-  };
+  }, []);
   const [tweaks, _setTweaksState] = useState<Tweaks>(() => {
     try {
       const raw = localStorage.getItem("mi:tweaks");

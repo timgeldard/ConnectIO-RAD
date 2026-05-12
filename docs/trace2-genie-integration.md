@@ -116,9 +116,10 @@ extraction is worth the migration risk.
 | `apps/trace2/backend/tests/test_genie_client.py` | 14 | compose_genie_content (focal, transfer, empty, zero flow_qty), space_id resolution chain + missing, host allowlist (accept/reject/normalise/empty), normalize_message + normalize_query_result |
 | `apps/trace2/frontend/src/genie/__tests__/pageContext.test.ts` | 7 | FocalNode passthrough, Batch flattening, fallback to material_id/plant_id, transfer context fields, flow_qty optional/finite/NaN |
 | `apps/trace2/frontend/src/genie/__tests__/GenieDrawer.test.tsx` | 7 | Trigger render, drawer open render, onOpen dispatch, backdrop close, Send disabled-until-content, mode-label toggle, initialPrompt prefill |
-| `apps/trace2/frontend/src/genie/pageContext.test.ts` (adapter) | 5 | `fromLineageNodeContext` shape, view label passthrough, NaN/undefined flow_qty → null, zero flow_qty preserved |
+| `apps/trace2/frontend/src/genie/__tests__/pageContext.test.ts` (+ adapter cases) | 5 | `fromLineageNodeContext` shape, view label passthrough, NaN/undefined flow_qty → null, zero flow_qty preserved |
+| `apps/trace2/frontend/src/__tests__/App.test.tsx` (+ openGenie case) | 1 | `openGenie` seeds the drawer with a prefilled prompt; `handleGenieClose` closes it |
 
-Total: **33 new tests, all passing** (28 from the initial port + 5 from the wire-up follow-up).
+Total: **34 new tests, all passing** (28 from the initial port + 5 adapter + 1 App-level state-transition).
 
 The DDD architecture guardrails (6 tests) also still pass with the
 trace2 genie_assist context registered.

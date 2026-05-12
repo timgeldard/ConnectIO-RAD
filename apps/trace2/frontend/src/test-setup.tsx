@@ -9,6 +9,25 @@ afterEach(() => {
   cleanup()
 })
 
+// vitest 4.x's jsdom environment ships with a `--localstorage-file`
+// flag that, when unset, leaves `window.localStorage` as a stub without
+// the standard Storage methods.  Install a deterministic in-memory
+// Storage so production code paths that read/write localStorage (page
+// preferences, mode toggles) work in tests.
+if (typeof window !== 'undefined') {
+  const store = new Map<string, string>()
+  const storage: Storage = {
+    get length() { return store.size },
+    clear: () => { store.clear() },
+    getItem: (key) => (store.has(key) ? (store.get(key) as string) : null),
+    setItem: (key, value) => { store.set(key, String(value)) },
+    removeItem: (key) => { store.delete(key) },
+    key: (i) => Array.from(store.keys())[i] ?? null,
+  }
+  Object.defineProperty(window, 'localStorage', { value: storage, configurable: true })
+  Object.defineProperty(window, 'sessionStorage', { value: storage, configurable: true })
+}
+
 // cytoscape touches the DOM/Web APIs as soon as it constructs a Core. Stub
 // the surface area we use so the trace2 lineage pages can mount in jsdom.
 vi.mock('cytoscape', () => {
