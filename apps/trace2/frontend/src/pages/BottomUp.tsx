@@ -12,10 +12,13 @@ import {
   LineageTableView,
   SankeyFlowView,
   TraceFilterControls,
+  buildExplainTransferPrompt,
   toFilterValue,
   useTraceViewState,
 } from "@connectio/shared-reporting";
 import "@xyflow/react/dist/style.css";
+import type { GeniePageContext } from "../genie/api";
+import { fromLineageNodeContext } from "../genie/pageContext";
 import { usePersistentMode } from "../hooks/usePersistentMode";
 
 const BOTTOM_UP_VIEWS: GraphViewMode[] = [
@@ -30,6 +33,14 @@ import { Card, DataTable, DepthControl, KPI, SectionHeader, StatusPill, fmtN } f
 import { useI18n } from "@connectio/shared-frontend-i18n";
 import { plural, template, traceCopy } from "../i18n/pageCopy";
 
+/**
+ * Bottom-up traceability page — renders upstream lineage for the
+ * supplied focal batch (KPIs, advanced/sankey/table views, inbound flow
+ * summary, flat lineage table).  Loads its own batch payload via
+ * `useBatchData(fetchBottomUp, ...)`.
+ *
+ * @returns The rendered bottom-up lineage view.
+ */
 export function PageBottomUp({
   batch: headerBatch,
   sim = false,
@@ -37,14 +48,26 @@ export function PageBottomUp({
   setMaxLevels,
   maxInputDepth = 3,
   setMaxInputDepth,
+  openGenie,
 }: {
+  /** Header batch from the App-level live-batch lookup. */
   batch: Batch;
+  /** Cross-page navigation handler (unused on this page but part of `PageProps`). */
   navigate: (id: PageId) => void;
+  /** Simulation banner toggle. */
   sim?: boolean;
+  /** Cap on lineage depth rendered in the classic graph. */
   maxLevels?: number;
+  /** Setter for the trace-depth slider. */
   setMaxLevels?: (v: number) => void;
+  /** Cap on input-depth rendered in the classic graph. */
   maxInputDepth?: number;
+  /** Setter for the input-depth slider. */
   setMaxInputDepth?: (v: number) => void;
+  /** Callback to open the shell-level Genie drawer with a pre-filled
+   * prompt and page context — used by the advanced graph's
+   * right-click "Explain this transfer" menu. */
+  openGenie?: (opts: { prompt: string; pageContext: GeniePageContext }) => void;
 }) {
   const { language } = useI18n();
   const copy = traceCopy(language);
@@ -65,6 +88,7 @@ export function PageBottomUp({
           setMaxLevels={setMaxLevels}
           maxInputDepth={maxInputDepth}
           setMaxInputDepth={setMaxInputDepth}
+          openGenie={openGenie}
         />
       )}
     </LoadFrame>
@@ -72,7 +96,7 @@ export function PageBottomUp({
 }
 
 function BottomUpBody({
-  batch, lineage, sim, maxLevels, setMaxLevels, maxInputDepth, setMaxInputDepth,
+  batch, lineage, sim, maxLevels, setMaxLevels, maxInputDepth, setMaxInputDepth, openGenie,
 }: {
   batch: Batch;
   lineage: LineageNode[];
@@ -81,6 +105,7 @@ function BottomUpBody({
   setMaxLevels?: (v: number) => void;
   maxInputDepth: number;
   setMaxInputDepth?: (v: number) => void;
+  openGenie?: (opts: { prompt: string; pageContext: GeniePageContext }) => void;
 }) {
   const [selected, setSelected] = useState<LineageNode | null>(null);
   const [graphView, setGraphView] = usePersistentMode<GraphViewMode>(
@@ -177,6 +202,15 @@ function BottomUpBody({
                     const next = lineage.find((n) => n.id === id) ?? null;
                     setSelected(next);
                   }}
+                  onExplainNode={
+                    openGenie
+                      ? (ctx) =>
+                          openGenie({
+                            prompt: buildExplainTransferPrompt(ctx),
+                            pageContext: fromLineageNodeContext(ctx, "bottom-up"),
+                          })
+                      : undefined
+                  }
                 />
               )}
               {graphView === "sankey" && (

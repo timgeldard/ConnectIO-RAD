@@ -15,6 +15,8 @@
  * URL parsing — so callers stay in control of which focal/node is
  * "current".  Trace2's pages already track that in component state.
  */
+import type { LineageNodeContext } from '@connectio/shared-reporting'
+
 import type { Batch, FocalNode, LineageNode } from '../types'
 import type { GeniePageContext } from './api'
 
@@ -59,11 +61,7 @@ export function buildTransferContext(
   side: 'upstream' | 'downstream',
 ): GeniePageContext {
   const focal = toFocal(view.batch)
-  // `flow_qty` lives on `LineageNode` after PR #54 (Phase 0-3a) merges;
-  // until then we read it via a defensive cast so this file typechecks
-  // on either side of that merge.  Drop the cast in a follow-up once
-  // #54 lands and flow_qty is part of the published LineageNode type.
-  const flowQty = (node as unknown as { flow_qty?: number }).flow_qty
+  const flowQty = node.flow_qty
   return {
     mode: 'lineage_transfer',
     view: view.view,
@@ -78,6 +76,55 @@ export function buildTransferContext(
       flow_qty: typeof flowQty === 'number' && Number.isFinite(flowQty) ? flowQty : null,
       qty: node.qty ?? null,
       uom: node.uom ?? null,
+    },
+  }
+}
+
+/**
+ * Adapt the {@link LineageNodeContext} that
+ * `AdvancedLineageGraph.onExplainNode` emits into the trace2
+ * {@link GeniePageContext} shape its backend `compose_genie_content`
+ * understands.
+ *
+ * The two shapes are intentionally similar but not identical — the
+ * shared-reporting context is library-generic (no `view` field, side
+ * at the top level), while the trace2 context carries the active page
+ * id and nests `side` inside `selected` (so the backend prompt
+ * composer can list "selected_side" alongside the other selected_*
+ * fields uniformly).  This adapter is the single point of impedance
+ * matching; if a future version of shared-reporting adopts the
+ * trace2 shape, this function becomes a one-liner identity.
+ *
+ * @param ctx The clicked-node context from `onExplainNode`.
+ * @param viewLabel The trace2 page identifier (e.g. `'bottom-up'`).
+ * @returns A `GeniePageContext` ready to POST to `/api/genie/start`.
+ */
+export function fromLineageNodeContext(
+  ctx: LineageNodeContext,
+  viewLabel: string,
+): GeniePageContext {
+  return {
+    mode: 'lineage_transfer',
+    view: viewLabel,
+    focal: {
+      material_id: ctx.focal.material_id,
+      material: ctx.focal.material,
+      batch_id: ctx.focal.batch_id,
+      plant: ctx.focal.plant,
+    },
+    selected: {
+      material_id: ctx.material_id,
+      material: ctx.material,
+      batch_id: ctx.batch_id,
+      plant: ctx.plant,
+      link: ctx.link,
+      side: ctx.side,
+      flow_qty:
+        typeof ctx.flow_qty === 'number' && Number.isFinite(ctx.flow_qty)
+          ? ctx.flow_qty
+          : null,
+      qty: typeof ctx.qty === 'number' && Number.isFinite(ctx.qty) ? ctx.qty : null,
+      uom: ctx.uom ?? null,
     },
   }
 }

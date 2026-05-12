@@ -1,6 +1,6 @@
 # trace2 Genie integration (Phase 3b)
 
-- **Status:** Backend + frontend port shipped on `feat/trace2-genie-integration`; awaiting deploy-time `TRACE2_GENIE_SPACE_ID` and one trivial wire-up after PR #54 lands.
+- **Status:** Backend + frontend port shipped on `feat/trace2-genie-integration` (PR #55); `onExplainNode` wire-up shipped on `feat/trace2-genie-explain-wire` after PRs #54/#55/#56 merged.  Only outstanding item is the deploy-time `TRACE2_GENIE_SPACE_ID` env var.
 - **Date:** 2026-05-12
 - **Owner:** TBD (trace2 frontend lead)
 - **Depends on:** PR #54 (`feat/trace2-advanced-traceability`) — only for the
@@ -61,23 +61,34 @@ tracked for consolidation.
     `APPLICATION_TRANSPORT_EXCEPTIONS` (mirrors POH's exemption for the
     same SSRF / HTTPException-from-application-layer pattern).
 
-## What is deliberately deferred
+## Follow-ups since initial port
 
-### One-line wire-up after PR #54 merges
+### Right-click "Explain this transfer" wire-up (shipped)
 
-PR #54 adds the advanced lineage graph (`AdvancedLineageGraph`) with an
-`onExplainNode?: (LineageNodeContext) => void` prop.  Once that PR lands,
-both trace2 pages get a single-line update wiring the right-click menu
-into the Genie drawer via `buildExplainTransferPrompt` +
-`buildExplainTransferContext` (helpers that already exist in
-`libs/shared-reporting` from PR #54).
+With PRs #54 (advanced traceability) and #55 (Genie port) both merged,
+the right-click menu on `AdvancedLineageGraph` now opens the Genie
+drawer pre-filled with a transfer-specific prompt and page context.
+Wiring (one prop per page, plus a shared dispatch surface):
+
+- `App.tsx` exposes an `openGenie({prompt, pageContext})` callback via
+  `PageProps`.  The callback stashes the seed prompt + a context
+  override and opens the drawer; `handleGenieClose` clears them so the
+  next floating-trigger open reverts to the default lineage context.
+- `genie/pageContext.ts` adds a `fromLineageNodeContext()` adapter that
+  projects the shared-reporting `LineageNodeContext` shape into the
+  trace2 `GeniePageContext` shape (top-level `side` → nested under
+  `selected`, matching the backend `compose_genie_content` expectation).
+- `BottomUp.tsx` / `TopDown.tsx` pass `onExplainNode` to
+  `AdvancedLineageGraph`, calling `openGenie({
+  prompt: buildExplainTransferPrompt(ctx),
+  pageContext: fromLineageNodeContext(ctx, 'bottom-up'|'top-down') })`.
 
 ### `flow_qty` on the page context
 
-`flow_qty` is a `LineageNode` field that lives on PR #54.  Until #54
-lands, `buildTransferContext` reads it via a defensive cast — when #54
-merges, the cast can be dropped (the field is then part of the
-published type).  Tracked inline in `pageContext.ts`.
+Resolved — `flow_qty` now lives on `LineageNode` (shipped in PR #54),
+so `buildTransferContext` reads it directly without a defensive cast.
+
+## What is deliberately deferred
 
 ### Genie-client consolidation across apps
 
@@ -105,8 +116,10 @@ extraction is worth the migration risk.
 | `apps/trace2/backend/tests/test_genie_client.py` | 14 | compose_genie_content (focal, transfer, empty, zero flow_qty), space_id resolution chain + missing, host allowlist (accept/reject/normalise/empty), normalize_message + normalize_query_result |
 | `apps/trace2/frontend/src/genie/__tests__/pageContext.test.ts` | 7 | FocalNode passthrough, Batch flattening, fallback to material_id/plant_id, transfer context fields, flow_qty optional/finite/NaN |
 | `apps/trace2/frontend/src/genie/__tests__/GenieDrawer.test.tsx` | 7 | Trigger render, drawer open render, onOpen dispatch, backdrop close, Send disabled-until-content, mode-label toggle, initialPrompt prefill |
+| `apps/trace2/frontend/src/genie/__tests__/pageContext.test.ts` (+ adapter cases) | 5 | `fromLineageNodeContext` shape, view label passthrough, NaN/undefined flow_qty → null, zero flow_qty preserved |
+| `apps/trace2/frontend/src/__tests__/App.test.tsx` (+ openGenie case) | 1 | `openGenie` seeds the drawer with a prefilled prompt; `handleGenieClose` closes it |
 
-Total: **28 new tests, all passing**.
+Total: **34 new tests, all passing** (28 from the initial port + 5 adapter + 1 App-level state-transition).
 
 The DDD architecture guardrails (6 tests) also still pass with the
 trace2 genie_assist context registered.
