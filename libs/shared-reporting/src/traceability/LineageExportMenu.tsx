@@ -11,6 +11,7 @@
  * without depending on which library is rendering the underlying view.
  */
 import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 
 import type { LineageExportFormat } from './exportHelpers'
 
@@ -102,7 +103,7 @@ export function LineageExportMenu({
           padding: '4px 10px',
           fontFamily: 'var(--font-sans, system-ui)',
           fontSize: 12,
-          background: '#ffffff',
+          background: 'var(--bg-surface, #ffffff)',
           color: 'var(--ink-1, #16202a)',
           border: '1px solid var(--line, #e3e7ec)',
           borderRadius: 4,
@@ -118,7 +119,7 @@ export function LineageExportMenu({
           data-testid="lineage-export-menu-items"
           style={{
             marginTop: 4,
-            background: '#ffffff',
+            background: 'var(--bg-surface, #ffffff)',
             border: '1px solid var(--line, #e3e7ec)',
             borderRadius: 4,
             boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
@@ -156,7 +157,7 @@ export function LineageExportMenu({
   )
 }
 
-const menuItemStyle: React.CSSProperties = {
+const menuItemStyle: CSSProperties = {
   display: 'block',
   width: '100%',
   padding: '6px 12px',

@@ -77,12 +77,14 @@ describe('downloadBlob', () => {
       .mockReturnValue('blob:fake')
     revokeUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
     clickSpy = vi.fn()
-    // Patch anchor creation so we can spy on click().
+    // Patch anchor creation so we can spy on click().  The cast through
+    // `unknown` reconciles vi.fn()'s broad signature with the
+    // HTMLAnchorElement.click() return type without losing the spy wiring.
     const origCreate = document.createElement.bind(document)
     vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
       const el = origCreate(tag) as HTMLAnchorElement
       if (tag === 'a') {
-        el.click = clickSpy
+        el.click = clickSpy as unknown as HTMLAnchorElement['click']
       }
       return el
     })

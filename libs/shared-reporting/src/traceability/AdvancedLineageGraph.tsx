@@ -22,13 +22,20 @@
  *   app entry point.  Vendoring CSS through a library is fragile in Vite
  *   monorepos.
  *
- * Not yet implemented (tracked in `docs/trace2-advanced-visualisation.md`)
- * ---------------------------------------------------------------------
- * - Smart node grouping (collapse by Plant / Material Family)
- * - Path-quantity overlays (stroke thickness scaled to qty)
- * - Sankey-style aggregated overview
- * - Genie integration (right-click → "Explain this transfer")
- * - PNG/SVG export
+ * Features (all live; see `docs/trace2-advanced-visualisation.md` for history)
+ * --------------------------------------------------------------------------
+ * - Smart node grouping by Plant or Material via the `groupBy` prop;
+ *   intra-group edges collapse, cross-group edges aggregate qty.
+ * - Path-quantity overlay: stroke thickness derived from per-edge
+ *   `flow_qty` (falling back to per-node `qty` when the backend has not
+ *   shipped flow_qty yet).
+ * - Sankey-style overview ships separately (`SankeyFlowView`).
+ * - Genie "Explain this transfer" right-click menu via the
+ *   `onExplainNode` prop; hidden when the host does not wire it.
+ * - PNG / SVG export via the floating Export menu (`html-to-image`).
+ * - High-contrast theme via `theme="high-contrast"`.
+ * - Viewport culling via React Flow's `onlyRenderVisibleElements`
+ *   beyond `virtualiseAbove` (default 150 nodes).
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 
@@ -68,6 +75,7 @@ import {
   GROUP_NODE_TYPE,
   LINEAGE_NODE_TYPE,
   type AdvancedLineageData,
+  type AdvancedLineageNode,
   type AdvancedLinkType,
   type LineageDirection,
 } from './types'
@@ -323,7 +331,10 @@ function AdvancedLineageGraphInner({
       setMenu(null)
       return
     }
-    const payload = (nodeRow.data as { node: import('./types').AdvancedLineageNode; direction: 'upstream' | 'downstream' })
+    const payload = nodeRow.data as {
+      node: AdvancedLineageNode
+      direction: 'upstream' | 'downstream'
+    }
     const ctx: LineageNodeContext = {
       id: payload.node.id,
       side: payload.direction,
@@ -492,7 +503,7 @@ function AdvancedLineageGraphInner({
             top: menu.y,
             left: menu.x,
             zIndex: 1000,
-            background: '#ffffff',
+            background: 'var(--bg-surface, #ffffff)',
             border: '1px solid var(--line, #e3e7ec)',
             borderRadius: 6,
             boxShadow: '0 8px 24px rgba(0,0,0,0.18)',

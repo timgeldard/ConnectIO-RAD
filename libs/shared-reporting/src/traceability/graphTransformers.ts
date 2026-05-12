@@ -19,12 +19,25 @@ import {
   LINEAGE_NODE_TYPE,
 } from './types'
 
-/** Data attached to React Flow nodes for our custom renderers. */
+/**
+ * Data payload attached to the focal React Flow node.
+ *
+ * Used by {@link FocalNodeView} to render the focal card and by the
+ * `onNodeClick` callback to disambiguate focal selection from regular
+ * lineage selection.
+ */
 export interface FocalNodeData extends Record<string, unknown> {
   kind: 'focal'
   focal: AdvancedLineageFocal
 }
 
+/**
+ * Data payload attached to each non-focal React Flow node.
+ *
+ * Carries both the underlying lineage row and the side (`upstream` /
+ * `downstream`) so {@link LineageNodeView} can pick the correct
+ * background tint without an extra parent-walk.
+ */
 export interface LineageNodeData extends Record<string, unknown> {
   kind: 'lineage'
   direction: 'upstream' | 'downstream'
@@ -44,26 +57,40 @@ export interface GroupNodeData extends Record<string, unknown> {
   totalQty: number | null
 }
 
-/** Data attached to React Flow edges so the custom edge can style by link type. */
+/**
+ * Data payload attached to each React Flow edge.
+ *
+ * The renderer uses `link` to colour the stroke, `direction` for arrow
+ * orientation, `qty` for the inline label, and `weight` for stroke
+ * width.  `weight` is always in `1..6`; `qty` is `null` when no parallel
+ * row contributed a numeric value.
+ */
 export interface LineageEdgeData extends Record<string, unknown> {
   link: AdvancedLinkType
   direction: 'upstream' | 'downstream'
-  /** Aggregated qty along this edge (sum across parallel rows).  May be null
-   * when no row contributed a numeric qty. */
   qty: number | null
-  /** Stroke width hint, 1..6, derived from the qty roll-up. */
   weight: number
 }
 
+/** Union of every node shape `buildLineageGraph` can emit. */
 export type LineageReactFlowNode =
   | Node<FocalNodeData, typeof FOCAL_NODE_TYPE>
   | Node<LineageNodeData, typeof LINEAGE_NODE_TYPE>
   | Node<GroupNodeData, typeof GROUP_NODE_TYPE>
 
+/** Concrete edge type produced by `buildLineageGraph`. */
 export type LineageReactFlowEdge = Edge<LineageEdgeData>
 
+/**
+ * Compound-grouping strategy.
+ *
+ * - `'none'` — no grouping; one node per lineage row.
+ * - `'plant'` — same-plant rows on the same side wrap in a compound node.
+ * - `'material'` — same `material_id` rows wrap in a compound node.
+ */
 export type GroupByMode = 'none' | 'plant' | 'material'
 
+/** Optional filter / shape inputs accepted by {@link buildLineageGraph}. */
 export interface TransformOptions {
   /** Which side(s) to include.  Defaults to `'both'`. */
   direction?: LineageDirection
@@ -206,12 +233,16 @@ export function buildLineageGraph(
     const buckets = new Map<string, GroupBucket>()
     // Iterate over distinct nodes (not raw kept rows) so multi-link
     // duplicates do not inflate the bucket counts.
-    for (const { row } of nodeRowFor.values()) {
+    for (const { side, row } of nodeRowFor.values()) {
       const { key, label } = groupingKeyFor(row, groupBy)
-      // Each side ↔ group pair is a single bucket so an upstream
+      // Each side × group pair is a single bucket so an upstream
       // RCN1 stays distinct from a downstream RCN1 in the visual graph
       // (mass balance might cross the focal at the same plant).
-      const bucketKey = `${groupBy}:${key}`
+      // The bucket key MUST include the side, otherwise rows from
+      // upstream and downstream at the same plant collapse together
+      // when direction is 'both' — losing the two-halves topology
+      // the layout engine relies on.
+      const bucketKey = `${side}:${groupBy}:${key}`
       let bucket = buckets.get(bucketKey)
       if (!bucket) {
         bucket = {

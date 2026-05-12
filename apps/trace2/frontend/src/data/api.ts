@@ -66,6 +66,18 @@ function str(v: Nullable<string>, fallback = ""): string {
   return v ?? fallback;
 }
 
+/**
+ * Coerce an optional numeric field for which "missing" and "zero" are
+ * semantically distinct.  Used for flow_qty: the renderer treats
+ * `undefined` as "fall back to per-node qty" but `0` as "this edge
+ * carries no flow" — so a malformed value must not collapse to either.
+ */
+function coerceOptionalFlowQty(v: NumLike | undefined): number | undefined {
+  if (v === null || v === undefined) return undefined;
+  const n = typeof v === "string" ? parseFloat(v) : v;
+  return Number.isFinite(n) ? n : undefined;
+}
+
 function asBatchStatus(s: Nullable<string>): BatchStatus {
   const v = (s ?? "").toUpperCase();
   if (["UNRESTRICTED", "QUALITY_INSPECTION", "Q_INSP", "RESTRICTED", "BLOCKED", "RELEASED", "IN_PROC"].includes(v))
@@ -690,7 +702,11 @@ function mapLineage(
     batch: str(row.batch),
     plant: str(row.plant),
     qty: num(row.qty),
-    flow_qty: row.flow_qty != null ? num(row.flow_qty) : undefined,
+    // Coerce flow_qty defensively: if the backend supplied a value, attempt
+    // to parse it numerically but leave it undefined when the parse fails.
+    // Using num()'s default 0 fallback would mis-weight trace edges
+    // (zero-flow vs missing-flow are different signals in the renderer).
+    flow_qty: coerceOptionalFlowQty(row.flow_qty),
     uom: str(row.uom, "KG"),
     supplier: row.supplier ? str(row.supplier) : undefined,
     customer: row.customer ? str(row.customer) : undefined,

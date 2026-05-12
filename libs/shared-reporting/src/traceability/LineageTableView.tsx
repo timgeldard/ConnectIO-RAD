@@ -15,6 +15,7 @@
  */
 import { useMemo, useState } from 'react'
 
+import { downloadBlob } from './exportHelpers'
 import { buildLineageGraph, type GroupByMode } from './graphTransformers'
 import {
   FOCAL_NODE_ID,
@@ -218,14 +219,10 @@ export function LineageTableView({
       .join('\n')
     const csv = `${header}\n${body}\n`
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `lineage-${data.focal.material_id}-${data.focal.batch_id}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    // Use the centralised helper for delayed URL.revokeObjectURL —
+    // some browsers (Firefox / Safari) abort the download if the URL
+    // is revoked synchronously after the anchor click fires.
+    downloadBlob(blob, `lineage-${data.focal.material_id}-${data.focal.batch_id}.csv`)
   }
 
   return (

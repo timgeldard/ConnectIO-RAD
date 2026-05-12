@@ -48,6 +48,17 @@ import {
   type LineageDirection,
 } from './types'
 
+/**
+ * Minimal structural type for the ECharts instance, declared locally
+ * because pulling in the full `ECharts` type from `echarts/core`
+ * drags transitive types we do not otherwise need.  Covers the two
+ * methods this view actually calls.
+ */
+interface EChartsLikeInstance {
+  getDataURL: (opts: { type: 'png' | 'svg'; backgroundColor?: string }) => string
+  renderToSVGString?: () => string
+}
+
 export interface SankeyFlowViewProps {
   /** The focal + upstream + downstream payload. */
   data: AdvancedLineageData
@@ -96,10 +107,7 @@ export function SankeyFlowView({
   // We avoid the React ref approach because our `EChart` wrapper does
   // not forward refs — adding forwardRef there would cascade through
   // every consumer of the wrapper.
-  const echartsInstanceRef = useRef<{
-    getDataURL: (opts: { type: 'png' | 'svg'; backgroundColor?: string }) => string
-    renderToSVGString?: () => string
-  } | null>(null)
+  const echartsInstanceRef = useRef<EChartsLikeInstance | null>(null)
 
   const option = useMemo<EChartsOption>(() => {
     // We piggyback on buildLineageGraph so the Sankey honours every
@@ -154,11 +162,20 @@ export function SankeyFlowView({
         formatter: (raw: unknown) => {
           const p = raw as { dataType?: string; data?: Record<string, unknown> }
           const d = p.data ?? {}
+          // Node ids and names can contain arbitrary characters (batch
+          // ids occasionally include `<`, `&`, or quotes when systems
+          // outside SAP feed them).  ECharts renders tooltip formatter
+          // output as raw HTML, so any string from the payload must be
+          // entity-escaped before interpolation.  Numeric values (qty)
+          // are safe because they round-trip through toLocaleString().
+          const source = escapeHtml(String(d.source ?? ''))
+          const target = escapeHtml(String(d.target ?? ''))
+          const name = escapeHtml(String(d.name ?? ''))
           if (p.dataType === 'edge') {
             const value = (d.value as number) ?? 0
-            return `<b>${d.source}</b> → <b>${d.target}</b><br/>flow_qty: ${value.toLocaleString()}`
+            return `<b>${source}</b> → <b>${target}</b><br/>flow_qty: ${value.toLocaleString()}`
           }
-          return `<b>${(d.name as string) ?? ''}</b>`
+          return `<b>${name}</b>`
         },
       },
       series: [
@@ -220,8 +237,8 @@ export function SankeyFlowView({
           style={{ height: '100%', width: '100%' }}
           ariaLabel="Lineage Sankey flow diagram"
           testId="sankey-flow-chart"
-          onChartReady={(inst: unknown) => {
-            echartsInstanceRef.current = inst as typeof echartsInstanceRef extends { current: infer T } ? T : never
+          onChartReady={(inst: EChartsLikeInstance) => {
+            echartsInstanceRef.current = inst
           }}
           onEvents={
             onNodeClick
@@ -258,4 +275,23 @@ export function SankeyFlowView({
       )}
     </div>
   )
+}
+
+/**
+ * Entity-escape a string for safe interpolation into ECharts tooltip HTML.
+ *
+ * Kept inline (rather than pulling in a dependency) because the escape
+ * set is tiny and the function is hot-path: it runs on every tooltip
+ * hover.  Covers the only characters HTML would actually interpret.
+ *
+ * @param s Raw string from the lineage payload.
+ * @returns HTML-safe version of the same string.
+ */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }

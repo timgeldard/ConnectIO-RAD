@@ -1,6 +1,14 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import type { CSSProperties } from "react";
 
+/**
+ * Available graph view modes surfaced by the trace2 traceability pages.
+ *
+ * The two original SVG/Cytoscape views (`lineage`, `tree`, `network`,
+ * `radial`) live in trace2 itself; the advanced React Flow + ELK view,
+ * the ECharts Sankey, and the tabular view are all rendered by
+ * components from `@connectio/shared-reporting`.
+ */
 export type GraphViewMode =
   | "lineage"
   | "tree"
@@ -14,9 +22,11 @@ interface Props {
   value: GraphViewMode;
   onChange: (next: GraphViewMode) => void;
   /**
-   * Modes to surface. Order is preserved in the UI. Defaults to all four
-   * — pages that don't want a particular mode (e.g. BottomUp doesn't show
-   * the recall blast-radius radial view) can omit it from this list.
+   * Modes to surface.  Order is preserved in the UI.  When omitted, all
+   * seven canonical modes are shown — pages that don't want a particular
+   * one (e.g. BottomUp doesn't show the recall blast-radius radial view,
+   * because that view only makes sense top-down from a focal batch) can
+   * pass a filtered list to hide it.
    */
   modes?: GraphViewMode[];
   /** Optional override for translated labels (defaults to English). */

@@ -47,7 +47,23 @@ export interface LineagePalette {
   linkColors: Record<string, string>
 }
 
-/** Default palette — matches the classic SVG `LineageGraph` colours. */
+/**
+ * Default palette — matches the classic SVG `LineageGraph` colours.
+ *
+ * **Style policy note (CodeRabbit / Gemini review):** the link-type
+ * colours (`#289BA2` etc.) and focal accent (`#DFFF11`) are *domain*
+ * colours, not part of the Kerry design-system tokens.  They originate
+ * in the classic SVG component and must stay in sync with it pixel for
+ * pixel — otherwise side-by-side comparisons across views become
+ * misleading.  Promoting them to CSS variables would require every
+ * consumer app to declare matching tokens, and the consumer apps
+ * themselves don't otherwise reference these colours.  The right place
+ * for them is this palette object, which **is** the design-token system
+ * for the lineage domain; high-contrast theming flips through it via
+ * `paletteFor()`.  Generic UI surfaces (menu backgrounds, borders) do
+ * use Kerry CSS variables — only the lineage-specific colours are
+ * hardcoded.
+ */
 const DEFAULT_PALETTE: LineagePalette = {
   focalBg: '#003C52',
   focalFg: '#F2F6F8',
@@ -125,10 +141,15 @@ function fmtQty(qty: number, uom: string): string {
 }
 
 /**
- * Focal-node card.
+ * Focal-node card renderer for React Flow.
  *
  * Dark teal background mirrors the classic component's focal styling.
- * Yellow left accent (`#DFFF11`) is the brand "you are here" cue.
+ * Yellow left accent is the brand "you are here" cue.  Colours are
+ * sourced from the `LineageThemeContext` palette so high-contrast mode
+ * flips the whole card without re-rendering.
+ *
+ * @param props React Flow `NodeProps` whose `data` is a {@link FocalNodeData}.
+ * @returns The focal card JSX.
  */
 export function FocalNodeView({ data, selected }: NodeProps) {
   const focal = (data as FocalNodeData).focal
@@ -177,10 +198,14 @@ export function FocalNodeView({ data, selected }: NodeProps) {
 }
 
 /**
- * Generic lineage node card (upstream or downstream).
+ * Generic lineage node card (upstream or downstream) renderer for React Flow.
  *
  * Background follows the classic convention: upstream is light blue,
- * downstream is light beige.  Left accent is the link-type colour.
+ * downstream is light beige.  Left accent is the link-type colour from
+ * the active palette.  Colours flip cleanly under high-contrast mode.
+ *
+ * @param props React Flow `NodeProps` whose `data` is a {@link LineageNodeData}.
+ * @returns The lineage card JSX.
  */
 export function LineageNodeView({ data, selected }: NodeProps) {
   const { node, direction } = data as LineageNodeData
@@ -219,13 +244,16 @@ export function LineageNodeView({ data, selected }: NodeProps) {
 }
 
 /**
- * Compound (group) node card — shown when group-by is active.
+ * Compound (group) node card renderer — shown when group-by is active.
  *
  * Rendered as a dashed-border container that visually wraps its children.
  * React Flow positions children inside via the `parentNode`+`extent: 'parent'`
- * relationship; we just need to give the container a header strip with the
+ * relationship; we just give the container a header strip with the
  * group label, child count, and roll-up qty.  Children render at their own
  * z-index above this card.
+ *
+ * @param props React Flow `NodeProps` whose `data` is a {@link GroupNodeData}.
+ * @returns The group container JSX.
  */
 export function GroupNodeView({ data, selected }: NodeProps) {
   const { label, childCount, totalQty } = data as GroupNodeData

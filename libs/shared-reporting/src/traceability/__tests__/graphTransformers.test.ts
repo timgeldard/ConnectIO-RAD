@@ -247,11 +247,13 @@ describe('buildLineageGraph grouping', () => {
     const { nodes } = buildLineageGraph(data, { groupBy: 'plant' })
     const groups = nodes.filter((n) => n.id.startsWith('group::'))
     expect(groups).toHaveLength(2)
-    const rcn1 = nodes.find((n) => n.id === 'group::plant:RCN1')
+    // Group ids include the side so upstream/downstream stay distinct
+    // when direction === 'both'.
+    const rcn1 = nodes.find((n) => n.id === 'group::upstream:plant:RCN1')
     expect(rcn1?.data).toMatchObject({ kind: 'group', childCount: 2 })
     // Children carry parentId pointing at their group
     const u1 = nodes.find((n) => n.id === 'U1') as { parentId?: string }
-    expect(u1?.parentId).toBe('group::plant:RCN1')
+    expect(u1?.parentId).toBe('group::upstream:plant:RCN1')
   })
 
   test('groupBy="material" buckets by material_id', () => {
@@ -270,8 +272,8 @@ describe('buildLineageGraph grouping', () => {
       .map((n) => n.id)
       .sort()
     expect(groupIds).toEqual([
-      'group::material:MAT-A',
-      'group::material:MAT-B',
+      'group::upstream:material:MAT-A',
+      'group::upstream:material:MAT-B',
     ])
   })
 
@@ -289,6 +291,27 @@ describe('buildLineageGraph grouping', () => {
     expect(intra).toBeUndefined()
   })
 
+  test('groupBy keeps upstream and downstream at the same plant in separate buckets', () => {
+    // Regression for the side-discriminator bug surfaced in PR #54 review:
+    // when direction === 'both' and an upstream row and a downstream row
+    // are both at RCN1, they MUST live in separate groups so the two
+    // halves of the graph don't collapse.
+    const data: AdvancedLineageData = {
+      focal,
+      upstream: [row('U1', 'RCN1', 'MAT-A')],
+      downstream: [row('D1', 'RCN1', 'MAT-B')],
+    }
+    const { nodes } = buildLineageGraph(data, { groupBy: 'plant' })
+    const groupIds = nodes
+      .filter((n) => n.id.startsWith('group::'))
+      .map((n) => n.id)
+      .sort()
+    expect(groupIds).toEqual([
+      'group::downstream:plant:RCN1',
+      'group::upstream:plant:RCN1',
+    ])
+  })
+
   test('cross-group edges are rewritten to point at the group ids', () => {
     const data: AdvancedLineageData = {
       focal,
@@ -300,7 +323,9 @@ describe('buildLineageGraph grouping', () => {
     }
     const { edges } = buildLineageGraph(data, { groupBy: 'plant' })
     const crossing = edges.find(
-      (e) => e.source === 'group::plant:RCN2' && e.target === 'group::plant:RCN1',
+      (e) =>
+        e.source === 'group::upstream:plant:RCN2' &&
+        e.target === 'group::upstream:plant:RCN1',
     )
     expect(crossing).toBeDefined()
   })

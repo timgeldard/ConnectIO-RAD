@@ -52,13 +52,19 @@ describe('LineageExportMenu', () => {
     const err = new Error('boom')
     const onPng = vi.fn().mockRejectedValue(err)
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    render(<LineageExportMenu onPng={onPng} />)
-    await userEvent.click(screen.getByTestId('lineage-export-menu-toggle'))
-    await userEvent.click(screen.getByTestId('lineage-export-png'))
-    await waitFor(() => {
-      expect(screen.getByTestId('lineage-export-menu-toggle').textContent).not.toMatch(/Saving/i)
-    })
-    expect(consoleSpy).toHaveBeenCalled()
-    consoleSpy.mockRestore()
+    // try/finally guarantees the spy is restored even when an assertion
+    // throws mid-test; otherwise the stubbed console.error leaks into
+    // every subsequent test in the file.
+    try {
+      render(<LineageExportMenu onPng={onPng} />)
+      await userEvent.click(screen.getByTestId('lineage-export-menu-toggle'))
+      await userEvent.click(screen.getByTestId('lineage-export-png'))
+      await waitFor(() => {
+        expect(screen.getByTestId('lineage-export-menu-toggle').textContent).not.toMatch(/Saving/i)
+      })
+      expect(consoleSpy).toHaveBeenCalled()
+    } finally {
+      consoleSpy.mockRestore()
+    }
   })
 })

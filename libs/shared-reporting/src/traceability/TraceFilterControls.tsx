@@ -15,7 +15,7 @@
  * lets us share label/style tokens.  Consumers that only want one or two
  * controls can pass `show={{ depth: true, direction: false, links: true }}`.
  */
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 
 import type { AdvancedLinkType, LineageDirection } from './types'
 
@@ -111,6 +111,7 @@ export function TraceFilterControls({
       {visible.direction && (
         <Group label="Direction">
           <SegmentedButton
+            ariaLabel="Lineage direction filter"
             options={[
               { value: 'both', label: 'Both' },
               { value: 'upstream', label: 'Upstream' },
@@ -147,6 +148,7 @@ export function TraceFilterControls({
       {visible.group && (
         <Group label="Group by">
           <SegmentedButton
+            ariaLabel="Group lineage nodes by"
             options={[
               { value: 'none', label: 'None' },
               { value: 'plant', label: 'Plant' },
@@ -184,14 +186,19 @@ export function TraceFilterControls({
 /* internal building blocks                                           */
 /* ------------------------------------------------------------------ */
 
-function Group({ label, children }: { label: string; children: React.ReactNode }) {
+function Group({ label, children }: { label: string; children: ReactNode }) {
+  // `<label>` is reserved for form controls.  The grouped controls inside
+  // (radiogroups, sliders) already have their own accessible names via
+  // `aria-label`, so the visual label is wrapped in a plain `<div>` with
+  // a non-interactive span — keeping screen readers from announcing
+  // the group title twice or treating it as a single labelled control.
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
       <span style={{ color: 'var(--ink-3, #6b7280)', whiteSpace: 'nowrap' }}>
         {label}
       </span>
       {children}
-    </label>
+    </div>
   )
 }
 
@@ -199,14 +206,17 @@ function SegmentedButton<T extends string>({
   options,
   value,
   onChange,
+  ariaLabel,
 }: {
   options: ReadonlyArray<{ value: T; label: string }>
   value: T
   onChange: (next: T) => void
+  ariaLabel: string
 }) {
   return (
     <div
       role="radiogroup"
+      aria-label={ariaLabel}
       style={{
         display: 'inline-flex',
         borderRadius: 4,
