@@ -75,7 +75,11 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
 })
 
-/** Root provider — wraps App with i18n, PlantProvider, and TanStack Query context. */
+/**
+ * Root provider — wraps App with i18n, PlantProvider, and TanStack Query context.
+ *
+ * @returns The fully-configured application tree ready to mount.
+ */
 export function Root() {
   return (
     <QueryClientProvider client={queryClient}>

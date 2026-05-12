@@ -8,8 +8,10 @@ Visibility rules (owned / public / explicitly-shared) are enforced in the DAL.
 from __future__ import annotations
 
 import json
+from functools import partial
 from typing import Optional
 
+import anyio
 from fastapi import APIRouter, Depends, HTTPException, Query
 from shared_auth.identity import UserIdentity, require_proxy_user
 
@@ -203,14 +205,17 @@ async def create_dashboard(
         Newly created ``DashboardDetail``.
     """
     config_json = body.config.model_dump_json()
-    row = dal.create_dashboard(
-        user.raw_token,
-        title=body.title,
-        description=body.description,
-        config_json=config_json,
-        owner_email=user.email or "",
-        is_public=body.is_public,
-        tags=body.tags,
+    row = await anyio.to_thread.run_sync(
+        partial(
+            dal.create_dashboard,
+            user.raw_token,
+            title=body.title,
+            description=body.description,
+            config_json=config_json,
+            owner_email=user.email or "",
+            is_public=body.is_public,
+            tags=body.tags,
+        )
     )
     return _row_to_detail(row)
 
@@ -246,15 +251,18 @@ async def update_dashboard(
             not the owner (ownership is not disclosed to avoid information leakage).
     """
     config_json = body.config.model_dump_json()
-    row = dal.update_dashboard(
-        user.raw_token,
-        dashboard_id,
-        user.email or "",
-        title=body.title,
-        description=body.description,
-        config_json=config_json,
-        is_public=body.is_public,
-        tags=body.tags,
+    row = await anyio.to_thread.run_sync(
+        partial(
+            dal.update_dashboard,
+            user.raw_token,
+            dashboard_id,
+            user.email or "",
+            title=body.title,
+            description=body.description,
+            config_json=config_json,
+            is_public=body.is_public,
+            tags=body.tags,
+        )
     )
     if row is None:
         raise HTTPException(status_code=404, detail="Dashboard not found.")
@@ -285,7 +293,9 @@ async def delete_dashboard(
         HTTPException: 404 when the dashboard does not exist or the caller is
             not the owner.
     """
-    deleted = dal.delete_dashboard(user.raw_token, dashboard_id, user.email or "")
+    deleted = await anyio.to_thread.run_sync(
+        partial(dal.delete_dashboard, user.raw_token, dashboard_id, user.email or "")
+    )
     if not deleted:
         raise HTTPException(status_code=404, detail="Dashboard not found.")
 
@@ -316,7 +326,9 @@ async def list_dashboard_shares(
         HTTPException: 404 when the dashboard does not exist or the caller is
             not the owner.
     """
-    rows = dal.list_shares(user.raw_token, dashboard_id, user.email or "")
+    rows = await anyio.to_thread.run_sync(
+        partial(dal.list_shares, user.raw_token, dashboard_id, user.email or "")
+    )
     shares = [_row_to_share(r) for r in rows]
     return DashboardShareListResponse(shares=shares, total=len(shares))
 
@@ -350,11 +362,8 @@ async def share_dashboard(
         HTTPException: 404 when the dashboard does not exist or the caller is
             not the owner.
     """
-    row = dal.share_dashboard(
-        user.raw_token,
-        dashboard_id,
-        user.email or "",
-        body.email,
+    row = await anyio.to_thread.run_sync(
+        partial(dal.share_dashboard, user.raw_token, dashboard_id, user.email or "", body.email)
     )
     if row is None:
         raise HTTPException(status_code=404, detail="Dashboard not found.")
@@ -387,11 +396,8 @@ async def unshare_dashboard(
         HTTPException: 404 when the dashboard does not exist or the caller is
             not the owner.
     """
-    ok = dal.unshare_dashboard(
-        user.raw_token,
-        dashboard_id,
-        user.email or "",
-        shared_with_email,
+    ok = await anyio.to_thread.run_sync(
+        partial(dal.unshare_dashboard, user.raw_token, dashboard_id, user.email or "", shared_with_email)
     )
     if not ok:
         raise HTTPException(status_code=404, detail="Dashboard not found.")

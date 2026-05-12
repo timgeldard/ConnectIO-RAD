@@ -9,6 +9,7 @@
  */
 import type { CSSProperties } from 'react'
 import { useCallback, useState } from 'react'
+import { useI18n } from '@connectio/shared-frontend-i18n'
 import {
   useDashboardList,
   useCreateDashboard,
@@ -64,6 +65,7 @@ const WIDGET_DEFS = [
 
 /** Top-level dashboards panel: list → view/edit navigation. */
 export function DashboardsPanel() {
+  const { t } = useI18n()
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const handleBack = useCallback(() => setSelectedId(null), [])
@@ -71,8 +73,8 @@ export function DashboardsPanel() {
   if (selectedId) {
     return (
       <div style={fullHeightStyle}>
-        <button style={backButtonStyle} onClick={handleBack} aria-label="Back to dashboard list">
-          ← All dashboards
+        <button style={backButtonStyle} onClick={handleBack} aria-label={t('platform.dashboards.dashboardList')}>
+          {t('platform.dashboards.backToList')}
         </button>
         <div style={composableWrapStyle}>
           <ComposableDashboard
@@ -99,6 +101,7 @@ interface DashboardListViewProps {
 }
 
 function DashboardListView({ onSelect }: DashboardListViewProps) {
+  const { t } = useI18n()
   const { data: dashboards, isPending, isError, refetch } = useDashboardList()
   const { mutateAsync: createDashboard, isPending: isCreating } = useCreateDashboard()
 
@@ -125,16 +128,16 @@ function DashboardListView({ onSelect }: DashboardListViewProps) {
       <div style={listPanelStyle}>
         <header style={listHeaderStyle}>
           <div>
-            <div style={listTitleStyle}>Dashboards</div>
-            <div style={listSubtitleStyle}>Build and share composable analytics dashboards</div>
+            <div style={listTitleStyle}>{t('platform.dashboards.title')}</div>
+            <div style={listSubtitleStyle}>{t('platform.dashboards.subtitle')}</div>
           </div>
           {!showCreateForm && (
             <button
               style={primaryButtonStyle}
               onClick={() => setShowCreateForm(true)}
-              aria-label="Create new dashboard"
+              aria-label={t('platform.dashboards.newDashboard')}
             >
-              + New Dashboard
+              {t('platform.dashboards.newDashboard')}
             </button>
           )}
         </header>
@@ -146,48 +149,48 @@ function DashboardListView({ onSelect }: DashboardListViewProps) {
               value={createTitle}
               onChange={(e) => setCreateTitle(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
-              placeholder="Dashboard name…"
+              placeholder={t('platform.dashboards.createPlaceholder')}
               style={createInputStyle}
               autoFocus
-              aria-label="New dashboard title"
+              aria-label={t('platform.dashboards.createPlaceholder')}
             />
             <button
               style={primaryButtonStyle}
               onClick={handleCreate}
               disabled={isCreating || !createTitle.trim()}
             >
-              {isCreating ? 'Creating…' : 'Create'}
+              {isCreating ? t('platform.dashboards.creating') : t('platform.dashboards.create')}
             </button>
             <button
               style={ghostButtonStyle}
               onClick={() => { setShowCreateForm(false); setCreateTitle('') }}
             >
-              Cancel
+              {t('platform.dashboards.cancel')}
             </button>
           </div>
         )}
 
         {isPending && (
-          <div style={stateMessageStyle}>Loading dashboards…</div>
+          <div style={stateMessageStyle}>{t('platform.dashboards.loading')}</div>
         )}
 
         {isError && (
           <div style={errorMessageStyle}>
-            Failed to load dashboards.{' '}
-            <button style={retryLinkStyle} onClick={() => refetch()}>Retry</button>
+            {t('platform.dashboards.loadError')}{' '}
+            <button style={retryLinkStyle} onClick={() => refetch()}>{t('platform.dashboards.retry')}</button>
           </div>
         )}
 
         {!isPending && !isError && (!dashboards || dashboards.length === 0) && (
           <div style={emptyStateStyle}>
             <div style={emptyIconStyle}>▦</div>
-            <div style={emptyTitleStyle}>No dashboards yet</div>
-            <div style={emptyDescStyle}>Create your first dashboard to get started.</div>
+            <div style={emptyTitleStyle}>{t('platform.dashboards.empty.title')}</div>
+            <div style={emptyDescStyle}>{t('platform.dashboards.empty.desc')}</div>
           </div>
         )}
 
         {dashboards && dashboards.length > 0 && (
-          <ul style={cardGridStyle} aria-label="Dashboard list">
+          <ul style={cardGridStyle} aria-label={t('platform.dashboards.share.dashboardList')}>
             {dashboards.map((d) => (
               <DashboardCard key={d.id} dashboard={d} onSelect={onSelect} onShare={handleShare} />
             ))}
@@ -216,6 +219,7 @@ function DashboardCard({
   onSelect: (id: string) => void
   onShare: (dashboard: DashboardSummary, e: React.MouseEvent) => void
 }) {
+  const { t } = useI18n()
   const updatedDate = new Date(dashboard.updatedAt).toLocaleDateString(undefined, {
     day: 'numeric',
     month: 'short',
@@ -227,7 +231,7 @@ function DashboardCard({
       <button
         style={cardStyle}
         onClick={() => onSelect(dashboard.id)}
-        aria-label={`Open dashboard: ${dashboard.title}`}
+        aria-label={t('platform.dashboards.card.open', { title: dashboard.title })}
       >
         <div style={cardTitleStyle}>{dashboard.title}</div>
         {dashboard.description && (
@@ -235,12 +239,12 @@ function DashboardCard({
         )}
         <div style={cardMetaStyle}>
           <span>{dashboard.ownerEmail}</span>
-          <span>v{dashboard.version} · Updated {updatedDate}</span>
+          <span>{t('platform.dashboards.card.updated', { version: dashboard.version, date: updatedDate })}</span>
         </div>
         {dashboard.tags.length > 0 && (
           <div style={tagRowStyle}>
-            {dashboard.tags.map((t) => (
-              <span key={t} style={tagStyle}>{t}</span>
+            {dashboard.tags.map((tag) => (
+              <span key={tag} style={tagStyle}>{tag}</span>
             ))}
           </div>
         )}
@@ -248,9 +252,9 @@ function DashboardCard({
           <button
             style={shareButtonStyle}
             onClick={(e) => onShare(dashboard, e)}
-            aria-label={`Manage sharing for ${dashboard.title}`}
+            aria-label={t('platform.dashboards.card.manageSharing', { title: dashboard.title })}
           >
-            Share
+            {t('platform.dashboards.card.share')}
           </button>
         </div>
       </button>
@@ -267,6 +271,7 @@ function ShareDialog({
   dashboard: DashboardSummary
   onClose: () => void
 }) {
+  const { t } = useI18n()
   const { data, isPending, isError } = useDashboardShares(dashboard.id)
   const { mutate: shareDashboard, isPending: isSharing, error: shareError } = useShareDashboard()
   const { mutate: unshareDashboard, isPending: isUnsharing } = useUnshareDashboard()
@@ -292,23 +297,23 @@ function ShareDialog({
   return (
     <>
       <div style={backdropStyle} onClick={onClose} aria-hidden />
-      <div style={dialogStyle} role="dialog" aria-modal aria-label={`Share: ${dashboard.title}`}>
+      <div style={dialogStyle} role="dialog" aria-modal aria-label={t('platform.dashboards.share.title', { title: dashboard.title })}>
         <div style={dialogHeaderStyle}>
-          <span style={dialogTitleStyle}>Share: {dashboard.title}</span>
-          <button style={closeButtonStyle} onClick={onClose} aria-label="Close share dialog">✕</button>
+          <span style={dialogTitleStyle}>{t('platform.dashboards.share.title', { title: dashboard.title })}</span>
+          <button style={closeButtonStyle} onClick={onClose} aria-label={t('platform.dashboards.share.close')}>✕</button>
         </div>
 
         <div style={dialogBodyStyle}>
-          {isPending && <div style={stateMessageStyle}>Loading shares…</div>}
-          {isError && <div style={errorMessageStyle}>Could not load shares.</div>}
+          {isPending && <div style={stateMessageStyle}>{t('platform.dashboards.share.loading')}</div>}
+          {isError && <div style={errorMessageStyle}>{t('platform.dashboards.share.loadError')}</div>}
 
           {!isPending && !isError && (
             <>
               {shares.length === 0 && (
-                <div style={emptySharesStyle}>Not shared with anyone yet.</div>
+                <div style={emptySharesStyle}>{t('platform.dashboards.share.empty')}</div>
               )}
               {shares.length > 0 && (
-                <ul style={shareListStyle} aria-label="People with access">
+                <ul style={shareListStyle} aria-label={t('platform.dashboards.share.peopleWithAccess')}>
                   {shares.map((s) => (
                     <li key={s.sharedWithEmail} style={shareRowStyle}>
                       <span style={shareEmailStyle}>{s.sharedWithEmail}</span>
@@ -316,9 +321,9 @@ function ShareDialog({
                         style={removeButtonStyle}
                         onClick={() => handleRemove(s.sharedWithEmail)}
                         disabled={isUnsharing}
-                        aria-label={`Remove access for ${s.sharedWithEmail}`}
+                        aria-label={t('platform.dashboards.share.removeAccess', { email: s.sharedWithEmail })}
                       >
-                        Remove
+                        {t('platform.dashboards.share.remove')}
                       </button>
                     </li>
                   ))}
@@ -326,7 +331,7 @@ function ShareDialog({
               )}
 
               {notOwner ? (
-                <div style={warningStyle}>Only the owner can manage shares.</div>
+                <div style={warningStyle}>{t('platform.dashboards.share.ownerOnly')}</div>
               ) : (
                 <div style={addRowStyle}>
                   <input
@@ -334,17 +339,17 @@ function ShareDialog({
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
-                    placeholder="Email address…"
+                    placeholder={t('platform.dashboards.share.emailPlaceholder')}
                     style={createInputStyle}
                     autoFocus
-                    aria-label="Email to share with"
+                    aria-label={t('platform.dashboards.share.emailPlaceholder')}
                   />
                   <button
                     style={primaryButtonStyle}
                     onClick={handleAdd}
                     disabled={isSharing || !emailInput.trim()}
                   >
-                    {isSharing ? 'Adding…' : 'Add'}
+                    {isSharing ? t('platform.dashboards.share.adding') : t('platform.dashboards.share.add')}
                   </button>
                 </div>
               )}
