@@ -14,7 +14,10 @@ const mockRegistry: QueryRegistry = {
       { key: 'p1', label: 'Param 1', type: 'string', defaultValue: 'def' },
     ],
     fields: [
-      { path: 'f1', label: 'Field 1', type: 'number' },
+      { path: 'value', label: 'Value', type: 'number' },
+      { path: 'delta', label: 'Delta', type: 'string' },
+      { path: 'status', label: 'Status', type: 'string', semantic: 'status' },
+      { path: 'progressBar', label: 'Progress', type: 'number', semantic: 'percentage' },
     ],
   },
 }
@@ -60,7 +63,12 @@ describe('KpiWidgetForm Binding', () => {
     expect(onDataChange).toHaveBeenCalledWith({
       queryKey: 'q1',
       params: { p1: { value: 'def' } },
-      mapping: {},
+      mapping: {
+        value: 'value',
+        delta: 'delta',
+        subtext: 'status',
+        progressBar: 'progressBar',
+      },
     })
   })
 
@@ -85,11 +93,11 @@ describe('KpiWidgetForm Binding', () => {
 
     // Should already be on data tab because data is present
     const valueMappingSelect = screen.getByLabelText('value')
-    fireEvent.change(valueMappingSelect, { target: { value: 'f1' } })
+    fireEvent.change(valueMappingSelect, { target: { value: 'value' } })
 
     expect(onDataChange).toHaveBeenCalledWith({
       ...existingData,
-      mapping: { value: 'f1' },
+      mapping: { value: 'value' },
     })
   })
 })
