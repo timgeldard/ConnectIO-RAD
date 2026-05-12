@@ -56,3 +56,6 @@ apps/*/.claude/
 **/__pycache__
 .ruff_cache
 **/app.yaml
+
+
+storybook-static

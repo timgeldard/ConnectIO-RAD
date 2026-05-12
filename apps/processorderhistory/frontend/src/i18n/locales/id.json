@@ -235,6 +235,7 @@
   "poh.started": "Dimulai",
   "poh.statusCancelled": "Dibatalkan",
   "poh.statusCompleted": "Selesai",
+  "poh.statusClosed": "Ditutup",
   "poh.statusFailed": "Gagal",
   "poh.statusLabel": "Status",
   "poh.statusOnhold": "Ditangguhkan",

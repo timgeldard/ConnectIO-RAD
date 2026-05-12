@@ -1,4 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */
+export * from './helpers'
 export * from './schema/config'
 export * from './schema/composable'
 export * from './core/types'

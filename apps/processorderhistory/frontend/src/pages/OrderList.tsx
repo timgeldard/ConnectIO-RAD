@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import { useMemo, useState, useEffect } from 'react'
 import { useT } from '../i18n/context'
-import { KPI, Icon, TopBar, Button, GlobalFilterBar, FilterGroup, FilterDivider, type Column } from '@connectio/shared-ui'
+import { KPI, Icon, TopBar, Button, GlobalFilterBar, FilterGroup, FilterDivider, DataTable, type Column } from '@connectio/shared-ui'
 import { usePlantSelection } from '@connectio/shared-app-context'
 import { useQuery } from '@tanstack/react-query'
 import { fmt, StatusBadge, DataTable } from '../ui'
@@ -174,6 +174,20 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
 
   const allSel = pageOrders.length > 0 && pageOrders.every(o => selected.has(o.id))
   const someSel = pageOrders.some(o => selected.has(o.id)) && !allSel
+
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+  const totalRunning = filtered.filter(o => o.status === 'running').length
+  const onHold = filtered.filter(o => o.status === 'onhold').length
+  const ordersThisMonth = orders.filter(o => o.start != null && o.start >= thirtyDaysAgo).length
+  const avgYield = (() => {
+    const ys = filtered.filter(o => o.yieldPct != null).map(o => o.yieldPct as number)
+    if (ys.length === 0) return null
+    return (ys.reduce((a, b) => a + b, 0) / ys.length).toFixed(1)
+  })()
+  const statusLabel: Record<string, string> = {
+    running: t.statusRunning, completed: t.statusCompleted, closed: t.statusClosed,
+    released: t.statusReleased, onhold: t.statusOnhold, cancelled: t.statusCancelled, failed: t.statusFailed,
+  }
 
   const columns: Column<Order>[] = useMemo(() => [
     {

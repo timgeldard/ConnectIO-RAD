@@ -95,7 +95,7 @@ async def _q_latest_states(token: str, plant_id: Optional[str]) -> list[dict]:
                 ROW_NUMBER() OVER (PARTITION BY INSTRUMENT_ID ORDER BY CHANGE_AT DESC) AS rn
             FROM {tbl('vw_gold_equipment_history')}
             WHERE CHANGE_AT >= current_timestamp() - INTERVAL 90 DAYS
-              AND EQUIPMENT_TYPE != 'Single-Use Vessel'
+              AND EQUIPMENT_TYPE = 'Vessel'
         )
         SELECT
             leh.INSTRUMENT_ID          AS instrument_id,
@@ -169,7 +169,7 @@ async def _q_events_range(
         LEFT JOIN {tbl('vw_gold_material')} m
             ON m.MATERIAL_ID = po.MATERIAL_ID
            AND m.LANGUAGE_ID = 'E'
-        WHERE eh.EQUIPMENT_TYPE != 'Single-Use Vessel'
+        WHERE eh.EQUIPMENT_TYPE = 'Vessel'
           {date_clause}
           {plant_clause}
         ORDER BY eh.CHANGE_AT DESC

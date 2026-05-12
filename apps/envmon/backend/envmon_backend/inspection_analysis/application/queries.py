@@ -199,7 +199,11 @@ async def get_heatmap(
     applied_lambda = decay_lambda if decay_lambda is not None else default_decay_lambda
     continuous_mode = decay_lambda is not None
 
-    rows = await heatmap_dal.fetch_heatmap_rows(token, plant_id, floor_id, date_from, date_to, mics)
+    try:
+        rows = await heatmap_dal.fetch_heatmap_rows(token, plant_id, floor_id, date_from, date_to, mics)
+    except Exception:
+        logger.exception("Heatmap query failed for plant=%s floor=%s window=%s", plant_id, floor_id, time_window_days)
+        raise
     by_loc: dict[str, list[dict]] = defaultdict(list)
     coords: dict[str, dict] = {}
     for row in rows:

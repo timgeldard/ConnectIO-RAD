@@ -37,6 +37,7 @@ describe('useGenieConversation', () => {
       messageId: 'm1',
       status: 'COMPLETED',
       answer: 'Hello world',
+      attachments: [],
       spaceId: 's1',
       attachments: [],
     }

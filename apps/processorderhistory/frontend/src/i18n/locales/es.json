@@ -235,6 +235,7 @@
   "poh.started": "Inicio",
   "poh.statusCancelled": "Cancelada",
   "poh.statusCompleted": "Completada",
+  "poh.statusClosed": "Cerrada",
   "poh.statusFailed": "Fallida",
   "poh.statusLabel": "Estado",
   "poh.statusOnhold": "En espera",

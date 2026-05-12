@@ -235,6 +235,7 @@
   "poh.started": "開始",
   "poh.statusCancelled": "キャンセル済み",
   "poh.statusCompleted": "完了",
+  "poh.statusClosed": "クローズ",
   "poh.statusFailed": "失敗",
   "poh.statusLabel": "ステータス",
   "poh.statusOnhold": "保留中",

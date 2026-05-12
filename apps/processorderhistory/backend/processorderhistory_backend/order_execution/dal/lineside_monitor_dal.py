@@ -1,8 +1,11 @@
 """DAL for Lineside Monitor — live wallboard summary from POH and W360 views."""
 import asyncio
-from typing import Optional
+import logging
+from typing import Any, Optional
 
 from processorderhistory_backend.db import run_sql_async, sql_param, tbl
+
+logger = logging.getLogger(__name__)
 
 
 async def _q_active_orders(token: str, plant_id: Optional[str]) -> list[dict]:
@@ -212,6 +215,23 @@ def _build_summary(active_orders: list[dict], downtime: list[dict], next_orders:
     }
 
 
+def _safe_result(result: Any, name: str) -> list[dict]:
+    """Return the result list, or an empty list if the gather coroutine raised.
+
+    Args:
+        result: A value or BaseException returned by ``asyncio.gather`` with
+            ``return_exceptions=True``.
+        name: Human-readable sub-query name used in warning log messages.
+
+    Returns:
+        The original list on success, or ``[]`` if the coroutine raised.
+    """
+    if isinstance(result, BaseException):
+        logger.warning("Lineside Monitor sub-query '%s' failed: %s", name, result)
+        return []
+    return result
+
+
 async def fetch_lineside_monitor(token: str, *, plant_id: Optional[str] = None) -> dict:
     """Fetch and aggregate live Lineside Monitor wallboard data.
 
@@ -224,10 +244,15 @@ async def fetch_lineside_monitor(token: str, *, plant_id: Optional[str] = None) 
         Summary dictionary containing production KPIs, line state cards, recent
         activity, line-side stock rows, and the ``data_available`` flag.
     """
-    active_orders, downtime, next_orders, stock = await asyncio.gather(
+    results = await asyncio.gather(
         _q_active_orders(token, plant_id),
         _q_downtime(token, plant_id),
         _q_next_orders(token, plant_id),
         _q_lineside_stock(token, plant_id),
+        return_exceptions=True,
     )
+    active_orders = _safe_result(results[0], "active_orders")
+    downtime      = _safe_result(results[1], "downtime")
+    next_orders   = _safe_result(results[2], "next_orders")
+    stock         = _safe_result(results[3], "stock")
     return _build_summary(active_orders, downtime, next_orders, stock)

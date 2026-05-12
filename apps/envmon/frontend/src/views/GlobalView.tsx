@@ -4,6 +4,7 @@ import { useI18n } from '@connectio/shared-frontend-i18n';
 import EnvMonGlobalMap from '~/map/EnvMonGlobalMap';
 import { usePlantMapData } from '~/map/usePlantMapData';
 import { usePlants } from '~/api/client';
+import { useEM } from '~/context/EMContext';
 import { KPI } from '@connectio/shared-ui';
 import type { PlantInfo } from '~/types';
 
@@ -18,9 +19,9 @@ const REGIONS = ['ALL', 'EMEA', 'AMER', 'APMEA'];
 /** Portfolio-level view showing risk map, KPI strip, and plant ranking list. */
 export default function GlobalView({ onOpenPlant }: Props) {
   const { t } = useI18n();
+  const { portfolioDays, setPortfolioDays } = useEM();
   const [region, setRegion] = useState('ALL');
   const [sortBy, setSortBy] = useState<'risk' | 'fails' | 'rate' | 'name'>('risk');
-  const [portfolioDays, setPortfolioDays] = useState(30);
   const [focusedPlantId, setFocusedPlantId] = useState<string | null>(null);
   const { data: plants = [] } = usePlants(portfolioDays);
 

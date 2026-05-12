@@ -175,6 +175,12 @@
   }
 }
 
+/* Global map canvas — MapLibre requires explicit dimensions on its container */
+.envmon-map-container {
+  width: 100%;
+  height: 100%;
+}
+
 /* AppShell Footer */
 .app-sidebar-footer {
   display: flex;

@@ -20,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /Users/timgeldard/.ai-dev-kit/repo/.claude-plugin/check_update.sh",
+            "command": "bash C:/Users/tgeldard/.ai-dev-kit/repo/.claude-plugin/check_update.sh",
             "timeout": 5
           }
         ]

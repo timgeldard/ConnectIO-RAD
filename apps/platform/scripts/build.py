@@ -81,6 +81,11 @@ STANDALONE_SLUGS = [
     "maintenance",
     "tpm",
     "pex-e-35",
+    "blue-sky-trace",
+    "traceability-portfolio",
+    "operations-suite",
+    "quality-suite",
+    "factory-mood-board",
 ]
 
 

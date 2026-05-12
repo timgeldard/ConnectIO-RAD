@@ -235,6 +235,7 @@
   "poh.started": "Gestart",
   "poh.statusCancelled": "Geannuleerd",
   "poh.statusCompleted": "Voltooid",
+  "poh.statusClosed": "Gesloten",
   "poh.statusFailed": "Mislukt",
   "poh.statusLabel": "Status",
   "poh.statusOnhold": "In de wacht",

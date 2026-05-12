@@ -235,6 +235,7 @@
   "poh.started": "Tosaithe",
   "poh.statusCancelled": "Cealaithe",
   "poh.statusCompleted": "Críochnaithe",
+  "poh.statusClosed": "Dúnta",
   "poh.statusFailed": "Teipthe",
   "poh.statusLabel": "Stádas",
   "poh.statusOnhold": "Ar fionraí",
