@@ -19,6 +19,7 @@ from shared_api import (
     register_spa_routes,
 )
 from backend.routes.badges import router as badges_router
+from backend.routes.dashboards.router import router as dashboards_router
 from backend.routes.manifest import router as manifest_router
 from backend.routes.session import router as session_router
 from backend.utils import (
@@ -65,6 +66,7 @@ def _register_discovered_routers() -> None:
 
 
 _register_discovered_routers()
+app.include_router(dashboards_router, prefix="/api/dashboards")
 app.include_router(badges_router)
 app.include_router(manifest_router)
 app.include_router(session_router)

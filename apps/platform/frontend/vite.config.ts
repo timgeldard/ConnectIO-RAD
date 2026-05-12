@@ -11,6 +11,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@connectio/shared-ui': path.resolve(__dirname, '../../../libs/shared-ui/src'),
+      '@connectio/shared-reporting': path.resolve(__dirname, '../../../libs/shared-reporting/src/index.ts'),
     },
   },
   base: '/',

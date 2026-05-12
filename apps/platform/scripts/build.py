@@ -81,6 +81,11 @@ STANDALONE_SLUGS = [
     "maintenance",
     "tpm",
     "pex-e-35",
+    "blue-sky-trace",
+    "traceability-portfolio",
+    "operations-suite",
+    "quality-suite",
+    "factory-mood-board",
 ]
 
 
@@ -181,7 +186,7 @@ def sync_requirements() -> None:
         if stripped.startswith("./wheels/") and stripped.endswith(".whl"):
             pkg_name = stripped.split("/")[-1].split("-")[0]
             if pkg_name in built and f"./wheels/{built[pkg_name]}" != stripped:
-                changes.append(f"  {stripped} → ./wheels/{built[pkg_name]}")
+                changes.append(f"  {stripped} -> ./wheels/{built[pkg_name]}")
                 updated.append(f"./wheels/{built[pkg_name]}\n")
             else:
                 updated.append(line)

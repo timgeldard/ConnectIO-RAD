@@ -235,6 +235,7 @@
   "poh.started": "Startet",
   "poh.statusCancelled": "Annulleret",
   "poh.statusCompleted": "Gennemført",
+  "poh.statusClosed": "Lukket",
   "poh.statusFailed": "Fejlet",
   "poh.statusLabel": "Status",
   "poh.statusOnhold": "På hold",

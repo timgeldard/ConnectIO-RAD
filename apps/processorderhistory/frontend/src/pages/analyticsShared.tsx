@@ -41,23 +41,7 @@ export function inBucket(ts: number, bucket: BucketSelection): boolean {
   return ts >= bucket.startMs && ts < bucket.endMs
 }
 
-/** Compute a ±N.N% delta string and trend direction for KpiCardWidget. */
-export function deltaPct(
-  current: number | null,
-  prior: number | null,
-): { delta?: string; trend?: 'up' | 'down' } {
-  if (current == null || prior == null || prior === 0) return {}
-  const pct = ((current - prior) / prior) * 100
-  return { delta: `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`, trend: current >= prior ? 'up' : 'down' }
-}
-
-/** Map local tone strings ('good'/'ok'/'bad') to KPITone values. */
-export function mapTone(t: string): 'ok' | 'warn' | 'risk' | 'neutral' {
-  if (t === 'good') return 'ok'
-  if (t === 'ok') return 'warn'
-  if (t === 'bad') return 'risk'
-  return 'neutral'
-}
+export { deltaPct, mapTone } from '@connectio/shared-reporting'
 
 // ---------------------------------------------------------------------------
 // Hook: useAnalyticsFilters (persisted in URL or local state)

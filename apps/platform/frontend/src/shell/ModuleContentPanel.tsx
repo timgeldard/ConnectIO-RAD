@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
 import { moduleHref } from './LandingCard'
 import { HomePanel } from './HomePanel'
+import { DashboardsPanel } from './DashboardsPanel'
 
 interface ModuleContentPanelProps {
   /** The ID of the module currently selected in the shell. */
@@ -27,13 +28,14 @@ export function ModuleContentPanel({
 }: ModuleContentPanelProps) {
   const mod = modules.find((m) => m.moduleId === moduleId)
 
-  // Selecting any non-home module navigates directly into the sub-app,
-  // bypassing the intermediate landing card step.
+  const isInShell = moduleId === 'home' || moduleId === 'dashboards'
+
+  // Selecting any non-home, non-in-shell module navigates into the sub-app.
   useEffect(() => {
-    if (moduleId !== 'home' && mod) {
+    if (!isInShell && mod) {
       window.location.href = moduleHref(mod, activeTabId)
     }
-  }, [moduleId, mod, activeTabId])
+  }, [isInShell, mod, activeTabId])
 
   if (moduleId === 'home' || !mod) {
     return (
@@ -43,6 +45,10 @@ export function ModuleContentPanel({
         fetchSessionFallback={fetchSessionFallback}
       />
     )
+  }
+
+  if (moduleId === 'dashboards') {
+    return <DashboardsPanel />
   }
 
   // Render nothing while the navigation fires.

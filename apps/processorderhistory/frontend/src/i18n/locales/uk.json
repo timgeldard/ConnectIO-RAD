@@ -235,6 +235,7 @@
   "poh.started": "Розпочато",
   "poh.statusCancelled": "Скасовано",
   "poh.statusCompleted": "Завершено",
+  "poh.statusClosed": "Закрито",
   "poh.statusFailed": "Не вдалося",
   "poh.statusLabel": "Статус",
   "poh.statusOnhold": "Призупинено",

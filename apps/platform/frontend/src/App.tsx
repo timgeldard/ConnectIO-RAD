@@ -1,5 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import { useMemo, useState } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { I18nProvider } from '@connectio/shared-frontend-i18n'
 import { PlantProvider } from '@connectio/shared-app-context'
 import { PlatformShell } from '@connectio/shared-ui/shell'
@@ -71,13 +72,23 @@ export function App() {
   )
 }
 
-/** Root provider — wraps App with i18n and PlantProvider context. */
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+})
+
+/**
+ * Root provider — wraps App with i18n, PlantProvider, and TanStack Query context.
+ *
+ * @returns The fully-configured application tree ready to mount.
+ */
 export function Root() {
   return (
-    <I18nProvider appName="platform" resources={resources}>
-      <PlantProvider appName="platform">
-        <App />
-      </PlantProvider>
-    </I18nProvider>
+    <QueryClientProvider client={queryClient}>
+      <I18nProvider appName="platform" resources={resources}>
+        <PlantProvider appName="platform">
+          <App />
+        </PlantProvider>
+      </I18nProvider>
+    </QueryClientProvider>
   )
 }

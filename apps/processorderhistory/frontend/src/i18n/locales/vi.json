@@ -235,6 +235,7 @@
   "poh.started": "Đã bắt đầu",
   "poh.statusCancelled": "Đã hủy",
   "poh.statusCompleted": "Đã hoàn thành",
+  "poh.statusClosed": "Đã đóng",
   "poh.statusFailed": "Thất bại",
   "poh.statusLabel": "Trạng thái",
   "poh.statusOnhold": "Tạm dừng",

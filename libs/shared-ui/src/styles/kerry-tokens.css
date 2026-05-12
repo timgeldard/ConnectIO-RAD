@@ -1,10 +1,9 @@
 /* ==========================================================================
    Kerry Design System — tokens
    Source: Kerry Brand Guidelines 2024 FINAL (v1, July 2024)
-   Font note: TTFs not in handoff — using Google Fonts for Noto family.
-   Self-host can replace these imports when font pack is available.
    ========================================================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Condensed:wght@800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap');
@@ -53,13 +52,11 @@
   --stroke-soft:    color-mix(in srgb, var(--forest) 10%, transparent);
 
   /* ==========================================================================
-     TYPE
-     Note: "Noto Sans Condensed" impact style falls back to "Noto Sans" until
-     a condensed-weight variant is self-hosted.
+     TYPE — Brand Guidelines p.40–44
      ========================================================================== */
 
   --font-sans:    "Noto Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-impact:  "Noto Sans", ui-sans-serif, sans-serif;
+  --font-impact:  "Noto Sans Condensed", "Noto Sans", ui-sans-serif, sans-serif;
   --font-serif:   "Noto Serif", ui-serif, Georgia, serif;
   --font-mono:    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-display: var(--font-sans);

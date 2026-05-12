@@ -1,33 +1,51 @@
 {
   "name": "shared-reporting",
   "projectType": "library",
-  "tags": ["scope:shared", "type:frontend"],
+  "sourceRoot": "libs/shared-reporting/src",
+  "root": "libs/shared-reporting",
+  "tags": [
+    "scope:shared",
+    "type:frontend"
+  ],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
       "options": {
         "command": "npm run build",
         "cwd": "libs/shared-reporting"
-      }
+      },
+      "inputs": [
+        "tsFiles",
+        "sharedGlobals"
+      ],
+      "cache": true
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
         "command": "npm run test:ci",
         "cwd": "libs/shared-reporting"
-      }
+      },
+      "inputs": [
+        "tsFiles",
+        "sharedGlobals"
+      ],
+      "cache": true
     },
-    "test:coverage": {
+    "storybook": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npm run test:coverage",
+        "command": "storybook dev --config-dir .storybook --port 4400 --no-open",
         "cwd": "libs/shared-reporting"
       }
     },
-    "lint": {
+    "build-storybook": {
       "executor": "nx:run-commands",
+      "outputs": [
+        "{workspaceRoot}/dist/storybook/shared-reporting"
+      ],
       "options": {
-        "command": "npm run lint",
+        "command": "storybook build --config-dir .storybook --output-dir ../../dist/storybook/shared-reporting",
         "cwd": "libs/shared-reporting"
       }
     }

@@ -22,8 +22,8 @@ import type { ViewState } from '~/types';
 
 function AppShellContent() {
   const { t } = useI18n();
-  const { view, setView, personaId, setPersonaId, adminMode, setAdminMode } = useEM();
-  const { data: plants = [] } = usePlants();
+  const { view, setView, personaId, setPersonaId, adminMode, setAdminMode, portfolioDays } = useEM();
+  const { data: plants = [] } = usePlants(portfolioDays);
 
   const isReadOnly = personaId === 'auditor';
   const isAdmin = personaId === 'admin';

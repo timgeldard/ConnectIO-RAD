@@ -20,6 +20,8 @@ interface EMState {
   // Navigation
   view: ViewState;
   personaId: PersonaId;
+  // Portfolio-level filter (days picker on GlobalView)
+  portfolioDays: number;
   // Floor-level filters
   activeFloor: string | null;
   timeWindow: TimeWindow;
@@ -35,6 +37,7 @@ interface EMState {
 interface EMActions {
   setView: (v: ViewState) => void;
   setPersonaId: (id: PersonaId) => void;
+  setPortfolioDays: (days: number) => void;
   setActiveFloor: (floor: string | null) => void;
   setTimeWindow: (tw: TimeWindow) => void;
   setHeatmapMode: (mode: HeatmapMode) => void;
@@ -94,6 +97,10 @@ export function EMProvider({ children }: { children: React.ReactNode }) {
     readLocalStorage<PersonaId>('em_persona', 'regional'),
   );
 
+  const [portfolioDays, setPortfolioDaysRaw] = useState<number>(() =>
+    readLocalStorage<number>('em_portfolio_days', 30),
+  );
+
   const [activeFloor, setActiveFloorRaw] = useState<string | null>(
     () => new URLSearchParams(window.location.search).get('floor') ?? view.floorId ?? null,
   );
@@ -138,6 +145,11 @@ export function EMProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('em_persona', JSON.stringify(id));
   }, []);
 
+  const setPortfolioDays = useCallback((days: number) => {
+    setPortfolioDaysRaw(days);
+    localStorage.setItem('em_portfolio_days', JSON.stringify(days));
+  }, []);
+
   const setActiveFloor = useCallback(
     (floor: string | null) => {
       setActiveFloorRaw(floor);
@@ -180,21 +192,21 @@ export function EMProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(
     () => ({
-      view, personaId,
+      view, personaId, portfolioDays,
       activeFloor, timeWindow, heatmapMode,
       selectedLocId, adminMode, sidePanelExpanded,
       historicalDate, decayLambda, selectedMics,
-      setView, setPersonaId,
+      setView, setPersonaId, setPortfolioDays,
       setActiveFloor, setTimeWindow, setHeatmapMode,
       setSelectedLocId, setAdminMode, setSidePanelExpanded,
       setHistoricalDate, setDecayLambda, setSelectedMics,
     }),
     [
-      view, personaId,
+      view, personaId, portfolioDays,
       activeFloor, timeWindow, heatmapMode,
       selectedLocId, adminMode, sidePanelExpanded,
       historicalDate, decayLambda, selectedMics,
-      setView, setPersonaId,
+      setView, setPersonaId, setPortfolioDays,
       setActiveFloor, setTimeWindow, setHeatmapMode,
       setSelectedLocId, setAdminMode, setSidePanelExpanded,
       setHistoricalDate, setDecayLambda, setSelectedMics,

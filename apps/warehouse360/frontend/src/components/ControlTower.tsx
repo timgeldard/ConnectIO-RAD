@@ -1,10 +1,18 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import React from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
-import { useApi } from '../hooks/useApi'
-import { Icon, KPI, Card, Hbar, Donut } from './Primitives'
-import { DataTable, type Column } from './Shared'
+import { useApi } from '../hooks/useApi';
+import { usePlantSelection } from '../context/PlantContext';
+import { Icon, Pill, Progress, RiskDot, Hbar } from './Primitives';
+import { Card } from './Shared';
+import { KpiCardWidget, makeKpiConfig } from '@connectio/shared-reporting'
+import { StagingTimeline, normalizeOrder } from './ProductionStaging';
+import { DataTable, type Column } from '@connectio/shared-ui'
+import { fmtTime } from '~/utils/time'
 
+/* Control Tower — warehouse manager's landing page */
+
+/** Props for the ControlTower control-tower landing page. */
 interface ControlTowerProps {
   onNav?: (view: string) => void
   onOpenOrder?: (o: any) => void

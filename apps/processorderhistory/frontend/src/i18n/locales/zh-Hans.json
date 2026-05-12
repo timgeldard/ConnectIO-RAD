@@ -235,6 +235,7 @@
   "poh.started": "已开始",
   "poh.statusCancelled": "已取消",
   "poh.statusCompleted": "已完成",
+  "poh.statusClosed": "已关闭",
   "poh.statusFailed": "失败",
   "poh.statusLabel": "状态",
   "poh.statusOnhold": "暂停",

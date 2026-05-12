@@ -15,8 +15,12 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@connectio/shared-frontend-api": ["libs/shared-frontend-api/src/index.tsx"],
-      "@connectio/shared-frontend-i18n": ["libs/shared-frontend-i18n/src/index.ts"],
+      "@connectio/shared-frontend-api": [
+        "libs/shared-frontend-api/src/index.tsx"
+      ],
+      "@connectio/shared-frontend-i18n": [
+        "libs/shared-frontend-i18n/src/index.ts"
+      ],
       "@connectio/shared-ui": ["libs/shared-ui/src/index.ts"],
       "@connectio/shared-reporting": ["libs/shared-reporting/src/index.ts"],
       "@connectio/shared-playwright": ["libs/shared-playwright/src/index.ts"]

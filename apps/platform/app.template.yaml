@@ -53,6 +53,10 @@ env:
   # on every cold start. Migrate to a UC Volume or Lakebase for persistence.
   - name: PREFS_DB_PATH
     value: "${PREFS_DB_PATH}"
+  - name: DASHBOARD_CATALOG
+    value: "${DASHBOARD_CATALOG}"
+  - name: DASHBOARD_SCHEMA
+    value: "${DASHBOARD_SCHEMA}"
 
   # JWT verification — defence-in-depth. The Databricks Apps proxy validates
   # the token upstream; the app additionally verifies the signature against
