@@ -36,6 +36,7 @@ class ComposableWidget(BaseModel):
 
     ``type`` must match a key in the frontend widget registry.
     ``props`` carries widget-specific configuration (chart options, KPI metric, etc.).
+    ``data`` carries optional live data binding configuration (queryKey, params, mapping).
     """
 
     id: str
@@ -43,6 +44,7 @@ class ComposableWidget(BaseModel):
     title: Optional[str] = None
     layout: WidgetLayout = Field(default_factory=WidgetLayout)
     props: dict[str, Any] = Field(default_factory=dict)
+    data: Optional[dict[str, Any]] = None
 
 
 class ComposableDashboardConfig(BaseModel):

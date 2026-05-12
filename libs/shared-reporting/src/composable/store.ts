@@ -38,6 +38,8 @@ export interface DashboardEditStore {
   removeWidget: (widgetId: string) => void
   /** Update a widget's props (property inspector changes). Marks dirty. */
   updateWidgetProps: (widgetId: string, props: Record<string, unknown>) => void
+  /** Update a widget's data binding configuration. Marks dirty. */
+  updateWidgetData: (widgetId: string, data: Record<string, unknown> | null) => void
   /** Update a widget's title. Marks dirty. */
   updateWidgetTitle: (widgetId: string, title: string) => void
   /** Select a widget for property inspection. */
@@ -118,6 +120,27 @@ export const useDashboardEditStore = create<DashboardEditStore>((set, get) => ({
         ...editConfig,
         widgets: editConfig.widgets.map((w) =>
           w.id === widgetId ? { ...w, props: { ...w.props, ...props } } : w,
+        ),
+      },
+      isDirty: true,
+    })
+  },
+
+  updateWidgetData(widgetId, data) {
+    const { editConfig } = get()
+    if (!editConfig) return
+    
+    const widgetIndex = editConfig.widgets.findIndex((w) => w.id === widgetId)
+    if (widgetIndex === -1) return
+
+    const currentWidget = editConfig.widgets[widgetIndex]
+    if (JSON.stringify(currentWidget.data) === JSON.stringify(data)) return
+
+    set({
+      editConfig: {
+        ...editConfig,
+        widgets: editConfig.widgets.map((w) =>
+          w.id === widgetId ? { ...w, data } : w,
         ),
       },
       isDirty: true,

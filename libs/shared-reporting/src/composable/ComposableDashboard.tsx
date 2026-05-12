@@ -27,6 +27,7 @@ import { useDashboard, useUpdateDashboard } from '../hooks/useDashboards'
 import { DashboardGrid } from './DashboardGrid'
 import { DashboardBuilder } from './DashboardBuilder'
 import type { WidgetRegistry } from '../core/registry'
+import type { QueryRegistry } from '../data/queryRegistry'
 
 interface WidgetDefinitionMeta {
   /** Registry key that matches `ComposableWidget.type`. */
@@ -52,6 +53,10 @@ interface ComposableDashboardProps {
   onSaved?: (detail: DashboardDetail) => void
   /** Whether the Edit button is visible in view mode (defaults to true). */
   canEdit?: boolean
+  /** Registry of available queries for live data binding. */
+  queryRegistry?: QueryRegistry
+  /** Values for parameters used in data binding queries. */
+  dashboardParams?: Record<string, unknown>
 }
 
 /**
@@ -66,6 +71,8 @@ export function ComposableDashboard({
   widgetDefinitions,
   onSaved,
   canEdit = true,
+  queryRegistry,
+  dashboardParams,
 }: ComposableDashboardProps) {
   const { data: dashboard, isPending, isError } = useDashboard(dashboardId)
   const { mutateAsync: updateDashboard } = useUpdateDashboard()
@@ -173,6 +180,8 @@ export function ComposableDashboard({
           gridWidth={Math.max(gridWidth - 2 * 220 - 24, 400)}
           onSave={handleSave}
           onCancel={handleCancel}
+          queryRegistry={queryRegistry}
+          dashboardParams={dashboardParams}
         />
       ) : (
         <div style={{ overflow: 'auto', flex: 1 }}>
@@ -183,6 +192,8 @@ export function ComposableDashboard({
             mode="view"
             renderWidget={renderWidget}
             width={gridWidth}
+            queryRegistry={queryRegistry}
+            dashboardParams={dashboardParams}
           />
         </div>
       )}

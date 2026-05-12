@@ -20,8 +20,15 @@ import {
   createDefaultReportingRegistry,
 } from '@connectio/shared-reporting'
 import type { DashboardSummary } from '@connectio/shared-reporting'
+import { dashboardQueryRegistry } from './dashboardQueryRegistry'
 
 const REGISTRY = createDefaultReportingRegistry()
+
+const DASHBOARD_PARAMS = {
+  plant: 'P1',
+  dateFrom: '2026-04-01',
+  dateTo: '2026-04-30',
+}
 
 const WIDGET_DEFS = [
   {
@@ -83,6 +90,8 @@ export function DashboardsPanel() {
             widgetDefinitions={WIDGET_DEFS}
             onSaved={(detail) => setSelectedId(detail.id)}
             canEdit
+            queryRegistry={dashboardQueryRegistry}
+            dashboardParams={DASHBOARD_PARAMS}
           />
         </div>
       </div>
