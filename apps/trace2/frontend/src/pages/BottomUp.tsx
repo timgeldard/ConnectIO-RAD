@@ -7,9 +7,11 @@ import { LoadFrame, EmptyBlock } from "../components/LoadFrame";
 import { LineageGraph, NodeDetailPanel } from "../components/LineageGraph";
 import { CytoscapeGraph, type CytoscapeMode } from "../components/CytoscapeGraph";
 import { GraphViewToggle, type GraphViewMode } from "../components/GraphViewToggle";
+import { AdvancedLineageGraph } from "@connectio/shared-reporting";
+import "@xyflow/react/dist/style.css";
 import { usePersistentMode } from "../hooks/usePersistentMode";
 
-const BOTTOM_UP_VIEWS: GraphViewMode[] = ["lineage", "tree", "network"];
+const BOTTOM_UP_VIEWS: GraphViewMode[] = ["lineage", "tree", "network", "advanced"];
 import { Card, DataTable, DepthControl, KPI, SectionHeader, StatusPill, fmtN } from "../ui";
 import { useI18n } from "@connectio/shared-frontend-i18n";
 import { plural, template, traceCopy } from "../i18n/pageCopy";
@@ -130,6 +132,23 @@ function BottomUpBody({
               }
             }}
           />
+        ) : graphView === "advanced" ? (
+          <div style={{ padding: "0 14px 14px" }}>
+            <AdvancedLineageGraph
+              data={{ focal, upstream: lineage, downstream: [] }}
+              direction="upstream"
+              orientation="RL"
+              selectedId={selected?.id ?? null}
+              onNodeClick={(id) => {
+                if (id === focal.id) {
+                  setSelected(null);
+                  return;
+                }
+                const next = lineage.find((n) => n.id === id) ?? null;
+                setSelected(next);
+              }}
+            />
+          </div>
         ) : (
           <div style={{ padding: "0 14px 14px" }}>
             <CytoscapeGraph

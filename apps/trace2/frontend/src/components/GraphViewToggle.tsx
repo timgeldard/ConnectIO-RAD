@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import type { CSSProperties } from "react";
 
-export type GraphViewMode = "lineage" | "tree" | "network" | "radial";
+export type GraphViewMode = "lineage" | "tree" | "network" | "radial" | "advanced";
 
 interface Props {
   value: GraphViewMode;
@@ -21,9 +21,16 @@ const DEFAULT_LABELS: Record<GraphViewMode, string> = {
   tree: "Tree",
   network: "Network",
   radial: "Blast radius",
+  advanced: "Advanced",
 };
 
-const DEFAULT_MODES: GraphViewMode[] = ["lineage", "tree", "network", "radial"];
+const DEFAULT_MODES: GraphViewMode[] = [
+  "lineage",
+  "tree",
+  "network",
+  "radial",
+  "advanced",
+];
 
 /**
  * Segmented control matching the underlined-tab pattern used elsewhere in
