@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from trace2_backend.batch_trace.router import router as batch_trace_router
+from trace2_backend.genie_assist.router_genie import router as genie_router
 from trace2_backend.lineage_analysis.router import router as lineage_router
 from trace2_backend.quality_record.router import router as quality_router
 from trace2_backend.utils.db import (
@@ -75,6 +76,10 @@ rad_app = ConnectIoApp(
 rad_app.include_router(batch_trace_router, prefix="/api/t2", tags=["Batch Trace"])
 rad_app.include_router(lineage_router, prefix="/api/t2", tags=["Lineage Analysis"])
 rad_app.include_router(quality_router, prefix="/api/t2", tags=["Quality Record"])
+# Genie sits under /api/t2 alongside the other trace2 routers so the
+# platform shell can dispatch via the same module-id-aware Genie client
+# that already routes POH and SPC traffic to their respective spaces.
+rad_app.include_router(genie_router, prefix="/api/t2", tags=["Genie Assist"])
 
 rad_app.mount_spa()
 app = rad_app.fastapi_app
