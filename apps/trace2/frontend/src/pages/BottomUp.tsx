@@ -12,10 +12,13 @@ import {
   LineageTableView,
   SankeyFlowView,
   TraceFilterControls,
+  buildExplainTransferPrompt,
   toFilterValue,
   useTraceViewState,
 } from "@connectio/shared-reporting";
 import "@xyflow/react/dist/style.css";
+import type { GeniePageContext } from "../genie/api";
+import { fromLineageNodeContext } from "../genie/pageContext";
 import { usePersistentMode } from "../hooks/usePersistentMode";
 
 const BOTTOM_UP_VIEWS: GraphViewMode[] = [
@@ -37,6 +40,7 @@ export function PageBottomUp({
   setMaxLevels,
   maxInputDepth = 3,
   setMaxInputDepth,
+  openGenie,
 }: {
   batch: Batch;
   navigate: (id: PageId) => void;
@@ -45,6 +49,7 @@ export function PageBottomUp({
   setMaxLevels?: (v: number) => void;
   maxInputDepth?: number;
   setMaxInputDepth?: (v: number) => void;
+  openGenie?: (opts: { prompt: string; pageContext: GeniePageContext }) => void;
 }) {
   const { language } = useI18n();
   const copy = traceCopy(language);
@@ -65,6 +70,7 @@ export function PageBottomUp({
           setMaxLevels={setMaxLevels}
           maxInputDepth={maxInputDepth}
           setMaxInputDepth={setMaxInputDepth}
+          openGenie={openGenie}
         />
       )}
     </LoadFrame>
@@ -72,7 +78,7 @@ export function PageBottomUp({
 }
 
 function BottomUpBody({
-  batch, lineage, sim, maxLevels, setMaxLevels, maxInputDepth, setMaxInputDepth,
+  batch, lineage, sim, maxLevels, setMaxLevels, maxInputDepth, setMaxInputDepth, openGenie,
 }: {
   batch: Batch;
   lineage: LineageNode[];
@@ -81,6 +87,7 @@ function BottomUpBody({
   setMaxLevels?: (v: number) => void;
   maxInputDepth: number;
   setMaxInputDepth?: (v: number) => void;
+  openGenie?: (opts: { prompt: string; pageContext: GeniePageContext }) => void;
 }) {
   const [selected, setSelected] = useState<LineageNode | null>(null);
   const [graphView, setGraphView] = usePersistentMode<GraphViewMode>(
@@ -177,6 +184,15 @@ function BottomUpBody({
                     const next = lineage.find((n) => n.id === id) ?? null;
                     setSelected(next);
                   }}
+                  onExplainNode={
+                    openGenie
+                      ? (ctx) =>
+                          openGenie({
+                            prompt: buildExplainTransferPrompt(ctx),
+                            pageContext: fromLineageNodeContext(ctx, "bottom-up"),
+                          })
+                      : undefined
+                  }
                 />
               )}
               {graphView === "sankey" && (

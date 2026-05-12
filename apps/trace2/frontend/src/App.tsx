@@ -15,6 +15,7 @@ import type { Batch, PageId, Tweaks } from "./types";
 import { BATCH } from "./data/mock";
 import { fetchBatchHeader } from "./data/api";
 import { GenieDrawer } from "./genie/GenieDrawer";
+import type { GeniePageContext } from "./genie/api";
 import { buildLineageContext } from "./genie/pageContext";
 import { ParamField, SimBanner, StatusPill } from "./ui";
 import { PageRecallReadiness } from "./pages/RecallReadiness";
@@ -43,6 +44,16 @@ export type PageProps = {
   setMaxLevels?: (v: number) => void;
   maxInputDepth?: number;
   setMaxInputDepth?: (v: number) => void;
+  /**
+   * Open the Genie drawer pre-filled with a prompt + page context.
+   *
+   * Pages use this to bridge the `AdvancedLineageGraph.onExplainNode`
+   * right-click handler into the shell-level Genie drawer.  Passing
+   * the seed via App-level state (rather than spawning a local
+   * drawer per page) keeps a single conversation thread alive across
+   * page navigation.
+   */
+  openGenie?: (opts: { prompt: string; pageContext: GeniePageContext }) => void;
 };
 type PageComponent = (props: PageProps) => JSX.Element;
 
@@ -193,12 +204,35 @@ function TraceApp() {
   const [maxLevels, setMaxLevels] = useState(3);
   const [maxInputDepth, setMaxInputDepth] = useState(3);
   const [sim, setSim] = useState(false);
-  // Genie drawer state.  Open/close is a single state slot at the
-  // app shell so a deep child (e.g. a lineage-graph right-click) can
-  // request the drawer to open without prop-drilling.  We hand that
-  // capability out via the `useTrace2GenieDispatch` hook in a
-  // follow-up (see Phase 3b docs).
+  // Genie drawer state.  Open/close + seed prompt + override page
+  // context all live at the shell so a deep child (e.g. the
+  // AdvancedLineageGraph right-click "Explain this transfer") can
+  // open the drawer with a pre-filled prompt + transfer-specific
+  // context, while the floating trigger button on every page still
+  // works with the default lineage context.
   const [genieOpen, setGenieOpen] = useState(false);
+  const [genieSeedPrompt, setGenieSeedPrompt] = useState<string | null>(null);
+  const [genieContextOverride, setGenieContextOverride] = useState<GeniePageContext | null>(null);
+  const openGenie = ({
+    prompt,
+    pageContext,
+  }: {
+    prompt: string;
+    pageContext: GeniePageContext;
+  }) => {
+    setGenieSeedPrompt(prompt);
+    setGenieContextOverride(pageContext);
+    setGenieOpen(true);
+  };
+  // Whenever the drawer closes, drop the seed/override so the next
+  // open via the floating trigger reverts to the default lineage
+  // context rather than reusing the last transfer context the
+  // operator dismissed.
+  const handleGenieClose = () => {
+    setGenieOpen(false);
+    setGenieSeedPrompt(null);
+    setGenieContextOverride(null);
+  };
   const [tweaks, _setTweaksState] = useState<Tweaks>(() => {
     try {
       const raw = localStorage.getItem("mi:tweaks");
@@ -388,6 +422,7 @@ function TraceApp() {
             setMaxLevels={setMaxLevels}
             maxInputDepth={maxInputDepth}
             setMaxInputDepth={setMaxInputDepth}
+            openGenie={openGenie}
           />
         )}
       </div>
@@ -395,11 +430,19 @@ function TraceApp() {
         <GenieDrawer
           open={genieOpen}
           onOpen={() => setGenieOpen(true)}
-          onClose={() => setGenieOpen(false)}
-          pageContext={buildLineageContext({
-            view: viewForPage(page),
-            batch,
-          })}
+          onClose={handleGenieClose}
+          initialPrompt={genieSeedPrompt}
+          // When a deep component (e.g. AdvancedLineageGraph right-click)
+          // opens the drawer with a transfer-specific page context,
+          // honour the override.  Otherwise fall back to the floating
+          // trigger's default lineage context for the current page.
+          pageContext={
+            genieContextOverride ??
+            buildLineageContext({
+              view: viewForPage(page),
+              batch,
+            })
+          }
         />
       )}
     </AppShell>
