@@ -155,7 +155,7 @@ export const spcQueries: QueryRegistry = {
     params: [...spcParams, micParam],
     fields: [
       spcField('value', 'Signal count', 'number', 'count'),
-      spcField('failure_count', 'Signal count', 'number', 'count'),
+      spcField('failure_count', 'Failure count', 'number', 'count'),
       spcField('failure_rate_pct', 'Signal rate %', 'number', 'percentage'),
       spcField('items', 'Pareto items', 'array'),
       spcField('rows', 'Rows', 'array'),
