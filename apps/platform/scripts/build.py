@@ -151,8 +151,9 @@ def build_frontend(app_frontend_dir: Path, base_path: str, nx_project: str | Non
     """
     if nx_project:
         subprocess.run(
-            ["npx", "nx", "run", f"{nx_project}:build", "--output-style=stream"],
+            f"npx nx run {nx_project}:build --output-style=stream",
             cwd=REPO_ROOT,
+            shell=True,
             check=True,
         )
     else:
