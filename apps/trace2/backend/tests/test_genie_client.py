@@ -9,7 +9,7 @@ get_message, etc.) are dumb urllib calls already covered by POH's tests.
 from __future__ import annotations
 
 import pytest
-from fastapi import HTTPException
+from shared_api.errors import DomainError as AppError
 
 from trace2_backend.genie_assist.application import genie_client
 
@@ -113,10 +113,10 @@ def test_space_id_raises_when_unset(monkeypatch):
     """Missing both variables → 500 with a clear message."""
     monkeypatch.delenv("TRACE2_GENIE_SPACE_ID", raising=False)
     monkeypatch.delenv("GENIE_SPACE_ID", raising=False)
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         genie_client._space_id()
-    assert exc.value.status_code == 500
-    assert "TRACE2_GENIE_SPACE_ID" in str(exc.value.detail)
+    assert exc.value.status_code == 400
+    assert "TRACE2_GENIE_SPACE_ID" in str(exc.value.message)
 
 
 # ---------------------------------------------------------------------------
@@ -126,10 +126,10 @@ def test_space_id_raises_when_unset(monkeypatch):
 
 def test_validate_host_rejects_unknown_domain():
     """Hosts outside the workspace allowlist must be refused (SSRF)."""
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         genie_client._validate_host("https://attacker.example.com")
-    assert exc.value.status_code == 500
-    assert "allowlist" in str(exc.value.detail).lower()
+    assert exc.value.status_code == 400
+    assert "allowlist" in str(exc.value.message).lower()
 
 
 def test_validate_host_accepts_known_databricks_domain():
@@ -146,9 +146,9 @@ def test_validate_host_normalises_trailing_slash_and_port():
 
 def test_validate_host_raises_on_empty():
     """Empty host → 500 ``DATABRICKS_HOST is not set``."""
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         genie_client._validate_host("")
-    assert exc.value.status_code == 500
+    assert exc.value.status_code == 400
 
 
 # ---------------------------------------------------------------------------
