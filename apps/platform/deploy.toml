@@ -18,6 +18,21 @@ enabled = true
 source_target = "target"
 repair_sql_scope = false
 
+# Sub-app deploy.tomls whose [[migrations]] entries should be discovered
+# when this platform deploy is invoked with --run-migrations. Each entry
+# is repo-root-relative. Must stay aligned with the wheels/frontends
+# enumerated in apps/platform/scripts/build.py — there is no project
+# graph dependency edge for this today (see CI `platform-build` job).
+[platform]
+bundled_apps = [
+  "apps/connectedquality",
+  "apps/envmon",
+  "apps/processorderhistory",
+  "apps/spc",
+  "apps/trace2",
+  "apps/warehouse360",
+]
+
 [targets.uat.env]
 DATABRICKS_WAREHOUSE_ID = "e76480b94bea6ed5"
 DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/e76480b94bea6ed5"

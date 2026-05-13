@@ -224,20 +224,59 @@ def post_deploy(manifest: dict[str, Any], args: argparse.Namespace, env: dict[st
         )
 
 
-def run_sql_migrations(manifest: dict[str, Any], args: argparse.Namespace, env: dict[str, str]) -> None:
-    migrations = manifest.get("migrations", [])
-    if not migrations:
-        print("-> no SQL migrations configured")
-        return
+def discover_bundled_app_manifests(
+    manifest: dict[str, Any], args: argparse.Namespace
+) -> list[tuple[Path, dict[str, Any]]]:
+    """Return (sub_app_path, sub_manifest) pairs for every entry in
+    `[platform].bundled_apps` that has its own deploy.toml.
+
+    The list is expressed as repo-root-relative directories (e.g. `apps/spc`)
+    and must stay in sync with the sub-app wheels/frontends built by
+    `apps/platform/scripts/build.py`. When the platform shell is deployed
+    standalone, those sub-app backends ship inside the platform image —
+    but their migrations live in each sub-app's own `deploy.toml` and are
+    only picked up when this list explicitly enumerates them.
+    """
+    bundled = manifest.get("platform", {}).get("bundled_apps", [])
+    if not bundled:
+        return []
+    repo_root = ROOT
+    out: list[tuple[Path, dict[str, Any]]] = []
+    for rel in bundled:
+        sub_path = (repo_root / rel).resolve()
+        sub_manifest_path = sub_path / "deploy.toml"
+        if not sub_manifest_path.exists():
+            print(f"-> WARN bundled app '{rel}' has no deploy.toml; skipping")
+            continue
+        out.append((sub_path, load_manifest(sub_manifest_path)))
+    return out
+
+
+def _apply_migrations(
+    migrations: list[dict[str, Any]],
+    base_path: Path,
+    manifest: dict[str, Any],
+    args: argparse.Namespace,
+    env: dict[str, str],
+    label: str,
+) -> None:
+    """Apply a list of `[[migrations]]` entries from a single manifest.
+
+    `base_path` is the directory each migration's `file` path is resolved
+    against (the owning app's directory). `manifest` and `env` are used
+    for ${VAR} substitution into the SQL — so when descending into a
+    sub-app, pass that sub-app's manifest and computed env so the SQL
+    uses the values it was written against.
+    """
     ctx = context(manifest, args)
     values = {name: env[name] for name in environment_defaults(manifest, args)}
     for migration in migrations:
         name = migration["name"]
-        sql_path = app_path(args) / migration["file"]
+        sql_path = base_path / migration["file"]
         warehouse_id = resolve_migration_warehouse_id(migration, env)
         statement = Template(sql_path.read_text(encoding="utf-8")).safe_substitute(values)
         payload = json.dumps({"warehouse_id": warehouse_id, "statement": statement, "wait_timeout": "30s"})
-        print(f"-> apply migration {name} from {migration['file']}")
+        print(f"-> [{label}] apply migration {name} from {migration['file']}")
         if args.dry_run:
             continue
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as handle:
@@ -255,12 +294,45 @@ def run_sql_migrations(manifest: dict[str, Any], args: argparse.Namespace, env: 
                     "--json",
                     f"@{tmpfile}",
                 ],
-                cwd=app_path(args),
+                cwd=base_path,
                 env=env,
                 dry_run=False,
             )
         finally:
             Path(tmpfile).unlink(missing_ok=True)
+
+
+def run_sql_migrations(manifest: dict[str, Any], args: argparse.Namespace, env: dict[str, str]) -> None:
+    """Run this manifest's migrations, then every bundled sub-app's migrations.
+
+    Migrations are NOT idempotent today (some `DROP TABLE` / bare `CREATE
+    TABLE` entries exist), and there is no applied-migration tracker — every
+    entry runs on every call. Callers in the `deploy` flow must gate this
+    behind `--run-migrations` to keep schema-change deploys explicit. The
+    `--action migrations` standalone entry-point always runs them.
+    """
+    own_label = context(manifest, args)["app_name"]
+    own_migrations = manifest.get("migrations", [])
+    bundled = discover_bundled_app_manifests(manifest, args)
+
+    has_bundled_migrations = any(sub_manifest.get("migrations") for _, sub_manifest in bundled)
+    if not own_migrations and not has_bundled_migrations:
+        print("-> no SQL migrations configured")
+        return
+
+    if own_migrations:
+        _apply_migrations(own_migrations, app_path(args), manifest, args, env, own_label)
+
+    for sub_path, sub_manifest in bundled:
+        sub_migrations = sub_manifest.get("migrations", [])
+        if not sub_migrations:
+            continue
+        sub_label = sub_manifest.get("app", {}).get("name", sub_path.name)
+        # Compute env for the sub-app's own manifest so ${VAR} substitution
+        # uses the values the migration was authored against, not whatever
+        # the parent platform manifest happens to also define.
+        sub_env = command_env(sub_manifest, args)
+        _apply_migrations(sub_migrations, sub_path, sub_manifest, args, sub_env, sub_label)
 
 
 def run_hook_commands(manifest: dict[str, Any], args: argparse.Namespace, env: dict[str, str]) -> None:
@@ -299,6 +371,12 @@ def validate_config(manifest: dict[str, Any], args: argparse.Namespace, env: dic
     migrations = manifest.get("migrations", [])
     for migration in migrations:
         resolve_migration_warehouse_id(migration, env)
+    # Validate bundled sub-app migration warehouse ids too so platform
+    # config errors surface before deploy time.
+    for _, sub_manifest in discover_bundled_app_manifests(manifest, args):
+        sub_env = command_env(sub_manifest, args)
+        for migration in sub_manifest.get("migrations", []):
+            resolve_migration_warehouse_id(migration, sub_env)
     post = manifest.get("post_deploy", {})
     if post.get("enabled", False):
         target_key = post.get("source_target", "target")
@@ -321,7 +399,11 @@ def print_plan(manifest: dict[str, Any], args: argparse.Namespace) -> None:
     print(f"bundle_name: {ctx['bundle_name']}")
     print(f"profile: {ctx['profile']}")
     print(f"target: {ctx['target']}")
-    print("sequence: check-env -> build -> render -> bundle-deploy -> post-deploy -> migrations -> after-bundle-hooks")
+    migration_step = "migrations" if getattr(args, "run_migrations", False) else "migrations(SKIPPED)"
+    print(
+        "sequence: check-env -> build -> render -> bundle-deploy -> post-deploy"
+        f" -> {migration_step} -> after-bundle-hooks"
+    )
 
 
 def deploy(manifest: dict[str, Any], args: argparse.Namespace, env: dict[str, str]) -> None:
@@ -330,7 +412,24 @@ def deploy(manifest: dict[str, Any], args: argparse.Namespace, env: dict[str, st
     render_config(manifest, args, env)
     bundle_deploy(manifest, args, env)
     post_deploy(manifest, args, env)
-    run_sql_migrations(manifest, args, env)
+    if getattr(args, "run_migrations", False):
+        run_sql_migrations(manifest, args, env)
+    else:
+        # Migrations include non-idempotent operations (DROP TABLE, bare
+        # CREATE TABLE) and have no applied-tracker, so re-running them on
+        # every push to main would corrupt schema. Surface that they exist
+        # but stay opt-in until each migration is idempotent or a tracker
+        # is added. See `--run-migrations` in `parse_args`.
+        own = manifest.get("migrations", [])
+        bundled_count = sum(
+            len(sub.get("migrations", []))
+            for _, sub in discover_bundled_app_manifests(manifest, args)
+        )
+        total = len(own) + bundled_count
+        if total:
+            print(f"-> SKIP {total} SQL migration(s) — pass --run-migrations to apply")
+        else:
+            print("-> no SQL migrations configured")
     run_hook_commands(manifest, args, env)
 
 
@@ -344,6 +443,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--bundle-name", help="Override bundle name")
     parser.add_argument("--dry-run", action="store_true", help="Print commands without running them")
     parser.add_argument("--print-env", action="store_true", help="Print resolved render variables without masking")
+    parser.add_argument(
+        "--run-migrations",
+        action="store_true",
+        help=(
+            "Apply SQL migrations during a `deploy` action (off by default). "
+            "Migrations are non-idempotent and have no applied-tracker, so "
+            "they only run when explicitly requested. The `--action migrations` "
+            "entry-point always runs them regardless of this flag."
+        ),
+    )
     parser.add_argument(
         "--action",
         choices=[
