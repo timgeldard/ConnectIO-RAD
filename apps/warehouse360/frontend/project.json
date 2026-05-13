@@ -16,7 +16,7 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npm run build",
+        "command": "VITE_BASE_PATH=/warehouse360/ npm run build",
         "cwd": "apps/warehouse360/frontend"
       },
       "inputs": [

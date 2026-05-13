@@ -133,17 +133,33 @@ def build_wheels() -> None:
         raise RuntimeError(f"Failed to build {len(failures)} wheel(s):\n  {joined}")
 
 
-def build_frontend(app_frontend_dir: Path, base_path: str) -> None:
-    """Run `npm run build` for a frontend app with VITE_BASE_PATH set.
+def build_frontend(app_frontend_dir: Path, base_path: str, nx_project: str | None = None) -> None:
+    """Run a Vite frontend build, optionally via Nx for caching.
+
+    When ``nx_project`` is provided the build is delegated to
+    ``npx nx run <nx_project>:build`` so Nx can skip the build on a cache hit.
+    The project's ``build`` target must bake ``VITE_BASE_PATH`` into its command
+    so the cache key is independent of the caller environment.
+
+    When ``nx_project`` is ``None`` the build falls back to ``npm run build``
+    with ``VITE_BASE_PATH`` set in the environment (legacy path).
 
     Args:
         app_frontend_dir: Frontend project directory (contains package.json).
         base_path: Vite base path under which the SPA is served.
+        nx_project: Nx project name to delegate to, or ``None`` for the legacy path.
     """
-    env = {**os.environ, "VITE_BASE_PATH": base_path}
-    subprocess.run(
-        "npm run build", cwd=app_frontend_dir, shell=True, check=True, env=env
-    )
+    if nx_project:
+        subprocess.run(
+            ["npx", "nx", "run", f"{nx_project}:build", "--output-style=stream"],
+            cwd=REPO_ROOT,
+            check=True,
+        )
+    else:
+        env = {**os.environ, "VITE_BASE_PATH": base_path}
+        subprocess.run(
+            "npm run build", cwd=app_frontend_dir, shell=True, check=True, env=env
+        )
 
 
 def copy_static(src: Path, dst: Path) -> None:
@@ -253,7 +269,7 @@ if __name__ == "__main__":
     print("-> POH static ready")
 
     print("-> building W360 frontend (base=/warehouse360/)")
-    build_frontend(W360_DIR / "frontend", "/warehouse360/")
+    build_frontend(W360_DIR / "frontend", "/warehouse360/", nx_project="warehouse360-frontend")
     copy_static(W360_DIR / "frontend" / "dist", APP_DIR / "static" / "warehouse360")
     print("-> W360 static ready")
 
