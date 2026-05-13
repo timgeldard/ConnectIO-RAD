@@ -45,18 +45,23 @@ function MessageBlock({ eyebrow, title, subtitle }: { eyebrow: string; title: st
   );
 }
 
-export function EmptyBlock({ message }: { message: string }) {
+export function EmptyBlock({ title, message }: { title?: string; message: string }) {
   return (
     <div
       style={{
         padding: "32px 16px",
         textAlign: "center",
         fontFamily: "var(--font-sans)",
-        fontSize: 12.5,
-        color: "var(--ink-3)",
       }}
     >
-      {message}
+      {title && (
+        <div style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)", marginBottom: 4 }}>
+          {title}
+        </div>
+      )}
+      <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>
+        {message}
+      </div>
     </div>
   );
 }
