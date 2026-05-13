@@ -12,6 +12,7 @@ from backend.utils import (
     ArtifactTracker,
     RequiredArtifactMissing,
     _optional_attr,
+    discover_active_modules,
     get_missing_optional_artifacts,
 )
 
@@ -97,3 +98,49 @@ def test_default_tracker_shim_still_works():
     """
     _optional_attr("definitely_not_a_real_module_via_shim", "router", required=False)
     assert "definitely_not_a_real_module_via_shim" in get_missing_optional_artifacts()
+
+
+def test_discover_active_modules_uses_backend_pyproject_when_deploy_omits_backend_project(tmp_path):
+    """Router discovery follows backend package metadata, not stale deploy fields."""
+    app_dir = tmp_path / "apps" / "warehouse360"
+    backend_dir = app_dir / "backend"
+    backend_dir.mkdir(parents=True)
+    (app_dir / "deploy.toml").write_text(
+        """
+[app]
+name = "warehouse360"
+""",
+        encoding="utf-8",
+    )
+    (backend_dir / "pyproject.toml").write_text(
+        """
+[project]
+name = "warehouse360-backend"
+""",
+        encoding="utf-8",
+    )
+
+    assert discover_active_modules(tmp_path / "apps") == ["warehouse360_backend"]
+
+
+def test_discover_active_modules_skips_platform_app(tmp_path):
+    """The platform should discover sub-app routers, not recursively import itself."""
+    app_dir = tmp_path / "apps" / "platform"
+    backend_dir = app_dir / "backend"
+    backend_dir.mkdir(parents=True)
+    (app_dir / "deploy.toml").write_text(
+        """
+[app]
+name = "platform"
+""",
+        encoding="utf-8",
+    )
+    (backend_dir / "pyproject.toml").write_text(
+        """
+[project]
+name = "platform-backend"
+""",
+        encoding="utf-8",
+    )
+
+    assert discover_active_modules(tmp_path / "apps") == []

@@ -26,6 +26,7 @@ PLATFORM_ROUTERS = [
     (planning_router, "/api/poh", None),
     (day_view_router, "/api/poh", None),
     (lineside_monitor_router, "/api/poh", None),
+    (plants_router, "/api/poh", None),
     (plants_router, "/api", None),
     (yield_router, "/api/poh", None),
     (quality_router, "/api/poh", None),
