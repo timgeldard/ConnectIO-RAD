@@ -77,7 +77,7 @@ ALLOWED_CONTEXTS = {
     "envmon": {"inspection_analysis", "spatial_config"},
     "processorderhistory": {"order_execution", "manufacturing_analytics", "production_planning", "genie_assist"},
     "spc": {"chart_config", "process_control"},
-    "trace2": {"batch_trace", "lineage_analysis", "quality_record"},
+    "trace2": {"batch_trace", "lineage_analysis", "quality_record", "genie_assist"},
     "template": {"module_template"},
     "warehouse360": {"inventory_management", "dispensary_ops", "order_fulfillment", "operations_control_tower"},
 }
@@ -86,6 +86,7 @@ DOMAIN_FORBIDDEN_PARTS = (".application", ".dal", ".router", ".schemas", ".db", 
 APPLICATION_FORBIDDEN_PREFIXES = ("fastapi",)
 APPLICATION_TRANSPORT_EXCEPTIONS = {
     Path("apps/processorderhistory/backend/processorderhistory_backend/genie_assist/application/genie_client.py"),
+    Path("apps/trace2/backend/trace2_backend/genie_assist/application/genie_client.py"),
 }
 ROUTER_FORBIDDEN_PARTS = (".dal",)
 ROUTER_FORBIDDEN_NAMES = ("run_sql_async", "tbl", "silver_tbl", "sql_param", "instrument_tbl")
@@ -271,7 +272,7 @@ def validate_backend_serve_port(
 
     actual_port = int(match.group(1))
     if actual_port != expected_port:
-        errors.append(f"{name}: backend serve target must use port {expected_port}, got {actual_port}")
+        errors.append(f"{name}: backend serve target must use port {expected_port} got {actual_port}")
 
     previous_project = seen_ports.get(actual_port)
     if previous_project is not None:
