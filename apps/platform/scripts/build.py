@@ -270,7 +270,7 @@ if __name__ == "__main__":
     print("-> POH static ready")
 
     print("-> building W360 frontend (base=/warehouse360/)")
-    build_frontend(W360_DIR / "frontend", "/warehouse360/", nx_project="warehouse360-frontend")
+    build_frontend(W360_DIR / "frontend", "/warehouse360/")
     copy_static(W360_DIR / "frontend" / "dist", APP_DIR / "static" / "warehouse360")
     print("-> W360 static ready")
 
