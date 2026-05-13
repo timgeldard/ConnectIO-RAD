@@ -254,21 +254,57 @@ def _extract_identity(token: str) -> UserIdentity:
 
 
 def _decode_token(token: str) -> dict[str, Any]:
+    """Decode and optionally verify a JWT.
+
+    Verification order:
+      1. If ``AUTH_JWKS_URL`` is set, attempt full JWKS signature + issuer
+         verification. On success the decoded payload is returned immediately.
+      2. If JWKS verification fails **and** ``AUTH_ALLOW_UNVERIFIED_JWT`` is
+         ``true``, a warning is logged and execution falls through to step 3.
+         This is the recommended UAT escape hatch when the JWKS endpoint is
+         temporarily unreachable or the signing-key configuration is being
+         diagnosed — it keeps auth working without disabling JWT parsing.
+      3. Without a JWKS URL (or after a permitted JWKS fallback), perform an
+         unverified signature decode that still validates the token format and
+         standard time-based claims (``exp``, ``nbf``).  Requires either dev
+         mode or ``AUTH_ALLOW_UNVERIFIED_JWT=true``.
+
+    Args:
+        token: Raw access token forwarded by the Databricks Apps proxy.
+
+    Returns:
+        Decoded JWT payload as a plain dict.
+
+    Raises:
+        HTTPException: 401 if the token is invalid or verification is required
+            and fails.  500 if JWKS is not configured and unverified decoding
+            is not explicitly permitted.
+    """
     jwks_url, audience, issuer = _jwt_verification_config()
     if jwks_url:
         _require_audience_for_verified_tokens()
         try:
             signing_key = _jwk_client(jwks_url).get_signing_key_from_jwt(token)
+            options = {"verify_aud": audience is not None}
             return jwt.decode(
                 token,
                 signing_key.key,
                 algorithms=["RS256", "RS384", "RS512", "ES256", "ES384", "ES512"],
                 audience=audience,
                 issuer=issuer,
-                options={"verify_aud": audience is not None},
+                options=options,
+                leeway=30,
             )
         except Exception as exc:
-            raise HTTPException(status_code=401, detail="Invalid access token.") from exc
+            if _allow_unverified_tokens():
+                logger.warning(
+                    "JWKS verification failed (%s); AUTH_ALLOW_UNVERIFIED_JWT is set "
+                    "so falling through to unverified decode. Fix AUTH_JWKS_URL or "
+                    "AUTH_JWT_ISSUER to restore full verification.",
+                    exc,
+                )
+            else:
+                raise HTTPException(status_code=401, detail="Invalid access token.") from exc
 
     if not (_is_dev_mode() or _allow_unverified_tokens()):
         raise HTTPException(

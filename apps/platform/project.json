@@ -1,0 +1,37 @@
+{
+  "name": "platform",
+  "projectType": "application",
+  "tags": [
+    "scope:platform"
+  ],
+  "implicitDependencies": [
+    "platform-frontend",
+    "platform-backend",
+    "connectedquality-frontend",
+    "processorderhistory-frontend",
+    "warehouse360-frontend",
+    "spc-frontend",
+    "trace2-frontend",
+    "envmon-frontend",
+    "shared-reporting",
+    "shared-ui"
+  ],
+  "targets": {
+    "platform-build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python3 scripts/build.py",
+        "cwd": "apps/platform"
+      },
+      "inputs": [
+        "{workspaceRoot}/apps/platform/scripts/**/*",
+        "{workspaceRoot}/apps/platform/backend/pyproject.toml",
+        "{workspaceRoot}/apps/platform/requirements*.txt",
+        "{workspaceRoot}/apps/*/frontend/src/**/*",
+        "{workspaceRoot}/libs/shared-*/src/**/*",
+        "{workspaceRoot}/apps/*/backend/**/*"
+      ],
+      "cache": true
+    }
+  }
+}

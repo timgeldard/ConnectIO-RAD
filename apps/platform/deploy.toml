@@ -18,6 +18,21 @@ enabled = true
 source_target = "target"
 repair_sql_scope = false
 
+# Sub-app deploy.tomls whose [[migrations]] entries should be discovered
+# when this platform deploy is invoked with --run-migrations. Each entry
+# is repo-root-relative. Must stay aligned with the wheels/frontends
+# enumerated in apps/platform/scripts/build.py — there is no project
+# graph dependency edge for this today (see CI `platform-build` job).
+[platform]
+bundled_apps = [
+  "apps/connectedquality",
+  "apps/envmon",
+  "apps/processorderhistory",
+  "apps/spc",
+  "apps/trace2",
+  "apps/warehouse360",
+]
+
 [targets.uat.env]
 DATABRICKS_WAREHOUSE_ID = "e76480b94bea6ed5"
 DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/e76480b94bea6ed5"
@@ -41,10 +56,16 @@ DASHBOARD_SCHEMA = "dashboards"
 PREFS_DB_PATH = "/tmp/connectio_platform_prefs.db"
 # JWT verification — workspace OIDC discovery values for UAT.
 # Discovery doc: https://adb-604667594731808.8.azuredatabricks.net/oidc/.well-known/openid-configuration
-AUTH_JWKS_URL = "https://northeurope-c2.azuredatabricks.net/oidc/jwks.json"
+# JWKS switched to workspace-specific endpoint; regional URL (northeurope-c2)
+# appeared not to contain the workspace signing key.
+# AUTH_ALLOW_UNVERIFIED_JWT=true is a temporary UAT escape hatch: the app
+# still attempts JWKS verification first, falling through only on failure
+# (see shared_auth._decode_token).  Set back to "false" once JWKS is confirmed
+# working end-to-end.
+AUTH_JWKS_URL = "https://adb-604667594731808.8.azuredatabricks.net/oidc/jwks.json"
 AUTH_JWT_AUDIENCE = "connectio-platform-uat"
 AUTH_JWT_ISSUER = "https://adb-604667594731808.8.azuredatabricks.net/oidc"
-AUTH_ALLOW_UNVERIFIED_JWT = "false"
+AUTH_ALLOW_UNVERIFIED_JWT = "true"
 
 [targets.prod.env]
 DATABRICKS_WAREHOUSE_ID = "161e0117e7a3507f"

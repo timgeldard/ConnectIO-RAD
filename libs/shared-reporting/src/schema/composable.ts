@@ -22,6 +22,7 @@ export const composableWidgetLayoutSchema = z.object({
  * A single widget instance placed in a composable dashboard grid.
  * `type` must match a key in the active widget registry.
  * `props` is widget-type-specific configuration.
+ * `data` is optional live data binding configuration.
  */
 export const composableWidgetSchema = z.object({
   id: z.string().min(1),
@@ -29,6 +30,11 @@ export const composableWidgetSchema = z.object({
   title: z.string().optional(),
   layout: composableWidgetLayoutSchema.default({ x: 0, y: 0, w: 4, h: 4, minW: 2, minH: 2 }),
   props: z.record(z.string(), z.unknown()).default({}),
+  data: z.object({
+    queryKey: z.string().min(1),
+    params: z.record(z.string(), z.unknown()).optional(),
+    mapping: z.record(z.string(), z.unknown()).optional(),
+  }).nullable().optional(),
 })
 
 /**

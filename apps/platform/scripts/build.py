@@ -133,17 +133,34 @@ def build_wheels() -> None:
         raise RuntimeError(f"Failed to build {len(failures)} wheel(s):\n  {joined}")
 
 
-def build_frontend(app_frontend_dir: Path, base_path: str) -> None:
-    """Run `npm run build` for a frontend app with VITE_BASE_PATH set.
+def build_frontend(app_frontend_dir: Path, base_path: str, nx_project: str | None = None) -> None:
+    """Run a Vite frontend build, optionally via Nx for caching.
+
+    When ``nx_project`` is provided the build is delegated to
+    ``npx nx run <nx_project>:build`` so Nx can skip the build on a cache hit.
+    The project's ``build`` target must bake ``VITE_BASE_PATH`` into its command
+    so the cache key is independent of the caller environment.
+
+    When ``nx_project`` is ``None`` the build falls back to ``npm run build``
+    with ``VITE_BASE_PATH`` set in the environment (legacy path).
 
     Args:
         app_frontend_dir: Frontend project directory (contains package.json).
         base_path: Vite base path under which the SPA is served.
+        nx_project: Nx project name to delegate to, or ``None`` for the legacy path.
     """
-    env = {**os.environ, "VITE_BASE_PATH": base_path}
-    subprocess.run(
-        "npm run build", cwd=app_frontend_dir, shell=True, check=True, env=env
-    )
+    if nx_project:
+        subprocess.run(
+            f"npx nx run {nx_project}:build --output-style=stream",
+            cwd=REPO_ROOT,
+            shell=True,
+            check=True,
+        )
+    else:
+        env = {**os.environ, "VITE_BASE_PATH": base_path}
+        subprocess.run(
+            "npm run build", cwd=app_frontend_dir, shell=True, check=True, env=env
+        )
 
 
 def copy_static(src: Path, dst: Path) -> None:
@@ -159,9 +176,19 @@ def copy_static(src: Path, dst: Path) -> None:
 
 
 def build_platform_frontend() -> None:
-    """Build the platform portal frontend and copy dist to static/home/."""
+    """Build the platform portal frontend and copy dist to static/home/.
+
+    Also copies module-manifest.json alongside the built assets so the backend
+    manifest endpoint can serve it as a static file at runtime.  Vite bundles
+    the JSON as an ES module import; it does not emit a separate file to dist/,
+    so we copy it explicitly after the build.
+    """
     build_frontend(PLATFORM_FRONTEND_DIR, "/")
     copy_static(PLATFORM_FRONTEND_DIR / "dist", APP_DIR / "static" / "home")
+    shutil.copy(
+        PLATFORM_FRONTEND_DIR / "src" / "shell" / "module-manifest.json",
+        APP_DIR / "static" / "home" / "module-manifest.json",
+    )
 
 
 def sync_requirements() -> None:
