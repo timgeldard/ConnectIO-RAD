@@ -205,3 +205,54 @@ def test_routers_do_not_reach_into_dal_or_sql_runtime() -> None:
     offenders = _router_layer_offenses(_router_files())
 
     assert offenders == []
+
+
+CROSS_CONTEXT_EXCEPTIONS = {
+    "trace2_backend.batch_trace.dal.trace_core",
+    "warehouse360_backend.inventory_management.domain.plant_scope",
+}
+
+def test_cross_context_isolation_enforced() -> None:
+    """Cross-context access must go through another context's application/ module or an explicitly documented shared read model. Direct imports of another context's dal/ or domain/ are not allowed from routers."""
+    offenders: list[str] = []
+
+    # We will check all files in the backend for cross-context imports.
+    all_files = []
+    for app_name, backend in zip(DDD_APP_NAMES, APP_BACKENDS):
+        inner_backend = backend / f"{app_name}_backend"
+        all_files.extend(inner_backend.glob("**/*.py"))
+
+    for path in all_files:
+        if path.name == "__init__.py":
+            continue
+
+        parts = path.relative_to(REPO_ROOT).parts
+        if len(parts) < 5:
+            continue
+
+        current_app = parts[1]
+        current_context = parts[4]
+
+        # only check files inside bounded contexts
+        if current_context not in ALLOWED_CONTEXTS.get(current_app, set()):
+            continue
+
+        for module in _imports(path):
+            if module in CROSS_CONTEXT_EXCEPTIONS:
+                continue
+
+            module_parts = module.split(".")
+
+            # Cross context import within the same app
+            if module.startswith(f"{current_app}_backend."):
+                if len(module_parts) >= 2:
+                    target_context = module_parts[1]
+
+                    if target_context != current_context and target_context in ALLOWED_CONTEXTS.get(current_app, set()):
+                        # We are importing from a sibling context
+                        if len(module_parts) >= 3:
+                            layer = module_parts[2]
+                            if layer in ("dal", "domain", "router", "routers"):
+                                offenders.append(f"{path.relative_to(REPO_ROOT)} illegally imports {module} (cross-context access must go through application/)")
+
+    assert offenders == []

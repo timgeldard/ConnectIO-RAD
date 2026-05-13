@@ -533,7 +533,7 @@
             "build": {
               "executor": "nx:run-commands",
               "options": {
-                "command": "npm run build",
+                "command": "VITE_BASE_PATH=/warehouse360/ npm run build",
                 "cwd": "apps/warehouse360/frontend"
               },
               "inputs": [
@@ -620,7 +620,7 @@
           "tags": [
             "npm:private",
             "scope:shared",
-            "type:lib"
+            "type:frontend"
           ],
           "metadata": {
             "targetGroups": {
@@ -650,31 +650,51 @@
               "configurations": {},
               "parallelism": true
             },
+            "build": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "npm run build",
+                "cwd": "libs/shared-frontend-i18n"
+              },
+              "configurations": {},
+              "parallelism": true,
+              "cache": true,
+              "inputs": [
+                "tsFiles",
+                "^tsFiles",
+                "sharedGlobals"
+              ],
+              "dependsOn": [
+                "^build"
+              ]
+            },
             "typecheck": {
               "executor": "nx:run-commands",
               "options": {
                 "command": "tsc --noEmit -p tsconfig.json",
                 "cwd": "libs/shared-frontend-i18n"
               },
-              "inputs": [
-                "tsFiles",
-                "sharedGlobals"
-              ],
               "cache": true,
               "configurations": {},
               "parallelism": true
             },
             "test": {
               "executor": "nx:run-commands",
+              "configurations": {},
               "options": {
-                "command": "npm run test"
+                "command": "uv run --no-sync python -m pytest",
+                "cwd": "libs/shared-frontend-i18n"
               },
+              "parallelism": true,
+              "cache": true,
               "inputs": [
-                "tsFiles",
+                "pyFiles",
+                "^pyFiles",
                 "sharedGlobals"
               ],
-              "configurations": {},
-              "parallelism": true
+              "dependsOn": [
+                "^test"
+              ]
             }
           },
           "projectType": "library",
@@ -863,7 +883,7 @@
           "tags": [
             "npm:private",
             "scope:shared",
-            "type:lib"
+            "type:frontend"
           ],
           "metadata": {
             "targetGroups": {
@@ -893,31 +913,51 @@
               "configurations": {},
               "parallelism": true
             },
+            "build": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "npm run build",
+                "cwd": "libs/shared-app-context"
+              },
+              "configurations": {},
+              "parallelism": true,
+              "cache": true,
+              "inputs": [
+                "tsFiles",
+                "^tsFiles",
+                "sharedGlobals"
+              ],
+              "dependsOn": [
+                "^build"
+              ]
+            },
             "typecheck": {
               "executor": "nx:run-commands",
               "options": {
                 "command": "tsc --noEmit -p tsconfig.json",
                 "cwd": "libs/shared-app-context"
               },
-              "inputs": [
-                "tsFiles",
-                "sharedGlobals"
-              ],
               "cache": true,
               "configurations": {},
               "parallelism": true
             },
             "test": {
               "executor": "nx:run-commands",
+              "configurations": {},
               "options": {
-                "command": "npm run test"
+                "command": "uv run --no-sync python -m pytest",
+                "cwd": "libs/shared-app-context"
               },
+              "parallelism": true,
+              "cache": true,
               "inputs": [
-                "tsFiles",
+                "pyFiles",
+                "^pyFiles",
                 "sharedGlobals"
               ],
-              "configurations": {},
-              "parallelism": true
+              "dependsOn": [
+                "^test"
+              ]
             }
           },
           "projectType": "library",
@@ -1297,25 +1337,62 @@
         "type": "lib",
         "data": {
           "root": "libs/shared-reporting",
-          "name": "shared-reporting",
-          "tags": [
-            "npm:private",
-            "scope:shared",
-            "type:frontend"
-          ],
-          "metadata": {
-            "targetGroups": {
-              "NPM Scripts": [
-                "test:ci"
-              ]
-            },
-            "js": {
-              "packageName": "@connectio/shared-reporting",
-              "packageVersion": "0.1.0",
-              "isInPackageManagerWorkspaces": true
-            }
-          },
           "targets": {
+            "build-storybook": {
+              "executor": "nx:run-commands",
+              "outputs": [
+                "{workspaceRoot}/dist/storybook/shared-reporting"
+              ],
+              "options": {
+                "command": "storybook build --config-dir .storybook --output-dir ../../dist/storybook/shared-reporting",
+                "cwd": "libs/shared-reporting"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "storybook": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "storybook dev --config-dir .storybook --port 4400 --no-open",
+                "cwd": "libs/shared-reporting"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "static-storybook": {
+              "dependsOn": [
+                "build-storybook"
+              ],
+              "continuous": true,
+              "executor": "@nx/web:file-server",
+              "options": {
+                "buildTarget": "build-storybook",
+                "staticFilePath": "libs/shared-reporting/storybook-static"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-deps": {
+              "dependsOn": [
+                "^build"
+              ],
+              "configurations": {},
+              "options": {},
+              "parallelism": true,
+              "executor": "nx:noop"
+            },
+            "watch-deps": {
+              "continuous": true,
+              "dependsOn": [
+                "build-deps"
+              ],
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "npx nx watch --projects shared-reporting --includeDependentProjects -- npx nx build-deps shared-reporting"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
             "test:ci": {
               "executor": "nx:run-script",
               "options": {
@@ -1328,20 +1405,43 @@
               "configurations": {},
               "parallelism": true
             },
+            "test:coverage": {
+              "executor": "nx:run-script",
+              "options": {
+                "script": "test:coverage"
+              },
+              "metadata": {
+                "scriptContent": "vitest run --coverage",
+                "runCommand": "npm run test:coverage"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "lint": {
+              "executor": "nx:run-script",
+              "options": {
+                "script": "lint"
+              },
+              "metadata": {
+                "scriptContent": "tsc --noEmit",
+                "runCommand": "npm run lint"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
             "build": {
               "executor": "nx:run-commands",
               "options": {
                 "command": "npm run build",
                 "cwd": "libs/shared-reporting"
               },
-              "configurations": {},
-              "parallelism": true,
-              "cache": true,
               "inputs": [
                 "tsFiles",
-                "^tsFiles",
                 "sharedGlobals"
               ],
+              "cache": true,
+              "configurations": {},
+              "parallelism": true,
               "dependsOn": [
                 "^build"
               ]
@@ -1352,29 +1452,40 @@
                 "command": "npm run test:ci",
                 "cwd": "libs/shared-reporting"
               },
-              "configurations": {},
-              "parallelism": true
-            },
-            "test:coverage": {
-              "executor": "nx:run-commands",
-              "options": {
-                "command": "npm run test:coverage",
-                "cwd": "libs/shared-reporting"
-              },
-              "configurations": {},
-              "parallelism": true
-            },
-            "lint": {
-              "executor": "nx:run-commands",
-              "options": {
-                "command": "npm run lint",
-                "cwd": "libs/shared-reporting"
-              },
+              "inputs": [
+                "tsFiles",
+                "sharedGlobals"
+              ],
+              "cache": true,
               "configurations": {},
               "parallelism": true
             }
           },
+          "name": "shared-reporting",
+          "tags": [
+            "npm:private",
+            "scope:shared",
+            "type:frontend"
+          ],
+          "metadata": {
+            "targetGroups": {
+              "NPM Scripts": [
+                "test:ci",
+                "test:coverage",
+                "lint"
+              ]
+            },
+            "js": {
+              "packageName": "@connectio/shared-reporting",
+              "packageVersion": "0.1.0",
+              "packageExports": {
+                ".": "./src/index.ts"
+              },
+              "isInPackageManagerWorkspaces": true
+            }
+          },
           "projectType": "library",
+          "sourceRoot": "libs/shared-reporting/src",
           "implicitDependencies": []
         }
       },
@@ -2282,35 +2393,41 @@
           "projectType": "library",
           "tags": [
             "scope:shared",
-            "type:lib"
+            "type:backend"
           ],
           "targets": {
             "lint": {
               "executor": "nx:run-commands",
+              "configurations": {},
               "options": {
-                "command": "uv run --no-sync ruff check .",
-                "cwd": "libs/shared-auth"
+                "command": "uv run --no-sync ruff check libs/shared-auth",
+                "cwd": ""
               },
+              "parallelism": true,
+              "cache": true,
               "inputs": [
                 "pyFiles",
+                "^pyFiles",
                 "sharedGlobals"
-              ],
-              "cache": true,
-              "configurations": {},
-              "parallelism": true
+              ]
             },
             "test": {
               "executor": "nx:run-commands",
+              "configurations": {},
               "options": {
-                "command": "PYTHONPATH=libs/shared-auth/src uv run --no-sync --package shared-auth python -m pytest libs/shared-auth/tests",
-                "cwd": ""
+                "command": "uv run --no-sync python -m pytest",
+                "cwd": "libs/shared-auth"
               },
+              "parallelism": true,
+              "cache": true,
               "inputs": [
                 "pyFiles",
+                "^pyFiles",
                 "sharedGlobals"
               ],
-              "configurations": {},
-              "parallelism": true
+              "dependsOn": [
+                "^test"
+              ]
             }
           },
           "implicitDependencies": []
@@ -2667,22 +2784,23 @@
           "projectType": "library",
           "tags": [
             "scope:shared",
-            "type:lib"
+            "type:backend"
           ],
           "targets": {
             "lint": {
               "executor": "nx:run-commands",
+              "configurations": {},
               "options": {
-                "command": "uv run --no-sync ruff check .",
-                "cwd": "libs/shared-db"
+                "command": "uv run --no-sync ruff check libs/shared-db",
+                "cwd": ""
               },
+              "parallelism": true,
+              "cache": true,
               "inputs": [
                 "pyFiles",
+                "^pyFiles",
                 "sharedGlobals"
-              ],
-              "cache": true,
-              "configurations": {},
-              "parallelism": true
+              ]
             },
             "typecheck": {
               "executor": "nx:run-commands",
@@ -2690,27 +2808,27 @@
                 "command": "uv run --no-sync mypy src",
                 "cwd": "libs/shared-db"
               },
-              "inputs": [
-                "pyFiles",
-                "^pyFiles",
-                "sharedGlobals"
-              ],
               "cache": true,
               "configurations": {},
               "parallelism": true
             },
             "test": {
               "executor": "nx:run-commands",
+              "configurations": {},
               "options": {
-                "command": "PYTHONPATH=libs/shared-db/src uv run --no-sync --package shared-db python -m pytest libs/shared-db/tests",
-                "cwd": ""
+                "command": "uv run --no-sync python -m pytest",
+                "cwd": "libs/shared-db"
               },
+              "parallelism": true,
+              "cache": true,
               "inputs": [
                 "pyFiles",
+                "^pyFiles",
                 "sharedGlobals"
               ],
-              "configurations": {},
-              "parallelism": true
+              "dependsOn": [
+                "^test"
+              ]
             }
           },
           "implicitDependencies": []
@@ -2761,6 +2879,50 @@
           "projectType": "library",
           "sourceRoot": "libs/shared-ui/src",
           "implicitDependencies": []
+        }
+      },
+      "platform": {
+        "name": "platform",
+        "type": "app",
+        "data": {
+          "root": "apps/platform",
+          "name": "platform",
+          "projectType": "application",
+          "tags": [
+            "scope:platform"
+          ],
+          "implicitDependencies": [
+            "platform-frontend",
+            "platform-backend",
+            "connectedquality-frontend",
+            "processorderhistory-frontend",
+            "warehouse360-frontend",
+            "spc-frontend",
+            "trace2-frontend",
+            "envmon-frontend",
+            "shared-reporting",
+            "shared-ui"
+          ],
+          "targets": {
+            "platform-build": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "python3 scripts/build.py",
+                "cwd": "apps/platform"
+              },
+              "inputs": [
+                "{workspaceRoot}/apps/platform/scripts/**/*",
+                "{workspaceRoot}/apps/platform/backend/pyproject.toml",
+                "{workspaceRoot}/apps/platform/requirements*.txt",
+                "{workspaceRoot}/apps/*/frontend/src/**/*",
+                "{workspaceRoot}/libs/shared-*/src/**/*",
+                "{workspaceRoot}/apps/*/backend/**/*"
+              ],
+              "cache": true,
+              "configurations": {},
+              "parallelism": true
+            }
+          }
         }
       },
       "spc-e2e": {
@@ -2871,6 +3033,11 @@
         },
         {
           "source": "connectedquality-frontend",
+          "target": "shared-reporting",
+          "type": "static"
+        },
+        {
+          "source": "connectedquality-frontend",
           "target": "shared-ui",
           "type": "static"
         }
@@ -2957,6 +3124,11 @@
         {
           "source": "platform-frontend",
           "target": "shared-app-context",
+          "type": "static"
+        },
+        {
+          "source": "platform-frontend",
+          "target": "shared-reporting",
           "type": "static"
         },
         {
@@ -3107,6 +3279,11 @@
         {
           "source": "trace2-frontend",
           "target": "shared-app-context",
+          "type": "static"
+        },
+        {
+          "source": "trace2-frontend",
+          "target": "shared-reporting",
           "type": "static"
         },
         {
@@ -3274,6 +3451,58 @@
       ],
       "shared-db": [],
       "shared-ui": [],
+      "platform": [
+        {
+          "source": "platform",
+          "target": "platform-frontend",
+          "type": "implicit"
+        },
+        {
+          "source": "platform",
+          "target": "platform-backend",
+          "type": "implicit"
+        },
+        {
+          "source": "platform",
+          "target": "connectedquality-frontend",
+          "type": "implicit"
+        },
+        {
+          "source": "platform",
+          "target": "processorderhistory-frontend",
+          "type": "implicit"
+        },
+        {
+          "source": "platform",
+          "target": "warehouse360-frontend",
+          "type": "implicit"
+        },
+        {
+          "source": "platform",
+          "target": "spc-frontend",
+          "type": "implicit"
+        },
+        {
+          "source": "platform",
+          "target": "trace2-frontend",
+          "type": "implicit"
+        },
+        {
+          "source": "platform",
+          "target": "envmon-frontend",
+          "type": "implicit"
+        },
+        {
+          "source": "platform",
+          "target": "shared-reporting",
+          "type": "implicit"
+        },
+        {
+          "source": "platform",
+          "target": "shared-ui",
+          "type": "implicit"
+        }
+      ],
       "spc-e2e": [
         {
           "source": "spc-e2e",

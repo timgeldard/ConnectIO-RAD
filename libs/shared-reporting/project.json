@@ -48,6 +48,18 @@
         "command": "storybook build --config-dir .storybook --output-dir ../../dist/storybook/shared-reporting",
         "cwd": "libs/shared-reporting"
       }
+    },
+    "test:coverage": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run test:coverage",
+        "cwd": "libs/shared-reporting"
+      },
+      "inputs": [
+        "tsFiles",
+        "sharedGlobals"
+      ],
+      "cache": true
     }
   }
 }
