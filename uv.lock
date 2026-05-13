@@ -282,7 +282,7 @@ wheels = [
 
 [[package]]
 name = "connectedquality-backend"
-version = "0.1.2"
+version = "0.1.4"
 source = { editable = "apps/connectedquality/backend" }
 dependencies = [
     { name = "cachetools" },
@@ -527,7 +527,7 @@ wheels = [
 
 [[package]]
 name = "envmon-backend"
-version = "0.1.3"
+version = "0.1.5"
 source = { editable = "apps/envmon/backend" }
 dependencies = [
     { name = "cachetools" },
@@ -1209,7 +1209,7 @@ wheels = [
 
 [[package]]
 name = "processorderhistory-backend"
-version = "0.1.7"
+version = "0.1.10"
 source = { editable = "apps/processorderhistory/backend" }
 dependencies = [
     { name = "cachetools" },
@@ -1708,7 +1708,7 @@ requires-dist = [
 
 [[package]]
 name = "shared-auth"
-version = "0.1.3"
+version = "0.1.4"
 source = { editable = "libs/shared-auth" }
 dependencies = [
     { name = "fastapi" },
@@ -1832,7 +1832,7 @@ wheels = [
 
 [[package]]
 name = "spc-backend"
-version = "0.1.2"
+version = "0.1.4"
 source = { editable = "apps/spc/backend" }
 dependencies = [
     { name = "cachetools" },
@@ -1987,7 +1987,7 @@ wheels = [
 
 [[package]]
 name = "trace2-backend"
-version = "0.1.2"
+version = "0.1.4"
 source = { editable = "apps/trace2/backend" }
 dependencies = [
     { name = "cachetools" },
@@ -2117,7 +2117,7 @@ wheels = [
 
 [[package]]
 name = "warehouse360-backend"
-version = "0.1.10"
+version = "0.1.11"
 source = { editable = "apps/warehouse360/backend" }
 dependencies = [
     { name = "cachetools" },
