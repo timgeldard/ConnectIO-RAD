@@ -62,7 +62,15 @@ def _register_discovered_routers() -> None:
         kwargs: dict[str, Any] = {"prefix": prefix}
         if tags is not None:
             kwargs["tags"] = tags
-        app.include_router(router, **kwargs)
+        try:
+            app.include_router(router, **kwargs)
+        except Exception as exc:
+            logger.warning(
+                "Skipping invalid router %r (prefix=%s): %s",
+                router,
+                prefix,
+                exc,
+            )
 
 
 _register_discovered_routers()

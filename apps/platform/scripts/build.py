@@ -159,9 +159,19 @@ def copy_static(src: Path, dst: Path) -> None:
 
 
 def build_platform_frontend() -> None:
-    """Build the platform portal frontend and copy dist to static/home/."""
+    """Build the platform portal frontend and copy dist to static/home/.
+
+    Also copies module-manifest.json alongside the built assets so the backend
+    manifest endpoint can serve it as a static file at runtime.  Vite bundles
+    the JSON as an ES module import; it does not emit a separate file to dist/,
+    so we copy it explicitly after the build.
+    """
     build_frontend(PLATFORM_FRONTEND_DIR, "/")
     copy_static(PLATFORM_FRONTEND_DIR / "dist", APP_DIR / "static" / "home")
+    shutil.copy(
+        PLATFORM_FRONTEND_DIR / "src" / "shell" / "module-manifest.json",
+        APP_DIR / "static" / "home" / "module-manifest.json",
+    )
 
 
 def sync_requirements() -> None:
