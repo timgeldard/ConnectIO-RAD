@@ -7,7 +7,7 @@ import pytest
 from scripts import deploy_app
 
 
-def _args(app_dir, *, dry_run: bool = True) -> Namespace:
+def _args(app_dir, *, dry_run: bool = True, run_migrations: bool = False) -> Namespace:
     return Namespace(
         app_dir=app_dir,
         manifest=None,
@@ -17,6 +17,7 @@ def _args(app_dir, *, dry_run: bool = True) -> Namespace:
         bundle_name=None,
         dry_run=dry_run,
         print_env=False,
+        run_migrations=run_migrations,
     )
 
 
@@ -135,3 +136,59 @@ def test_prod_placeholders_fail_closed_unless_overridden(tmp_path):
         deploy_app.render_config(manifest, args, env)
         rendered = (tmp_path / "app.yaml").read_text(encoding="utf-8")
         assert "key: real-value" in rendered
+
+
+def test_discover_bundled_app_manifests_loads_sub_app_deploy_tomls(tmp_path, monkeypatch):
+    """`[platform].bundled_apps` should load each sub-app's deploy.toml."""
+    # Pretend tmp_path is the repo root so `bundled_apps` paths resolve.
+    monkeypatch.setattr(deploy_app, "ROOT", tmp_path)
+    (tmp_path / "apps" / "spc").mkdir(parents=True)
+    (tmp_path / "apps" / "spc" / "deploy.toml").write_text(
+        '[app]\nname = "spc"\n\n[[migrations]]\nname = "spc_schema"\nfile = "m.sql"\nwarehouse_id = "wh"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "apps" / "envmon").mkdir(parents=True)
+    (tmp_path / "apps" / "envmon" / "deploy.toml").write_text(
+        '[app]\nname = "envmon"\n',
+        encoding="utf-8",
+    )
+
+    args = _args(tmp_path / "apps" / "platform")
+    manifest = {"platform": {"bundled_apps": ["apps/spc", "apps/envmon", "apps/missing"]}}
+    pairs = deploy_app.discover_bundled_app_manifests(manifest, args)
+
+    # `apps/missing` is silently skipped (warn-only), the rest load.
+    assert [p[0].name for p in pairs] == ["spc", "envmon"]
+    assert pairs[0][1]["app"]["name"] == "spc"
+    assert pairs[0][1]["migrations"][0]["name"] == "spc_schema"
+
+
+def test_deploy_skips_migrations_unless_flag(tmp_path, monkeypatch, capsys):
+    """`deploy()` must not auto-run migrations unless --run-migrations is set.
+
+    Non-idempotent migrations + no applied-tracker mean repeated deploys
+    would corrupt schema. The flag keeps schema-change deploys explicit.
+    """
+    monkeypatch.setattr(deploy_app, "ROOT", tmp_path)
+    monkeypatch.setattr(deploy_app, "check_env", lambda *a, **k: None)
+    monkeypatch.setattr(deploy_app, "build_frontend", lambda *a, **k: None)
+    monkeypatch.setattr(deploy_app, "render_config", lambda *a, **k: None)
+    monkeypatch.setattr(deploy_app, "bundle_deploy", lambda *a, **k: None)
+    monkeypatch.setattr(deploy_app, "post_deploy", lambda *a, **k: None)
+    monkeypatch.setattr(deploy_app, "run_hook_commands", lambda *a, **k: None)
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("run_sql_migrations must not be called without --run-migrations")
+
+    monkeypatch.setattr(deploy_app, "run_sql_migrations", _boom)
+
+    manifest = {
+        "app": {"name": "platform"},
+        "migrations": [{"name": "m1", "file": "m.sql", "warehouse_id": "wh"}],
+    }
+    args = _args(tmp_path, dry_run=True, run_migrations=False)
+    deploy_app.deploy(manifest, args, {})
+
+    out = capsys.readouterr().out
+    assert "SKIP 1 SQL migration" in out
+    assert "--run-migrations" in out
