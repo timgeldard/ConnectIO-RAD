@@ -54,10 +54,14 @@ export type MappingValue =
  * Configuration for a widget's live data binding.
  */
 export interface WidgetDataBinding {
-  /** Registry key matching an entry in the QueryRegistry. */
+  /** Dataset ID linking the widget to a user-defined Databricks SQL dataset. */
+  datasetId?: string;
+  /** Registry key matching an entry in the QueryRegistry (legacy). */
   queryKey: string;
   /** Parameters passed to the query, mapped from dashboard-level params or static values. */
   params?: Record<string, QueryParamBinding>;
   /** Mapping from response payload paths to widget property keys. */
   mapping?: Record<string, MappingValue>;
+  /** Interval in seconds to automatically refresh the widget's data. */
+  refreshSeconds?: number;
 }
