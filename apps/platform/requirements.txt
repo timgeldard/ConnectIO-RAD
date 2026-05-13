@@ -20,7 +20,7 @@ PyJWT[crypto]>=2.8
 ./wheels/shared_geo-0.1.0-py3-none-any.whl
 ./wheels/connectedquality_backend-0.1.3-py3-none-any.whl
 ./wheels/envmon_backend-0.1.5-py3-none-any.whl
-./wheels/processorderhistory_backend-0.1.8-py3-none-any.whl
+./wheels/processorderhistory_backend-0.1.9-py3-none-any.whl
 ./wheels/spc_backend-0.1.4-py3-none-any.whl
 ./wheels/trace2_backend-0.1.4-py3-none-any.whl
 ./wheels/warehouse360_backend-0.1.11-py3-none-any.whl
