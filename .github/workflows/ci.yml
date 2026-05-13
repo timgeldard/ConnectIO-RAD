@@ -71,13 +71,13 @@ jobs:
       - name: audit:frontend (strict — Carbon forbidden)
         run: npm run audit:frontend:strict
 
-      # Central DDD guardrail. Pre-commit also runs this, but a forked PR or
-      # a contributor who skips hooks would otherwise bypass it. The test
-      # AST-walks every domain/, application/, and router*.py file across all
-      # apps and enforces the bounded-context allowlist; not part of the per-
-      # app `nx test` graph because it lives at scripts/tests/.
-      - name: DDD architecture guardrails
-        run: uv run --with pytest pytest scripts/tests/test_ddd_architecture_guardrails.py --tb=short
+      # Dedicated architecture linters. Python import contracts live in
+      # .importlinter; TypeScript module boundaries use @nx/enforce-module-
+      # boundaries with project tags from project.json.
+      - name: Architecture boundary lint
+        run: |
+          npm run lint:architecture:python
+          npm run lint:architecture:ts
 
       # Semantic-model governance — every tbl()/silver_tbl() call must reference
       # an entity in ai-context/semantic-model/entities.yaml (or the
@@ -400,4 +400,3 @@ jobs:
           npx nx affected -t deploy \
             --base=$NX_BASE \
             --head=${{ github.sha }}
-

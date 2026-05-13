@@ -1,9 +1,9 @@
 {
   "mcpServers": {
     "databricks": {
-      "command": "C:/Users/tgeldard/.ai-dev-kit/.venv/Scripts/python.exe",
+      "command": "${HOME}/.ai-dev-kit/.venv/bin/python",
       "args": [
-        "C:/Users/tgeldard/.ai-dev-kit/repo/databricks-mcp-server/run_server.py"
+        "${HOME}/.ai-dev-kit/repo/databricks-mcp-server/run_server.py"
       ],
       "defer_loading": true,
       "env": {

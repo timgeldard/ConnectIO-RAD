@@ -2,6 +2,7 @@ import asyncio
 
 from shared_db.freshness import DataFreshnessRuntime
 from shared_db.runtime import (
+    apply_max_rows_guard,
     CachePolicy,
     CacheTier,
     SqlRuntime,
@@ -66,6 +67,20 @@ def test_sql_cache_key_includes_params():
     assert left != right
 
 
+def test_sql_cache_key_excludes_token_for_shared_dashboard_reads():
+    left = sql_cache_key("operator-a", "SELECT :value", [{"name": "value", "value": "1"}])
+    right = sql_cache_key("operator-b", "SELECT :value", [{"name": "value", "value": "1"}])
+
+    assert left == right
+    assert len(left.split(":")) == 2
+
+
+def test_apply_max_rows_guard_adds_limit_to_read_query():
+    assert apply_max_rows_guard("SELECT * FROM kpi_overview", 500).endswith("LIMIT 500")
+    assert apply_max_rows_guard("SELECT * FROM kpi_overview LIMIT 10", 500).endswith("LIMIT 10")
+    assert apply_max_rows_guard("UPDATE t SET x = 1", 500) == "UPDATE t SET x = 1"
+
+
 def test_sql_runtime_accepts_endpoint_hint_and_audit_hook():
     audit_events = []
 
@@ -81,6 +96,32 @@ def test_sql_runtime_accepts_endpoint_hint_and_audit_hook():
 
     assert audit_events[0]["endpoint_hint"] == "test.endpoint"
     assert "SELECT 1 AS ok" in audit_events[0]["rows"][0]["statement"]
+
+
+def test_sql_runtime_logs_slow_queries(caplog):
+    def run_sql(_token, statement, params=None):
+        return [{"statement": statement}]
+
+    runtime = SqlRuntime(run_sql=run_sql, slow_query_threshold_ms=-1)
+
+    with caplog.at_level("WARNING", logger="shared_db.runtime"):
+        asyncio.run(runtime.run_sql_async("token", "SELECT 1", endpoint_hint="slow-test", bypass_cache=True))
+
+    assert any("sql.slow_query" in record.message and "slow-test" in record.message for record in caplog.records)
+
+
+def test_sql_runtime_applies_opt_in_max_rows_guard():
+    calls = []
+
+    def run_sql(_token, statement, params=None):
+        calls.append(statement)
+        return [{"statement": statement}]
+
+    runtime = SqlRuntime(run_sql=run_sql)
+
+    asyncio.run(runtime.run_sql_async("token", "SELECT * FROM kpi_overview", max_rows=250))
+
+    assert calls == ["SELECT * FROM kpi_overview\nLIMIT 250"]
 
 
 def test_sql_runtime_supports_tiered_cache_policy():
@@ -104,6 +145,36 @@ def test_sql_runtime_supports_tiered_cache_policy():
     assert first == second
     assert len(calls) == 1
     assert "SHOW TABLES" in calls[0]
+
+
+def test_manufacturing_cache_policy_documents_short_retention_tiers():
+    policy = CachePolicy.manufacturing(row_limit=250)
+
+    tiers = {tier.name: tier for tier in policy.tiers}
+
+    assert tiers["metadata"].ttl_seconds == 15 * 60
+    assert tiers["scorecard"].ttl_seconds == 5 * 60
+    assert tiers["chart"].ttl_seconds == 3 * 60
+    assert max(tier.ttl_seconds for tier in policy.tiers) <= 15 * 60
+    assert {tier.row_limit for tier in policy.tiers} == {250}
+
+
+def test_sql_runtime_clear_cache_purges_all_cache_tiers():
+    calls = []
+
+    def run_sql(_token, statement, params=None):
+        calls.append(statement)
+        return [{"call": len(calls)}]
+
+    runtime = SqlRuntime(run_sql=run_sql, cache_policy=CachePolicy.manufacturing())
+
+    asyncio.run(runtime.run_sql_async("token", "SELECT * FROM kpi_overview"))
+    asyncio.run(runtime.run_sql_async("token", "SELECT * FROM kpi_overview"))
+    runtime.clear_cache()
+    after_purge = asyncio.run(runtime.run_sql_async("token", "SELECT * FROM kpi_overview"))
+
+    assert after_purge == [{"call": 2}]
+    assert len(calls) == 2
 
 
 def test_sql_runtime_supports_pattern_matched_cache_tiers_and_invalidation_opt_out():
@@ -173,3 +244,23 @@ def test_data_freshness_runtime_filters_views_and_caches():
     assert second["sources"] == [{"source_view": "gold_batch_stock_v"}]
     assert len(calls) == 1
     assert [param["name"] for param in calls[0]] == ["catalog_name", "schema_name", "view_0"]
+
+
+def test_data_freshness_runtime_cache_is_not_partitioned_by_token():
+    calls = []
+
+    def run_sql(token, _statement, params=None):
+        calls.append(token)
+        return [{"source_view": "gold_batch_stock_v"}]
+
+    runtime = DataFreshnessRuntime(
+        run_sql=run_sql,
+        catalog=lambda: "catalog",
+        schema=lambda: "schema",
+    )
+
+    first = runtime.get_data_freshness("operator-a", ["gold_batch_stock_v"])
+    second = runtime.get_data_freshness("operator-b", ["gold_batch_stock_v"])
+
+    assert first["sources"] == second["sources"]
+    assert calls == ["operator-a"]

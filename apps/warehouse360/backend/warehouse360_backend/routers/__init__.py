@@ -10,12 +10,12 @@ from warehouse360_backend.inventory_management.router_plants import router as pl
 from warehouse360_backend.inventory_management.router_imwm import router as imwm_router
 
 PLATFORM_ROUTERS = [
-    (process_orders_router, "/api/wh", ["W360-ProcessOrders"]),
-    (deliveries_router, "/api/wh", ["W360-Deliveries"]),
-    (inbound_router, "/api/wh", ["W360-Inbound"]),
-    (inventory_router, "/api/wh", ["W360-Inventory"]),
-    (dispensary_router, "/api/wh", ["W360-Dispensary"]),
-    (kpis_router, "/api/wh", ["W360-KPIs"]),
-    (plants_router, "/api/wh", ["W360-Plants"]),
-    (imwm_router, "/api/wh", ["W360-IMWM"]),
+    (process_orders_router, "/api/wh360", ["W360-ProcessOrders"]),
+    (deliveries_router, "/api/wh360", ["W360-Deliveries"]),
+    (inbound_router, "/api/wh360", ["W360-Inbound"]),
+    (inventory_router, "/api/wh360", ["W360-Inventory"]),
+    (dispensary_router, "/api/wh360", ["W360-Dispensary"]),
+    (kpis_router, "/api/wh360", ["W360-KPIs"]),
+    (plants_router, "/api/wh360", ["W360-Plants"]),
+    (imwm_router, "/api/wh360", ["W360-IMWM"]),
 ]

@@ -31,7 +31,7 @@ The architectural boundaries for core DDD apps are **Frozen** to prevent drift a
 - **Placement**: All new business logic must be placed in the correct bounded context's `domain/` or `application/` layer.
 - **Isolation**: The `domain/` layer must never depend on infrastructure, transport (fastapi), or sibling contexts' domain layers.
 - **Communication**: Cross-context communication must flow through the target context's `application/` layer only.
-- **Guardrails**: All changes MUST pass the architecture guardrail suite (`uv run pytest scripts/tests/test_ddd_architecture_guardrails.py`). Unauthorized new bounded contexts or boundary violations will result in PR rejection.
+- **Guardrails**: All changes MUST pass the dedicated architecture linters (`npm run lint:architecture:python` and `npm run lint:architecture:ts`). Unauthorized new bounded contexts or boundary violations will result in PR rejection.
 - **Glossary**: New domain terms must be added to `docs/domain-glossary.md` and aligned with the owning context's ubiquitous language.
 
 ## 6. Design System & Frontend Standards

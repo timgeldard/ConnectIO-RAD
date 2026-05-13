@@ -63,6 +63,7 @@ PREFS_DB_PATH = "/tmp/connectio_platform_prefs.db"
 # (see shared_auth._decode_token).  Set back to "false" once JWKS is confirmed
 # working end-to-end.
 AUTH_JWKS_URL = "https://adb-604667594731808.8.azuredatabricks.net/oidc/jwks.json"
+AUTH_JWT_AUDIENCE = "connectio-platform-uat"
 AUTH_JWT_ISSUER = "https://adb-604667594731808.8.azuredatabricks.net/oidc"
 AUTH_ALLOW_UNVERIFIED_JWT = "true"
 
@@ -87,5 +88,6 @@ PREFS_DB_PATH = "/tmp/connectio_platform_prefs.db"
 # JWT verification — workspace OIDC discovery values for prod.
 # Discovery doc: https://adb-3998371303355516.16.azuredatabricks.net/oidc/.well-known/openid-configuration
 AUTH_JWKS_URL = "https://northeurope-c2.azuredatabricks.net/oidc/jwks.json"
+AUTH_JWT_AUDIENCE = "connectio-platform-prod"
 AUTH_JWT_ISSUER = "https://adb-3998371303355516.16.azuredatabricks.net/oidc"
 AUTH_ALLOW_UNVERIFIED_JWT = "false"

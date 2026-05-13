@@ -132,6 +132,7 @@ def warn_if_jwks_unconfigured() -> None:
     """
     jwks_url = os.environ.get("AUTH_JWKS_URL", "").strip()
     if jwks_url:
+        _require_audience_for_verified_tokens()
         return
 
     if _is_dev_mode():
@@ -143,11 +144,13 @@ def warn_if_jwks_unconfigured() -> None:
         return
 
     if _allow_unverified_tokens():
-        raise RuntimeError(
+        logger.warning(
             "AUTH_ALLOW_UNVERIFIED_JWT is set outside dev mode. "
-            "JWT signature verification is disabled — unset the variable or "
-            "set APP_ENV=development to run without JWKS verification."
+            "JWT signature verification is disabled for this deliberately "
+            "unsafe deployment. Configure AUTH_JWKS_URL and AUTH_JWT_AUDIENCE "
+            "before production use."
         )
+        return
 
     raise RuntimeError(
         "AUTH_JWKS_URL is not configured and AUTH_ALLOW_UNVERIFIED_JWT is not set. "
@@ -162,6 +165,24 @@ def _is_dev_mode() -> bool:
 
 def _allow_unverified_tokens() -> bool:
     return os.environ.get("AUTH_ALLOW_UNVERIFIED_JWT", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _require_audience_for_verified_tokens() -> None:
+    """Require an expected JWT audience outside local development.
+
+    Raises:
+        RuntimeError: If JWKS verification is enabled in a non-dev environment
+            without an expected audience value.
+    """
+    if _is_dev_mode():
+        return
+    if os.environ.get("AUTH_JWT_AUDIENCE", "").strip():
+        return
+    raise RuntimeError(
+        "AUTH_JWT_AUDIENCE is required when AUTH_JWKS_URL is configured outside "
+        "dev mode. Set it to the expected Databricks workspace/application "
+        "audience so tokens minted for other tenants are rejected."
+    )
 
 
 def _jwt_verification_config() -> tuple[str, str | None, str | None]:
@@ -261,6 +282,7 @@ def _decode_token(token: str) -> dict[str, Any]:
     """
     jwks_url, audience, issuer = _jwt_verification_config()
     if jwks_url:
+        _require_audience_for_verified_tokens()
         try:
             signing_key = _jwk_client(jwks_url).get_signing_key_from_jwt(token)
             options = {"verify_aud": audience is not None}

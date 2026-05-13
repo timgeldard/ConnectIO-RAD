@@ -54,7 +54,8 @@ uv run --project apps/spc/backend pytest apps/spc/backend/tests/ -x -q
 cd apps/spc/frontend && npm run test
 
 # DDD guardrails (cross-app)
-uv run --with pytest pytest scripts/tests/test_ddd_architecture_guardrails.py --tb=short
+npm run lint:architecture:python
+npm run lint:architecture:ts
 ```
 
 Coverage minimum is **75%** for all apps. CI will fail if coverage drops below the
@@ -80,7 +81,7 @@ router → application → dal → domain
 - DAL: database queries only, no HTTP concerns
 - Domain: pure data models, no I/O
 
-Import violations fail CI via `scripts/tests/test_ddd_architecture_guardrails.py`.
+Import violations fail CI via `.importlinter` for Python and `@nx/enforce-module-boundaries` for TypeScript.
 They also run as a pre-commit hook.
 
 ## Add New Module
@@ -110,7 +111,9 @@ Validate the scaffold before adding domain-specific logic:
 
 ```bash
 python3 scripts/validate_new_app.py supplier-quality
-python3 -m pytest scripts/tests/test_ddd_architecture_guardrails.py scripts/tests/test_validate_new_app.py
+npm run lint:architecture:python
+npm run lint:architecture:ts
+python3 -m pytest scripts/tests/test_validate_new_app.py
 npm run test:generators
 ```
 

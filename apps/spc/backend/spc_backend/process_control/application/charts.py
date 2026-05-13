@@ -147,6 +147,7 @@ async def fetch_count_chart_data(
     plant_id: Optional[str],
     date_from: Optional[str],
     date_to: Optional[str],
+    chart_subtype: str,
     operation_id: Optional[str] = None,
 ) -> list[dict]:
     """Return count-chart (c/u-chart) data after verifying plant authorization.
@@ -159,6 +160,7 @@ async def fetch_count_chart_data(
         plant_id: Optional SAP plant identifier; ``None`` means all authorized plants.
         date_from: ISO date string (YYYY-MM-DD) start of range, or ``None``.
         date_to: ISO date string (YYYY-MM-DD) end of range, or ``None``.
+        chart_subtype: Count chart subtype, ``c`` or ``u``.
         operation_id: Optional operation identifier to filter results.
 
     Returns:
@@ -167,6 +169,7 @@ async def fetch_count_chart_data(
     await assert_plant_authorized(token, plant_id)
     return await _dal.fetch_count_chart_data(
         token, material_id, mic_id, mic_name, plant_id, date_from, date_to,
+        chart_subtype,
         operation_id=operation_id,
     )
 

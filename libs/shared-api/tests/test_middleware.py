@@ -83,4 +83,6 @@ def test_security_headers_middleware_sets_defaults() -> None:
     response = TestClient(app).get("/ok")
 
     assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["cache-control"] == "no-store"
     assert response.headers["referrer-policy"] == "strict-origin-when-cross-origin"

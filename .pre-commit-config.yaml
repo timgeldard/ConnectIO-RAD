@@ -42,19 +42,19 @@ repos:
         language: system
         files: ^apps/.*/i18n/resources\.json$
         pass_filenames: false
-      - id: ddd-guardrails
-        name: DDD Architecture Guardrails
-        # Runs the central guardrail at scripts/tests/, which AST-walks every
-        # domain/, application/, and router*.py file across all apps and
-        # enforces the four-layer DDD rules plus the bounded-context allowlist.
-        # This is broader than the per-app tests AND avoids the conftest.py
-        # name-collision that running multiple apps' test trees in one pytest
-        # invocation triggers; per-app tests still run under `nx affected -t
-        # test` in CI.
-        entry: python -m pytest --tb=short -v scripts/tests/test_ddd_architecture_guardrails.py
+      - id: python-architecture-lint
+        name: Python Architecture Lint
+        entry: npm run lint:architecture:python
         language: system
         pass_filenames: false
-        files: ^(apps|libs|scripts/tests)/.*\.py$
+        files: ^(apps|libs|\.importlinter|package\.json)
+        stages: [pre-commit]
+      - id: typescript-architecture-lint
+        name: TypeScript Architecture Lint
+        entry: npm run lint:architecture:ts
+        language: system
+        pass_filenames: false
+        files: ^(apps/.*/frontend|libs/shared-.*/src|eslint\.config\.mjs|package\.json|nx\.json)
         stages: [pre-commit]
       - id: validate-template-app
         name: Validate generated template app

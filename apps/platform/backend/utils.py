@@ -167,11 +167,34 @@ def get_missing_artifacts() -> dict[str, str]:
     return get_missing_optional_artifacts()
 
 
+def _backend_project_for_app(app_dir: Path, deploy_config: dict[str, Any]) -> str | None:
+    """Return the backend project name for an app directory.
+
+    Newer app deploy files no longer duplicate backend package metadata in
+    ``deploy.toml``. Prefer that explicit value when present, otherwise derive
+    it from ``backend/pyproject.toml`` so platform router discovery follows the
+    packages that the build actually wheels.
+    """
+    backend_project = deploy_config.get("app", {}).get("backend_project")
+    if backend_project:
+        return str(backend_project)
+
+    pyproject_path = app_dir / "backend" / "pyproject.toml"
+    if not pyproject_path.exists():
+        return None
+
+    with open(pyproject_path, "rb") as f:
+        pyproject = tomllib.load(f)
+    project_name = pyproject.get("project", {}).get("name")
+    return str(project_name) if project_name else None
+
+
 def discover_active_modules(apps_dir: Path = ROOT / "apps") -> list[str]:
     """Scan the apps directory for RAD modules and return their backend package names.
 
-    A directory is considered a RAD module if it contains a deploy.toml file
-    specifying a backend_project.
+    A directory is considered a RAD module if it contains a ``deploy.toml`` and
+    either an explicit ``app.backend_project`` or a ``backend/pyproject.toml``
+    with ``project.name``.
     """
     packages = []
     if not apps_dir.exists():
@@ -181,10 +204,13 @@ def discover_active_modules(apps_dir: Path = ROOT / "apps") -> list[str]:
         try:
             with open(deploy_toml, "rb") as f:
                 config = tomllib.load(f)
-                backend_project = config.get("app", {}).get("backend_project")
-                if backend_project:
-                    # Convention: spc-backend -> spc_backend
-                    packages.append(backend_project.replace("-", "_"))
+            app_name = config.get("app", {}).get("name")
+            if app_name == "platform":
+                continue
+            backend_project = _backend_project_for_app(deploy_toml.parent, config)
+            if backend_project:
+                # Convention: spc-backend -> spc_backend
+                packages.append(backend_project.replace("-", "_"))
         except Exception as exc:
             logger.warning("Failed to parse %s: %s", deploy_toml, exc)
 
