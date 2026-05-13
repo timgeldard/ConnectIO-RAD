@@ -73,7 +73,7 @@ function str(v: Nullable<string>, fallback = ""): string {
  * carries no flow" — so a malformed value must not collapse to either.
  */
 function coerceOptionalFlowQty(v: NumLike | undefined): number | undefined {
-  if (v === null || v === undefined) return undefined;
+  if (v === null || v === undefined || v === "") return undefined;
   const n = typeof v === "string" ? parseFloat(v) : v;
   return Number.isFinite(n) ? n : undefined;
 }

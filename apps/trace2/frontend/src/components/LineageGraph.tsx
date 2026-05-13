@@ -63,7 +63,7 @@ export function LineageGraph({
   // Reset depth filters when focal changes
   useEffect(() => { setDepthUp(99); setDepthDn(99); }, [focal.id]);
 
-  const { allNodes, edges, maxUp, maxDn, selfTransfers } = useMemo(() => {
+  const { allNodes, edges, maxUp, maxDn, selfTransfers, missingParents } = useMemo(() => {
     const upFiltered = upstream.filter((n) => n.id !== focal.id && n.level <= depthUp);
     const dnFiltered = downstream.filter((n) => n.id !== focal.id && n.level <= depthDn);
     const selfTransfers: { direction: "up" | "down"; plant: string; qty: number; uom: string; link: string }[] = [];
@@ -367,11 +367,28 @@ export function LineageGraph({
           </div>
         ))}
       </div>
+      {missingParents.length > 0 && (
+        <div style={{
+          position: "absolute", top: 10, left: 14, right: 200, zIndex: 2,
+          padding: "8px 12px", background: "#FDE5D9", border: "1px solid #F24A00", borderRadius: 2,
+          fontFamily: "var(--font-sans)", fontSize: 11.5, color: "var(--ink)",
+          display: "flex", alignItems: "center", gap: 12,
+        }}>
+          <span style={{
+            width: 18, height: 18, borderRadius: 9, background: "#F24A00", color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontWeight: "bold", fontSize: 12, flexShrink: 0,
+          }}>!</span>
+          <div>
+            <strong>Warning: Incomplete Trace Data</strong> — {missingParents.length} edge{missingParents.length === 1 ? "" : "s"} dropped due to missing parent records in the lineage graph. Data relationships may be broken.
+          </div>
+        </div>
+      )}
       {selfTransfers.length > 0 && (
         <div
           style={{
             position: "absolute",
-            top: 10,
+            top: missingParents.length > 0 ? 50 : 10,
             left: 14,
             right: 200,
             zIndex: 2,
@@ -596,6 +613,7 @@ function layoutGraph(
   edges: { from: PlacedNode; to: PlacedNode; linkType: string }[];
   maxUp: number;
   maxDn: number;
+  missingParents: string[];
 } {
   const focalLaid: PlacedFocal = { ...focal, col: 0, x: 0, y: -NODE_H / 2 };
 
@@ -652,16 +670,7 @@ function layoutGraph(
   for (const tier of upPlacedByLevel) for (const n of tier) addEdge(n, "up");
   for (const tier of dnPlacedByLevel) for (const n of tier) addEdge(n, "down");
 
-  if (missingParents.length > 0 && typeof console !== "undefined") {
-    const unique = Array.from(new Set(missingParents)).slice(0, 5);
-    // eslint-disable-next-line no-console
-    console.warn("LineageGraph: edges dropped due to missing parent nodes", {
-      count: missingParents.length,
-      sample: unique,
-    });
-  }
-
-  return { allNodes, edges, maxUp, maxDn };
+  return { allNodes, edges, maxUp, maxDn, missingParents };
 }
 
 function groupByLevel(nodes: LineageNode[]): LineageNode[][] {

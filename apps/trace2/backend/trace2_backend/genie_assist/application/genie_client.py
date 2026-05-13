@@ -16,8 +16,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
-from fastapi import HTTPException
-
+from shared_api.errors import DomainError as AppError
 
 TERMINAL_STATUSES = {"COMPLETED", "FAILED", "CANCELLED"}
 
@@ -107,20 +106,14 @@ def _validate_host(host: str) -> str:
     """
     raw = (host or "").rstrip("/")
     if not raw:
-        raise HTTPException(
-            status_code=500,
-            detail="DATABRICKS_HOST environment variable is not set.",
-        )
+        raise AppError("DATABRICKS_HOST environment variable is not set.")
     if not raw.startswith(("http://", "https://")):
         raw = f"https://{raw}"
 
     parsed = urlparse(raw)
     hostname = (parsed.hostname or "").lower()
     if not hostname or not _HOSTNAME_RE.match(hostname):
-        raise HTTPException(
-            status_code=500,
-            detail=f"DATABRICKS_HOST is not a valid hostname: {host!r}",
-        )
+        raise AppError(f"DATABRICKS_HOST is not a valid hostname: {host!r}")
 
     # `urlparse` defers port validation until `parsed.port` is accessed; an
     # invalid port (non-numeric or out-of-range) raises ValueError at that
@@ -129,19 +122,13 @@ def _validate_host(host: str) -> str:
     try:
         _ = parsed.port
     except ValueError as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=f"DATABRICKS_HOST has an invalid port: {host!r}",
-        ) from exc
+        raise AppError(f"DATABRICKS_HOST has an invalid port: {host!r}") from exc
 
     suffixes = _allowed_host_suffixes()
     if not any(hostname.endswith(suffix) for suffix in suffixes):
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "DATABRICKS_HOST is not in the Genie client allowlist. "
-                "Refusing to send a Databricks bearer token to an unrecognised host."
-            ),
+        raise AppError(
+            "DATABRICKS_HOST is not in the Genie client allowlist. "
+            "Refusing to send a Databricks bearer token to an unrecognised host."
         )
 
     # Drop the port component entirely — workspace traffic always goes to the
@@ -173,12 +160,8 @@ def _space_id() -> str:
         or ""
     )
     if not space_id:
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "TRACE2_GENIE_SPACE_ID (or GENIE_SPACE_ID) environment "
-                "variable is not set."
-            ),
+        raise AppError(
+            "TRACE2_GENIE_SPACE_ID (or GENIE_SPACE_ID) environment variable is not set."
         )
     return space_id
 
@@ -194,10 +177,7 @@ def resolve_genie_token(
     if token is None:
         token = os.environ.get("DATABRICKS_TOKEN")
     if not token:
-        raise HTTPException(
-            status_code=401,
-            detail="No Databricks access token is available for Genie.",
-        )
+        raise AppError("No Databricks access token is available for Genie.")
     return token
 
 
@@ -227,12 +207,9 @@ def _request_json(
             raw = response.read()
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace") or exc.reason
-        raise HTTPException(status_code=exc.code, detail=f"Genie API error: {detail}") from exc
+        raise AppError(f"Genie API error: {detail}") from exc
     except URLError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Unable to reach Databricks Genie API: {exc.reason}",
-        ) from exc
+        raise AppError(f"Unable to reach Databricks Genie API: {exc.reason}") from exc
     return json.loads(raw.decode("utf-8")) if raw else {}
 
 
