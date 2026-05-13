@@ -2,6 +2,11 @@
 
 from typing import List, Optional
 
+# Per AIAG SPC Manual (4th ed.) and ISO 22514 §4.4.
+CPK_HIGHLY_CAPABLE: float = 1.67
+CPK_CAPABLE: float = 1.33
+CPK_MARGINAL: float = 1.00
+
 from shared_manufacturing.analytics.capability import (
     compute_capability_indices as _compute_capability_indices,
 )
