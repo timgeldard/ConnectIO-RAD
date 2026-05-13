@@ -4,6 +4,22 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    lib: {
+      entry: resolve(__dirname, 'src/index.ts'),
+      name: 'SharedReporting',
+      fileName: 'index'
+    },
+    rollupOptions: {
+      external: ['react', 'react-dom'],
+      output: {
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM'
+        }
+      }
+    }
+  },
   test: {
     environment: 'jsdom',
     globals: true,
