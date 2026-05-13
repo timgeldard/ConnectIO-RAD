@@ -110,6 +110,7 @@ async def routers_health():
 
 
 # Static mounts
+_CORE_SLUGS = {"cq", "trace", "envmon", "spc", "poh", "warehouse360"}
 for slug, directory in [
     ("cq", CQ_STATIC),
     ("trace", TRACE_STATIC),
@@ -120,6 +121,18 @@ for slug, directory in [
 ]:
     if directory.exists():
         app.mount(f"/{slug}", StaticFiles(directory=str(directory), html=True), name=slug)
+
+# Standalone demo apps — auto-discover any static/<slug>/index.html not already mounted above.
+# Build script copies them from apps/platform/frontend/standalone/<slug>/.
+for _dir in sorted(_STATIC.iterdir()):
+    if (
+        _dir.is_dir()
+        and _dir.name not in _CORE_SLUGS
+        and _dir.name != "home"
+        and (_dir / "index.html").exists()
+    ):
+        app.mount(f"/{_dir.name}", StaticFiles(directory=str(_dir), html=True), name=_dir.name)
+        logger.info("Mounted standalone app: /%s", _dir.name)
 
 # Home SPA
 register_spa_routes(
