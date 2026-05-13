@@ -1,6 +1,6 @@
 [project]
 name = "processorderhistory-backend"
-version = "0.1.7"
+version = "0.1.10"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.111",

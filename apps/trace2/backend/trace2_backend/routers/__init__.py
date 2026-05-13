@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from trace2_backend.batch_trace import router as batch_router
+from trace2_backend.batch_trace.router import router as batch_router
 from trace2_backend.genie_assist.router_genie import router as genie_router
-from trace2_backend.lineage_analysis import router as lineage_router
-from trace2_backend.quality_record import router as quality_router
+from trace2_backend.lineage_analysis.router import router as lineage_router
+from trace2_backend.quality_record.router import router as quality_router
 
 PLATFORM_ROUTERS = [
     (batch_router, "/api", ["Trace-Batch"]),

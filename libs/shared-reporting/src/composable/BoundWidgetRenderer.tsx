@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { Spinner } from '@connectio/shared-ui'
 import type { ComposableWidget } from './types'
 import type { QueryRegistry } from '../data/queryRegistry'
 import { useWidgetDataBinding } from '../data/useWidgetDataBinding'
@@ -70,11 +69,20 @@ export function BoundWidgetRenderer({
           aria-live="polite"
           aria-label="Loading widget data"
         >
-          <Spinner size={16} trackColor="var(--border-subtle)" />
+          <span style={spinnerStyle} aria-hidden="true" />
         </div>
       )}
     </div>
   )
+}
+
+const spinnerStyle: React.CSSProperties = {
+  display: 'block',
+  width: 14,
+  height: 14,
+  borderRadius: '50%',
+  border: '2px solid var(--border-subtle, rgba(255,255,255,0.12))',
+  borderTopColor: 'var(--text-3, rgba(255,255,255,0.5))',
 }
 
 const loadingOverlayStyle: React.CSSProperties = {
