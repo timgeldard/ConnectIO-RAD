@@ -63,7 +63,17 @@ REQUIRED_ROUTE_METHODS: dict[str, set[str]] = {
 
 
 def _registered_methods_by_path() -> dict[str, list[str]]:
-    """Return registered HTTP methods keyed by route path."""
+    """Collect registered HTTP methods by route path.
+
+    Args:
+        None.
+
+    Returns:
+        dict[str, list[str]]: Mapping of each route path to its sorted HTTP methods.
+
+    Raises:
+        None.
+    """
     registered_methods: dict[str, list[str]] = {}
     for route in app.routes:
         path = getattr(route, "path", None)
@@ -77,7 +87,17 @@ def _registered_methods_by_path() -> dict[str, list[str]]:
 
 
 def _validate_required_routes() -> None:
-    """Fail startup if required platform API routes were not mounted."""
+    """Validate that required route methods are registered before startup completes.
+
+    Args:
+        None.
+
+    Returns:
+        None.
+
+    Raises:
+        RuntimeError: If any required path is missing one or more required methods.
+    """
     registered_methods = _registered_methods_by_path()
     missing: list[str] = []
     for path, required_methods in REQUIRED_ROUTE_METHODS.items():
@@ -93,7 +113,17 @@ def _validate_required_routes() -> None:
 
 
 def _build_artifact_status() -> dict[str, bool]:
-    """Expose generated build artifact presence for deploy diagnostics."""
+    """Report deploy-time build artifact presence.
+
+    Args:
+        None.
+
+    Returns:
+        dict[str, bool]: Mapping of expected artifact identifiers to existence flags.
+
+    Raises:
+        None.
+    """
     return {
         "home_index": (HOME_STATIC / "index.html").is_file(),
         "home_module_manifest": (HOME_STATIC / "module-manifest.json").is_file(),
