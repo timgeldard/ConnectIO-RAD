@@ -1,5 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LangProvider } from './i18n/context'
 import { PlatformShell, parseCrossAppContext } from '@connectio/shared-ui'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -20,10 +20,15 @@ import { fetchPreferences, savePreferences } from './api/preferences'
 import { PlantProvider } from '@connectio/shared-app-context'
 import { GenieDrawer } from './genie/GenieDrawer'
 import { buildGeniePageContext } from './genie/pageContext'
+import {
+  PohNavigationProvider,
+  type PohDetailSource,
+  type PohOrderNavigationContext,
+} from './navigation'
 
 type View =
   | { name: 'list' }
-  | { name: 'detail'; order: any; from: 'list' | 'planning' | 'day-view' | 'pours' | 'yield' | 'quality' | 'vessel-planning' }
+  | { name: 'detail'; order: any; from: PohDetailSource }
   | { name: 'planning' }
   | { name: 'pours' }
   | { name: 'day-view' }
@@ -100,33 +105,33 @@ function AppContent() {
     window.scrollTo(0, 0)
   }
 
-  useEffect(() => {
-    ;(window as any).__navigateToPourAnalytics = () => {
-      setView({ name: 'pours' })
-      window.scrollTo(0, 0)
-    }
-    ;(window as any).__navigateToOrder = (poId: string | number, ctx: any) => {
-      const c = ctx || {}
-      const order = {
-        id: String(poId),
-        processOrderId: String(poId),
-        status: 'unknown',
-      }
-      const fromView =
-        c._from === 'planning' ? 'planning' :
-        c._from === 'day-view' ? 'day-view' :
-        c._from === 'pours' ? 'pours' :
-        c._from === 'yield' ? 'yield' :
-        c._from === 'quality' ? 'quality' :
-        c._from === 'vessel-planning' ? 'vessel-planning' : 'list'
-      setView({ name: 'detail', order, from: fromView })
-      window.scrollTo(0, 0)
-    }
-    return () => {
-      ;(window as any).__navigateToPourAnalytics = undefined
-      ;(window as any).__navigateToOrder = undefined
-    }
+  const navigateToPourAnalytics = useCallback(() => {
+    setView({ name: 'pours' })
+    window.scrollTo(0, 0)
   }, [])
+
+  /** Open an order detail view from any POH analytics or planning surface. */
+  const navigateToOrder = useCallback((poId: string | number, ctx: PohOrderNavigationContext = {}) => {
+    const order = {
+      id: String(poId),
+      processOrderId: String(poId),
+      status: 'unknown',
+    }
+    const fromView: PohDetailSource =
+      ctx._from === 'planning' ? 'planning' :
+      ctx._from === 'day-view' ? 'day-view' :
+      ctx._from === 'pours' ? 'pours' :
+      ctx._from === 'yield' ? 'yield' :
+      ctx._from === 'quality' ? 'quality' :
+      ctx._from === 'vessel-planning' ? 'vessel-planning' : 'list'
+    setView({ name: 'detail', order, from: fromView })
+    window.scrollTo(0, 0)
+  }, [])
+
+  const pohNavigationActions = useMemo(() => ({
+    navigateToPourAnalytics,
+    navigateToOrder,
+  }), [navigateToPourAnalytics, navigateToOrder])
 
   // Handle cross-app navigation context from platform deployment URL params.
   // e.g. /poh?entity=processOrder&processOrderId=1001234&from=cq.trace
@@ -135,64 +140,66 @@ function AppContent() {
     if (!ctx) return
     if (ctx.entity === 'processOrder' && ctx.processOrderId) {
       const from = ctx.from?.includes('planning') ? 'planning' : 'list'
-      ;(window as any).__navigateToOrder?.(ctx.processOrderId, { _from: from })
+      navigateToOrder(ctx.processOrderId, { _from: from })
     } else if (ctx.entity === 'pourAnalytics') {
-      ;(window as any).__navigateToPourAnalytics?.()
+      navigateToPourAnalytics()
     }
-  }, [])
+  }, [navigateToOrder, navigateToPourAnalytics])
 
   return (
-    <PlatformShell
-      composition={POH_COMPOSITION}
-      modules={POH_MODULES}
-      activeModule={viewToModule(view)}
-      tabState={{}}
-      onModuleChange={handleModuleChange}
-      onTabChange={() => {}}
-      userInitials={currentUser?.initials ?? '—'}
-      userName={currentUser?.name ?? ''}
-      pinnedModules={pinnedModules}
-      onModulePinToggle={handleModulePinToggle}
-    >
-      {view.name === 'list' && (
-        <OrderList
-          onOpen={(order) => { setView({ name: 'detail', order, from: 'list' }); window.scrollTo(0, 0) }}
-          lineFilter={lineFilter}
-          setLineFilter={setLineFilter}
+    <PohNavigationProvider value={pohNavigationActions}>
+      <PlatformShell
+        composition={POH_COMPOSITION}
+        modules={POH_MODULES}
+        activeModule={viewToModule(view)}
+        tabState={{}}
+        onModuleChange={handleModuleChange}
+        onTabChange={() => {}}
+        userInitials={currentUser?.initials ?? '—'}
+        userName={currentUser?.name ?? ''}
+        pinnedModules={pinnedModules}
+        onModulePinToggle={handleModulePinToggle}
+      >
+        {view.name === 'list' && (
+          <OrderList
+            onOpen={(order) => { setView({ name: 'detail', order, from: 'list' }); window.scrollTo(0, 0) }}
+            lineFilter={lineFilter}
+            setLineFilter={setLineFilter}
+          />
+        )}
+        {view.name === 'detail' && (
+          <OrderDetail
+            order={view.order}
+            from={view.from}
+            onBack={() => {
+              if (view.from === 'planning') setView({ name: 'planning' })
+              else if (view.from === 'day-view') setView({ name: 'day-view' })
+              else if (view.from === 'pours') setView({ name: 'pours' })
+              else if (view.from === 'yield') setView({ name: 'yield' })
+              else if (view.from === 'quality') setView({ name: 'quality' })
+              else if (view.from === 'vessel-planning') setView({ name: 'vessel-planning' })
+              else setView({ name: 'list' })
+              window.scrollTo(0, 0)
+            }}
+          />
+        )}
+        {view.name === 'planning' && <PlanningBoard />}
+        {view.name === 'pours' && <PourAnalyticsPage />}
+        {view.name === 'day-view' && <DayView />}
+        {view.name === 'lineside-monitor' && <LinesideMonitorPage />}
+        {view.name === 'yield' && <YieldAnalyticsPage />}
+        {view.name === 'quality' && <QualityAnalyticsPage />}
+        {view.name === 'vessel-planning' && <VesselPlanningAnalyticsPage />}
+        {view.name === 'equipment-insights' && <EquipmentInsightsPage />}
+        {view.name === 'equipment-insights-2' && <EquipmentInsights2Page />}
+        <GenieDrawer
+          open={genieOpen}
+          onOpen={() => setGenieOpen(true)}
+          onClose={() => setGenieOpen(false)}
+          pageContext={buildGeniePageContext(view, lineFilter)}
         />
-      )}
-      {view.name === 'detail' && (
-        <OrderDetail
-          order={view.order}
-          from={view.from}
-          onBack={() => {
-            if (view.from === 'planning') setView({ name: 'planning' })
-            else if (view.from === 'day-view') setView({ name: 'day-view' })
-            else if (view.from === 'pours') setView({ name: 'pours' })
-            else if (view.from === 'yield') setView({ name: 'yield' })
-            else if (view.from === 'quality') setView({ name: 'quality' })
-            else if (view.from === 'vessel-planning') setView({ name: 'vessel-planning' })
-            else setView({ name: 'list' })
-            window.scrollTo(0, 0)
-          }}
-        />
-      )}
-      {view.name === 'planning' && <PlanningBoard />}
-      {view.name === 'pours' && <PourAnalyticsPage />}
-      {view.name === 'day-view' && <DayView />}
-      {view.name === 'lineside-monitor' && <LinesideMonitorPage />}
-      {view.name === 'yield' && <YieldAnalyticsPage />}
-      {view.name === 'quality' && <QualityAnalyticsPage />}
-      {view.name === 'vessel-planning' && <VesselPlanningAnalyticsPage />}
-      {view.name === 'equipment-insights' && <EquipmentInsightsPage />}
-      {view.name === 'equipment-insights-2' && <EquipmentInsights2Page />}
-      <GenieDrawer
-        open={genieOpen}
-        onOpen={() => setGenieOpen(true)}
-        onClose={() => setGenieOpen(false)}
-        pageContext={buildGeniePageContext(view, lineFilter)}
-      />
-    </PlatformShell>
+      </PlatformShell>
+    </PohNavigationProvider>
   )
 }
 

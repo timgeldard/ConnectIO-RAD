@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { expect, test, describe, beforeEach, vi } from 'vitest'
-import { useAppRouter } from '../useAppRouter'
+import { createAppRouterActions, useAppRouter } from '../useAppRouter'
 
 type R = 'overview' | 'imr' | 'capability'
 const ROUTES: R[] = ['overview', 'imr', 'capability']
@@ -22,6 +22,21 @@ function Harness({ onNavigate }: { onNavigate?: (r: R) => void } = {}) {
       <button onClick={() => navigate('overview')}>overview</button>
     </div>
   )
+}
+
+class TestBoundary extends React.Component<{ children: React.ReactNode }, { message: string | null }> {
+  state = { message: null }
+
+  componentDidCatch(error: Error) {
+    this.setState({ message: error.message })
+  }
+
+  render() {
+    if (this.state.message) {
+      return <span data-testid="router-action-error">{this.state.message}</span>
+    }
+    return this.props.children
+  }
 }
 
 describe('useAppRouter', () => {
@@ -77,5 +92,44 @@ describe('useAppRouter', () => {
       window.dispatchEvent(new PopStateEvent('popstate'))
     })
     expect(screen.getByTestId('route').textContent).toBe('capability')
+  })
+})
+
+describe('createAppRouterActions', () => {
+  type Actions = {
+    openOrder: (id: string) => void
+  }
+
+  const { Provider, useActions } = createAppRouterActions<Actions>('TestRouterActions')
+
+  function ActionsHarness({ actions }: { actions: Actions }) {
+    return (
+      <Provider value={actions}>
+        <ActionsButton />
+      </Provider>
+    )
+  }
+
+  function ActionsButton() {
+    const { openOrder } = useActions()
+    return <button onClick={() => openOrder('PO-123')}>open</button>
+  }
+
+  test('provides typed app router actions to descendants', async () => {
+    const actions = { openOrder: vi.fn() }
+    render(<ActionsHarness actions={actions} />)
+    await userEvent.click(screen.getByText('open'))
+    expect(actions.openOrder).toHaveBeenCalledWith('PO-123')
+  })
+
+  test('throws when actions are used outside the provider', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    render(
+      <TestBoundary>
+        <ActionsButton />
+      </TestBoundary>,
+    )
+    expect(screen.getByTestId('router-action-error').textContent).toMatch(/TestRouterActions/)
+    spy.mockRestore()
   })
 })

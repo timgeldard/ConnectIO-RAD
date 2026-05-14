@@ -26,6 +26,7 @@ import {
   useAnalyticsFilters,
   type BucketSelection,
 } from './analyticsShared'
+import { usePohNavigation } from '../navigation'
 
 const DAILY_TARGET = 350
 
@@ -314,6 +315,7 @@ interface PourKpiCardsProps {
 }
 
 export function PourKpiCards({ lineFilter: _lineFilter }: PourKpiCardsProps) {
+  const { navigateToPourAnalytics } = usePohNavigation()
   const { data } = usePoursData()
   const f = useFilteredPours(data, 'ALL')
 
@@ -337,7 +339,7 @@ export function PourKpiCards({ lineFilter: _lineFilter }: PourKpiCardsProps) {
         </div>
         <button 
           className="btn btn-ghost btn-xs" 
-          onClick={() => (window as any).__navigateToPourAnalytics?.()}
+          onClick={() => navigateToPourAnalytics()}
           style={{ display: 'flex', alignItems: 'center', gap: 6 }}
         >
           View pour analytics <Icon name="arrow-right" size={12} />
@@ -595,6 +597,7 @@ function PourAnalyticsBreakdown({ events, prior7d, dateFrom, dateTo }: Breakdown
 
 export function PourAnalyticsPage() {
   const { t } = useT()
+  const { navigateToOrder } = usePohNavigation()
   const { filters, setFilters } = useAnalyticsFilters()
   const [sourceTypeFilter, setSourceTypeFilter] = useState('ALL')
   const [pageData, setPageData] = useState<PoursData | null>(null)
@@ -731,7 +734,7 @@ export function PourAnalyticsPage() {
                     <button 
                       className="btn btn-link" 
                       style={{ padding: 0, height: 'auto', fontFamily: 'var(--font-mono)' }}
-                      onClick={() => (window as any).__navigateToOrder?.(e.process_order, { label: e.material_name, _from: 'pours' })}
+                      onClick={() => navigateToOrder(e.process_order!, { label: e.material_name, _from: 'pours' })}
                     >{e.process_order}</button>
                   ) : '—'} · {e.material_name || 'Material'}
                 </span>

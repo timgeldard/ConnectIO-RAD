@@ -42,7 +42,8 @@
  * nested routes, route loaders, etc. should adopt React Router proper rather
  * than extending this hook.
  */
-import { useCallback, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 
 /** Options passed to `useAppRouter`. */
 export interface UseAppRouterOptions<R extends string> {
@@ -68,6 +69,48 @@ export interface UseAppRouterValue<R extends string> {
   navigate: (next: R) => void
   /** True when `route` matches `defaultRoute` — convenience for "home" UI hints. */
   isDefault: boolean
+}
+
+/** Props for an app-specific router action provider. */
+export interface AppRouterActionsProviderProps<A extends object> {
+  /** Typed navigation actions exposed to descendants. */
+  value: A
+  /** Descendant app routes and panels that need to trigger navigation. */
+  children: ReactNode
+}
+
+/**
+ * Creates a typed navigation action context for app-local routes.
+ *
+ * Use this for richer app-specific actions such as "open process order" where
+ * passing callbacks through every route component would be noisy, but globals
+ * would make ownership and cleanup ambiguous.
+ */
+export function createAppRouterActions<A extends object>(displayName = 'AppRouterActions') {
+  const ActionsContext = createContext<A | null>(null)
+  ActionsContext.displayName = displayName
+
+  function AppRouterActionsProvider({ value, children }: AppRouterActionsProviderProps<A>) {
+    return (
+      <ActionsContext.Provider value={value}>
+        {children}
+      </ActionsContext.Provider>
+    )
+  }
+  AppRouterActionsProvider.displayName = `${displayName}.Provider`
+
+  function useAppRouterActions(): A {
+    const value = useContext(ActionsContext)
+    if (!value) {
+      throw new Error(`${displayName} must be used within its provider`)
+    }
+    return value
+  }
+
+  return {
+    Provider: AppRouterActionsProvider,
+    useActions: useAppRouterActions,
+  } as const
 }
 
 /**

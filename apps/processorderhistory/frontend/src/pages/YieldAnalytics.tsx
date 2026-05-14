@@ -23,6 +23,7 @@ import {
   useAnalyticsFilters,
   type BucketSelection,
 } from './analyticsShared'
+import { usePohNavigation } from '../navigation'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -255,6 +256,7 @@ interface YieldBreakdownProps {
 }
 
 function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: YieldBreakdownProps) {
+  const { navigateToOrder } = usePohNavigation()
   const [activeTab, setActiveTab] = useState<'analysis' | 'download'>('analysis')
   const [groupBy, setGroupBy] = useState<'material' | 'process_order'>('material')
   const [sortBy, setSortBy] = useState<'yield' | 'name'>('yield')
@@ -412,7 +414,7 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
                           <button
                             className="btn btn-link"
                             style={{ padding: 0, height: 'auto', fontFamily: 'var(--font-mono)' }}
-                            onClick={() => (window as any).__navigateToOrder?.(g.key, { label: g.materialName, materialId: g.materialId, _from: 'yield' })}
+                            onClick={() => navigateToOrder(g.key, { label: g.materialName, materialId: g.materialId, _from: 'yield' })}
                           >{g.key}</button>
                           <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-3)' }}>{g.materialName}</span>
                         </span>
@@ -454,7 +456,7 @@ function YieldBreakdown({ orders, prior7d, dateFrom, dateTo, targetYield }: Yiel
                     <button
                       className="btn btn-link"
                       style={{ padding: 0, height: 'auto', fontFamily: 'var(--font-mono)' }}
-                      onClick={() => (window as any).__navigateToOrder?.(g.key, { label: g.materialName, materialId: g.materialId, _from: 'yield' })}
+                      onClick={() => navigateToOrder(g.key, { label: g.materialName, materialId: g.materialId, _from: 'yield' })}
                     >{g.key}</button>
                     <div style={{ fontSize: 11, color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={g.materialName}>{g.materialName}</div>
                   </div>
@@ -508,6 +510,7 @@ function makeKpiConfig(id: string, title: string): WidgetConfig {
  */
 export function YieldAnalyticsPage() {
   const { t } = useT()
+  const { navigateToOrder } = usePohNavigation()
   const { filters, setFilters } = useAnalyticsFilters()
   const [pageData, setPageData] = useState<YieldData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -646,7 +649,7 @@ export function YieldAnalyticsPage() {
                 <button 
                   className="btn btn-link" 
                   style={{ padding: 0, height: 'auto', fontFamily: 'var(--font-mono)', width: 100, textAlign: 'left' }}
-                  onClick={() => (window as any).__navigateToOrder?.(o.process_order_id, { label: o.material_name, materialId: o.material_id, _from: 'yield' })}
+                  onClick={() => navigateToOrder(o.process_order_id, { label: o.material_name, materialId: o.material_id, _from: 'yield' })}
                 >{o.process_order_id}</button>
                 <span style={{ flex: 1 }}>{o.material_name}</span>
                 <span style={{ fontFamily: 'var(--font-mono)', width: 80, textAlign: 'right', fontWeight: 'var(--fw-semibold)', color: getYieldColor(o.yield_pct, targetYield) }}>{o.yield_pct != null ? o.yield_pct.toFixed(1) + '%' : '—'}</span>
