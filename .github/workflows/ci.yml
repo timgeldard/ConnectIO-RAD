@@ -100,14 +100,13 @@ jobs:
       # sprint as the team adds docstrings.
       - name: Docstring presence (interrogate)
         run: |
-          uv tool install interrogate
           set -e
           for cfg in apps/connectedquality/backend apps/envmon/backend \
                      apps/processorderhistory/backend apps/spc/backend \
                      apps/trace2/backend apps/warehouse360/backend \
-                     libs/shared-api libs/shared-auth libs/shared-db libs/shared-domain; do
+                     libs/shared-api libs/shared-auth libs/shared-db libs/shared-ddd; do
             echo "::group::interrogate $cfg"
-            uv tool run interrogate --config "$cfg/pyproject.toml" "$cfg"
+            uv run interrogate --config "$cfg/pyproject.toml" "$cfg"
             echo "::endgroup::"
           done
 
@@ -259,16 +258,17 @@ jobs:
       # ----- SAST: GitHub CodeQL ------------------------------------------
       # Two languages — python for the FastAPI/uvicorn backends and the build
       # scripts; javascript covers all the frontend SPAs.
+      # Pinned to github/codeql-action v3.35.4.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@7fd177fa680c9881b53cdab4d346d32574c9f7f4
         with:
           languages: python, javascript
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@7fd177fa680c9881b53cdab4d346d32574c9f7f4
 
       - name: Run CodeQL analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@7fd177fa680c9881b53cdab4d346d32574c9f7f4
         with:
           category: "/language:python,javascript"
           fail-on: high

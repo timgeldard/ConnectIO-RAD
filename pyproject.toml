@@ -56,7 +56,7 @@ dev-dependencies = [
   "mypy>=1.10",
   "fastapi>=0.111",
   "pydantic>=2.0",
-  "interrogate>=1.7",
+  "interrogate==1.7.0",
 ]
 
 [tool.interrogate]
