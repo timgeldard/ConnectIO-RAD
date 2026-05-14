@@ -299,5 +299,8 @@
   "spc.violations.subtitle": "Disusun mengikut keterukan × kemodenan",
   "spc.violations.title": "Isyarat keutamaan",
   "spc.violations.viewAll": "Lihat semua →",
-  "spc.workspace": "Ruang Kerja SPC"
+  "spc.workspace": "Ruang Kerja SPC",
+  "spc.errorBoundary.message": "SPC workspace error",
+  "spc.errorBoundary.description": "The SPC workspace could not render. Retry the view or refresh the page if the problem continues.",
+  "spc.errorBoundary.retry": "Retry"
 }

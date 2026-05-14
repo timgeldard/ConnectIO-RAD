@@ -299,5 +299,8 @@
   "spc.violations.subtitle": "Sorteret efter alvor × aktualitet",
   "spc.violations.title": "Prioriterede signaler",
   "spc.violations.viewAll": "Se alle →",
-  "spc.workspace": "SPC-arbejdsområde"
+  "spc.workspace": "SPC-arbejdsområde",
+  "spc.errorBoundary.message": "SPC workspace error",
+  "spc.errorBoundary.description": "The SPC workspace could not render. Retry the view or refresh the page if the problem continues.",
+  "spc.errorBoundary.retry": "Retry"
 }

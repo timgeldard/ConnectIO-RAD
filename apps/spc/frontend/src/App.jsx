@@ -1,10 +1,12 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { I18nProvider, useI18n } from '@connectio/shared-frontend-i18n'
+import { useI18n } from '@connectio/shared-frontend-i18n'
 import enResources from './i18n/locales/en.json'
 
 const SPCPage = lazy(() => import('./spc/SPCPage'))
 
-const loadResource = async (lang) => {
+export const spcI18nResources = { en: enResources }
+
+export const loadSpcResource = async (lang) => {
   const module = await import(`./i18n/locales/${lang}.json`)
   return module.default
 }
@@ -40,13 +42,5 @@ function SPCApp() {
 }
 
 export default function App() {
-  return (
-    <I18nProvider
-      appName="spc"
-      resources={{ en: enResources }}
-      loadResource={loadResource}
-    >
-      <SPCApp />
-    </I18nProvider>
-  )
+  return <SPCApp />
 }

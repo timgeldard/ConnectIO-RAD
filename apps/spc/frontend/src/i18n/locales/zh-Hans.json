@@ -299,5 +299,8 @@
   "spc.violations.subtitle": "按严重程度 × 时效性排序",
   "spc.violations.title": "优先级信号",
   "spc.violations.viewAll": "查看全部 →",
-  "spc.workspace": "SPC 工作区"
+  "spc.workspace": "SPC 工作区",
+  "spc.errorBoundary.message": "SPC workspace error",
+  "spc.errorBoundary.description": "The SPC workspace could not render. Retry the view or refresh the page if the problem continues.",
+  "spc.errorBoundary.retry": "Retry"
 }
