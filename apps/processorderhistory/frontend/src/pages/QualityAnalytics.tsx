@@ -24,6 +24,7 @@ import {
   useAnalyticsFilters,
   type BucketSelection,
 } from './analyticsShared'
+import { usePohNavigation } from '../navigation'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -496,6 +497,7 @@ function QualityAnalyticsBreakdown({ rows, prior7d, dateFrom, dateTo }: Breakdow
 
 export function QualityAnalyticsPage() {
   const { t } = useT()
+  const { navigateToOrder } = usePohNavigation()
   const { filters, setFilters } = useAnalyticsFilters()
   const [pageData, setPageData] = useState<QualityData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -635,7 +637,7 @@ export function QualityAnalyticsPage() {
                 <button 
                   className="btn btn-link" 
                   style={{ padding: 0, height: 'auto', fontFamily: 'var(--font-mono)', width: 100, textAlign: 'left' }}
-                  onClick={() => (window as any).__navigateToOrder?.(r.process_order, { label: r.material_name, materialId: r.material_id, _from: 'quality' })}
+                  onClick={() => navigateToOrder(r.process_order, { label: r.material_name, materialId: r.material_id, _from: 'quality' })}
                 >{r.process_order}</button>
                 <span style={{ flex: 1 }}>{r.characteristic_description || r.characteristic_id}</span>
                 <span style={{ color: 'var(--text-3)', width: 150 }}>{r.material_name}</span>

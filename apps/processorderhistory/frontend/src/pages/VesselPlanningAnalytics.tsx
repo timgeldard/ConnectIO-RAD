@@ -12,6 +12,7 @@ import {
   type VesselInfo,
   type ReleasedOrder,
 } from '../api/vessel_planning'
+import { usePohNavigation } from '../navigation'
 
 // ---------------------------------------------------------------------------
 // Types & constants
@@ -74,6 +75,7 @@ function ConstraintBadge({ type }: { type: string | null }) {
 
 export function VesselPlanningAnalyticsPage() {
   const { t } = useT()
+  const { navigateToOrder } = usePohNavigation()
   const { filters, setFilters } = useAnalyticsFilters()
   const [data, setData] = useState<VesselPlanningData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -171,7 +173,7 @@ export function VesselPlanningAnalyticsPage() {
                       <button 
                         className="btn btn-link" 
                         style={{ padding: 0, height: 'auto', fontFamily: 'var(--font-mono)', fontWeight: 'var(--fw-semibold)' }}
-                        onClick={() => (window as any).__navigateToOrder?.(o.po_id, { label: o.material_name, _from: 'vessel-planning' })}
+                        onClick={() => navigateToOrder(o.po_id, { label: o.material_name, _from: 'vessel-planning' })}
                       >{o.po_id}</button>
                     </td>
                     <td style={{ padding: '12px 16px' }}>

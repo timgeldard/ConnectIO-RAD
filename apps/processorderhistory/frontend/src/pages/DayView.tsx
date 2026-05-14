@@ -4,6 +4,7 @@ import { useT } from '../i18n/context'
 import { TopBar, Icon, Button, KPI } from '@connectio/shared-ui'
 import { fetchDayView } from '../api/day_view'
 import type { DayViewData, DayBlock, DayDowntime } from '../api/day_view'
+import { usePohNavigation } from '../navigation'
 
 const MS_PER_DAY = 86_400_000
 
@@ -330,6 +331,7 @@ function Legend() {
 }
 
 function BlockDrawer({ block, onClose }: { block: DayBlock; onClose: () => void }) {
+  const { navigateToOrder } = usePohNavigation()
   const kindLabel = block.kind === 'running' ? 'Running' : block.kind === 'completed' ? 'Completed' : 'On hold'
   const rows = [
     ['Process order', block.poId],
@@ -356,18 +358,16 @@ function BlockDrawer({ block, onClose }: { block: DayBlock; onClose: () => void 
       <div style={{ marginTop: 32 }}>
         <Button variant="primary" style={{ width: '100%' }} icon={<Icon name="eye" />}
           onClick={() => {
-            if ((window as any).__navigateToOrder) {
-              (window as any).__navigateToOrder(block.poId, {
-                _from: 'day-view',
-                lineId: block.lineId,
-                label: block.label,
-                materialId: block.sublabel,
-                kind: block.kind,
-                start: block.start,
-                end: block.end,
-                qty: block.plannedQty,
-              })
-            }
+            navigateToOrder(block.poId, {
+              _from: 'day-view',
+              lineId: block.lineId,
+              label: block.label,
+              materialId: block.sublabel,
+              kind: block.kind,
+              start: block.start,
+              end: block.end,
+              qty: block.plannedQty,
+            })
           }}
         >
           Open order detail

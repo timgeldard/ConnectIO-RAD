@@ -10,6 +10,7 @@ import {
   type IconName
 } from '@connectio/shared-ui'
 import { fetchPlanningSchedule } from '../api/planning'
+import { usePohNavigation } from '../navigation'
 
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
@@ -74,6 +75,7 @@ interface BlockData {
 // =====================================================
 function PlanningBoard() {
   const { t } = useT();
+  const { navigateToOrder } = usePohNavigation();
   const [scheduleData, setScheduleData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -537,28 +539,27 @@ function BacklogPreview({ block, pxPerHour, laneStart, now }: any) {
 // Block detail drawer
 // =====================================================
 function BlockDetailDrawer({ block, onClose, t }: any) {
+  const { navigateToOrder } = usePohNavigation();
   const isOp = block.kind !== 'changeover' && block.kind !== 'cleaning' && block.kind !== 'maintenance' && block.kind !== 'downtime';
   const isDowntime = block.kind === 'downtime';
   const openOrder = () => {
     if (!block.poId) return;
-    if ((window as any).__navigateToOrder) {
-      (window as any).__navigateToOrder(block.poId, {
-        _from: 'planning',
-        start: block.start,
-        end: block.end,
-        materialId: block.materialId,
-        label: block.label,
-        category: block.sublabel?.split('·')?.[1]?.trim() || null,
-        plantId: null,
-        operator: block.operator,
-        shift: block.shift,
-        kind: block.kind,
-        qty: block.qty,
-        lineId: block.lineId,
-        materials: block.materials,
-        shortageETA: block.shortageETA,
-      });
-    }
+    navigateToOrder(block.poId, {
+      _from: 'planning',
+      start: block.start,
+      end: block.end,
+      materialId: block.materialId,
+      label: block.label,
+      category: block.sublabel?.split('·')?.[1]?.trim() || null,
+      plantId: null,
+      operator: block.operator,
+      shift: block.shift,
+      kind: block.kind,
+      qty: block.qty,
+      lineId: block.lineId,
+      materials: block.materials,
+      shortageETA: block.shortageETA,
+    });
   };
   const isShort = block.kind === 'material-short';
   return (
@@ -642,6 +643,7 @@ function BlockDetailDrawer({ block, onClose, t }: any) {
 // Backlog rail
 // =====================================================
 function BacklogRail({ backlog, NOW, hovered, setHovered, t }: any) {
+  const { navigateToOrder } = usePohNavigation();
   const sorted = useMemo(() => {
     const order: Record<string, number> = { urgent: 0, high: 1, normal: 2 };
     return [...backlog].sort((a, b) => order[a.priority] - order[b.priority] || a.due - b.due);
@@ -704,17 +706,15 @@ function BacklogRail({ backlog, NOW, hovered, setHovered, t }: any) {
                   style={{ flex: 1 }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if ((window as any).__navigateToOrder) {
-                      (window as any).__navigateToOrder(item.poId, {
-                        _from: 'planning',
-                        materialId: item.materialId,
-                        label: item.product,
-                        category: item.category,
-                        qty: item.qty,
-                        kind: 'material-ready',
-                        lineId: item.requiresLine,
-                      });
-                    }
+                    navigateToOrder(item.poId, {
+                      _from: 'planning',
+                      materialId: item.materialId,
+                      label: item.product,
+                      category: item.category,
+                      qty: item.qty,
+                      kind: 'material-ready',
+                      lineId: item.requiresLine,
+                    });
                   }}
                 >
                   <Icon name="eye" size={12} style={{ marginRight: 4 }} />
