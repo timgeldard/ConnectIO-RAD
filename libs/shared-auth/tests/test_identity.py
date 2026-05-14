@@ -1,12 +1,19 @@
+import asyncio
+
 import jwt
 import pytest
 from fastapi import HTTPException
+from starlette.requests import Request
 
-from shared_auth.identity import _extract_identity, resolve_token, warn_if_jwks_unconfigured
+from shared_auth.identity import _extract_identity, require_proxy_user, require_user, resolve_token, warn_if_jwks_unconfigured
 
 
 def _jwt(payload: dict) -> str:
     return jwt.encode(payload, key="dev-secret-with-at-least-32-bytes", algorithm="HS256")
+
+
+def _request(headers: dict[str, str]) -> Request:
+    return Request({"type": "http", "headers": [(k.lower().encode(), v.encode()) for k, v in headers.items()]})
 
 
 def test_extract_identity_requires_verification_config_outside_dev(monkeypatch):
@@ -51,16 +58,16 @@ def test_warn_if_jwks_unconfigured_passes_when_jwks_url_set(monkeypatch):
     warn_if_jwks_unconfigured()
 
 
-def test_warn_if_jwks_unconfigured_requires_audience_with_jwks_in_prod(monkeypatch):
-    """JWKS verification in non-dev mode must also pin the expected audience."""
+def test_warn_if_jwks_unconfigured_warns_when_audience_missing(monkeypatch, caplog):
+    """JWKS audience drift is a warning because proxy headers carry identity."""
     monkeypatch.setenv("AUTH_JWKS_URL", "https://example.com/oidc/jwks")
     monkeypatch.delenv("AUTH_JWT_AUDIENCE", raising=False)
     monkeypatch.delenv("APP_ENV", raising=False)
 
-    with pytest.raises(RuntimeError) as exc:
+    with caplog.at_level("WARNING", logger="shared_auth.identity"):
         warn_if_jwks_unconfigured()
 
-    assert "AUTH_JWT_AUDIENCE is required" in str(exc.value)
+    assert any("AUTH_JWT_AUDIENCE" in rec.message for rec in caplog.records)
 
 
 def test_warn_if_jwks_unconfigured_passes_in_dev_without_jwks(monkeypatch):
@@ -72,19 +79,19 @@ def test_warn_if_jwks_unconfigured_passes_in_dev_without_jwks(monkeypatch):
     warn_if_jwks_unconfigured()
 
 
-def test_warn_if_jwks_unconfigured_raises_in_prod_without_jwks(monkeypatch):
-    """Non-dev environment with no JWKS and no opt-out flag must fail startup."""
+def test_warn_if_jwks_unconfigured_warns_in_prod_without_jwks(monkeypatch, caplog):
+    """Non-dev Databricks Apps still starts because proxy headers carry identity."""
     monkeypatch.delenv("APP_ENV", raising=False)
     monkeypatch.delenv("AUTH_JWKS_URL", raising=False)
     monkeypatch.delenv("AUTH_ALLOW_UNVERIFIED_JWT", raising=False)
 
-    with pytest.raises(RuntimeError) as exc:
+    with caplog.at_level("WARNING", logger="shared_auth.identity"):
         warn_if_jwks_unconfigured()
-    assert "AUTH_JWKS_URL is not configured" in str(exc.value)
+    assert any("AUTH_JWKS_URL is not set" in rec.message for rec in caplog.records)
 
 
 def test_warn_if_jwks_unconfigured_warns_for_unverified_opt_out_in_prod(monkeypatch, caplog):
-    """AUTH_ALLOW_UNVERIFIED_JWT=true is an explicit unsafe startup bypass."""
+    """AUTH_ALLOW_UNVERIFIED_JWT=true is tolerated but startup still only warns."""
     monkeypatch.delenv("APP_ENV", raising=False)
     monkeypatch.delenv("AUTH_JWKS_URL", raising=False)
     monkeypatch.setenv("AUTH_ALLOW_UNVERIFIED_JWT", "true")
@@ -92,7 +99,45 @@ def test_warn_if_jwks_unconfigured_warns_for_unverified_opt_out_in_prod(monkeypa
     with caplog.at_level("WARNING", logger="shared_auth.identity"):
         warn_if_jwks_unconfigured()
 
-    assert any("AUTH_ALLOW_UNVERIFIED_JWT" in rec.message for rec in caplog.records)
+    assert any("AUTH_JWKS_URL is not set" in rec.message for rec in caplog.records)
+
+
+def test_require_proxy_user_uses_forwarded_identity_headers_without_jwks(monkeypatch):
+    """Proxy-authenticated requests do not need local JWKS token decoding."""
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.delenv("AUTH_JWKS_URL", raising=False)
+    monkeypatch.delenv("AUTH_ALLOW_UNVERIFIED_JWT", raising=False)
+    request = _request(
+        {
+            "x-forwarded-access-token": "opaque-databricks-access-token",
+            "x-forwarded-user": "user-123",
+            "x-forwarded-email": "ops@example.com",
+            "x-forwarded-preferred-username": "Ops Lead",
+        }
+    )
+
+    identity = asyncio.run(
+        require_proxy_user(request, x_forwarded_access_token="opaque-databricks-access-token")
+    )
+
+    assert identity.user_id == "user-123"
+    assert identity.email == "ops@example.com"
+    assert identity.display_name == "Ops Lead"
+    assert identity.raw_token == "opaque-databricks-access-token"
+
+
+def test_require_user_keeps_dev_bearer_fallback(monkeypatch):
+    """Local Bearer workflows can still decode developer JWTs."""
+    monkeypatch.setenv("APP_ENV", "local")
+    monkeypatch.delenv("AUTH_JWKS_URL", raising=False)
+    request = _request({"authorization": f"Bearer {_jwt({'sub': 'dev-1', 'email': 'dev@example.com'})}"})
+
+    identity = asyncio.run(
+        require_user(request, x_forwarded_access_token=None, authorization=request.headers["authorization"])
+    )
+
+    assert identity.user_id == "dev-1"
+    assert identity.email == "dev@example.com"
 
 
 def test_warn_if_jwks_unconfigured_passes_in_dev_with_allow_flag(monkeypatch):
