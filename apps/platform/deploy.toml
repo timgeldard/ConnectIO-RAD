@@ -47,6 +47,7 @@ GENIE_SPACE_TRACE = "01f148a20dc019d396709886269a6035"
 GENIE_SPACE_WAREHOUSE = "01f148a211291b2cbda5aa0a0e2ff711"
 # CQ + POH share `gold`; W360 has its own schema.
 TRACE_CATALOG = "connected_plant_uat"
+CQ_CATALOG = "connected_plant_uat"
 TRACE_SCHEMA = "gold"
 WH360_SCHEMA = "wh360"
 # Composable dashboards
@@ -79,6 +80,7 @@ GENIE_SPACE_POH = "01f1446c282c1f29815ef4dfa6824739"
 GENIE_SPACE_TRACE = "01f1446c282c1f29815ef4dfa6824739"
 GENIE_SPACE_WAREHOUSE = "01f1446c282c1f29815ef4dfa6824739"
 TRACE_CATALOG = "connected_plant_prod"
+CQ_CATALOG = "connected_plant_prod"
 TRACE_SCHEMA = "gold"
 WH360_SCHEMA = "wh360"
 # Composable dashboards (tables to be provisioned in prod before first deploy)

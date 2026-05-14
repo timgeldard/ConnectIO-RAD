@@ -26,9 +26,11 @@ are removed at the start of the build.
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 APP_DIR = Path(__file__).resolve().parents[1]
@@ -43,21 +45,64 @@ PLATFORM_FRONTEND_DIR = APP_DIR / "frontend"
 STANDALONE_DIR = APP_DIR / "standalone"
 WHEELS_DIR = APP_DIR / "wheels"
 
-WHEEL_PACKAGES: list[Path] = [
-    REPO_ROOT / "libs" / "shared-api",
-    REPO_ROOT / "libs" / "shared-auth",
-    REPO_ROOT / "libs" / "shared-db",
-    REPO_ROOT / "libs" / "shared-ddd",
-    REPO_ROOT / "libs" / "shared-manufacturing",
-    REPO_ROOT / "libs" / "shared-trace",
-    REPO_ROOT / "libs" / "shared-geo",
-    REPO_ROOT / "apps" / "connectedquality" / "backend",
-    REPO_ROOT / "apps" / "envmon" / "backend",
-    REPO_ROOT / "apps" / "processorderhistory" / "backend",
-    REPO_ROOT / "apps" / "spc" / "backend",
-    REPO_ROOT / "apps" / "trace2" / "backend",
-    REPO_ROOT / "apps" / "warehouse360" / "backend",
-]
+
+def _collect_shared_deps(pyproject_path: Path) -> set[str]:
+    """Return the set of ``shared-*`` dependency names declared in a pyproject.toml.
+
+    Args:
+        pyproject_path: Absolute path to a ``pyproject.toml`` file.
+
+    Returns:
+        Set of dependency names (without version specifiers) that start with
+        ``shared-``.
+    """
+    with pyproject_path.open("rb") as fh:
+        data = tomllib.load(fh)
+    deps: list[str] = data.get("project", {}).get("dependencies", [])
+    return {re.split(r"[\s><=!~\[]", d)[0] for d in deps if d.startswith("shared-")}
+
+
+def _derive_wheel_packages(deploy_toml_path: Path, repo_root: Path) -> list[Path]:
+    """Derive the wheel package list from ``deploy.toml`` and backend pyproject.tomls.
+
+    Reads ``[platform].bundled_apps`` from *deploy_toml_path*, then scans each
+    app backend's ``pyproject.toml`` for ``shared-*`` deps.  A single transitive
+    pass over the discovered shared libs catches any shared-lib → shared-lib
+    edges.
+
+    Args:
+        deploy_toml_path: Path to the platform ``deploy.toml``.
+        repo_root: Repository root used to resolve relative paths.
+
+    Returns:
+        Ordered list of package directories: shared libs (alphabetical) followed
+        by app backends in ``bundled_apps`` declaration order.
+    """
+    with deploy_toml_path.open("rb") as fh:
+        deploy = tomllib.load(fh)
+    bundled_apps: list[str] = deploy.get("platform", {}).get("bundled_apps", [])
+
+    app_backend_dirs: list[Path] = []
+    shared_names: set[str] = set()
+
+    for app_path in bundled_apps:
+        backend_dir = repo_root / app_path / "backend"
+        app_backend_dirs.append(backend_dir)
+        pyproject = backend_dir / "pyproject.toml"
+        if pyproject.exists():
+            shared_names.update(_collect_shared_deps(pyproject))
+
+    # One transitive pass: collect shared-* deps of the shared libs found above.
+    for name in list(shared_names):
+        lib_pyproject = repo_root / "libs" / name / "pyproject.toml"
+        if lib_pyproject.exists():
+            shared_names.update(_collect_shared_deps(lib_pyproject))
+
+    shared_lib_dirs = sorted(repo_root / "libs" / name for name in shared_names)
+    return shared_lib_dirs + app_backend_dirs
+
+
+WHEEL_PACKAGES: list[Path] = _derive_wheel_packages(APP_DIR / "deploy.toml", REPO_ROOT)
 
 LEGACY_COPY_DIRECTORIES = (
     "shared_api",

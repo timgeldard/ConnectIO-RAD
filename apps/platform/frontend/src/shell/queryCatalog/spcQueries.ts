@@ -1,5 +1,5 @@
 import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
-import { endpoint, getQuery, params, postQuery, widgetCompatibility } from './common';
+import { apiEndpoint, getQuery, params, postQuery, widgetCompatibility } from './common';
 
 /**
  * Creates an SPC-specific field definition.
@@ -34,7 +34,7 @@ export const spcQueries: QueryRegistry = {
     key: 'spc.qualityControl',
     label: 'SPC Quality Control',
     description: 'Primary SPC control chart for a selected MIC with control limits and per-sample signals.',
-    endpoint: endpoint('spc', 'chart-data'),
+    endpoint: apiEndpoint('spc','chart-data'),
     compatibleWidgets: widgetCompatibility.spcOnly,
     params: [...spcParams, micParam, limitParam],
     fields: [
@@ -70,7 +70,7 @@ export const spcQueries: QueryRegistry = {
     key: 'spc.attributeControlHistory',
     label: 'Attribute Control History',
     description: 'Historical SPC view of a MIC with trend-ready points and tabular sample details.',
-    endpoint: endpoint('spc', 'chart-data'),
+    endpoint: apiEndpoint('spc','chart-data'),
     compatibleWidgets: widgetCompatibility.spcTrendTable,
     params: [...spcParams, micParam, limitParam],
     fields: [
@@ -109,7 +109,7 @@ export const spcQueries: QueryRegistry = {
     key: 'spc.lockedLimits',
     label: 'Locked Limits',
     description: 'Displays fixed SPC limit sets for governed attributes and the samples assessed against them.',
-    endpoint: endpoint('spc', 'locked-limits'),
+    endpoint: apiEndpoint('spc','locked-limits'),
     compatibleWidgets: widgetCompatibility.spcTable,
     params: [...spcParams, micParam],
     fields: [
@@ -150,7 +150,7 @@ export const spcQueries: QueryRegistry = {
     key: 'spc.signalSummary',
     label: 'Signal Summary',
     description: 'Summarises SPC rule violations by signal type so teams can prioritise the dominant control issues.',
-    endpoint: endpoint('spc', 'data-quality'),
+    endpoint: apiEndpoint('spc','data-quality'),
     compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
     params: [...spcParams, micParam],
     fields: [

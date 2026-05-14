@@ -153,3 +153,99 @@ async def delete_coordinate(token: str, plant_id: str, func_loc_id: str) -> None
     params = [sql_param("func_loc_id", func_loc_id), sql_param("plant_id", plant_id)]
     sql = f"DELETE FROM {COORD_TBL} WHERE func_loc_id = :func_loc_id AND plant_id = :plant_id"
     await run_sql_async(token, sql, params)
+
+
+async def fetch_studio_coordinates(token: str, plant_id: str, floor_id: str) -> list[dict]:
+    """Return all coordinate-mapped locations for a plant/floor including Slice-1 zone columns.
+
+    Includes ``parent_zone_id``, ``placement_source``, ``revision_id``, and
+    ``validation_status`` added by migration 007. Used by the layout validation
+    and publish workflows.
+
+    Args:
+        token: Databricks access token.
+        plant_id: SAP plant code to filter by.
+        floor_id: Floor identifier to filter by.
+
+    Returns:
+        List of coordinate row dicts ordered by func_loc_id.
+    """
+    params = [
+        sql_param("plant_id", plant_id),
+        sql_param("floor_id", floor_id),
+    ]
+    sql = f"""
+        SELECT
+            func_loc_id, floor_id, x_pos, y_pos,
+            parent_zone_id, placement_source, revision_id,
+            validation_status, validation_messages_json
+        FROM {COORD_TBL}
+        WHERE plant_id = :plant_id
+          AND floor_id = :floor_id
+        ORDER BY func_loc_id
+    """
+    return await run_sql_async(token, sql, params)
+
+
+async def bulk_update_coordinate_zone_assignments(
+    token: str,
+    plant_id: str,
+    *,
+    updates: list[dict],
+) -> None:
+    """Stamp zone assignment and validation metadata for all coordinates in a single MERGE.
+
+    Replaces the per-row ``UPDATE`` loop used during publish with one SQL
+    statement, eliminating the N+1 query pattern.
+
+    Each entry in *updates* must contain:
+        ``func_loc_id``, ``parent_zone_id`` (or ``None``),
+        ``revision_id`` (or ``None``), ``placement_source``,
+        ``validation_status``, ``validation_messages_json`` (or ``None``).
+
+    Args:
+        token: Databricks access token.
+        plant_id: SAP plant code — used to scope the MERGE target.
+        updates: List of per-coordinate update dicts.  No-op when empty.
+    """
+    if not updates:
+        return
+
+    params = [sql_param("plant_id", plant_id)]
+    select_rows: list[str] = []
+    for i, upd in enumerate(updates):
+        params.extend([
+            sql_param(f"func_loc_id_{i}",              upd["func_loc_id"]),
+            sql_param(f"parent_zone_id_{i}",           upd.get("parent_zone_id")),
+            sql_param(f"revision_id_{i}",              upd.get("revision_id")),
+            sql_param(f"placement_source_{i}",         upd.get("placement_source", "manual")),
+            sql_param(f"validation_status_{i}",        upd.get("validation_status", "ok")),
+            sql_param(f"validation_messages_json_{i}", upd.get("validation_messages_json")),
+        ])
+        select_rows.append(
+            f"SELECT :func_loc_id_{i}              AS func_loc_id,"
+            f"       :parent_zone_id_{i}           AS parent_zone_id,"
+            f"       :revision_id_{i}              AS revision_id,"
+            f"       :placement_source_{i}         AS placement_source,"
+            f"       :validation_status_{i}        AS validation_status,"
+            f"       :validation_messages_json_{i} AS validation_messages_json"
+        )
+
+    source_sql = "\n        UNION ALL\n        ".join(select_rows)
+    sql = f"""
+        MERGE INTO {COORD_TBL} AS target
+        USING (
+            {source_sql}
+        ) AS source
+        ON  target.plant_id    = :plant_id
+        AND target.func_loc_id = source.func_loc_id
+        WHEN MATCHED THEN UPDATE SET
+            target.parent_zone_id           = source.parent_zone_id,
+            target.revision_id              = source.revision_id,
+            target.placement_source         = source.placement_source,
+            target.validation_status        = source.validation_status,
+            target.validation_messages_json = source.validation_messages_json,
+            target.updated_by               = CURRENT_USER(),
+            target.updated_at               = CURRENT_TIMESTAMP()
+    """
+    await run_sql_async(token, sql, params)

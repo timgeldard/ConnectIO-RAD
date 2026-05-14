@@ -1,0 +1,409 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<base href="/factory-mood-board/" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Plant Mood Board · Kerry ConnectIO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans:wght@300;400;500;600;700;800&family=Noto+Serif:ital,wdth,wght@0,62.5..100,100..900;1,62.5..100,100..900&display=swap" rel="stylesheet" />
+<style>
+:root{--slate:#005776;--forest:#143700;--stone:#F1F1E5;--sunrise:#F9C20A;--sunset:#F24A00;--sage:#289BA2;--jade:#44CF93;--innovation:#DFFF11;--sans:"Noto Sans",system-ui,sans-serif;--serif:"Noto Serif",Georgia,serif;--mono:"IBM Plex Mono",monospace;--fg:var(--forest);--fg2:color-mix(in srgb,var(--forest) 60%,white);--fg3:color-mix(in srgb,var(--forest) 40%,white);--line:color-mix(in srgb,var(--forest) 14%,transparent);--surface:#fff;--bg:#FAFAF3;--r:6px;--r2:10px;--shadow:0 1px 3px rgba(20,55,0,.06),0 4px 16px rgba(20,55,0,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--sans);color:var(--fg);background:var(--bg);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+.app{display:flex;flex-direction:column;height:100vh}
+.main{flex:1;overflow:hidden;display:flex}
+.panel-scroll{flex:1;overflow-y:auto;padding:24px}
+
+/* topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;background:linear-gradient(135deg,var(--forest) 0%,#1a4a00 100%);color:#fff;border-bottom:3px solid var(--innovation);flex-shrink:0}
+.topbar-brand{display:flex;align-items:center;gap:14px}
+.topbar-kk{width:28px;height:28px;background:var(--innovation);border-radius:3px;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:13px;color:var(--forest)}
+.topbar-name{font-weight:700;font-size:15px;letter-spacing:.01em}
+.topbar-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.7;margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:20px}
+.ai-badge{display:flex;align-items:center;gap:7px;padding:5px 12px;background:rgba(223,255,17,.12);border-radius:4px;border:1px solid rgba(223,255,17,.22);font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--innovation)}
+.ai-dot{width:6px;height:6px;border-radius:50%;background:var(--innovation);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(0.8)}}
+.user-chip{display:flex;align-items:center;gap:8px;padding-left:16px;border-left:1px solid rgba(255,255,255,.2)}
+.user-av{width:28px;height:28px;border-radius:50%;background:var(--innovation);color:var(--forest);font-weight:700;font-size:10px;display:grid;place-items:center}
+.user-name{font-size:12px;font-weight:600}
+.user-role{font-size:10px;opacity:.7}
+
+/* plant selector */
+.plant-strip{display:flex;gap:0;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto}
+.plant-tab{padding:11px 18px;font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--fg3);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap}
+.plant-tab.active{color:var(--forest);border-bottom-color:var(--forest);font-weight:600}
+.plant-tab:hover:not(.active){color:var(--fg);border-bottom-color:var(--line)}
+.plant-tab-mood{display:inline-flex;align-items:center;gap:5px}
+.mood-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+
+/* mood hero */
+.mood-hero{display:grid;grid-template-columns:1fr 380px;gap:18px;margin-bottom:18px;max-width:1400px}
+.mood-narrative{background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);padding:24px 28px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.mood-narrative::before{content:"";position:absolute;top:0;left:0;right:0;height:4px}
+.mood-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.ai-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;background:rgba(20,55,0,.06);border-radius:999px;border:1px solid var(--line);font-family:var(--mono);font-size:9px;color:var(--fg3)}
+.mood-score-row{display:flex;align-items:flex-end;gap:16px;margin-bottom:14px}
+.mood-score-big{font-family:var(--mono);font-size:72px;font-weight:600;line-height:.9;letter-spacing:-.03em}
+.mood-score-meta{display:flex;flex-direction:column;gap:4px;padding-bottom:6px}
+.mood-label{font-size:22px;font-weight:700;line-height:1}
+.mood-delta{font-family:var(--mono);font-size:13px}
+.mood-text{font-family:var(--serif);font-size:14px;line-height:1.65;color:var(--fg2);max-width:580px}
+.mood-text strong{color:var(--fg);font-weight:600}
+.mood-text .alert{color:var(--sunset);font-weight:600}
+.mood-text .good{color:#0e5c35;font-weight:600}
+
+/* signal grid */
+.signal-grid{display:flex;flex-direction:column;gap:10px}
+.signal-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 1px 2px rgba(20,55,0,.04)}
+.signal-icon{font-size:20px;width:32px;text-align:center;flex-shrink:0}
+.signal-body{flex:1}
+.signal-name{font-size:12px;font-weight:600;margin-bottom:2px}
+.signal-sub{font-size:11px;color:var(--fg2)}
+.signal-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:60px}
+.signal-val{font-family:var(--mono);font-size:16px;font-weight:600;line-height:1}
+.signal-trend{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 5px;border-radius:3px}
+.trend-up{background:rgba(68,207,147,.12);color:#0e5c35}
+.trend-down{background:rgba(242,74,0,.1);color:#a83500}
+.trend-flat{background:rgba(20,55,0,.06);color:var(--fg3)}
+
+/* details grid */
+.details-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:1400px}
+.detail-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);overflow:hidden;box-shadow:var(--shadow)}
+.detail-head{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.detail-title{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--forest);font-weight:600}
+.detail-body{padding:14px}
+
+/* equip grid */
+.equip-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.equip-item{padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg)}
+.equip-name{font-size:11px;font-weight:600;margin-bottom:3px}
+.equip-status{font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.equip-bar-wrap{height:4px;background:var(--line);border-radius:999px;overflow:hidden;margin-top:5px}
+.equip-bar-fill{height:100%;border-radius:999px}
+
+/* sparkline bars */
+.spark-row{display:flex;align-items:flex-end;gap:2px;height:28px;margin-top:6px}
+.spark-bar{flex:1;border-radius:2px 2px 0 0;min-height:3px;opacity:.8}
+
+/* stock heat */
+.stock-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.stock-item:last-child{border-bottom:none}
+.stock-mat{font-size:11px;flex:1;font-weight:500}
+.stock-days{font-family:var(--mono);font-size:12px;font-weight:600;min-width:36px;text-align:right}
+.stock-bar-wrap{height:6px;background:var(--line);border-radius:999px;overflow:hidden;width:80px}
+.stock-bar-fill{height:100%;border-radius:999px}
+
+/* downtime */
+.dt-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.dt-item:last-child{border-bottom:none}
+.dt-cause{font-size:12px;font-weight:500;flex:1}
+.dt-mins{font-family:var(--mono);font-size:12px;font-weight:600;min-width:40px;text-align:right}
+.dt-pct{font-family:var(--mono);font-size:10px;color:var(--fg3);min-width:32px;text-align:right}
+.dt-bar-wrap{height:6px;background:var(--line);border-radius:999px;overflow:hidden;width:70px}
+.dt-bar-fill{height:100%;border-radius:999px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel">
+const { useState } = React;
+
+const PLANTS = [
+  {
+    id:"beloit", name:"Beloit WI", country:"US",
+    mood:52, moodLabel:"Stressed", moodColor:"#F24A00",
+    delta:"-8 vs yesterday",
+    narrative: `<strong>Beloit is under significant pressure today.</strong> The active Listeria recall (FSRC-2024-0312) is driving elevated hold volumes and disrupting scheduling across quality and operations. <span class="alert">Line 6 has been blocked for 3+ hours</span> due to a K-Pectin material shortage, and Line 3 is running degraded following a sealer fault raised at 09:28.<br/><br/>On the positive side, <span class="good">Line 1 is performing exceptionally</span> at 91% OEE — second-best on record for this product family. The environmental sanitation programme is progressing on schedule. First-pass yield across unaffected lines remains at 98.6%, which is above the plant's 12-week average.`,
+    signals:[
+      { icon:"⚙", name:"OEE",            sub:"Active lines average",    val:"83%",  trend:"-4.1%", up:false, sparks:[89,88,87,87,86,85,83] },
+      { icon:"⬇", name:"Downtime",       sub:"Unplanned this shift",   val:"94min", trend:"+28m",  up:false, sparks:[40,45,52,60,55,70,94] },
+      { icon:"✓", name:"Quality yield",  sub:"First-pass · C shift",   val:"98.6%", trend:"+0.4%", up:true,  sparks:[97,97,98,98,98,99,99] },
+      { icon:"📦", name:"Stock pressure",sub:"Lines < 2h cover",        val:"1",     trend:"▲1",    up:false, sparks:[0,0,0,0,0,0,1] },
+      { icon:"🔧", name:"Equipment",     sub:"Faults open",             val:"2",     trend:"+1",    up:false, sparks:[0,1,1,0,1,1,2] },
+    ],
+    oee_trend:[87,88,86,85,84,84,83],
+    downtime:[
+      { cause:"Material shortage — Line 6",  mins:94,  pct:58 },
+      { cause:"Sealer fault — Line 3",        mins:34,  pct:21 },
+      { cause:"Quality hold — Line 1",        mins:18,  pct:11 },
+      { cause:"Scheduled changeover",         mins:16,  pct:10 },
+    ],
+    stock:[
+      { mat:"K-Pectin LV40",     days:0.3, color:"#F24A00" },
+      { mat:"K-Carrageenan",     days:1.8, color:"#F9C20A" },
+      { mat:"A1-Gold tins",      days:3.2, color:"#44CF93" },
+      { mat:"SureBase PM20",     days:4.1, color:"#44CF93" },
+      { mat:"SynerBase F11",     days:2.6, color:"#F9C20A" },
+    ],
+    equip:[
+      { name:"Filler A — Line 1", status:"Running",   pct:92, color:"#44CF93" },
+      { name:"Sealer — Line 3",   status:"Degraded",  pct:61, color:"#F9C20A" },
+      { name:"Blender — Line 5",  status:"Running",   pct:88, color:"#44CF93" },
+      { name:"Conveyor C-07",     status:"Offline",   pct:0,  color:"#F24A00" },
+      { name:"Filler B — Line 4", status:"Running",   pct:95, color:"#44CF93" },
+      { name:"Packer — Line 6",   status:"Idle",      pct:0,  color:"#289BA2" },
+    ],
+  },
+  {
+    id:"lismore", name:"Lismore IE", country:"IE",
+    mood:71, moodLabel:"Steady", moodColor:"#F9C20A",
+    delta:"-3 vs yesterday",
+    narrative: `<strong>Lismore is operating steadily under precautionary hold conditions.</strong> The cross-facility recall spillover from Beloit has added <span class="alert">3 batches to precautionary hold</span>, but production on unaffected lines is running well. OEE across active lines is averaging 84.2%, which is in line with the 4-week rolling average.<br/><br/><span class="good">Environmental monitoring sweep complete</span> — all 23 Lismore sites returned clear results overnight. The incoming lactase 50T material hold (FSRC-2024-0288) remains active, but no production impact has been confirmed. Changeover on Line 8 completed within the planned 90-minute window.`,
+    signals:[
+      { icon:"⚙", name:"OEE",            sub:"Active lines average",   val:"84%",  trend:"-1.2%", up:false, sparks:[86,85,85,84,85,84,84] },
+      { icon:"⬇", name:"Downtime",       sub:"Unplanned this shift",  val:"28min", trend:"+8m",   up:false, sparks:[18,20,22,20,22,21,28] },
+      { icon:"✓", name:"Quality yield",  sub:"First-pass · C shift",  val:"99.1%", trend:"+0.2%", up:true,  sparks:[98,99,98,99,99,99,99] },
+      { icon:"📦", name:"Stock pressure",sub:"Lines < 2h cover",       val:"0",     trend:"—",     up:true,  sparks:[0,0,1,0,0,0,0] },
+      { icon:"🔧", name:"Equipment",     sub:"Faults open",            val:"0",     trend:"—",     up:true,  sparks:[1,0,0,1,0,0,0] },
+    ],
+    oee_trend:[86,85,85,84,85,84,84],
+    downtime:[
+      { cause:"Quality hold sign-off",    mins:18, pct:64 },
+      { cause:"Minor jam — Line 7",       mins:10, pct:36 },
+    ],
+    stock:[
+      { mat:"K-Pectin LV40",    days:2.1, color:"#F9C20A" },
+      { mat:"HMF Premix",       days:5.4, color:"#44CF93" },
+      { mat:"Infant Formula tins",days:3.8,color:"#44CF93" },
+      { mat:"Lactase 50T",      days:0.0, color:"#F24A00" },
+      { mat:"K-Carrageenan",    days:4.2, color:"#44CF93" },
+    ],
+    equip:[
+      { name:"Filler — Line 7",  status:"Running",  pct:88, color:"#44CF93" },
+      { name:"Blender — Line 9", status:"Running",  pct:82, color:"#44CF93" },
+      { name:"Packer — Line 8",  status:"Running",  pct:90, color:"#44CF93" },
+      { name:"Conveyor B-04",    status:"Running",  pct:95, color:"#44CF93" },
+      { name:"Filler — Line 10", status:"Running",  pct:87, color:"#44CF93" },
+      { name:"CIP Unit 3",       status:"Standby",  pct:0,  color:"#289BA2" },
+    ],
+  },
+  {
+    id:"carrigaline", name:"Carrigaline IE", country:"IE",
+    mood:88, moodLabel:"Performing", moodColor:"#44CF93",
+    delta:"+5 vs yesterday",
+    narrative: `<strong>Carrigaline is having an excellent day.</strong> All 6 production lines are running above 85% OEE, with Line 2 achieving a plant record of <span class="good">94.3% OEE</span> on the SureBase blend run. No unplanned downtime events in the last 18 hours, and the incoming material position is strong across all critical materials.<br/><br/>The quality pass rate for the shift is 99.4%, with zero open deviations for the first time in 14 days. <span class="good">Environmental monitoring is fully green</span> across all 31 sites. The plant is tracking 6% ahead of its monthly production plan.`,
+    signals:[
+      { icon:"⚙", name:"OEE",            sub:"Active lines average",   val:"89%",  trend:"+4.8%", up:true,  sparks:[82,84,85,86,87,88,89] },
+      { icon:"⬇", name:"Downtime",       sub:"Unplanned this shift",  val:"0min",  trend:"−18m",  up:true,  sparks:[24,20,15,12,8,6,0] },
+      { icon:"✓", name:"Quality yield",  sub:"First-pass · C shift",  val:"99.4%", trend:"+0.6%", up:true,  sparks:[98,98,99,99,99,99,99] },
+      { icon:"📦", name:"Stock pressure",sub:"Lines < 2h cover",       val:"0",     trend:"—",     up:true,  sparks:[1,1,0,0,0,0,0] },
+      { icon:"🔧", name:"Equipment",     sub:"Faults open",            val:"0",     trend:"−2",    up:true,  sparks:[2,1,1,0,1,0,0] },
+    ],
+    oee_trend:[82,84,85,86,87,88,89],
+    downtime:[],
+    stock:[
+      { mat:"SureBase PM20",   days:6.2, color:"#44CF93" },
+      { mat:"Phospholipids",   days:4.8, color:"#44CF93" },
+      { mat:"HMF Premix",      days:5.1, color:"#44CF93" },
+      { mat:"Lactase 50T",     days:3.9, color:"#44CF93" },
+      { mat:"K-Pectin LV60",   days:4.4, color:"#44CF93" },
+    ],
+    equip:[
+      { name:"Filler — Line 1", status:"Running",  pct:91, color:"#44CF93" },
+      { name:"Filler — Line 2", status:"Running",  pct:94, color:"#44CF93" },
+      { name:"Blender A",       status:"Running",  pct:88, color:"#44CF93" },
+      { name:"Blender B",       status:"Running",  pct:90, color:"#44CF93" },
+      { name:"Packer — Line 4", status:"Running",  pct:93, color:"#44CF93" },
+      { name:"Packer — Line 5", status:"Running",  pct:87, color:"#44CF93" },
+    ],
+  },
+];
+
+function MoodGauge({ score, color }) {
+  const r = 52, cx = 60, cy = 60;
+  const circumference = 2 * Math.PI * r;
+  const arc = circumference * 0.75;
+  const filled = arc * (score / 100);
+  const offset = circumference * 0.125;
+  return (
+    <svg width="120" height="120" viewBox="0 0 120 120">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(20,55,0,.08)" strokeWidth="10"
+              strokeDasharray={`${arc} ${circumference - arc}`} strokeDashoffset={-offset}
+              strokeLinecap="round" />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth="10"
+              strokeDasharray={`${filled} ${circumference - filled}`} strokeDashoffset={-offset}
+              strokeLinecap="round" style={{transition:"stroke-dasharray .8s ease"}} />
+      <text x={cx} y={cy-4} textAnchor="middle" fontFamily="IBM Plex Mono" fontWeight="700" fontSize="22" fill={color}>{score}</text>
+      <text x={cx} y={cy+14} textAnchor="middle" fontFamily="IBM Plex Mono" fontSize="10" fill="rgba(20,55,0,.5)">/100</text>
+    </svg>
+  );
+}
+
+function PlantView({ plant }) {
+  const maxSpark = (arr) => Math.max(...arr, 1);
+  return (
+    <div style={{maxWidth:1400}}>
+      {/* Hero */}
+      <div className="mood-hero">
+        <div className="mood-narrative" style={{"--accent":plant.moodColor}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:4,background:plant.moodColor}} />
+          <div className="mood-eyebrow">
+            <span className="ai-chip"><span className="ai-dot" />AI Synthesis</span>
+            Plant mood · {new Date().toLocaleDateString("en-IE",{weekday:"short",day:"numeric",month:"short"})}
+          </div>
+          <div className="mood-score-row">
+            <MoodGauge score={plant.mood} color={plant.moodColor} />
+            <div className="mood-score-meta">
+              <div className="mood-label" style={{color:plant.moodColor}}>{plant.moodLabel}</div>
+              <div className="mood-delta" style={{color:"var(--fg3)",fontSize:12}}>{plant.delta}</div>
+            </div>
+          </div>
+          <div className="mood-text" dangerouslySetInnerHTML={{__html:plant.narrative}} />
+        </div>
+
+        <div className="signal-grid">
+          {plant.signals.map((s,i) => (
+            <div key={i} className="signal-row">
+              <div className="signal-icon">{s.icon}</div>
+              <div className="signal-body">
+                <div className="signal-name">{s.name}</div>
+                <div className="signal-sub">{s.sub}</div>
+                <div className="spark-row">
+                  {s.sparks.map((v,j) => {
+                    const mx = maxSpark(s.sparks);
+                    const c = s.up ? "#44CF93" : s.name==="OEE"||s.name==="Quality yield" ? "#F24A00" : "#289BA2";
+                    return <div key={j} className="spark-bar" style={{height:((v/mx)*100)+"%",background:c,opacity:j===s.sparks.length-1?1:0.3+j*0.1}} />;
+                  })}
+                </div>
+              </div>
+              <div className="signal-right">
+                <span className="signal-val" style={{color:s.up?"#0e5c35":s.trend==="—"?"var(--fg3)":"var(--sunset)"}}>{s.val}</span>
+                <span className={`signal-trend ${s.trend==="—"?"trend-flat":s.up?"trend-up":"trend-down"}`}>{s.trend}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Detail cards */}
+      <div className="details-grid">
+        {/* Equipment */}
+        <div className="detail-card">
+          <div className="detail-head">
+            <span className="detail-title">Equipment health</span>
+            <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--fg3)"}}>{plant.equip.filter(e=>e.status==="Running").length} running</span>
+          </div>
+          <div className="detail-body">
+            <div className="equip-grid">
+              {plant.equip.map((e,i) => (
+                <div key={i} className="equip-item">
+                  <div className="equip-name">{e.name}</div>
+                  <div className="equip-status" style={{color:e.status==="Running"?"#0e5c35":e.status==="Degraded"||e.status==="Offline"?"var(--sunset)":"var(--fg3)"}}>{e.status}</div>
+                  {e.pct > 0 && (
+                    <div className="equip-bar-wrap">
+                      <div className="equip-bar-fill" style={{width:e.pct+"%",background:e.color}} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Stock */}
+        <div className="detail-card">
+          <div className="detail-head">
+            <span className="detail-title">Stock runway</span>
+            <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--fg3)"}}>Days of cover at current rate</span>
+          </div>
+          <div className="detail-body">
+            {plant.stock.map((s,i) => (
+              <div key={i} className="stock-item">
+                <span className="stock-mat">{s.mat}</span>
+                <div className="stock-bar-wrap">
+                  <div className="stock-bar-fill" style={{width:Math.min(100,s.days/7*100)+"%",background:s.color}} />
+                </div>
+                <span className="stock-days" style={{color:s.color}}>
+                  {s.days===0 ? "HOLD" : s.days.toFixed(1)+"d"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Downtime */}
+        <div className="detail-card">
+          <div className="detail-head">
+            <span className="detail-title">Downtime breakdown</span>
+            <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--fg3)"}}>This shift (unplanned)</span>
+          </div>
+          <div className="detail-body">
+            {plant.downtime.length === 0 ? (
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:120,color:"var(--fg3)",gap:8}}>
+                <span style={{fontSize:28,opacity:.5}}>✅</span>
+                <span style={{fontFamily:"var(--mono)",fontSize:11,letterSpacing:".08em",textTransform:"uppercase"}}>Zero unplanned downtime</span>
+              </div>
+            ) : (
+              plant.downtime.map((d,i) => (
+                <div key={i} className="dt-item">
+                  <span className="dt-cause">{d.cause}</span>
+                  <div className="dt-bar-wrap">
+                    <div className="dt-bar-fill" style={{width:d.pct+"%",background:"var(--sunset)"}} />
+                  </div>
+                  <span className="dt-mins" style={{color:"var(--sunset)"}}>{d.mins}m</span>
+                  <span className="dt-pct">{d.pct}%</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [plantId, setPlantId] = useState("beloit");
+  const plant = PLANTS.find(p => p.id === plantId);
+  const moodDot = (p) => p.mood >= 80 ? "#44CF93" : p.mood >= 65 ? "#F9C20A" : "#F24A00";
+  return (
+    <div className="app">
+      <div className="topbar">
+        <div className="topbar-brand">
+          <div className="topbar-kk">K</div>
+          <div>
+            <div className="topbar-name">Plant Mood Board</div>
+            <div className="topbar-eyebrow">Kerry ConnectIO · AI Plant Intelligence</div>
+          </div>
+        </div>
+        <div className="topbar-right">
+          <div className="ai-badge"><div className="ai-dot" />AI synthesis · live</div>
+          <div className="user-chip">
+            <div className="user-av">AM</div>
+            <div>
+              <div className="user-name">A. McCarthy</div>
+              <div className="user-role">VP Operations · Kerry Group</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="plant-strip">
+        {PLANTS.map(p => (
+          <button key={p.id} className={`plant-tab${plantId===p.id?" active":""}`} onClick={() => setPlantId(p.id)}>
+            <span className="plant-tab-mood">
+              <span className="mood-dot" style={{background:moodDot(p)}} />
+              {p.name}
+              <span style={{fontFamily:"var(--mono)",fontSize:10,opacity:.7,marginLeft:2}}>·{p.mood}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="main">
+        <div className="panel-scroll">
+          {plant && <PlantView plant={plant} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

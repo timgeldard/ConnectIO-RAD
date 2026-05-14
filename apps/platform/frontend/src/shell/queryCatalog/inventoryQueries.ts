@@ -1,5 +1,5 @@
 import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
-import { endpoint, fields as selectFields, getQuery, params, widgetCompatibility } from './common';
+import { apiEndpoint, fields as selectFields, getQuery, params, widgetCompatibility } from './common';
 
 /**
  * Creates an inventory field definition.
@@ -32,7 +32,7 @@ export const inventoryQueries: QueryRegistry = {
     key: 'inventory.stockByMaterial',
     label: 'Stock by Material',
     description: 'Aggregated stock by material for KPI, bar, and drill-down table views.',
-    endpoint: endpoint('wh', 'imwm/stock'),
+    endpoint: apiEndpoint('warehouse360','imwm/stock'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [
@@ -55,7 +55,7 @@ export const inventoryQueries: QueryRegistry = {
     key: 'inventory.stockByBatch',
     label: 'Stock by Batch',
     description: 'Stock by batch with quantity, status, and ageing context.',
-    endpoint: endpoint('wh', 'inventory/bins'),
+    endpoint: apiEndpoint('warehouse360','inventory/bins'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [
@@ -78,7 +78,7 @@ export const inventoryQueries: QueryRegistry = {
     key: 'inventory.stockByStatus',
     label: 'Stock by Status',
     description: 'Inventory split by unrestricted, quality, blocked, and other status buckets.',
-    endpoint: endpoint('wh', 'imwm/stock'),
+    endpoint: apiEndpoint('warehouse360','imwm/stock'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [
@@ -102,7 +102,7 @@ export const inventoryQueries: QueryRegistry = {
     key: 'inventory.expiryRisk',
     label: 'Expiry Risk',
     description: 'Batches nearing expiry, ranked by quantity and urgency.',
-    endpoint: endpoint('wh', 'inventory/near-expiry'),
+    endpoint: apiEndpoint('warehouse360','inventory/near-expiry'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [
@@ -125,7 +125,7 @@ export const inventoryQueries: QueryRegistry = {
     key: 'inventory.blockedStock',
     label: 'Blocked Stock',
     description: 'Blocked inventory by material and batch with quantity details.',
-    endpoint: endpoint('wh', 'imwm/exceptions'),
+    endpoint: apiEndpoint('warehouse360','imwm/exceptions'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [
@@ -148,7 +148,7 @@ export const inventoryQueries: QueryRegistry = {
     key: 'inventory.qualityStock',
     label: 'Quality Stock',
     description: 'Stock in inspection hold by material and batch.',
-    endpoint: endpoint('wh', 'imwm/stock'),
+    endpoint: apiEndpoint('warehouse360','imwm/stock'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [
@@ -171,7 +171,7 @@ export const inventoryQueries: QueryRegistry = {
     key: 'inventory.movementTrend',
     label: 'Movement Trend',
     description: 'Inventory movement trend across receipts, issues, and adjustments.',
-    endpoint: endpoint('wh', 'imwm/movements'),
+    endpoint: apiEndpoint('warehouse360','imwm/movements'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: inventoryParams,
     fields: [

@@ -1,4 +1,4 @@
-{
+﻿{
   "envmon.action.admin": "Quản trị",
   "envmon.action.exitAdmin": "Thoát quản trị",
   "envmon.admin.canvas.floorPlanAlt": "Sơ đồ {{floor}}",
@@ -155,3 +155,4 @@
   "envmon.trend.upperLimit": "Giới hạn dung sai trên: {{n}}",
   "envmon.trend.windowLabel": "Cửa sổ"
 }
+

@@ -91,14 +91,29 @@ export function fields(...keys: Array<keyof typeof commonFields>): QueryField[] 
 }
 
 /**
- * Builds a consistent platform API endpoint path for the supplied domain/query.
+ * Canonical API prefix per backend, keyed by the domain name used in the
+ * platform query catalog.  All warehouse-management queries route through
+ * `/api/wh360`; order-history and quality analytics through `/api/poh`.
+ */
+export const platformApiPrefixes = {
+  warehouse360: '/api/wh360',
+  poh: '/api/poh',
+  spc: '/api/spc',
+} as const;
+
+/** Closed union of valid query-catalog API domains. */
+export type ApiDomain = keyof typeof platformApiPrefixes;
+
+/**
+ * Builds a type-safe platform API endpoint path for the supplied domain/query.
  *
- * @param domain - Business-domain prefix such as `poh` or `spc`.
- * @param slug - Endpoint slug segment.
+ * @param domain - Typed domain key from {@link platformApiPrefixes}.
+ * @param slug - Optional endpoint slug appended after the prefix.
  * @returns Relative API path for the registry entry.
  */
-export function endpoint(domain: string, slug: string): string {
-  return `/api/${domain}/${slug}`;
+export function apiEndpoint(domain: ApiDomain, slug?: string): string {
+  const prefix = platformApiPrefixes[domain];
+  return slug ? `${prefix}/${slug}` : prefix;
 }
 
 /**

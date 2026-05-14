@@ -1,4 +1,4 @@
-{
+﻿{
   "envmon.action.admin": "Admin",
   "envmon.action.exitAdmin": "Quitter admin",
   "envmon.admin.canvas.floorPlanAlt": "Plan {{floor}}",
@@ -155,3 +155,4 @@
   "envmon.trend.upperLimit": "Limite supérieure de tolérance : {{n}}",
   "envmon.trend.windowLabel": "Fenêtre"
 }
+

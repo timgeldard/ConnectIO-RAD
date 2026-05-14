@@ -1,4 +1,4 @@
-{
+﻿{
   "envmon.action.admin": "Admin",
   "envmon.action.exitAdmin": "Admin verlaten",
   "envmon.admin.canvas.floorPlanAlt": "{{floor}} plattegrond",
@@ -155,3 +155,4 @@
   "envmon.trend.upperLimit": "Boventolerantiegrens: {{n}}",
   "envmon.trend.windowLabel": "Venster"
 }
+

@@ -20,6 +20,13 @@ import type {
   CoordinateUpsertRequest,
   PlantGeoEntry,
   PlantInfo,
+  PublishedLayout,
+  DraftLayout,
+  LayoutRevision,
+  ValidationResult,
+  ZoneUpsertBody,
+  PublishBody,
+  RollbackBody,
 } from '~/types';
 
 const apiFetch = fetchJson;
@@ -196,6 +203,30 @@ export function useMappedLocations(plantId: string | null) {
   });
 }
 
+/**
+ * Place or move an L5 point in the current draft.
+ *
+ * Behaves identically to {@link useSaveCoordinate} but additionally invalidates
+ * the studio draftLayout query so PointLayer reflects the new position immediately.
+ * Requires `floorId` (for the query key) in addition to the standard body fields.
+ */
+export function usePlacePoint() {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, Error, CoordinateUpsertRequest & { floorId: string }>({
+    mutationFn: ({ floorId: _floorId, ...body }) =>
+      apiFetch('/api/em/coordinates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+    onSettled: (_data, _err, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['studio', 'draftLayout', variables.plant_id, variables.floorId] });
+      queryClient.invalidateQueries({ queryKey: ['coordinates', 'mapped', variables.plant_id] });
+      queryClient.invalidateQueries({ queryKey: ['locations', variables.plant_id] });
+    },
+  });
+}
+
 export function useSaveCoordinate() {
   const queryClient = useQueryClient();
   return useMutation<unknown, Error, CoordinateUpsertRequest>({
@@ -298,6 +329,153 @@ export function useDeleteFloor() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['floors', variables.plantId] });
       queryClient.invalidateQueries({ queryKey: ['plants'] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Spatial Studio — layout queries (Slice 6+)
+// ---------------------------------------------------------------------------
+
+/** Return the currently published layout for a floor (operational/analytics use). */
+export function usePublishedLayout(plantId: string | null, floorId: string | null) {
+  const params = new URLSearchParams();
+  if (plantId) params.set('plant_id', plantId);
+  return useQuery<PublishedLayout>({
+    queryKey: ['studio', 'publishedLayout', plantId, floorId],
+    queryFn: () => apiFetch(`/api/em/spatial/floors/${encodeURIComponent(floorId!)}/layout?${params}`),
+    enabled: Boolean(plantId && floorId),
+    staleTime: 0,
+  });
+}
+
+/** Return the current draft layout for authoring. Null when no draft exists. */
+export function useDraftLayout(plantId: string | null, floorId: string | null) {
+  const params = new URLSearchParams();
+  if (plantId) params.set('plant_id', plantId);
+  return useQuery<DraftLayout | null>({
+    queryKey: ['studio', 'draftLayout', plantId, floorId],
+    queryFn: () => apiFetch(`/api/em/spatial/floors/${encodeURIComponent(floorId!)}/draft?${params}`),
+    enabled: Boolean(plantId && floorId),
+    staleTime: 0,
+    select: (data) => (data?.revision ? (data as DraftLayout) : null),
+  });
+}
+
+/** Return the last 20 revisions for a floor. */
+export function useRevisions(plantId: string | null, floorId: string | null) {
+  const params = new URLSearchParams();
+  if (plantId) params.set('plant_id', plantId);
+  return useQuery<{ revisions: LayoutRevision[] }>({
+    queryKey: ['studio', 'revisions', plantId, floorId],
+    queryFn: () => apiFetch(`/api/em/spatial/floors/${encodeURIComponent(floorId!)}/revisions?${params}`),
+    enabled: Boolean(plantId && floorId),
+    staleTime: 30_000,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Spatial Studio — mutations
+// ---------------------------------------------------------------------------
+
+/** Create or return the open draft revision for a floor. */
+export function useCreateDraft() {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, Error, { plantId: string; floorId: string }>({
+    mutationFn: ({ plantId, floorId }) =>
+      apiFetch(
+        `/api/em/spatial/floors/${encodeURIComponent(floorId)}/draft?plant_id=${encodeURIComponent(plantId)}`,
+        { method: 'POST' },
+      ),
+    onSettled: (_data, _err, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['studio', 'draftLayout', variables.plantId, variables.floorId] });
+    },
+  });
+}
+
+/** Upsert an L4 zone in the current draft. */
+export function useUpsertZone() {
+  const queryClient = useQueryClient();
+  return useMutation<{ zone_id: string; saved: boolean }, Error, { floorId: string } & ZoneUpsertBody>({
+    mutationFn: ({ floorId, ...body }) =>
+      apiFetch(`/api/em/spatial/floors/${encodeURIComponent(floorId)}/zones`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+    onSettled: (_data, _err, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['studio', 'draftLayout', variables.plant_id, variables.floorId],
+      });
+    },
+  });
+}
+
+/** Delete a draft zone. */
+export function useDeleteZone() {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, Error, { plantId: string; floorId: string; zoneId: string; revisionId: string }>({
+    mutationFn: ({ floorId, zoneId, revisionId }) =>
+      apiFetch(
+        `/api/em/spatial/floors/${encodeURIComponent(floorId)}/zones/${encodeURIComponent(zoneId)}?revision_id=${encodeURIComponent(revisionId)}`,
+        { method: 'DELETE' },
+      ),
+    onSettled: (_data, _err, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['studio', 'draftLayout', variables.plantId, variables.floorId],
+      });
+    },
+  });
+}
+
+/** Run validation on the current draft and return the result. */
+export function useValidate() {
+  return useMutation<ValidationResult, Error, { plantId: string; floorId: string; revisionId: string }>({
+    mutationFn: ({ plantId, floorId, revisionId }) => {
+      const params = new URLSearchParams({
+        plant_id: plantId,
+        revision_id: revisionId,
+      });
+      return apiFetch(`/api/em/spatial/floors/${encodeURIComponent(floorId)}/validate?${params}`, {
+        method: 'POST',
+      });
+    },
+  });
+}
+
+/** Publish the current draft layout. */
+export function usePublish() {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, Error, { floorId: string } & PublishBody>({
+    mutationFn: ({ floorId, ...body }) =>
+      apiFetch(`/api/em/spatial/floors/${encodeURIComponent(floorId)}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+    onSettled: (_data, _err, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['studio', 'draftLayout',     variables.plant_id, variables.floorId] });
+      queryClient.invalidateQueries({ queryKey: ['studio', 'publishedLayout', variables.plant_id, variables.floorId] });
+      queryClient.invalidateQueries({ queryKey: ['studio', 'revisions',       variables.plant_id, variables.floorId] });
+      queryClient.invalidateQueries({ queryKey: ['heatmap', variables.plant_id] });
+    },
+  });
+}
+
+/** Rollback to a previous revision (stub until Slice 12). */
+export function useRollback() {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, Error, { floorId: string } & RollbackBody>({
+    mutationFn: ({ floorId, ...body }) =>
+      apiFetch(`/api/em/spatial/floors/${encodeURIComponent(floorId)}/rollback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+    onSettled: (_data, _err, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['studio', 'publishedLayout', variables.plant_id, variables.floorId] });
+      queryClient.invalidateQueries({ queryKey: ['studio', 'revisions',       variables.plant_id, variables.floorId] });
+      queryClient.invalidateQueries({ queryKey: ['heatmap', variables.plant_id] });
     },
   });
 }

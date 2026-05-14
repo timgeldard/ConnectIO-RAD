@@ -32,6 +32,8 @@ interface EMState {
   historicalDate: string | null;
   decayLambda: number;
   selectedMics: string[];
+  /** Whether the Spatial Studio authoring overlay is open (admin-only). */
+  spatialStudioOpen: boolean;
 }
 
 interface EMActions {
@@ -47,6 +49,7 @@ interface EMActions {
   setHistoricalDate: (date: string | null) => void;
   setDecayLambda: (val: number) => void;
   setSelectedMics: (mics: string[]) => void;
+  setSpatialStudioOpen: (on: boolean) => void;
 }
 
 const EMContext = createContext<(EMState & EMActions) | null>(null);
@@ -115,6 +118,7 @@ export function EMProvider({ children }: { children: React.ReactNode }) {
   );
   const [selectedLocId, setSelectedLocId] = useState<string | null>(null);
   const [adminMode, setAdminMode] = useState(false);
+  const [spatialStudioOpen, setSpatialStudioOpen] = useState(false);
   const [sidePanelExpanded, setSidePanelExpanded] = useState(false);
   const [historicalDate, setHistoricalDateRaw] = useState<string | null>(null);
   const [decayLambda, setDecayLambdaRaw] = useState<number>(() => {
@@ -194,21 +198,21 @@ export function EMProvider({ children }: { children: React.ReactNode }) {
     () => ({
       view, personaId, portfolioDays,
       activeFloor, timeWindow, heatmapMode,
-      selectedLocId, adminMode, sidePanelExpanded,
+      selectedLocId, adminMode, spatialStudioOpen, sidePanelExpanded,
       historicalDate, decayLambda, selectedMics,
       setView, setPersonaId, setPortfolioDays,
       setActiveFloor, setTimeWindow, setHeatmapMode,
-      setSelectedLocId, setAdminMode, setSidePanelExpanded,
+      setSelectedLocId, setAdminMode, setSpatialStudioOpen, setSidePanelExpanded,
       setHistoricalDate, setDecayLambda, setSelectedMics,
     }),
     [
       view, personaId, portfolioDays,
       activeFloor, timeWindow, heatmapMode,
-      selectedLocId, adminMode, sidePanelExpanded,
+      selectedLocId, adminMode, spatialStudioOpen, sidePanelExpanded,
       historicalDate, decayLambda, selectedMics,
       setView, setPersonaId, setPortfolioDays,
       setActiveFloor, setTimeWindow, setHeatmapMode,
-      setSelectedLocId, setAdminMode, setSidePanelExpanded,
+      setSelectedLocId, setAdminMode, setSpatialStudioOpen, setSidePanelExpanded,
       setHistoricalDate, setDecayLambda, setSelectedMics,
     ],
   );

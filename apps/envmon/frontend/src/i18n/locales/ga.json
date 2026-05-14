@@ -1,4 +1,4 @@
-{
+﻿{
   "envmon.action.admin": "Riarachán",
   "envmon.action.exitAdmin": "Scoir an riarachán",
   "envmon.admin.canvas.floorPlanAlt": "Plean {{floor}}",
@@ -155,3 +155,4 @@
   "envmon.trend.upperLimit": "Teorainn lamháltais uachtarach: {{n}}",
   "envmon.trend.windowLabel": "Fuinneog"
 }
+

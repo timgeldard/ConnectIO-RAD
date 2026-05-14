@@ -24,6 +24,9 @@ FLOOR_TBL_NAME  = os.environ.get("EM_FLOOR_TABLE",  f"{TRACE_CATALOG}.{TRACE_SCH
 PLANT_TBL_NAME  = os.environ.get("EM_PLANT_TABLE",  f"{TRACE_CATALOG}.{TRACE_SCHEMA}.gold_plant")
 # Internal config table — replaces the external epmplantconfiguration_zepm_plant_conf join
 PLANT_GEO_TBL_NAME = f"{TRACE_CATALOG}.{TRACE_SCHEMA}.em_plant_geo"
+# Spatial Studio tables (Slice 1+)
+ZONE_TBL_NAME     = os.environ.get("EM_ZONE_TABLE",     f"{TRACE_CATALOG}.{TRACE_SCHEMA}.em_location_zones")
+REVISION_TBL_NAME = os.environ.get("EM_REVISION_TABLE", f"{TRACE_CATALOG}.{TRACE_SCHEMA}.em_layout_revision")
 
 
 def _quote(tbl: str) -> str:
@@ -40,6 +43,8 @@ COORD_TBL     = _quote(COORD_TBL_NAME)
 FLOOR_TBL     = _quote(FLOOR_TBL_NAME)
 PLANT_TBL     = _quote(PLANT_TBL_NAME)
 PLANT_GEO_TBL = _quote(PLANT_GEO_TBL_NAME)
+ZONE_TBL      = _quote(ZONE_TBL_NAME)
+REVISION_TBL  = _quote(REVISION_TBL_NAME)
 
 # MIC-specific decay lambdas (lower lambda = longer half-life)
 def _get_mic_decay(name: str, default: float = 0.1) -> float:

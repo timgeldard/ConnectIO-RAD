@@ -32,6 +32,15 @@
         "{workspaceRoot}/apps/*/backend/**/*"
       ],
       "cache": true
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python3 ../../scripts/deploy_app.py --app-dir . --profile prod --target prod",
+        "cwd": "apps/platform"
+      },
+      "dependsOn": ["platform-build"],
+      "cache": false
     }
   }
 }
