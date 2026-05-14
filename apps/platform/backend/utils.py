@@ -34,6 +34,14 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[3]
+REQUIRED_PLATFORM_ROUTER_PACKAGES = {
+    "connectedquality_backend",
+    "envmon_backend",
+    "processorderhistory_backend",
+    "spc_backend",
+    "trace2_backend",
+    "warehouse360_backend",
+}
 
 
 class RequiredArtifactMissing(RuntimeError):
@@ -229,7 +237,8 @@ def discover_app_routers(packages: list[str]) -> list[tuple[Any, str, list[str] 
     all_routers = []
     for pkg in packages:
         # Try <pkg>.routers.PLATFORM_ROUTERS
-        routers = _optional_attr(f"{pkg}.routers", "PLATFORM_ROUTERS", required=False)
+        required = pkg in REQUIRED_PLATFORM_ROUTER_PACKAGES
+        routers = _optional_attr(f"{pkg}.routers", "PLATFORM_ROUTERS", required=required)
         if routers:
             all_routers.extend(routers)
         else:

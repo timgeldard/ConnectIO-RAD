@@ -25,10 +25,20 @@
       },
       "inputs": [
         "{workspaceRoot}/apps/platform/scripts/**/*",
+        "{workspaceRoot}/apps/platform/deploy.toml",
+        "{workspaceRoot}/apps/platform/app.template.yaml",
+        "{workspaceRoot}/apps/platform/databricks.yml",
         "{workspaceRoot}/apps/platform/backend/pyproject.toml",
         "{workspaceRoot}/apps/platform/requirements*.txt",
+        "{workspaceRoot}/apps/*/deploy.toml",
+        "{workspaceRoot}/apps/*/app.template.yaml",
+        "{workspaceRoot}/apps/*/databricks.yml",
+        "{workspaceRoot}/apps/*/backend/pyproject.toml",
+        "{workspaceRoot}/apps/*/frontend/package.json",
+        "{workspaceRoot}/apps/*/frontend/package-lock.json",
         "{workspaceRoot}/apps/*/frontend/src/**/*",
         "{workspaceRoot}/libs/shared-*/src/**/*",
+        "{workspaceRoot}/libs/shared-*/pyproject.toml",
         "{workspaceRoot}/apps/*/backend/**/*"
       ],
       "cache": true
