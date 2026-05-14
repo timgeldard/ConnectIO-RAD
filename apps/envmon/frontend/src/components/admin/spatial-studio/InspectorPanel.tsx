@@ -10,6 +10,7 @@
 import { useState, useEffect } from 'react';
 import { useUpsertZone, useDeleteZone } from '~/api/client';
 import type { LayoutZone, RectangleGeometry, PolygonGeometry, ValidationResult } from '~/types';
+import ValidationPanel from './ValidationPanel';
 
 /** Props for {@link InspectorPanel}. */
 export interface InspectorPanelProps {
@@ -155,19 +156,7 @@ export default function InspectorPanel({
       {/* Validation results — shown in review mode regardless of zone selection */}
       {validationResult && (
         <div style={{ marginTop: zone ? 16 : 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 8 }}>
-            Validation
-          </div>
-          {validationResult.issues.length === 0 ? (
-            <div style={{ fontSize: 12, color: 'var(--jade)' }}>✓ No issues found</div>
-          ) : (
-            validationResult.issues.map((issue, i) => (
-              <div key={i} style={{ fontSize: 12, marginBottom: 6, color: issue.severity === 'blocking_error' ? 'var(--sunset)' : 'var(--sunrise)' }}>
-                <span style={{ fontWeight: 600 }}>{issue.code}</span>
-                <span style={{ marginLeft: 4 }}>{issue.message}</span>
-              </div>
-            ))
-          )}
+          <ValidationPanel validationResult={validationResult} />
         </div>
       )}
     </div>

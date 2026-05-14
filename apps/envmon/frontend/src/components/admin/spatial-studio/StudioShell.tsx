@@ -18,6 +18,7 @@ import CommandBar from './CommandBar';
 import HierarchyRail from './HierarchyRail';
 import StudioCanvas from './StudioCanvas';
 import InspectorPanel from './InspectorPanel';
+import PublishDialog from './PublishDialog';
 import { useStudioState } from './hooks/useStudioState';
 import {
   useDraftLayout,
@@ -139,61 +140,14 @@ export default function StudioShell({ plantId, floorId, floor }: StudioShellProp
         />
       </div>
 
-      {/* Publish dialog */}
-      {showPublishDialog && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-          }}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Publish layout"
-        >
-          <div style={{
-            background: 'var(--surface)', borderRadius: 8, padding: 24,
-            width: 400, boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-          }}>
-            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12 }}>Publish layout</div>
-            <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 16 }}>
-              Publishing will update the live heatmap coordinates for this floor.
-              Historical analytics will reflect the new zone assignments.
-            </div>
-            <label style={{ fontSize: 12, fontWeight: 500, display: 'block', marginBottom: 4 }}>
-              Reason for change <span style={{ color: 'var(--sunset)' }}>*</span>
-            </label>
-            <textarea
-              value={publishReason}
-              onChange={(e) => setPublishReason(e.target.value)}
-              placeholder="Describe what changed and why…"
-              rows={3}
-              style={{
-                width: '100%', fontSize: 13, padding: 8,
-                border: '1px solid var(--border)', borderRadius: 4,
-                background: 'var(--surface-sunken)', color: 'var(--text-1)',
-                resize: 'vertical', boxSizing: 'border-box',
-              }}
-              data-testid="publish-reason-input"
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-              <button
-                className="btn btn-sm btn-ghost"
-                onClick={() => { setShowPublishDialog(false); setPublishReason(''); }}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-sm btn-primary"
-                onClick={handlePublishConfirm}
-                disabled={!publishReason.trim() || publishMutation.isPending}
-                data-testid="publish-confirm-btn"
-              >
-                {publishMutation.isPending ? 'Publishing…' : 'Publish'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PublishDialog
+        isOpen={showPublishDialog}
+        isPending={publishMutation.isPending}
+        reason={publishReason}
+        onReasonChange={setPublishReason}
+        onConfirm={handlePublishConfirm}
+        onCancel={() => { setShowPublishDialog(false); setPublishReason(''); }}
+      />
     </div>
   );
 }

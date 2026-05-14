@@ -1,7 +1,7 @@
 ﻿# EnvMon Spatial Studio â€” Implementation Plan
 
 **File:** `apps/envmon/docs/spatial-studio-implementation-plan.md`
-**Last updated:** 2026-05-13 â€” Slice 0 complete
+**Last updated:** 2026-05-14 — Slices 9–11 complete
 
 ---
 
@@ -972,9 +972,10 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 
 ## Completion log
 
-*(Empty â€” no slices complete beyond Slice 0.)*
+*(Slices 0, 7–11 complete; Slices 1–6 and 12 pending.)*
 
 - 2026-05-13 â€” Slice 0 completed â€” Discovery and implementation plan. All conventions documented, decisions committed, file map complete.
+- 2026-05-14 — Slices 9–11 completed — ZoneLayer, PointLayer, useCanvasInteraction, ValidationPanel, PublishDialog, InspectorPanel, StudioShell updates + tests.
 
 ---
 
