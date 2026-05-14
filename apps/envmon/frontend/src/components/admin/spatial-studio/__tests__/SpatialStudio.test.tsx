@@ -21,6 +21,8 @@ vi.mock('~/api/client', () => ({
   useCreateDraft: () => ({ mutate: vi.fn(), isPending: false }),
   useValidate: () => ({ mutate: vi.fn(), isPending: false }),
   usePublish: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpsertZone: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteZone: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 
 describe('SpatialStudio', () => {

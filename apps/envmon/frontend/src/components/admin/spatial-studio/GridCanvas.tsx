@@ -10,6 +10,8 @@
  */
 
 import type { StudioCanvasProps } from './StudioCanvas';
+import ZoneLayer from './ZoneLayer';
+import { useCanvasInteraction } from './hooks/useCanvasInteraction';
 
 /** Grid cell size in percentage units (each cell = 10% of canvas). */
 const GRID_CELL_SIZE = 10;
@@ -21,18 +23,37 @@ const LINE_COUNT = Math.floor(100 / GRID_CELL_SIZE) - 1;
 export default function GridCanvas({
   floor,
   draft,
+  activeMode,
+  selectedZoneId,
+  onSelectZone,
   onCreateDraft,
   isCreatingDraft,
 }: StudioCanvasProps) {
+  const { dragRect, onPointerDown, onPointerMove, onPointerUp } = useCanvasInteraction({
+    activeMode,
+    draft,
+    onSelectZone,
+  });
+
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
 
       <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="xMidYMid meet"
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          overflow: 'visible',
+          cursor: activeMode === 'structure' && draft ? 'crosshair' : 'default',
+        }}
         aria-label={`${floor.floor_name} grid canvas`}
         data-testid="grid-canvas-svg"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
       >
         {/* Canvas border */}
         <rect x={0} y={0} width={100} height={100} fill="none" stroke="var(--border)" strokeWidth={0.3} />
@@ -63,7 +84,12 @@ export default function GridCanvas({
           );
         })}
 
-        {/* ZoneLayer inserted here in Slice 9 */}
+        <ZoneLayer
+          zones={draft?.zones ?? []}
+          selectedZoneId={selectedZoneId}
+          onSelectZone={onSelectZone}
+          dragRect={dragRect}
+        />
         {/* PointLayer inserted here in Slice 10 */}
       </svg>
 

@@ -52,6 +52,8 @@ class ZoneUpsertRequest(BaseModel):
         geometry_type: ``'polygon'`` or ``'rectangle'``.
         geometry_json: Canonical geometry as a JSON-serialisable dict.
         functional_location_id: Optional SAP L4 functional location code.
+        zone_id: Optional existing zone UUID. When supplied the existing zone is
+            updated in-place; when omitted a fresh UUID is generated (create path).
     """
 
     plant_id: str
@@ -60,6 +62,7 @@ class ZoneUpsertRequest(BaseModel):
     geometry_type: str
     geometry_json: dict
     functional_location_id: Optional[str] = None
+    zone_id: Optional[str] = None
 
 
 class PublishRequest(BaseModel):
@@ -216,7 +219,7 @@ async def upsert_zone(
             detail=f"Invalid geometry_json for geometry_type '{body.geometry_type}': {exc}",
         ) from exc
 
-    zone_id = str(_uuid.uuid4())
+    zone_id = body.zone_id or str(_uuid.uuid4())
     await zones_dal.upsert_zone(
         token,
         zone_id=zone_id,

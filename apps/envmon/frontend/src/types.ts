@@ -243,6 +243,8 @@ export interface PublishedLayout {
 }
 
 export interface ZoneUpsertBody {
+  /** When provided, updates the existing zone in-place; omit to create a new zone. */
+  zone_id?: string;
   plant_id: string;
   revision_id: string;
   zone_name: string;

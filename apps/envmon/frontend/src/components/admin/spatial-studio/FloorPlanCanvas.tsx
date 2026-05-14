@@ -3,28 +3,33 @@
  * FloorPlanCanvas — renders a floor plan background image with an SVG overlay
  * for zone and point authoring.
  *
- * Coordinate convention matches the existing {@link FloorPlan} viewer:
- *   - SVG viewBox is `0 0 viewWidth viewHeight` (px, defaulting to 1000×700)
- *   - Zone/point percentage coordinates are scaled: x_px = (x_pct / 100) * viewWidth
- *   - Background image is absolutely positioned with objectFit: contain
+ * Coordinate convention: SVG overlay uses `viewBox="0 0 100 100"` (percentage
+ * units), matching {@link GridCanvas}. Zone/point coordinates are percentage
+ * values; no client-to-SVG scaling is needed. The background image sits outside
+ * the SVG and uses `objectFit: contain`.
  *
  * ZoneLayer (Slice 9) and PointLayer (Slice 10) slot into the overlay SVG.
  */
 
 import type { StudioCanvasProps } from './StudioCanvas';
+import ZoneLayer from './ZoneLayer';
+import { useCanvasInteraction } from './hooks/useCanvasInteraction';
 
-const DEFAULT_WIDTH = 1000;
-const DEFAULT_HEIGHT = 700;
-
-/** Floor plan canvas with SVG background image and overlay SVG for zones/points. */
+/** Floor plan canvas with background image and percentage-coordinate SVG overlay. */
 export default function FloorPlanCanvas({
   floor,
   draft,
+  activeMode,
+  selectedZoneId,
+  onSelectZone,
   onCreateDraft,
   isCreatingDraft,
 }: StudioCanvasProps) {
-  const viewWidth = floor.svg_width ?? DEFAULT_WIDTH;
-  const viewHeight = floor.svg_height ?? DEFAULT_HEIGHT;
+  const { dragRect, onPointerDown, onPointerMove, onPointerUp } = useCanvasInteraction({
+    activeMode,
+    draft,
+    onSelectZone,
+  });
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -47,15 +52,30 @@ export default function FloorPlanCanvas({
         />
       )}
 
-      {/* Zone + point overlay — same viewBox as background for 1:1 coordinate alignment */}
+      {/* Zone + point overlay — percentage viewBox matches GridCanvas */}
       <svg
-        viewBox={`0 0 ${viewWidth} ${viewHeight}`}
+        viewBox="0 0 100 100"
         preserveAspectRatio="xMidYMid meet"
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          overflow: 'visible',
+          cursor: activeMode === 'structure' && draft ? 'crosshair' : 'default',
+        }}
         aria-label={`${floor.floor_name} layout canvas`}
         data-testid="floor-plan-svg"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
       >
-        {/* ZoneLayer inserted here in Slice 9 */}
+        <ZoneLayer
+          zones={draft?.zones ?? []}
+          selectedZoneId={selectedZoneId}
+          onSelectZone={onSelectZone}
+          dragRect={dragRect}
+        />
         {/* PointLayer inserted here in Slice 10 */}
       </svg>
 

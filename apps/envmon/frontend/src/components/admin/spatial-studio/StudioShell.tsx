@@ -17,6 +17,7 @@ import { useState } from 'react';
 import CommandBar from './CommandBar';
 import HierarchyRail from './HierarchyRail';
 import StudioCanvas from './StudioCanvas';
+import InspectorPanel from './InspectorPanel';
 import { useStudioState } from './hooks/useStudioState';
 import {
   useDraftLayout,
@@ -53,6 +54,7 @@ export default function StudioShell({ plantId, floorId, floor }: StudioShellProp
   const [publishReason, setPublishReason] = useState('');
 
   const hasDraft = Boolean(revisionId);
+  const selectedZone = draft?.zones.find(z => z.zone_id === studio.selectedZoneId) ?? null;
   const isPublishable = validationResult?.issues.every(i => i.severity !== 'blocking_error') ?? false;
 
   function handleOpenDraft() {
@@ -127,39 +129,14 @@ export default function StudioShell({ plantId, floorId, floor }: StudioShellProp
           isCreatingDraft={createDraft.isPending}
         />
 
-        {/* Inspector placeholder — replaced by InspectorPanel in Slice 9 */}
-        <div
-          style={{
-            width: 260,
-            flexShrink: 0,
-            borderLeft: '1px solid var(--border)',
-            background: 'var(--surface)',
-            overflow: 'auto',
-            padding: 12,
-          }}
-          data-testid="studio-inspector-placeholder"
-        >
-          {validationResult && (
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 8 }}>
-                Validation
-              </div>
-              {validationResult.issues.length === 0 ? (
-                <div style={{ fontSize: 12, color: 'var(--jade)' }}>✓ No issues found</div>
-              ) : (
-                validationResult.issues.map((issue, i) => (
-                  <div key={i} style={{ fontSize: 12, marginBottom: 6, color: issue.severity === 'blocking_error' ? 'var(--sunset)' : 'var(--sunrise)' }}>
-                    <span style={{ fontWeight: 600 }}>{issue.code}</span>
-                    <span style={{ marginLeft: 4 }}>{issue.message}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-          {!validationResult && (
-            <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Inspector coming in Slice 9</div>
-          )}
-        </div>
+        <InspectorPanel
+          zone={selectedZone}
+          plantId={plantId}
+          floorId={floorId}
+          revisionId={revisionId}
+          onDeselectZone={() => studio.selectZone(null)}
+          validationResult={validationResult}
+        />
       </div>
 
       {/* Publish dialog */}
