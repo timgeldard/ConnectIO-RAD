@@ -30,6 +30,8 @@ def test_routers_health_lists_registered_routes():
     assert any(path.startswith("/api/wh360") for path in body["registered"])
     assert "/api/wh360/imwm/stock" in body["registered"]
     assert "/api/wh/imwm/stock" not in body["registered"]
+    assert "POST" in body["registered_methods"]["/api/poh/orders"]
+    assert "POST" in body["registered_methods"]["/api/poh/pours/analytics"]
     # Required-artifact failures abort startup, so by definition no required
     # artifacts can be missing here. Optional artifacts may still be empty.
     assert isinstance(body["missing_optional"], dict)

@@ -102,8 +102,18 @@ async def routers_health():
     registered = sorted(
         route.path for route in app.routes if hasattr(route, "path")
     )
+    registered_methods: dict[str, list[str]] = {}
+    for route in app.routes:
+        path = getattr(route, "path", None)
+        methods = getattr(route, "methods", None)
+        if not path or methods is None:
+            continue
+        existing = set(registered_methods.get(path, []))
+        existing.update(str(method) for method in methods)
+        registered_methods[path] = sorted(existing)
     return {
         "registered": registered,
+        "registered_methods": dict(sorted(registered_methods.items())),
         "registered_count": len(registered),
         "missing_optional": get_missing_optional_artifacts(),
     }
