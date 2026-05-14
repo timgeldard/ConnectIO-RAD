@@ -299,5 +299,8 @@
   "spc.violations.subtitle": "Ordenados por gravidade × recência",
   "spc.violations.title": "Sinais prioritários",
   "spc.violations.viewAll": "Ver todos →",
-  "spc.workspace": "Área de Trabalho SPC"
+  "spc.workspace": "Área de Trabalho SPC",
+  "spc.errorBoundary.message": "SPC workspace error",
+  "spc.errorBoundary.description": "The SPC workspace could not render. Retry the view or refresh the page if the problem continues.",
+  "spc.errorBoundary.retry": "Retry"
 }

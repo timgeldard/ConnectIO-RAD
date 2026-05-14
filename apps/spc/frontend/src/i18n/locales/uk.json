@@ -299,5 +299,8 @@
   "spc.violations.subtitle": "Відсортовано за серйозністю × актуальністю",
   "spc.violations.title": "Пріоритетні сигнали",
   "spc.violations.viewAll": "Переглянути всі →",
-  "spc.workspace": "Робочий простір SPC"
+  "spc.workspace": "Робочий простір SPC",
+  "spc.errorBoundary.message": "SPC workspace error",
+  "spc.errorBoundary.description": "The SPC workspace could not render. Retry the view or refresh the page if the problem continues.",
+  "spc.errorBoundary.retry": "Retry"
 }

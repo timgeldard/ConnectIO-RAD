@@ -299,5 +299,8 @@
   "spc.genie.notConfigured": "Genie is not configured.",
   "spc.genie.thinking": "Thinking through the current SPC scope...",
   "spc.genie.role.user": "You",
-  "spc.genie.role.genie": "Genie"
+  "spc.genie.role.genie": "Genie",
+  "spc.errorBoundary.message": "SPC workspace error",
+  "spc.errorBoundary.description": "The SPC workspace could not render. Retry the view or refresh the page if the problem continues.",
+  "spc.errorBoundary.retry": "Retry"
 }

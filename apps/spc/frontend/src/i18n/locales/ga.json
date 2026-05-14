@@ -299,5 +299,8 @@
   "spc.violations.subtitle": "Sórtáilte de réir déine × nua-aimsearthacht",
   "spc.violations.title": "Comharthaí tosaíochta",
   "spc.violations.viewAll": "Féach ar fad →",
-  "spc.workspace": "Spás Oibre SPC"
+  "spc.workspace": "Spás Oibre SPC",
+  "spc.errorBoundary.message": "SPC workspace error",
+  "spc.errorBoundary.description": "The SPC workspace could not render. Retry the view or refresh the page if the problem continues.",
+  "spc.errorBoundary.retry": "Retry"
 }

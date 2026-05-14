@@ -299,5 +299,8 @@
   "spc.violations.subtitle": "Sắp xếp theo mức độ nghiêm trọng × thời gian gần đây",
   "spc.violations.title": "Tín hiệu ưu tiên",
   "spc.violations.viewAll": "Xem tất cả →",
-  "spc.workspace": "Không gian làm việc SPC"
+  "spc.workspace": "Không gian làm việc SPC",
+  "spc.errorBoundary.message": "SPC workspace error",
+  "spc.errorBoundary.description": "The SPC workspace could not render. Retry the view or refresh the page if the problem continues.",
+  "spc.errorBoundary.retry": "Retry"
 }
