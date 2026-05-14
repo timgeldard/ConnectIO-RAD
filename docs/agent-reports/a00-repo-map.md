@@ -33,7 +33,7 @@
 *   **Test command**: `make test`
 *   **Data access approach**: PyPika SQL builders against Unity Catalog (`WH360_SCHEMA`).
 *   **Environment variables**: `WH360_SCHEMA` (defaults to `wh360`)
-*   **Bounded contexts/domains**: `inventory_management` (Anemic domain model).
+*   **Bounded contexts/domains**: inventory_management (Anemic domain model), dispensary_ops, order_fulfillment, operations_control_tower.
 
 ### `spc`
 *   **Frontend framework**: React / TypeScript / Vite
