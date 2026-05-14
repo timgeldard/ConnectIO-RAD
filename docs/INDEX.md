@@ -11,6 +11,12 @@ Welcome to the central hub for the **ConnectIO-RAD** (Reporting and Dashboarding
 - [**Engineering Mandates (DoD)**](../GEMINI.md) - *Our strict quality and documentation standards.*
 - [**Domain Glossary**](./domain-glossary.md) - *The ubiquitous language of our manufacturing world.*
 
+### Data Access
+
+- [**shared-db API Reference**](./shared-db.md) - *The only sanctioned path to Databricks SQL. Full API reference.*
+- [**shared-db Quickstart**](./shared-db-quickstart.md) - *Copy-paste FastAPI router tutorial.*
+- [**shared-db Migration Matrix**](./shared-db-migration-matrix.md) - *Per-app symbol audit for the promotion plan.*
+
 ---
 
 ## 🎯 Project Purpose

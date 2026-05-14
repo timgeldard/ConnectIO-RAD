@@ -5,6 +5,9 @@ and the Databricks SQL Connector.
 Includes configurable exponential-backoff polling (from SPC reference impl).
 """
 
+__all__ = ["run_in_sql_executor"]
+
+import asyncio
 import hashlib
 import json
 import logging
@@ -14,7 +17,7 @@ import time
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, Protocol
+from typing import Callable, Optional, Protocol, TypeVar
 
 try:
     from databricks import sql as databricks_sql
@@ -238,3 +241,23 @@ class _ConnectorStatementExecutor:
 
 _REST_EXECUTOR: _SqlExecutor = _RestStatementExecutor()
 _CONNECTOR_EXECUTOR: _SqlExecutor = _ConnectorStatementExecutor()
+
+_T = TypeVar("_T")
+
+
+async def run_in_sql_executor(fn: Callable[[], _T]) -> _T:
+    """Run a zero-argument blocking callable on the shared SQL thread pool.
+
+    Use this instead of importing the private ``_sql_executor`` directly.
+    Callers should wrap arguments in a lambda or ``functools.partial``::
+
+        result = await run_in_sql_executor(lambda: some_blocking_func(arg1, arg2))
+
+    Args:
+        fn: A zero-argument callable that performs blocking I/O.
+
+    Returns:
+        The return value of ``fn``.
+    """
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(_sql_executor, fn)

@@ -1,4 +1,8 @@
+"""Data freshness metadata for Databricks gold-layer views."""
+
 from __future__ import annotations
+
+__all__ = ["DataFreshnessRuntime"]
 
 import re
 import time

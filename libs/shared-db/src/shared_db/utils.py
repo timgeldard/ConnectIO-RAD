@@ -1,3 +1,14 @@
+"""Shared error-handling and freshness-attachment helpers for DAL code."""
+
+__all__ = [
+    "FreshnessAttacher",
+    "attach_validation_freshness",
+    "attach_payload_freshness",
+    "handle_sql_error",
+    "handle_analysis_error",
+    "handle_locked_limits_error",
+]
+
 import logging
 import uuid
 from typing import Any, NoReturn, Optional, Protocol

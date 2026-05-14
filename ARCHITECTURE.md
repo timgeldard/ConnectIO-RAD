@@ -74,7 +74,7 @@ We follow strict **Domain-Driven Design (DDD)**. Each application is partitioned
 | Library | Layer | Purpose |
 | :--- | :--- | :--- |
 | `shared-api` | Transport | App factory, security headers, JSON logging. |
-| `shared-db` | DAL | Connection pools, async SQL, and safe identifier mapping. |
+| `shared-db` | DAL | **The only sanctioned path to Databricks SQL.** Tiered cache, async execution, query audit, data freshness, concurrency control. Direct `databricks` imports are forbidden in app code — use `shared_db.run_sql_async`. See [docs/shared-db.md](docs/shared-db.md). |
 | `shared-auth` | Infra | OIDC/Databricks token validation and persona resolution. |
 | `shared-ui` | UI | Kerry Design System tokens and Kerry-specific shell. |
 | `shared-ddd / shared-manufacturing` | Domain | Base classes: `AggregateRoot`, `ValueObject`, `Entity`. |

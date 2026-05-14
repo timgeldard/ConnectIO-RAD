@@ -6,6 +6,23 @@ Exports: run_sql, resolve_token, check_warehouse_config, tbl, sql_param,
          TRACE_SCHEMA
 """
 
+__all__ = [
+    "DATABRICKS_HOST",
+    "WAREHOUSE_HTTP_PATH",
+    "TRACE_CATALOG",
+    "TRACE_SCHEMA",
+    "hostname",
+    "tbl",
+    "check_warehouse_config",
+    "resolve_token",
+    "sql_param",
+    "run_sql_in",
+    "run_sql",
+    "run_sql_async",
+    "run_sql_large",
+    "run_sql_large_async",
+]
+
 import asyncio
 import logging
 import os
