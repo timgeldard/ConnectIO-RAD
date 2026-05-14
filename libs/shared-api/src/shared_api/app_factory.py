@@ -7,6 +7,7 @@ standardized middleware, exception handling, and security defaults.
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -46,6 +47,8 @@ def create_api_app(
     version: str = "0.1.0",
     docs_url: str = "/api/docs",
     redoc_url: str | None = None,
+    openapi_url: str | None = "/openapi.json",
+    enable_docs: bool | None = None,
     lifespan: Any | None = None,
     latency_budgets_ms: dict[str, int] | None = None,
     default_latency_budget_ms: int = 10_000,
@@ -66,6 +69,9 @@ def create_api_app(
         version: The version of the application.
         docs_url: The URL where Swagger UI will be served.
         redoc_url: The URL where ReDoc will be served.
+        openapi_url: The URL where the OpenAPI schema will be served.
+        enable_docs: Whether docs and OpenAPI routes should be enabled.
+            Defaults to disabled when ``APP_ENV=production``.
         lifespan: Optional lifespan context manager for the FastAPI app.
         latency_budgets_ms: A mapping of paths to their latency budgets in milliseconds.
         default_latency_budget_ms: The default latency budget for paths not in latency_budgets_ms.
@@ -91,11 +97,18 @@ def create_api_app(
         else:
             yield
 
+    docs_enabled = (
+        os.environ.get("APP_ENV", "").strip().lower() != "production"
+        if enable_docs is None
+        else enable_docs
+    )
+
     app = FastAPI(
         title=title,
         version=version,
-        docs_url=docs_url,
-        redoc_url=redoc_url,
+        docs_url=docs_url if docs_enabled else None,
+        redoc_url=redoc_url if docs_enabled else None,
+        openapi_url=openapi_url if docs_enabled else None,
         lifespan=_lifespan,
     )
 

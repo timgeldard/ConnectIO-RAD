@@ -109,6 +109,30 @@ def sql_param(name: str, value: Optional[object]) -> dict:
     return {"name": name, "value": str(value), "type": db_type}
 
 
+def run_sql_in(
+    values: list[object],
+    *,
+    prefix: str = "p",
+) -> tuple[str, list[dict]]:
+    """Build a typed parameter list for a SQL ``IN`` predicate.
+
+    Args:
+        values: Typed values to bind into the predicate.
+        prefix: Parameter name prefix. Parameters are emitted as
+            ``:<prefix>0, :<prefix>1, ...``.
+
+    Returns:
+        A tuple of SQL fragment and matching Databricks SQL parameters. Empty
+        values return ``("NULL", [])`` so callers can safely write
+        ``IN ({fragment})`` and match no rows without producing invalid SQL.
+    """
+    if not values:
+        return "NULL", []
+    placeholders = ", ".join(f":{prefix}{idx}" for idx in range(len(values)))
+    params = [sql_param(f"{prefix}{idx}", value) for idx, value in enumerate(values)]
+    return placeholders, params
+
+
 # ---------------------------------------------------------------------------
 # run_sql — synchronous, used in readiness probes and simple one-off queries
 # ---------------------------------------------------------------------------

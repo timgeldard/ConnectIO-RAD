@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+import os
 import re
 import time
 import uuid
@@ -164,6 +165,13 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Attach conservative security headers to every response."""
 
+    def __init__(self, app: ASGIApp) -> None:
+        """Initialize middleware with environment-controlled strict headers."""
+        super().__init__(app)
+        self.strict_headers_enabled = os.environ.get(
+            "APP_DISABLE_STRICT_SECURITY_HEADERS", ""
+        ).strip().lower() not in {"1", "true", "yes", "on"}
+
     async def dispatch(self, request: Request, call_next):
         """Attach headers after downstream processing completes."""
         response = await call_next(request)
@@ -172,4 +180,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("referrer-policy", "strict-origin-when-cross-origin")
         response.headers.setdefault("permissions-policy", "camera=(), microphone=(), geolocation=()")
         response.headers.setdefault("cache-control", "no-store")
+        if self.strict_headers_enabled:
+            response.headers.setdefault(
+                "content-security-policy",
+                "default-src 'self'; frame-ancestors 'none'",
+            )
+            response.headers.setdefault(
+                "strict-transport-security",
+                "max-age=31536000; includeSubDomains",
+            )
         return response

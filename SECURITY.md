@@ -76,6 +76,20 @@ shared cache or configure a shorter app-specific TTL. Token validation and audit
 logging are separate concerns; bearer tokens must not be included in shared data
 cache keys or stored in cached rows.
 
+## Browser-Side State and Security Headers
+
+Application state that can include plant, floor, persona, or filter context
+should use session-scoped storage by default. Persistent browser storage is only
+appropriate for low-sensitivity preferences with an explicit product/security
+review. Session-scoped state must be cleared on the shared `connectio:logout`
+browser event and should have a bounded TTL.
+
+Backends created through the shared API app factory attach conservative browser
+security headers by default, including CSP, HSTS, `X-Content-Type-Options`,
+`X-Frame-Options`, Referrer-Policy, Permissions-Policy, and no-store caching.
+Production app factories disable OpenAPI and interactive docs unless explicitly
+enabled for a controlled diagnostic session.
+
 ## Regulatory and Privacy Considerations
 
 Security triage must consider applicable food-manufacturing and privacy
