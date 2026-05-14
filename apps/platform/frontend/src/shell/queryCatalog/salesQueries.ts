@@ -1,5 +1,5 @@
 import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
-import { endpoint, fields as selectFields, getQuery, params, widgetCompatibility } from './common';
+import { apiEndpoint, fields as selectFields, getQuery, params, widgetCompatibility } from './common';
 
 /**
  * Creates a sales field definition.
@@ -29,7 +29,7 @@ export const salesQueries: QueryRegistry = {
     key: 'sales.outboundDeliveries',
     label: 'Sales Outbound Deliveries',
     description: 'Outbound delivery performance and quantity by customer and date.',
-    endpoint: endpoint('wh', 'deliveries'),
+    endpoint: apiEndpoint('warehouse360','deliveries'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: salesParams,
     fields: [
@@ -60,7 +60,7 @@ export const salesQueries: QueryRegistry = {
     key: 'sales.customerExposure',
     label: 'Sales Customer Exposure',
     description: 'Ranks customer exposure by delivered quantity and number of affected deliveries.',
-    endpoint: endpoint('wh', 'deliveries'),
+    endpoint: apiEndpoint('warehouse360','deliveries'),
     compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
     params: salesParams,
     fields: [
@@ -90,7 +90,7 @@ export const salesQueries: QueryRegistry = {
     key: 'sales.deliveryPerformance',
     label: 'Delivery Performance',
     description: 'Delivery adherence and shipment completion by customer and route.',
-    endpoint: endpoint('wh', 'deliveries'),
+    endpoint: apiEndpoint('warehouse360','deliveries'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: salesParams,
     fields: [
@@ -120,7 +120,7 @@ export const salesQueries: QueryRegistry = {
     key: 'sales.openShipments',
     label: 'Open Shipments',
     description: 'Open outbound shipments waiting for completion or departure.',
-    endpoint: endpoint('wh', 'deliveries'),
+    endpoint: apiEndpoint('warehouse360','deliveries'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: salesParams,
     fields: [
@@ -151,7 +151,7 @@ export const salesQueries: QueryRegistry = {
     key: 'sales.batchDeliveredToCustomers',
     label: 'Batch Delivered to Customers',
     description: 'Customer-level delivery footprint for a specific batch.',
-    endpoint: endpoint('wh', 'deliveries'),
+    endpoint: apiEndpoint('warehouse360','deliveries'),
     compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
     params: salesParams,
     fields: [

@@ -17,6 +17,7 @@ def _coerce_fail(row: dict) -> dict:
     result = row.get("quantitative_result")
     lo = row.get("lower_limit")
     hi = row.get("upper_limit")
+    ts = row.get("result_ts")
     valuation = str(row.get("judgement") or "R")
     return {
         "mat": str(row.get("material_name") or row.get("material_id") or "—"),
@@ -31,6 +32,8 @@ def _coerce_fail(row: dict) -> dict:
         "hi": float(hi) if hi is not None else 0.0,
         "units": str(row.get("uom") or ""),
         "sev": "warn" if valuation == "W" else "fail",
+        "ts": str(ts) if ts is not None else None,
+        "lotType": str(row.get("lot_type") or ""),
     }
 
 

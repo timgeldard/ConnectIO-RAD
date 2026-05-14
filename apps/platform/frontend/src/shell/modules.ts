@@ -763,7 +763,7 @@ export const MODULES: ConnectIOModule[] = [
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,
-    backendPrefix: '/api/wh',
+    backendPrefix: '/api/wh360',
   },
   {
     moduleId: 'imwm',
@@ -793,7 +793,7 @@ export const MODULES: ConnectIOModule[] = [
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,
-    backendPrefix: '/api/wh',
+    backendPrefix: '/api/wh360',
   },
   {
     moduleId: 'tpm',

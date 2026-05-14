@@ -1,5 +1,5 @@
 import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
-import { endpoint, fields as selectFields, getQuery, params, widgetCompatibility } from './common';
+import { apiEndpoint, fields as selectFields, getQuery, params, widgetCompatibility } from './common';
 
 /**
  * Creates a warehouse-management field definition.
@@ -39,7 +39,7 @@ export const wmQueries: QueryRegistry = {
     key: 'wm.stagingOverview',
     label: 'WM Staging Overview',
     description: 'High-level staging queue health across open, staged, and ageing supply positions.',
-    endpoint: endpoint('wh', 'kpis'),
+    endpoint: apiEndpoint('warehouse360','kpis'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: wmParams,
     fields: [
@@ -85,7 +85,7 @@ export const wmQueries: QueryRegistry = {
     key: 'wm.transferRequirements',
     label: 'Transfer Requirements',
     description: 'Open transfer requirements by material, priority, and source staging demand.',
-    endpoint: endpoint('wh', 'wh-cockpit'),
+    endpoint: apiEndpoint('warehouse360','wh-cockpit'),
     compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
     params: wmParams,
     fields: [
@@ -129,7 +129,7 @@ export const wmQueries: QueryRegistry = {
     key: 'wm.transferOrders',
     label: 'Transfer Orders',
     description: 'Open transfer orders with picked, staged, and remaining execution quantities.',
-    endpoint: endpoint('wh', 'deliveries'),
+    endpoint: apiEndpoint('warehouse360','deliveries'),
     compatibleWidgets: widgetCompatibility.kpiBarParetoTable,
     params: wmParams,
     fields: [
@@ -172,7 +172,7 @@ export const wmQueries: QueryRegistry = {
     key: 'wm.productionSupplyQueue',
     label: 'Production Supply Queue',
     description: 'Queues production supply tasks by order, due time, and open supply quantity.',
-    endpoint: endpoint('wh', 'wh-cockpit'),
+    endpoint: apiEndpoint('warehouse360','wh-cockpit'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: wmParams,
     fields: [
@@ -209,7 +209,7 @@ export const wmQueries: QueryRegistry = {
     key: 'wm.inboundReceipts',
     label: 'Inbound Receipts',
     description: 'Tracks inbound receipt volume, ageing, and execution queue by purchase or STO reference.',
-    endpoint: endpoint('wh', 'inbound'),
+    endpoint: apiEndpoint('warehouse360','inbound'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: wmParams,
     fields: [
@@ -250,7 +250,7 @@ export const wmQueries: QueryRegistry = {
     key: 'wm.outboundDeliveries',
     label: 'Outbound Deliveries',
     description: 'Warehouse execution view of outbound deliveries and their remaining handling quantities.',
-    endpoint: endpoint('wh', 'deliveries'),
+    endpoint: apiEndpoint('warehouse360','deliveries'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: wmParams,
     fields: [
@@ -290,7 +290,7 @@ export const wmQueries: QueryRegistry = {
     key: 'wm.binStock',
     label: 'Bin Stock',
     description: 'Stock by warehouse bin, material, and staging status for replenishment and housekeeping decisions.',
-    endpoint: endpoint('wh', 'inventory/bins'),
+    endpoint: apiEndpoint('warehouse360','inventory/bins'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: wmParams,
     fields: [
@@ -329,7 +329,7 @@ export const wmQueries: QueryRegistry = {
     key: 'wm.exceptionQueue',
     label: 'Exception Queue',
     description: 'Highlights blocked, overdue, or exception-driven warehouse work that needs immediate intervention.',
-    endpoint: endpoint('wh', 'imwm/exceptions'),
+    endpoint: apiEndpoint('warehouse360','imwm/exceptions'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: wmParams,
     fields: [
@@ -371,7 +371,7 @@ export const wmQueries: QueryRegistry = {
     key: 'wm.stagingAging',
     label: 'Staging Aging',
     description: 'Measures how long staged stock has been waiting before handoff to production or shipping.',
-    endpoint: endpoint('wh', 'imwm/analytics/aging'),
+    endpoint: apiEndpoint('warehouse360','imwm/analytics/aging'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: wmParams,
     fields: [
@@ -407,7 +407,7 @@ export const wmQueries: QueryRegistry = {
     key: 'wm.capacityHotspots',
     label: 'Capacity Hotspots',
     description: 'Shows the warehouse areas, bins, or work centers with the highest queue pressure or occupancy.',
-    endpoint: endpoint('wh', 'inventory/bins/summary'),
+    endpoint: apiEndpoint('warehouse360','inventory/bins/summary'),
     compatibleWidgets: widgetCompatibility.barParetoTable,
     params: wmParams,
     fields: [

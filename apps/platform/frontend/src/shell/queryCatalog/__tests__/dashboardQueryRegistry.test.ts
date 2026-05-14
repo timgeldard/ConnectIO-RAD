@@ -41,4 +41,52 @@ describe('dashboardQueryRegistry', () => {
       }
     }
   })
+
+  // ---------------------------------------------------------------------------
+  // Prefix guardrails — catch stale or misrouted endpoints at CI time
+  // ---------------------------------------------------------------------------
+
+  it('routes all wm.* and inventory.* queries to /api/wh360 (not /api/wh)', () => {
+    for (const [key, entry] of Object.entries(dashboardQueryRegistry)) {
+      if (key.startsWith('wm.') || key.startsWith('inventory.')) {
+        expect(entry.endpoint, `${key}: endpoint must start with /api/wh360/`).toMatch(/^\/api\/wh360\//)
+        expect(entry.endpoint, `${key}: old /api/wh/ prefix detected`).not.toMatch(/^\/api\/wh\//)
+      }
+    }
+  })
+
+  it('routes all poh.* queries to /api/poh (not bare /api)', () => {
+    for (const [key, entry] of Object.entries(dashboardQueryRegistry)) {
+      if (key.startsWith('poh.')) {
+        expect(entry.endpoint, `${key}: endpoint must start with /api/poh/`).toMatch(/^\/api\/poh\//)
+        // Reject the historical bare /api/<slug> pattern
+        expect(entry.endpoint, `${key}: bare /api/ root path detected`).not.toMatch(/^\/api\/(?!poh\/)/)
+      }
+    }
+  })
+
+  it('routes all quality.* queries to /api/poh/quality (not bare /api/quality)', () => {
+    for (const [key, entry] of Object.entries(dashboardQueryRegistry)) {
+      if (key.startsWith('quality.')) {
+        expect(entry.endpoint, `${key}: endpoint must start with /api/poh/`).toMatch(/^\/api\/poh\//)
+        expect(entry.endpoint, `${key}: bare /api/quality/ path detected`).not.toMatch(/^\/api\/quality\//)
+      }
+    }
+  })
+
+  it('routes all spc.* queries to /api/spc', () => {
+    for (const [key, entry] of Object.entries(dashboardQueryRegistry)) {
+      if (key.startsWith('spc.')) {
+        expect(entry.endpoint, `${key}: endpoint must start with /api/spc/`).toMatch(/^\/api\/spc\//)
+      }
+    }
+  })
+
+  it('routes all procurement.* and sales.* queries to /api/wh360', () => {
+    for (const [key, entry] of Object.entries(dashboardQueryRegistry)) {
+      if (key.startsWith('procurement.') || key.startsWith('sales.')) {
+        expect(entry.endpoint, `${key}: endpoint must start with /api/wh360/`).toMatch(/^\/api\/wh360\//)
+      }
+    }
+  })
 })

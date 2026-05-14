@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base href="/traceability-portfolio/" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1440, initial-scale=0.6" />
+<title>Food Safety Response Centre · Kerry ConnectIO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans:wght@300;400;500;600;700;800&family=Noto+Serif:ital,wdth,wght@0,62.5..100,100..900;1,62.5..100,100..900&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --slate:#005776;--forest:#143700;--stone:#F1F1E5;
+  --sunrise:#F9C20A;--sunset:#F24A00;--sage:#289BA2;--jade:#44CF93;--innovation:#DFFF11;
+  --sans:"Noto Sans",system-ui,sans-serif;--serif:"Noto Serif",Georgia,serif;--mono:"IBM Plex Mono",monospace;
+  --fg:var(--forest);--fg2:color-mix(in srgb,var(--forest) 60%,white);--fg3:color-mix(in srgb,var(--forest) 40%,white);
+  --line:color-mix(in srgb,var(--forest) 14%,transparent);--surface:#fff;--bg:#FAFAF3;
+  --r:6px;--r2:10px;--shadow:0 1px 3px rgba(20,55,0,.06),0 4px 16px rgba(20,55,0,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--sans);color:var(--fg);background:var(--bg);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+.app{display:flex;flex-direction:column;height:100vh}
+.main{flex:1;overflow:hidden;display:flex}
+.panel-scroll{flex:1;overflow-y:auto;padding:24px}
+
+/* topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;background:var(--slate);color:#fff;border-bottom:3px solid var(--innovation);flex-shrink:0}
+.topbar-brand{display:flex;align-items:center;gap:14px}
+.topbar-kk{width:28px;height:28px;background:var(--innovation);border-radius:3px;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:13px;color:var(--forest)}
+.topbar-name{font-weight:700;font-size:15px;letter-spacing:.01em}
+.topbar-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.7;margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:20px}
+.active-incident{display:flex;align-items:center;gap:8px;padding:5px 12px;background:rgba(242,74,0,.2);border-radius:4px;border:1px solid rgba(242,74,0,.35)}
+.active-incident-dot{width:8px;height:8px;border-radius:50%;background:var(--sunset);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.active-incident-lbl{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#fff}
+.user-chip{display:flex;align-items:center;gap:8px;padding-left:16px;border-left:1px solid rgba(255,255,255,.2)}
+.user-av{width:28px;height:28px;border-radius:50%;background:var(--innovation);color:var(--forest);font-weight:700;font-size:10px;display:grid;place-items:center}
+.user-name{font-size:12px;font-weight:600}
+.user-role{font-size:10px;opacity:.7}
+
+/* tab nav */
+.tab-nav{display:flex;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--line);flex-shrink:0}
+.tab-btn{padding:12px 16px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.tab-btn.active{color:var(--slate);border-bottom-color:var(--slate);font-weight:600}
+.tab-btn:hover:not(.active){color:var(--fg);border-bottom-color:var(--line)}
+
+/* cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);overflow:hidden;box-shadow:var(--shadow)}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+.card-title{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);font-weight:600}
+.card-body{padding:16px}
+
+/* overview grid */
+.overview-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.stat-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);padding:18px 20px;box-shadow:var(--shadow)}
+.stat-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);margin-bottom:8px}
+.stat-value{font-family:var(--mono);font-size:32px;font-weight:600;line-height:1;letter-spacing:-.02em;margin-bottom:4px}
+.stat-sub{font-size:11px;color:var(--fg2)}
+.red{color:var(--sunset)}.yellow{color:#a07800}.green{color:#0e5c35}.blue{color:var(--slate)}
+
+/* incidents table */
+.inc-table{width:100%;border-collapse:collapse;font-size:12px}
+.inc-table th{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3);font-weight:500;padding:8px 12px;border-bottom:1px solid var(--line);text-align:left}
+.inc-table td{padding:10px 12px;border-bottom:1px solid var(--line)}
+.inc-table tr:last-child td{border-bottom:none}
+.inc-table tr:hover td{background:rgba(0,87,118,.02)}
+.sev-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.sev-p1{background:rgba(242,74,0,.12);color:#a83500;border:1px solid rgba(242,74,0,.25)}
+.sev-p2{background:rgba(249,194,10,.12);color:#a07800;border:1px solid rgba(249,194,10,.3)}
+.sev-p3{background:rgba(0,87,118,.1);color:var(--slate);border:1px solid rgba(0,87,118,.2)}
+.sev-closed{background:rgba(20,55,0,.06);color:var(--fg3);border:1px solid var(--line)}
+
+/* hold board */
+.hold-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.hold-card{border:1px solid var(--line);border-radius:var(--r2);overflow:hidden;background:var(--surface);box-shadow:var(--shadow)}
+.hold-card-top{height:4px}
+.hold-card-body{padding:14px 16px}
+.hold-code{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--fg);margin-bottom:2px}
+.hold-mat{font-size:12px;color:var(--fg);font-weight:500;margin-bottom:4px}
+.hold-meta{font-size:11px;color:var(--fg2);margin-bottom:10px}
+.hold-footer{display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--line)}
+.hold-qty{font-family:var(--mono);font-size:12px;color:var(--fg3)}
+
+/* supplier graph nodes */
+.supplier-graph{background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);padding:16px;overflow:hidden}
+.supplier-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
+.supplier-tier-head{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);margin-bottom:12px;text-align:center}
+.supplier-node{padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg);margin-bottom:8px;position:relative}
+.supplier-node.flagged{border-color:rgba(242,74,0,.35);background:rgba(242,74,0,.03)}
+.supplier-node.alert{border-color:rgba(249,194,10,.4);background:rgba(249,194,10,.04)}
+.supplier-name{font-size:12px;font-weight:600;color:var(--fg)}
+.supplier-sub{font-size:10px;color:var(--fg3);margin-top:2px;font-family:var(--mono)}
+.supplier-badge{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%}
+
+/* batch passport */
+.passport-layout{display:grid;grid-template-columns:280px 1fr;gap:16px}
+.pp-sidebar{display:flex;flex-direction:column;gap:10px}
+.pp-item{padding:10px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg);cursor:pointer;transition:border-color .15s,background .15s}
+.pp-item:hover,.pp-item.sel{background:var(--surface);border-color:var(--slate)}
+.pp-item.sel{border-left:3px solid var(--slate)}
+.pp-code{font-family:var(--mono);font-size:11px;font-weight:600}
+.pp-mat{font-size:11px;color:var(--fg2)}
+.pp-detail{display:flex;flex-direction:column;gap:14px}
+.passport-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);overflow:hidden;box-shadow:var(--shadow)}
+.passport-header{padding:16px;background:var(--slate);color:#fff}
+.passport-title{font-size:16px;font-weight:700;margin-bottom:2px}
+.passport-sub{font-family:var(--mono);font-size:10px;opacity:.75;letter-spacing:.06em}
+.passport-body{padding:16px}
+.passport-section{margin-bottom:16px}
+.passport-section:last-child{margin-bottom:0}
+.passport-section-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.kv{display:grid;grid-template-columns:140px 1fr;gap:4px 12px}
+.kv dt{font-family:var(--mono);font-size:11px;color:var(--fg3)}
+.kv dd{font-size:12px;color:var(--fg)}
+.check-list{display:flex;flex-direction:column;gap:6px}
+.check-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.check-icon{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;flex-shrink:0}
+.check-ok{background:rgba(68,207,147,.15);color:#0e5c35}
+.check-fail{background:rgba(242,74,0,.12);color:#a83500}
+.check-warn{background:rgba(249,194,10,.12);color:#a07800}
+
+/* recall radar */
+.radar-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.radar-item{display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg)}
+.radar-item.active{background:rgba(242,74,0,.03);border-color:rgba(242,74,0,.25)}
+.radar-left{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:48px}
+.radar-score{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1}
+.radar-ring{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;border-width:3px;border-style:solid}
+.ring-high{border-color:var(--sunset);color:var(--sunset);background:rgba(242,74,0,.06)}
+.ring-med{border-color:var(--sunrise);color:#a07800;background:rgba(249,194,10,.06)}
+.ring-low{border-color:var(--jade);color:#0e5c35;background:rgba(68,207,147,.06)}
+.radar-body{flex:1}
+.radar-title{font-size:12px;font-weight:600;margin-bottom:2px}
+.radar-desc{font-size:11px;color:var(--fg2);line-height:1.45}
+.radar-tag{display:inline-flex;padding:2px 7px;border-radius:999px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;margin-top:6px}
+.rtag-active{background:rgba(242,74,0,.1);color:#a83500;border:1px solid rgba(242,74,0,.2)}
+.rtag-monitor{background:rgba(249,194,10,.1);color:#a07800;border:1px solid rgba(249,194,10,.25)}
+.rtag-closed{background:rgba(20,55,0,.06);color:var(--fg3);border:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel">
+const { useState } = React;
+
+const INCIDENTS = [
+  { id:"FSRC-2024-0312", title:"Listeria monocytogenes · K-Pectin LV40", severity:"p1", status:"Active recall", opened:"2024-03-12", plant:"Beloit WI", batches:17, scope:"EU + US + IE" },
+  { id:"FSRC-2024-0288", title:"Salmonella risk · Lactase 50T inbound",   severity:"p1", status:"Market withdrawal", opened:"2024-02-28", plant:"Lismore IE", batches:8, scope:"IE + UK" },
+  { id:"FSRC-2024-0241", title:"Allergen misdeclaration · SureBase PM20",  severity:"p2", status:"Monitoring",     opened:"2024-02-14", plant:"Beloit WI", batches:4, scope:"US only" },
+  { id:"FSRC-2024-0199", title:"Foreign body risk · Pectin LV60",          severity:"p2", status:"Closed — resolved", opened:"2024-01-30", plant:"Carrigaline IE", batches:3, scope:"IE" },
+  { id:"FSRC-2024-0155", title:"Mycotoxin exceedance · Wheat Starch",      severity:"p3", status:"Closed — resolved", opened:"2024-01-15", plant:"Beloit WI", batches:6, scope:"US" },
+  { id:"FSRC-2023-0412", title:"Aflatoxin trace · SynerBase F11",          severity:"p3", status:"Closed — resolved", opened:"2023-12-08", plant:"Lismore IE", batches:2, scope:"EU" },
+];
+
+const HOLDS = [
+  { code:"B-44810-A", mat:"K-Pectin LV40",       plant:"Beloit WI",   age:"1d 8h", qty:"2,400 kg", severity:"p1", reason:"Listeria positive — Lot P-44810" },
+  { code:"B-44810-B", mat:"K-Pectin LV40",       plant:"Beloit WI",   age:"1d 8h", qty:"2,400 kg", severity:"p1", reason:"Listeria positive — Lot P-44810" },
+  { code:"B-44831",   mat:"Infant Formula A1-Gold", plant:"Beloit WI", age:"1d 6h", qty:"18,000 units", severity:"p1", reason:"Downstream of contaminated RM" },
+  { code:"B-44890",   mat:"Infant Formula A1-Gold", plant:"Beloit WI", age:"20h",   qty:"6,000 units",  severity:"p1", reason:"Downstream of contaminated RM" },
+  { code:"B-44820-A", mat:"K-Carrageenan",        plant:"Beloit WI",  age:"1d 5h", qty:"1,800 kg", severity:"p2", reason:"Same lot range — precautionary trace" },
+  { code:"B-44845",   mat:"Infant Formula A1-Gold", plant:"Lismore IE",age:"18h",   qty:"9,600 units",  severity:"p2", reason:"Cross-facility precautionary hold" },
+  { code:"FG-EU-9812",mat:"A1-Gold 400g · DE shipment", plant:"Frankfurt DE", age:"6h", qty:"6,000 units", severity:"p1", reason:"Market withdrawal — in transit" },
+  { code:"FG-UK-3341",mat:"A1-Gold 400g · UK shipment", plant:"Manchester UK", age:"6h", qty:"7,200 units", severity:"p1", reason:"Market withdrawal — customer hold" },
+  { code:"B-44288-A", mat:"Lactase 50T",          plant:"Lismore IE",  age:"13d",   qty:"200 kg",     severity:"p1", reason:"Salmonella risk — FSRC-2024-0288" },
+];
+
+const SUPPLIERS = [
+  { name:"Cargill", loc:"Rotterdam, NL", tier:"T1 — Hydrocolloids", flagged:true,  alert:false, issues:2 },
+  { name:"Lonza",   loc:"Basel, CH",     tier:"T1 — Enzymes",       flagged:false, alert:false, issues:0 },
+  { name:"Dupont Nutrition", loc:"Copenhagen, DK", tier:"T1 — Cultures", flagged:false, alert:false, issues:0 },
+  { name:"Chr. Hansen", loc:"Horsholm, DK", tier:"T1 — Cultures",   flagged:false, alert:true,  issues:1 },
+  { name:"Barentz",  loc:"Hoofddorp, NL", tier:"T2 — Distributor", flagged:false, alert:false, issues:0 },
+  { name:"Arla Foods",loc:"Viby, DK",     tier:"T1 — Dairy proteins",flagged:false,alert:false, issues:0 },
+  { name:"Lipoid",   loc:"Ludwigshafen, DE",tier:"T2 — Lipids",     flagged:false, alert:false, issues:0 },
+  { name:"Roquette", loc:"Lestrem, FR",   tier:"T1 — Starches",     flagged:false, alert:true,  issues:1 },
+  { name:"Kerry Agribusiness",loc:"Tralee, IE", tier:"Internal",    flagged:false, alert:false, issues:0 },
+];
+
+const PASSPORTS = [
+  { code:"B-44831", mat:"Infant Formula A1-Gold", plant:"Beloit WI", batch:"MFG-2024-03-10", qty:"18,000 units", status:"HELD",
+    checks: [
+      { label:"Raw material CoA verified",        ok:true },
+      { label:"Critical control point — blending", ok:false, note:"Contaminated inbound RM" },
+      { label:"CIP sanitation sign-off",           ok:true },
+      { label:"Micro release — interim result",    ok:false, note:"Pending confirmation" },
+      { label:"Weight check — ±0.5%",              ok:true },
+      { label:"Allergen label review",             ok:true },
+      { label:"QA supervisor sign-off",            ok:false, note:"Withheld — recall active" },
+    ]
+  },
+  { code:"B-44832", mat:"Infant Formula A2-Gold", plant:"Beloit WI", batch:"MFG-2024-03-10", qty:"12,000 units", status:"TRACE",
+    checks: [
+      { label:"Raw material CoA verified",        ok:true },
+      { label:"Critical control point — blending", ok:null, note:"Monitoring — same line" },
+      { label:"CIP sanitation sign-off",           ok:true },
+      { label:"Micro release — interim result",   ok:null, note:"Awaiting Lismore result" },
+      { label:"Weight check — ±0.5%",              ok:true },
+      { label:"Allergen label review",             ok:true },
+      { label:"QA supervisor sign-off",            ok:false, note:"Withheld pending trace" },
+    ]
+  },
+  { code:"B-44840", mat:"HMF Premix",    plant:"Lismore IE", batch:"MFG-2024-03-09", qty:"940 kg", status:"CLEAR",
+    checks: [
+      { label:"Raw material CoA verified",        ok:true },
+      { label:"Critical control point — mixing",  ok:true },
+      { label:"CIP sanitation sign-off",           ok:true },
+      { label:"Micro release",                    ok:true },
+      { label:"Weight check — ±0.5%",              ok:true },
+      { label:"Allergen label review",             ok:true },
+      { label:"QA supervisor sign-off",            ok:true },
+    ]
+  },
+];
+
+const RADAR_ITEMS = [
+  { score:92, ring:"high", title:"K-Pectin supply chain — Cargill", desc:"Active recall. Lot P-44810 confirmed Listeria positive at Beloit. 17 downstream batches affected. Recall confidence 86%.", tag:"active" },
+  { score:74, ring:"high", title:"Infant formula finished goods", desc:"Class II voluntary recall initiated for A1-Gold. Distribution chain hold across EU, UK, US. Market withdrawal in progress.", tag:"active" },
+  { score:61, ring:"med",  title:"Listeria environmental persistence", desc:"C-07 conveyor belt positive. 3 of 47 environmental sites positive. Sanitation remediation underway at Beloit.", tag:"active" },
+  { score:45, ring:"med",  title:"Lactase 50T supply risk", desc:"Salmonella trace ongoing — FSRC-2024-0288. Supplier hold in place. Awaiting clean re-test from Chr. Hansen.", tag:"monitor" },
+  { score:32, ring:"med",  title:"Cross-facility exposure — Lismore", desc:"B-44845 precautionary hold due to shared incoming lot range from Cargill. Not yet confirmed as contaminated.", tag:"monitor" },
+  { score:18, ring:"low",  title:"Roquette starch — allergen review", desc:"Precautionary label review requested following formulation change notification. Low risk; no confirmed issue.", tag:"monitor" },
+  { score:5,  ring:"low",  title:"Allergen misdeclaration — SureBase", desc:"FSRC-2024-0241 resolved at batch level. Monitoring residual market units. Expected closure within 48h.", tag:"monitor" },
+  { score:0,  ring:"low",  title:"Wheat Starch mycotoxin — Beloit",    desc:"FSRC-2024-0155 closed. All units recalled. Post-recall monitoring complete. No residual risk.", tag:"closed" },
+];
+
+function SeverityPill({ sev }) {
+  const map = { p1:"sev-p1", p2:"sev-p2", p3:"sev-p3", closed:"sev-closed" };
+  const lbl = { p1:"P1 Critical", p2:"P2 High", p3:"P3 Medium", closed:"Closed" };
+  return <span className={`sev-pill ${map[sev]||""}`}>{lbl[sev]||sev}</span>;
+}
+
+function OverviewTab() {
+  const active = INCIDENTS.filter(i => !i.status.startsWith("Closed")).length;
+  const total_holds = HOLDS.length;
+  const p1_holds = HOLDS.filter(h => h.severity === "p1").length;
+
+  return (
+    <div style={{maxWidth:1200}}>
+      <div className="overview-grid">
+        <div className="stat-card">
+          <div className="stat-eyebrow">Active incidents</div>
+          <div className={`stat-value red`}>{active}</div>
+          <div className="stat-sub">of {INCIDENTS.length} total · 2 with recall</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-eyebrow">Batches on hold</div>
+          <div className="stat-value yellow">{total_holds}</div>
+          <div className="stat-sub">{p1_holds} critical holds · 2 facilities</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-eyebrow">Supplier alerts</div>
+          <div className="stat-value yellow">3</div>
+          <div className="stat-sub">Cargill + Chr. Hansen + Roquette</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-eyebrow">Market withdrawals</div>
+          <div className="stat-value red">2</div>
+          <div className="stat-sub">EU · UK · US active</div>
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-head">
+          <span className="card-title">Active &amp; recent incidents</span>
+        </div>
+        <table className="inc-table">
+          <thead>
+            <tr><th>Case ID</th><th>Summary</th><th>Severity</th><th>Status</th><th>Opened</th><th>Plant</th><th>Batches</th><th>Scope</th></tr>
+          </thead>
+          <tbody>
+            {INCIDENTS.map(i => (
+              <tr key={i.id}>
+                <td style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:600}}>{i.id}</td>
+                <td style={{fontWeight:500,maxWidth:280}}>{i.title}</td>
+                <td><SeverityPill sev={i.severity} /></td>
+                <td style={{fontSize:11,color:"var(--fg2)"}}>{i.status}</td>
+                <td style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--fg3)"}}>{i.opened}</td>
+                <td style={{fontSize:11}}>{i.plant}</td>
+                <td style={{fontFamily:"var(--mono)",textAlign:"center"}}>{i.batches}</td>
+                <td style={{fontSize:11,color:"var(--fg2)"}}>{i.scope}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function HoldBoardTab() {
+  return (
+    <div style={{maxWidth:1200}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--fg3)",letterSpacing:".08em",textTransform:"uppercase"}}>
+          {HOLDS.length} batches on hold across 3 facilities
+        </div>
+      </div>
+      <div className="hold-grid">
+        {HOLDS.map(h => {
+          const top = h.severity==="p1"?"var(--sunset)":h.severity==="p2"?"var(--sunrise)":"var(--sage)";
+          return (
+            <div key={h.code} className="hold-card">
+              <div className="hold-card-top" style={{background:top}} />
+              <div className="hold-card-body">
+                <div className="hold-code">{h.code}</div>
+                <div className="hold-mat">{h.mat}</div>
+                <div className="hold-meta">{h.plant} · Age: {h.age}</div>
+                <div style={{fontSize:11,color:"var(--fg2)",padding:"6px 8px",background:"rgba(20,55,0,.04)",borderRadius:"var(--r)",marginBottom:10}}>
+                  {h.reason}
+                </div>
+                <div className="hold-footer">
+                  <span className="hold-qty">{h.qty}</span>
+                  <SeverityPill sev={h.severity} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PassportTab() {
+  const [sel, setSel] = useState(PASSPORTS[0]);
+  return (
+    <div className="passport-layout" style={{maxWidth:1100}}>
+      <div className="pp-sidebar">
+        <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:".12em",textTransform:"uppercase",color:"var(--fg3)",marginBottom:6}}>
+          Select batch
+        </div>
+        {PASSPORTS.map(p => (
+          <div key={p.code} className={`pp-item${sel.code===p.code?" sel":""}`} onClick={() => setSel(p)}>
+            <div className="pp-code">{p.code}</div>
+            <div className="pp-mat">{p.mat}</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--fg3)",marginTop:3}}>{p.status}</div>
+          </div>
+        ))}
+      </div>
+      <div className="pp-detail">
+        <div className="passport-card">
+          <div className="passport-header">
+            <div className="passport-title">{sel.mat}</div>
+            <div className="passport-sub">{sel.code} · {sel.batch} · {sel.status}</div>
+          </div>
+          <div className="passport-body">
+            <div className="passport-section">
+              <div className="passport-section-title">Batch identity</div>
+              <dl className="kv">
+                <dt>Material</dt><dd>{sel.mat}</dd>
+                <dt>Batch code</dt><dd style={{fontFamily:"var(--mono)"}}>{sel.code}</dd>
+                <dt>Manufacturing order</dt><dd style={{fontFamily:"var(--mono)"}}>{sel.batch}</dd>
+                <dt>Plant</dt><dd>{sel.plant}</dd>
+                <dt>Quantity produced</dt><dd style={{fontFamily:"var(--mono)"}}>{sel.qty}</dd>
+                <dt>Batch status</dt><dd><span style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:600,color:sel.status==="HELD"?"var(--sunset)":sel.status==="TRACE"?"#a07800":"#0e5c35"}}>{sel.status}</span></dd>
+              </dl>
+            </div>
+            <div className="passport-section">
+              <div className="passport-section-title">Quality gate checklist</div>
+              <div className="check-list">
+                {sel.checks.map((c,i) => (
+                  <div key={i} className="check-item">
+                    <div className={`check-icon ${c.ok===true?"check-ok":c.ok===false?"check-fail":"check-warn"}`}>
+                      {c.ok===true ? "✓" : c.ok===false ? "✗" : "~"}
+                    </div>
+                    <span style={{fontWeight:c.ok===false?600:400}}>{c.label}</span>
+                    {c.note && <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--fg3)",marginLeft:6}}>— {c.note}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SupplierTab() {
+  const tiers = ["Tier 1 Suppliers", "Tier 2 / Distributors", "Internal"];
+  const t1 = SUPPLIERS.filter(s => s.tier.startsWith("T1"));
+  const t2 = SUPPLIERS.filter(s => s.tier.startsWith("T2"));
+  const int = SUPPLIERS.filter(s => s.tier === "Internal");
+  const groups = [t1, t2, int];
+
+  return (
+    <div style={{maxWidth:1100}}>
+      <div className="card" style={{marginBottom:14}}>
+        <div className="card-head">
+          <span className="card-title">Supplier risk graph</span>
+          <div style={{display:"flex",gap:12,fontFamily:"var(--mono)",fontSize:10,color:"var(--fg3)"}}>
+            <span style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:"50%",background:"var(--sunset)",display:"inline-block"}} /> Active issue</span>
+            <span style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:"50%",background:"var(--sunrise)",display:"inline-block"}} /> Monitoring</span>
+          </div>
+        </div>
+        <div className="card-body">
+          <div className="supplier-grid">
+            {groups.map((grp, gi) => (
+              <div key={gi}>
+                <div className="supplier-tier-head">{tiers[gi]}</div>
+                {grp.map(s => (
+                  <div key={s.name} className={`supplier-node${s.flagged?" flagged":s.alert?" alert":""}`}>
+                    <div className="supplier-badge" style={{background:s.flagged?"var(--sunset)":s.alert?"var(--sunrise)":"rgba(68,207,147,.6)"}} />
+                    <div className="supplier-name">{s.name}</div>
+                    <div className="supplier-sub">{s.loc}</div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--fg3)",marginTop:3}}>{s.tier}</div>
+                    {s.issues > 0 && <div style={{fontFamily:"var(--mono)",fontSize:10,color:s.flagged?"var(--sunset)":"#a07800",marginTop:4,fontWeight:600}}>{s.issues} active issue{s.issues>1?"s":""}</div>}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RadarTab() {
+  return (
+    <div style={{maxWidth:1100}}>
+      <div className="card" style={{marginBottom:14}}>
+        <div className="card-head">
+          <span className="card-title">Recall radar · risk signals</span>
+          <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--fg3)"}}>AI-synthesised risk score 0–100</span>
+        </div>
+        <div className="card-body">
+          <div className="radar-layout">
+            {RADAR_ITEMS.map((r,i) => (
+              <div key={i} className={`radar-item${r.tag==="active"?" active":""}`}>
+                <div className="radar-left">
+                  <div className={`radar-ring ring-${r.ring}`} style={{width:44,height:44}}>
+                    <span style={{fontFamily:"var(--mono)",fontWeight:700,fontSize:14}}>{r.score}</span>
+                  </div>
+                </div>
+                <div className="radar-body">
+                  <div className="radar-title">{r.title}</div>
+                  <div className="radar-desc">{r.desc}</div>
+                  <span className={`radar-tag rtag-${r.tag}`}>{r.tag==="active"?"Active":r.tag==="monitor"?"Monitoring":"Closed"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const TABS = [
+  { id:"overview",  label:"Overview" },
+  { id:"hold-board", label:"Hold Board" },
+  { id:"passport",  label:"Batch Passport" },
+  { id:"supplier",  label:"Supplier Graph" },
+  { id:"radar",     label:"Recall Radar" },
+];
+
+function App() {
+  const [tab, setTab] = useState("overview");
+  return (
+    <div className="app">
+      <div className="topbar">
+        <div className="topbar-brand">
+          <div className="topbar-kk">K</div>
+          <div>
+            <div className="topbar-name">Food Safety Response Centre</div>
+            <div className="topbar-eyebrow">Kerry ConnectIO · Traceability Portfolio</div>
+          </div>
+        </div>
+        <div className="topbar-right">
+          <div className="active-incident">
+            <div className="active-incident-dot" />
+            <span className="active-incident-lbl">2 active recalls · P1</span>
+          </div>
+          <div className="user-chip">
+            <div className="user-av">SR</div>
+            <div>
+              <div className="user-name">S. Reynolds</div>
+              <div className="user-role">Global Food Safety Director</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="tab-nav">
+        {TABS.map(t => (
+          <button key={t.id} className={`tab-btn${tab===t.id?" active":""}`} onClick={() => setTab(t.id)}>{t.label}</button>
+        ))}
+      </div>
+      <div className="main">
+        <div className="panel-scroll">
+          {tab==="overview"   && <OverviewTab />}
+          {tab==="hold-board" && <HoldBoardTab />}
+          {tab==="passport"   && <PassportTab />}
+          {tab==="supplier"   && <SupplierTab />}
+          {tab==="radar"      && <RadarTab />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

@@ -18,6 +18,8 @@ interface FailSpec {
   hi: number
   units: string
   sev: 'fail' | 'warn'
+  ts: string | null
+  lotType: string
 }
 
 const PAGE_SIZE = 6
@@ -31,12 +33,19 @@ export function LabBoard() {
   const urlPlantId = params.get('plant_id') ?? params.get('plant')
   const lotType = params.get('lot_type')
 
-  const { plants, selectedPlantId, setSelectedPlantId } = usePlantSelection()
+  const { plants, selectedPlantId, setSelectedPlantId, loading: plantsLoading, error: plantsError } = usePlantSelection()
   const plantId = selectedPlantId || null
+
+  useEffect(() => {
+    if (urlPlantId && urlPlantId !== selectedPlantId) {
+      setSelectedPlantId(urlPlantId)
+    }
+  }, [urlPlantId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data, isLoading } = useQuery({
     queryKey: ['cq', 'lab', 'fails', plantId, lotType],
     enabled: Boolean(plantId),
+    refetchInterval: 30_000,
     queryFn: () => fetchJson<{ fails: FailSpec[], data_available?: boolean, reason?: string }>(
       `/api/cq/lab/fails?plant_id=${encodeURIComponent(plantId as string)}${lotType ? `&lot_type=${encodeURIComponent(lotType)}` : ''}`
     ),
@@ -98,6 +107,10 @@ export function LabBoard() {
           <span className="lbl">Plant</span>
           {urlPlantId ? (
             <span className="val">{plantLabel}</span>
+          ) : plantsError ? (
+            <span className="val" style={{ color: 'rgba(255,100,100,0.9)', fontSize: 11 }} title={plantsError}>⚠ plant load failed</span>
+          ) : plantsLoading ? (
+            <span className="val" style={{ opacity: 0.5 }}>loading…</span>
           ) : (
             <select
               value={selectedPlantId}
@@ -139,8 +152,13 @@ export function LabBoard() {
               <Icon name="clock" size={40} style={{ marginBottom: 16, opacity: 0.35 }} />
               <div style={{ fontSize: 15 }}>{data.reason ?? 'No published lab failure dataset yet for this plant'}</div>
             </div>
+          ) : fails.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gridColumn: '1 / -1', padding: '48px 0', color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
+              <Icon name="flask" size={40} style={{ marginBottom: 16, opacity: 0.35 }} />
+              <div style={{ fontSize: 15 }}>No open lab fails for this plant</div>
+            </div>
           ) : (
-            visible.map((f, i) => <FailCard key={i} f={f} />)
+            visible.map((f) => <FailCard key={`${f.lot}-${f.char}`} f={f} />)
           )}
         </div>
         <button className="lab-arrow right" onClick={goNext} title="Next"><Icon name="chev" size={28} /></button>
@@ -160,11 +178,12 @@ export function LabBoard() {
 }
 
 function FailCard({ f }: { f: FailSpec }) {
+  const ts = f.ts ? new Date(f.ts).toLocaleTimeString('en-GB', { hour12: false }) : '—'
   return (
     <article className={'fail-card ' + f.sev}>
       <div className="fc-head">
         <div className="ttl">{f.mat}</div>
-        <div className="lot-pill">04</div>
+        {f.lotType && <div className="lot-pill">{f.lotType}</div>}
       </div>
       <div className="fc-body">
         <Field label="Material Number" value={f.matNo} />
@@ -173,13 +192,13 @@ function FailCard({ f }: { f: FailSpec }) {
         <Field label="Process Line" value={f.line} />
         <Field label="Inspection Characteristic" value={f.char} />
         <Field label="Inspection Text" value={f.text} />
-        <ResultRow f={f} />
+        {f.lo < f.hi && <ResultRow f={f} />}
       </div>
       <div className={'fc-foot ' + f.sev}>
         <span className="status-dot" />
         <span>{f.sev === 'fail' ? 'RESULT · FAIL' : 'RESULT · OUT OF WARNING'}</span>
         <span style={{ flex: 1 }} />
-        <span className="ts">{new Date(Date.now() - Math.random() * 3600000).toLocaleTimeString('en-GB', { hour12: false })}</span>
+        <span className="ts">{ts}</span>
       </div>
     </article>
   )

@@ -1,5 +1,5 @@
 import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
-import { endpoint, fields as selectFields, getQuery, params, widgetCompatibility } from './common';
+import { apiEndpoint, fields as selectFields, getQuery, params, widgetCompatibility } from './common';
 
 /**
  * Creates a procurement field definition.
@@ -29,7 +29,7 @@ export const procurementQueries: QueryRegistry = {
     key: 'procurement.openPurchaseOrders',
     label: 'Open Purchase Orders',
     description: 'Open purchase order quantities by supplier and material.',
-    endpoint: endpoint('wh', 'inbound'),
+    endpoint: apiEndpoint('warehouse360','inbound'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: procurementParams,
     fields: [
@@ -60,7 +60,7 @@ export const procurementQueries: QueryRegistry = {
     key: 'procurement.inboundSchedule',
     label: 'Inbound Schedule',
     description: 'Scheduled inbound purchase and STO arrivals over time.',
-    endpoint: endpoint('wh', 'inbound'),
+    endpoint: apiEndpoint('warehouse360','inbound'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: procurementParams,
     fields: [
@@ -91,7 +91,7 @@ export const procurementQueries: QueryRegistry = {
     key: 'procurement.vendorPerformance',
     label: 'Vendor Performance',
     description: 'Supplier performance by delivery adherence and inbound quality.',
-    endpoint: endpoint('wh', 'inbound'),
+    endpoint: apiEndpoint('warehouse360','inbound'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: procurementParams,
     fields: [
@@ -115,7 +115,7 @@ export const procurementQueries: QueryRegistry = {
     key: 'procurement.importArrivalRisk',
     label: 'Import Arrival Risk',
     description: 'Risk-ranked import arrivals based on ETA slippage and exposure quantity.',
-    endpoint: endpoint('wh', 'inbound'),
+    endpoint: apiEndpoint('warehouse360','inbound'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: procurementParams,
     fields: [
@@ -139,7 +139,7 @@ export const procurementQueries: QueryRegistry = {
     key: 'procurement.stoInbound',
     label: 'STO Inbound',
     description: 'Inbound stock transport order receipts by source and destination.',
-    endpoint: endpoint('wh', 'inbound'),
+    endpoint: apiEndpoint('warehouse360','inbound'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: procurementParams,
     fields: [

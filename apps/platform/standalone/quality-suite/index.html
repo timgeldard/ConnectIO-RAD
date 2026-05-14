@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base href="/quality-suite/" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1440, initial-scale=0.6" />
+<title>Connected Quality Suite · Kerry ConnectIO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+:root{--slate:#005776;--forest:#143700;--stone:#F1F1E5;--sunrise:#F9C20A;--sunset:#F24A00;--sage:#289BA2;--jade:#44CF93;--innovation:#DFFF11;--sans:"Noto Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",monospace;--fg:var(--forest);--fg2:color-mix(in srgb,var(--forest) 60%,white);--fg3:color-mix(in srgb,var(--forest) 40%,white);--line:color-mix(in srgb,var(--forest) 14%,transparent);--surface:#fff;--bg:#FAFAF3;--r:6px;--r2:10px;--shadow:0 1px 3px rgba(20,55,0,.06),0 4px 16px rgba(20,55,0,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--sans);color:var(--fg);background:var(--bg);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+.app{display:flex;flex-direction:column;height:100vh}
+.main{flex:1;overflow:hidden;display:flex}
+.panel-scroll{flex:1;overflow-y:auto;padding:24px}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;background:var(--sage);color:#fff;border-bottom:3px solid var(--innovation);flex-shrink:0}
+.topbar-brand{display:flex;align-items:center;gap:14px}
+.topbar-kk{width:28px;height:28px;background:var(--innovation);border-radius:3px;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:13px;color:var(--forest)}
+.topbar-name{font-weight:700;font-size:15px;letter-spacing:.01em}
+.topbar-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.75;margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:20px}
+.date-badge{padding:5px 12px;background:rgba(255,255,255,.15);border-radius:4px;border:1px solid rgba(255,255,255,.2);font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#fff}
+.user-chip{display:flex;align-items:center;gap:8px;padding-left:16px;border-left:1px solid rgba(255,255,255,.2)}
+.user-av{width:28px;height:28px;border-radius:50%;background:var(--innovation);color:var(--forest);font-weight:700;font-size:10px;display:grid;place-items:center}
+.user-name{font-size:12px;font-weight:600}
+.user-role{font-size:10px;opacity:.75}
+.tab-nav{display:flex;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--line);flex-shrink:0}
+.tab-btn{padding:12px 16px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.tab-btn.active{color:var(--sage);border-bottom-color:var(--sage);font-weight:600}
+.tab-btn:hover:not(.active){color:var(--fg);border-bottom-color:var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);overflow:hidden;box-shadow:var(--shadow)}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+.card-title{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--sage);font-weight:600}
+.card-body{padding:16px}
+
+/* kpi */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);padding:16px 18px;box-shadow:var(--shadow)}
+.kpi-label{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);margin-bottom:8px}
+.kpi-value{font-family:var(--mono);font-size:28px;font-weight:600;line-height:1;letter-spacing:-.02em}
+.kpi-sub{font-size:11px;color:var(--fg2);margin-top:3px}
+.green{color:#0e5c35}.red{color:var(--sunset)}.yellow{color:#a07800}.blue{color:var(--slate)}
+
+/* inspection queue */
+.iq-table{width:100%;border-collapse:collapse;font-size:12px}
+.iq-table th{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3);font-weight:500;padding:8px 12px;border-bottom:1px solid var(--line);text-align:left}
+.iq-table td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.iq-table tr:last-child td{border-bottom:none}
+.iq-table tr:hover td{background:rgba(40,155,162,.02)}
+.priority-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.status-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.sp-pending{background:rgba(249,194,10,.1);color:#a07800;border:1px solid rgba(249,194,10,.3)}
+.sp-inprog{background:rgba(0,87,118,.08);color:var(--slate);border:1px solid rgba(0,87,118,.18)}
+.sp-pass{background:rgba(68,207,147,.1);color:#0e5c35;border:1px solid rgba(68,207,147,.2)}
+.sp-fail{background:rgba(242,74,0,.1);color:#a83500;border:1px solid rgba(242,74,0,.2)}
+.sp-hold{background:rgba(242,74,0,.08);color:#a83500;border:1px solid rgba(242,74,0,.18)}
+
+/* deviations */
+.dev-list{display:flex;flex-direction:column;gap:10px}
+.dev-card{border:1px solid var(--line);border-radius:var(--r2);overflow:hidden;background:var(--surface);box-shadow:var(--shadow)}
+.dev-card-accent{height:4px}
+.dev-body{padding:14px 16px}
+.dev-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+.dev-id{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--fg)}
+.dev-title{font-size:13px;font-weight:600;flex:1}
+.dev-meta{font-size:11px;color:var(--fg2);margin-bottom:8px;line-height:1.5}
+.dev-footer{display:flex;align-items:center;gap:10px;padding-top:8px;border-top:1px solid var(--line)}
+.dev-tag{display:inline-flex;padding:2px 7px;border-radius:999px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:500}
+.dtag-open{background:rgba(242,74,0,.1);color:#a83500;border:1px solid rgba(242,74,0,.2)}
+.dtag-review{background:rgba(249,194,10,.1);color:#a07800;border:1px solid rgba(249,194,10,.25)}
+.dtag-closed{background:rgba(20,55,0,.06);color:var(--fg3);border:1px solid var(--line)}
+.dev-assigned{font-family:var(--mono);font-size:10px;color:var(--fg3);margin-left:auto}
+
+/* quality signals / trend chart */
+.qs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.signal-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);padding:16px;box-shadow:var(--shadow)}
+.signal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.signal-title{font-size:13px;font-weight:600}
+.signal-sub{font-size:11px;color:var(--fg2);margin-top:2px}
+.signal-value{font-family:var(--mono);font-size:28px;font-weight:600;line-height:1}
+.signal-bars{display:flex;align-items:flex-end;gap:3px;height:48px;margin-top:10px}
+.signal-bar{flex:1;border-radius:2px 2px 0 0;min-height:3px}
+.signal-axis{display:flex;justify-content:space-between;margin-top:4px}
+.signal-axis-lbl{font-family:var(--mono);font-size:9px;color:var(--fg3)}
+
+/* spec limits table */
+.spec-table{width:100%;border-collapse:collapse;font-size:12px}
+.spec-table th{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3);font-weight:500;padding:8px 12px;border-bottom:1px solid var(--line);text-align:left}
+.spec-table td{padding:8px 12px;border-bottom:1px solid var(--line)}
+.spec-table tr:last-child td{border-bottom:none}
+.in-spec{color:#0e5c35;font-weight:600}.out-spec{color:var(--sunset);font-weight:600}.at-limit{color:#a07800;font-weight:600}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel">
+const { useState } = React;
+
+const IQ_ROWS = [
+  { lot:"IL-24031201", batch:"B-44831", product:"A1-Gold 400g",       type:"Finished goods release", inspector:"T. Walsh",    priority:"high",  status:"hold",    due:"2024-03-12 14:00", plant:"Beloit WI" },
+  { lot:"IL-24031202", batch:"B-44832", product:"A2-Gold 400g",       type:"Finished goods release", inspector:"T. Walsh",    priority:"med",   status:"inprog",  due:"2024-03-12 14:00", plant:"Beloit WI" },
+  { lot:"IL-24031203", batch:"B-44840", product:"HMF Premix",         type:"In-process — blend",     inspector:"C. Murphy",   priority:"low",   status:"pass",    due:"2024-03-12 10:00", plant:"Lismore IE" },
+  { lot:"IL-24031204", batch:"B-44851", product:"K-Carrageenan",      type:"Incoming RM",            inspector:"C. Murphy",   priority:"med",   status:"inprog",  due:"2024-03-13 09:00", plant:"Beloit WI" },
+  { lot:"IL-24031205", batch:"B-44860", product:"SureBase PM20",      type:"In-process — mixing",    inspector:"D. O'Brien",  priority:"low",   status:"pass",    due:"2024-03-12 11:30", plant:"Lismore IE" },
+  { lot:"IL-24031206", batch:"B-44870", product:"A1-Gold 400g",       type:"Line clearance",         inspector:"T. Walsh",    priority:"high",  status:"pending", due:"2024-03-13 07:00", plant:"Beloit WI" },
+  { lot:"IL-24031207", batch:"B-44875", product:"SureBase PM20",      type:"Finished goods release", inspector:"D. O'Brien",  priority:"low",   status:"pass",    due:"2024-03-12 16:00", plant:"Beloit WI" },
+  { lot:"IL-24031208", batch:"B-44878", product:"HiPho Powder",       type:"Incoming RM",            inspector:"A. Keane",    priority:"med",   status:"pending", due:"2024-03-13 09:00", plant:"Lismore IE" },
+  { lot:"IL-24031209", batch:"B-44880", product:"Lactase 50T",        type:"Finished goods release", inspector:"A. Keane",    priority:"med",   status:"inprog",  due:"2024-03-13 11:00", plant:"Lismore IE" },
+  { lot:"IL-24031210", batch:"B-44890", product:"A1-Gold 400g",       type:"Finished goods release", inspector:"T. Walsh",    priority:"high",  status:"hold",    due:"2024-03-13 08:00", plant:"Beloit WI" },
+  { lot:"IL-24031211", batch:"B-44895", product:"SynerBase F11",      type:"In-process — blending",  inspector:"C. Murphy",   priority:"low",   status:"pending", due:"2024-03-13 10:00", plant:"Beloit WI" },
+  { lot:"IL-24031212", batch:"B-44901", product:"K-Pectin LV40",      type:"Incoming RM",            inspector:"A. Keane",    priority:"high",  status:"fail",    due:"2024-03-12 06:00", plant:"Beloit WI" },
+];
+
+const DEVIATIONS = [
+  { id:"DEV-2024-0481", title:"Listeria monocytogenes — K-Pectin inbound", sev:"critical", batch:"B-44810-A/B", type:"Microbiological", status:"open",   root:"Environmental contamination — Cargill Rotterdam Lot P-44810. C-07 conveyor belt positive. Recall initiated.", assigned:"M. Kowalski" },
+  { id:"DEV-2024-0478", title:"Sealer jaw temperature deviation — Line 3", sev:"major",    batch:"MFG-2024-03-13", type:"Process",        status:"open",   root:"Sealer jaw oscillating ±8°C outside spec (target 180°C ±3). Maintenance ticket raised. Line running on reduced speed.", assigned:"F. Dolan" },
+  { id:"DEV-2024-0471", title:"Allergen label artwork mismatch",            sev:"major",    batch:"B-44860",   type:"Labelling",      status:"review", root:"A2-Gold batch artwork printed with A1-Gold allergen statement. Isolated to 240 units on pallet 6. Contained before dispatch.", assigned:"C. Murphy" },
+  { id:"DEV-2024-0465", title:"Fill weight low — Line 5 shift B",          sev:"minor",    batch:"B-44855",   type:"Process",        status:"review", root:"Average fill weight 397.2g vs 400g target (−0.7%). 3 consecutive CCP checks below spec. Root cause: worn volumetric filler cam.", assigned:"T. Walsh" },
+  { id:"DEV-2024-0459", title:"pH exceedance — fermentation tank T-04",    sev:"minor",    batch:"B-44841",   type:"Process",        status:"closed", root:"pH drifted to 4.12 vs spec 4.2–4.6. Corrected with buffer addition. Product released after retest — within spec.", assigned:"D. O'Brien" },
+  { id:"DEV-2024-0451", title:"Moisture content at upper limit",            sev:"minor",    batch:"B-44830",   type:"Quality check",  status:"closed", root:"Moisture 5.0% at upper spec limit (LSL 2.0%, USL 5.0%). Released conditional — next batch trigger for retest.", assigned:"A. Keane" },
+];
+
+const SIGNALS = [
+  { title:"Pass rate",         sub:"All inspection types · rolling 7 days",        value:"97.2%",    color:"#44CF93",  bars:[94,96,95,97,96,98,97],  hi:true },
+  { title:"Open deviations",   sub:"Active + under review",                         value:"4",        color:"#F24A00",  bars:[2,3,4,3,4,5,4],        hi:false },
+  { title:"Avg closure time",  sub:"Deviations closed this week · hours",           value:"18.4h",    color:"#289BA2",  bars:[22,20,19,18,21,17,18],  hi:true },
+  { title:"First-pass yield",  sub:"Finished goods · C shift",                      value:"98.6%",    color:"#44CF93",  bars:[97,98,97,99,98,99,99],  hi:true },
+];
+
+const SPEC_ROWS = [
+  { parameter:"Moisture content",    batch:"B-44831", value:"4.8%",    lsl:"2.0%", usl:"5.0%", result:"in-spec" },
+  { parameter:"pH",                  batch:"B-44832", value:"4.35",    lsl:"4.2",  usl:"4.6",  result:"in-spec" },
+  { parameter:"Viscosity",           batch:"B-44831", value:"4,820 mPa·s", lsl:"4,500", usl:"5,200", result:"in-spec" },
+  { parameter:"Ash content",         batch:"B-44831", value:"5.1%",    lsl:"4.5%", usl:"5.0%", result:"out-spec" },
+  { parameter:"Water activity",      batch:"B-44851", value:"0.228",   lsl:"0.15", usl:"0.25", result:"in-spec" },
+  { parameter:"Protein (Kjeldahl)", batch:"B-44832", value:"12.4%",   lsl:"12.0%",usl:"14.0%",result:"in-spec" },
+  { parameter:"Gelling strength",    batch:"B-44840", value:"1,081 g Bloom", lsl:"900", usl:"1,100", result:"at-limit" },
+  { parameter:"Total plate count",   batch:"B-44901", value:">10⁵ cfu/g", lsl:"—",  usl:"10³",  result:"out-spec" },
+];
+
+function StatusPill({ status }) {
+  const map = { pending:"sp-pending", inprog:"sp-inprog", pass:"sp-pass", fail:"sp-fail", hold:"sp-hold" };
+  const lbl = { pending:"Pending", inprog:"In progress", pass:"Pass", fail:"FAIL", hold:"On Hold" };
+  return <span className={`status-pill ${map[status]||""}`}>{lbl[status]||status}</span>;
+}
+
+function QueueTab() {
+  const pass = IQ_ROWS.filter(r => r.status==="pass").length;
+  const fail = IQ_ROWS.filter(r => r.status==="fail" || r.status==="hold").length;
+  const pend = IQ_ROWS.filter(r => r.status==="pending" || r.status==="inprog").length;
+  return (
+    <div style={{maxWidth:1200}}>
+      <div className="kpi-strip">
+        <div className="kpi"><div className="kpi-label">In queue today</div><div className="kpi-value blue">{IQ_ROWS.length}</div><div className="kpi-sub">across 2 facilities</div></div>
+        <div className="kpi"><div className="kpi-label">Passed</div><div className="kpi-value green">{pass}</div><div className="kpi-sub">{Math.round(pass/IQ_ROWS.length*100)}% of completed</div></div>
+        <div className="kpi"><div className="kpi-label">Fail / Hold</div><div className="kpi-value red">{fail}</div><div className="kpi-sub">action required</div></div>
+        <div className="kpi"><div className="kpi-label">Pending / In progress</div><div className="kpi-value yellow">{pend}</div><div className="kpi-sub">open items</div></div>
+      </div>
+      <div className="card">
+        <div className="card-head">
+          <span className="card-title">Inspection queue</span>
+          <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--fg3)"}}>Sorted by priority</span>
+        </div>
+        <table className="iq-table">
+          <thead><tr><th></th><th>Lot ID</th><th>Batch</th><th>Product</th><th>Inspection type</th><th>Inspector</th><th>Plant</th><th>Due</th><th>Status</th></tr></thead>
+          <tbody>
+            {IQ_ROWS.map(r => {
+              const dotC = r.priority==="high"?"var(--sunset)":r.priority==="med"?"var(--sunrise)":"var(--sage)";
+              return (
+                <tr key={r.lot}>
+                  <td><span className="priority-dot" style={{background:dotC}} /></td>
+                  <td style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:600}}>{r.lot}</td>
+                  <td style={{fontFamily:"var(--mono)",fontSize:11}}>{r.batch}</td>
+                  <td style={{fontWeight:500}}>{r.product}</td>
+                  <td style={{color:"var(--fg2)",fontSize:11}}>{r.type}</td>
+                  <td style={{fontSize:11}}>{r.inspector}</td>
+                  <td style={{fontSize:11,color:"var(--fg3)"}}>{r.plant}</td>
+                  <td style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--fg3)"}}>{r.due.split(" ")[1]}</td>
+                  <td><StatusPill status={r.status} /></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function DeviationsTab() {
+  const open = DEVIATIONS.filter(d => d.status==="open").length;
+  return (
+    <div style={{maxWidth:1000}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--fg3)",letterSpacing:".08em",textTransform:"uppercase"}}>
+          {DEVIATIONS.length} deviations · {open} open · {DEVIATIONS.length-open} closed/under review
+        </div>
+      </div>
+      <div className="dev-list">
+        {DEVIATIONS.map(d => {
+          const accent = d.sev==="critical"?"var(--sunset)":d.sev==="major"?"var(--sunrise)":"var(--sage)";
+          const tagClass = d.status==="open"?"dtag-open":d.status==="review"?"dtag-review":"dtag-closed";
+          const tagLabel = d.status==="open"?"Open":d.status==="review"?"Under review":"Closed";
+          return (
+            <div key={d.id} className="dev-card">
+              <div className="dev-card-accent" style={{background:accent}} />
+              <div className="dev-body">
+                <div className="dev-header">
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+                      <span className="dev-id">{d.id}</span>
+                      <span style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:".08em",textTransform:"uppercase",color:"var(--fg3)"}}>· {d.type}</span>
+                    </div>
+                    <div className="dev-title">{d.title}</div>
+                  </div>
+                </div>
+                <div className="dev-meta">
+                  <strong>Batch:</strong> {d.batch}
+                  <br/>
+                  <span style={{color:"var(--fg2)"}}>{d.root}</span>
+                </div>
+                <div className="dev-footer">
+                  <span className={`dev-tag ${tagClass}`}>{tagLabel}</span>
+                  <span className={`dev-tag`} style={{background:d.sev==="critical"?"rgba(242,74,0,.08)":d.sev==="major"?"rgba(249,194,10,.08)":"rgba(40,155,162,.08)",color:d.sev==="critical"?"#a83500":d.sev==="major"?"#a07800":"var(--sage)",border:"1px solid",borderColor:d.sev==="critical"?"rgba(242,74,0,.2)":d.sev==="major"?"rgba(249,194,10,.25)":"rgba(40,155,162,.2)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:".06em",textTransform:"uppercase",fontWeight:500,padding:"2px 7px",borderRadius:999,display:"inline-flex"}}>
+                    {d.sev}
+                  </span>
+                  <span className="dev-assigned">Assigned: {d.assigned}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SignalsTab() {
+  return (
+    <div style={{maxWidth:1200}}>
+      <div className="qs-grid" style={{marginBottom:16}}>
+        {SIGNALS.map((s,i) => {
+          const maxV = Math.max(...s.bars);
+          return (
+            <div key={i} className="signal-card">
+              <div className="signal-header">
+                <div>
+                  <div className="signal-title">{s.title}</div>
+                  <div className="signal-sub">{s.sub}</div>
+                </div>
+                <div className="signal-value" style={{color:s.color}}>{s.value}</div>
+              </div>
+              <div className="signal-bars">
+                {s.bars.map((v,j) => (
+                  <div key={j} className="signal-bar"
+                       style={{height:((v/maxV)*100)+"%",background:s.color,opacity:j===s.bars.length-1?1:0.35+j*0.09}} />
+                ))}
+              </div>
+              <div className="signal-axis">
+                <span className="signal-axis-lbl">−6d</span>
+                <span className="signal-axis-lbl">Today</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="card">
+        <div className="card-head">
+          <span className="card-title">Spec limit review · active batches</span>
+        </div>
+        <table className="spec-table">
+          <thead><tr><th>Parameter</th><th>Batch</th><th>Value</th><th>LSL</th><th>USL</th><th>Result</th></tr></thead>
+          <tbody>
+            {SPEC_ROWS.map((r,i) => (
+              <tr key={i}>
+                <td style={{fontWeight:500}}>{r.parameter}</td>
+                <td style={{fontFamily:"var(--mono)",fontSize:11}}>{r.batch}</td>
+                <td style={{fontFamily:"var(--mono)",fontSize:11}}>{r.value}</td>
+                <td style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--fg3)"}}>{r.lsl}</td>
+                <td style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--fg3)"}}>{r.usl}</td>
+                <td><span className={r.result==="in-spec"?"in-spec":r.result==="out-spec"?"out-spec":"at-limit"}>{r.result==="in-spec"?"✓ In spec":r.result==="out-spec"?"✗ Out of spec":"⚠ At limit"}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+const TABS=[{id:"queue",label:"Inspection Queue"},{id:"deviations",label:"Deviations"},{id:"signals",label:"Quality Signals"}];
+
+function App() {
+  const [tab, setTab] = useState("queue");
+  return (
+    <div className="app">
+      <div className="topbar">
+        <div className="topbar-brand">
+          <div className="topbar-kk">K</div>
+          <div>
+            <div className="topbar-name">Connected Quality Suite</div>
+            <div className="topbar-eyebrow">Kerry ConnectIO · Quality Execution</div>
+          </div>
+        </div>
+        <div className="topbar-right">
+          <div className="date-badge">2024-03-13 · C Shift</div>
+          <div className="user-chip">
+            <div className="user-av">TW</div>
+            <div>
+              <div className="user-name">T. Walsh</div>
+              <div className="user-role">Quality Manager · Beloit</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="tab-nav">
+        {TABS.map(t=>(
+          <button key={t.id} className={`tab-btn${tab===t.id?" active":""}`} onClick={()=>setTab(t.id)}>{t.label}</button>
+        ))}
+      </div>
+      <div className="main">
+        <div className="panel-scroll">
+          {tab==="queue"      && <QueueTab />}
+          {tab==="deviations" && <DeviationsTab />}
+          {tab==="signals"    && <SignalsTab />}
+        </div>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

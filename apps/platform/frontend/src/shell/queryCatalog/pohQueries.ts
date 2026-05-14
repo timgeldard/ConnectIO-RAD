@@ -1,5 +1,5 @@
 import type { QueryField, QueryRegistry, QueryValueType } from '@connectio/shared-reporting';
-import { fields as selectFields, params, postQuery, widgetCompatibility } from './common';
+import { apiEndpoint, fields as selectFields, params, postQuery, widgetCompatibility } from './common';
 
 /**
  * Creates a POH-specific field definition.
@@ -109,7 +109,7 @@ export const pohQueries: QueryRegistry = {
     key: 'poh.oeeAnalytics',
     label: 'Process Order OEE Analytics',
     description: 'Overall Equipment Effectiveness by line with top-line KPIs and daily history.',
-    endpoint: '/api/oee/analytics',
+    endpoint: apiEndpoint('poh', 'oee/analytics'),
     compatibleWidgets: widgetCompatibility.kpiTrendBar,
     params: pohWindowParams,
     fields: [
@@ -161,7 +161,7 @@ export const pohQueries: QueryRegistry = {
     key: 'poh.orderSummary',
     label: 'Process Order Summary',
     description: 'Top-line process order counts, quantities, and yield over the selected production window.',
-    endpoint: '/api/orders',
+    endpoint: apiEndpoint('poh', 'orders'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: pohOrderParams,
     fields: pohSummaryFields,
@@ -171,7 +171,7 @@ export const pohQueries: QueryRegistry = {
     key: 'poh.orderTimeline',
     label: 'Order Timeline',
     description: 'Chronological order completion and cycle-time history for the selected production scope.',
-    endpoint: '/api/dayview',
+    endpoint: apiEndpoint('poh', 'dayview'),
     compatibleWidgets: widgetCompatibility.trendTable,
     params: pohOrderParams,
     fields: [
@@ -209,7 +209,7 @@ export const pohQueries: QueryRegistry = {
     key: 'poh.productionTrend',
     label: 'Production Trend',
     description: 'Planned versus confirmed production quantities trended across the selected time window.',
-    endpoint: '/api/yield',
+    endpoint: apiEndpoint('poh', 'yield'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: pohOrderParams,
     fields: [
@@ -246,7 +246,7 @@ export const pohQueries: QueryRegistry = {
     key: 'poh.productionByMaterial',
     label: 'Production by Material',
     description: 'Produced quantity and yield by material for Pareto, bar, and tabular analysis.',
-    endpoint: '/api/orders',
+    endpoint: apiEndpoint('poh', 'orders'),
     compatibleWidgets: widgetCompatibility.barParetoTable,
     params: params('plant_id', 'date_from', 'date_to', 'timezone', 'material_id'),
     fields: [
@@ -282,7 +282,7 @@ export const pohQueries: QueryRegistry = {
     key: 'poh.resourcePerformance',
     label: 'Resource Performance',
     description: 'Compares throughput, cycle time, and yield across resources and lines.',
-    endpoint: '/api/oee/analytics',
+    endpoint: apiEndpoint('poh', 'oee/analytics'),
     compatibleWidgets: widgetCompatibility.kpiBarTable,
     params: params('plant_id', 'date_from', 'date_to', 'timezone', 'resource_id', 'line_id'),
     fields: [
@@ -321,7 +321,7 @@ export const pohQueries: QueryRegistry = {
     key: 'poh.scheduleAdherence',
     label: 'Schedule Adherence',
     description: 'Tracks on-time completion rates and late-order counts across the selected production scope.',
-    endpoint: '/api/adherence',
+    endpoint: apiEndpoint('poh', 'adherence'),
     compatibleWidgets: widgetCompatibility.kpiTrendBarTable,
     params: pohOrderParams,
     fields: [
@@ -351,7 +351,7 @@ export const pohQueries: QueryRegistry = {
     key: 'poh.orderStatusBreakdown',
     label: 'Order Status Breakdown',
     description: 'Breaks down order volume by operational status for Pareto, bar, and table views.',
-    endpoint: '/api/orders',
+    endpoint: apiEndpoint('poh', 'orders'),
     compatibleWidgets: widgetCompatibility.barParetoTable,
     params: pohOrderParams,
     fields: [
@@ -381,7 +381,7 @@ export const pohQueries: QueryRegistry = {
     key: 'poh.confirmationTrend',
     label: 'Confirmation Trend',
     description: 'Trends order confirmations and confirmed quantity across the selected date range.',
-    endpoint: '/api/orders',
+    endpoint: apiEndpoint('poh', 'orders'),
     compatibleWidgets: widgetCompatibility.trendBarTable,
     params: pohOrderParams,
     fields: [

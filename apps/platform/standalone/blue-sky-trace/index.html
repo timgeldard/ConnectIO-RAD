@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base href="/blue-sky-trace/" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1440, initial-scale=0.6" />
+<title>Investigation Workspace · Kerry ConnectIO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans:wght@300;400;500;600;700;800&family=Noto+Serif:ital,wdth,wght@0,62.5..100,100..900;1,62.5..100,100..900&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --slate: #005776; --forest: #143700; --stone: #F1F1E5;
+  --sunrise: #F9C20A; --sunset: #F24A00; --sage: #289BA2; --jade: #44CF93;
+  --innovation: #DFFF11;
+  --sans: "Noto Sans", system-ui, sans-serif;
+  --serif: "Noto Serif", Georgia, serif;
+  --mono: "IBM Plex Mono", monospace;
+  --fg: var(--forest); --fg2: color-mix(in srgb,var(--forest) 60%,white);
+  --fg3: color-mix(in srgb,var(--forest) 40%,white);
+  --line: color-mix(in srgb,var(--forest) 14%,transparent);
+  --surface: #fff; --bg: #FAFAF3;
+  --r: 6px; --r2: 10px;
+  --shadow: 0 1px 3px rgba(20,55,0,.06),0 4px 16px rgba(20,55,0,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--sans);color:var(--fg);background:var(--bg);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+
+/* ── Topbar ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;background:var(--slate);color:#fff;border-bottom:3px solid var(--innovation);flex-shrink:0}
+.topbar-brand{display:flex;align-items:center;gap:14px}
+.topbar-kk{width:28px;height:28px;background:var(--innovation);border-radius:3px;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:13px;color:var(--forest);letter-spacing:-0.02em}
+.topbar-name{font-weight:700;font-size:15px;letter-spacing:.01em}
+.topbar-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.7;margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:20px}
+.case-badge{display:flex;align-items:center;gap:8px;padding:5px 12px;background:rgba(255,255,255,.1);border-radius:4px;border:1px solid rgba(255,255,255,.18)}
+.case-badge-dot{width:8px;height:8px;border-radius:50%;background:var(--sunset);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.case-badge-lbl{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#fff}
+.user-chip{display:flex;align-items:center;gap:8px;padding-left:16px;border-left:1px solid rgba(255,255,255,.2)}
+.user-av{width:28px;height:28px;border-radius:50%;background:var(--innovation);color:var(--forest);font-weight:700;font-size:10px;display:grid;place-items:center}
+.user-meta{line-height:1.15}
+.user-name{font-size:12px;font-weight:600}
+.user-role{font-size:10px;opacity:.7}
+
+/* ── Case header ── */
+.case-header{background:var(--forest);color:#fff;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0}
+.case-header-inner{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;max-width:1400px}
+.case-id{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--innovation);margin-bottom:4px}
+.case-title{font-size:18px;font-weight:700;letter-spacing:.01em;margin-bottom:4px}
+.case-sub{font-family:var(--serif);font-size:13px;opacity:.78;line-height:1.4}
+.case-stats{display:flex;gap:28px}
+.cstat{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.cstat-val{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1;letter-spacing:-.01em}
+.cstat-val.danger{color:var(--sunset)}
+.cstat-val.warn{color:var(--sunrise)}
+.cstat-val.good{color:var(--jade)}
+.cstat-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
+
+/* ── Tab nav ── */
+.tab-nav{display:flex;gap:0;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--line);flex-shrink:0}
+.tab-btn{padding:12px 16px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.tab-btn.active{color:var(--slate);border-bottom-color:var(--slate);font-weight:600}
+.tab-btn:hover:not(.active){color:var(--fg);border-bottom-color:var(--line)}
+
+/* ── Layout ── */
+.app{display:flex;flex-direction:column;height:100vh}
+.main{flex:1;overflow:hidden;display:flex}
+.panel-scroll{flex:1;overflow-y:auto;padding:24px}
+
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);overflow:hidden;box-shadow:var(--shadow)}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+.card-title{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);font-weight:600}
+.card-body{padding:16px}
+
+/* ── Investigation tab ── */
+.inv-grid{display:grid;grid-template-columns:340px 1fr;gap:16px;max-width:1400px}
+.batch-list{display:flex;flex-direction:column;gap:6px}
+.batch-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg);cursor:pointer;transition:border-color .15s,background .15s}
+.batch-row:hover,.batch-row.sel{background:var(--surface);border-color:var(--slate)}
+.batch-row.sel{border-left:3px solid var(--slate)}
+.batch-code{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--fg);min-width:88px}
+.batch-mat{font-size:11px;color:var(--fg2);flex:1}
+.batch-tag{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-family:var(--mono);font-size:9px;letter-spacing:.07em;text-transform:uppercase;font-weight:500}
+.tag-held{background:rgba(242,74,0,.12);color:#a83500;border:1px solid rgba(242,74,0,.25)}
+.tag-trace{background:rgba(0,87,118,.10);color:#005776;border:1px solid rgba(0,87,118,.2)}
+.tag-clear{background:rgba(68,207,147,.12);color:#0e5c35;border:1px solid rgba(68,207,147,.25)}
+
+/* ── Details panel ── */
+.detail-section{margin-bottom:20px}
+.detail-section:last-child{margin-bottom:0}
+.detail-section-title{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:4px 16px}
+.dl dt{font-family:var(--mono);font-size:11px;color:var(--fg3);white-space:nowrap}
+.dl dd{font-size:12px;color:var(--fg)}
+
+/* ── Timeline ── */
+.timeline-events{display:flex;flex-direction:column;gap:0}
+.tl-event{display:flex;gap:12px;padding:10px 0;position:relative}
+.tl-event:not(:last-child)::after{content:"";position:absolute;left:11px;top:32px;bottom:0;width:1px;background:var(--line)}
+.tl-dot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;margin-top:2px;font-size:11px;z-index:1}
+.tl-dot.red{background:rgba(242,74,0,.15);color:var(--sunset)}
+.tl-dot.yellow{background:rgba(249,194,10,.15);color:#a07800}
+.tl-dot.blue{background:rgba(0,87,118,.12);color:var(--slate)}
+.tl-dot.green{background:rgba(68,207,147,.15);color:#0e5c35}
+.tl-body{flex:1}
+.tl-head{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
+.tl-label{font-size:12px;font-weight:600;color:var(--fg)}
+.tl-time{font-family:var(--mono);font-size:10px;color:var(--fg3)}
+.tl-text{font-size:12px;color:var(--fg2);line-height:1.45}
+
+/* ── Lineage graph ── */
+.lineage-canvas{width:100%;min-height:480px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);overflow:hidden;position:relative}
+.lineage-key{display:flex;gap:16px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line)}
+.key-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--fg2)}
+.key-dot{width:10px;height:10px;border-radius:50%}
+
+/* ── Exposure matrix ── */
+.exp-table{width:100%;border-collapse:collapse;font-size:12px}
+.exp-table th{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3);font-weight:500;padding:8px 12px;border-bottom:1px solid var(--line);text-align:left}
+.exp-table td{padding:8px 12px;border-bottom:1px solid var(--line)}
+.exp-table tr:last-child td{border-bottom:none}
+.risk-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.risk-high{background:rgba(242,74,0,.12);color:#a83500;border:1px solid rgba(242,74,0,.25)}
+.risk-med{background:rgba(249,194,10,.12);color:#a07800;border:1px solid rgba(249,194,10,.3)}
+.risk-low{background:rgba(68,207,147,.12);color:#0e5c35;border:1px solid rgba(68,207,147,.25)}
+.risk-none{background:rgba(20,55,0,.06);color:var(--fg3);border:1px solid var(--line)}
+
+/* ── Material flow ── */
+.flow-stages{display:flex;gap:0;align-items:stretch;overflow-x:auto;padding:0;margin:0}
+.flow-stage{flex:1;min-width:160px;border-right:1px solid var(--line)}
+.flow-stage:last-child{border-right:none}
+.flow-stage-head{padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--line);font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);font-weight:500}
+.flow-stage-body{padding:10px;display:flex;flex-direction:column;gap:6px}
+.flow-node{padding:8px 10px;border-radius:var(--r);border:1px solid var(--line);background:var(--bg);font-size:11px}
+.flow-node.flagged{border-color:rgba(242,74,0,.4);background:rgba(242,74,0,.04)}
+.flow-node-code{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--fg)}
+.flow-node-mat{color:var(--fg2);margin-top:1px;font-size:10px}
+.flow-node-qty{font-family:var(--mono);font-size:10px;color:var(--fg3);margin-top:3px}
+.flow-arrow{display:flex;align-items:center;justify-content:center;padding:0 4px;color:var(--fg3);font-size:18px;align-self:center;flex-shrink:0}
+
+/* ── Empty ── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px;color:var(--fg3);gap:8px}
+.empty-icon{font-size:32px;opacity:.4}
+.empty-lbl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+
+/* ── SVG lineage ── */
+.lg-node{cursor:pointer}
+.lg-node-rect{rx:6;ry:6}
+.lg-node:hover .lg-node-rect{filter:brightness(0.92)}
+.lg-label{font-family:"IBM Plex Mono",monospace;font-size:10px;fill:#143700;font-weight:600}
+.lg-sublabel{font-family:"IBM Plex Mono",monospace;font-size:9px;fill:#5a7050}
+.lg-edge{fill:none;stroke-width:1.5;marker-end:url(#arrow)}
+
+/* ── Recall confidence bar ── */
+.conf-bar-wrap{background:var(--line);border-radius:999px;height:8px;overflow:hidden;flex:1}
+.conf-bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--slate),var(--sage));transition:width .6s var(--ease-out,ease)}
+.conf-row{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.conf-pct{font-family:var(--mono);font-size:13px;font-weight:600;min-width:38px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel">
+const { useState } = React;
+
+const CASE = {
+  id: "FSRC-2024-0312",
+  title: "Listeria monocytogenes · Batch contamination",
+  sub: "Suspected cross-contamination from raw material inbound — K-Pectin LV40 Lot P-44810 · Beloit facility",
+  opened: "2024-03-12 06:14",
+  opened_by: "M. Kowalski (QA)",
+  severity: "P1 — Recall initiated",
+  affected_plants: ["Beloit WI", "Lismore IE"],
+  recall_confidence: 86,
+};
+
+const BATCHES = [
+  { code:"B-44810-A", mat:"K-Pectin LV40", plant:"Beloit WI",   qty:"2,400 kg", status:"held",  risk:"high",   supplier:"Cargill · Rotterdam",   received:"2024-03-08" },
+  { code:"B-44810-B", mat:"K-Pectin LV40", plant:"Beloit WI",   qty:"2,400 kg", status:"held",  risk:"high",   supplier:"Cargill · Rotterdam",   received:"2024-03-08" },
+  { code:"B-44820-A", mat:"K-Carrageenan", plant:"Beloit WI",   qty:"1,800 kg", status:"trace", risk:"med",    supplier:"Cargill · Rotterdam",   received:"2024-03-09" },
+  { code:"B-44831",   mat:"Infant Formula A1-Gold", plant:"Beloit WI", qty:"18,000 units", status:"held",  risk:"high",   supplier:"Kerry Beloit",    received:"2024-03-10" },
+  { code:"B-44832",   mat:"Infant Formula A2-Gold", plant:"Beloit WI", qty:"12,000 units", status:"trace", risk:"med",    supplier:"Kerry Beloit",    received:"2024-03-10" },
+  { code:"B-44840",   mat:"HMF Premix",    plant:"Lismore IE",  qty:"940 kg",   status:"clear", risk:"low",    supplier:"Lonza · Basel",         received:"2024-03-09" },
+  { code:"B-44845",   mat:"Infant Formula A1-Gold", plant:"Lismore IE", qty:"9,600 units", status:"trace", risk:"med",    supplier:"Kerry Lismore",  received:"2024-03-11" },
+  { code:"B-44852",   mat:"K-Pectin LV40", plant:"Beloit WI",   qty:"2,400 kg", status:"held",  risk:"high",   supplier:"Cargill · Rotterdam",   received:"2024-03-11" },
+  { code:"B-44860",   mat:"SureBase PM20", plant:"Beloit WI",   qty:"600 kg",   status:"clear", risk:"none",   supplier:"Barentz · Amsterdam",   received:"2024-03-07" },
+  { code:"B-44871",   mat:"K-Carrageenan", plant:"Lismore IE",  qty:"1,200 kg", status:"trace", risk:"low",    supplier:"Cargill · Rotterdam",   received:"2024-03-09" },
+  { code:"B-44880",   mat:"HiPho Powder",  plant:"Beloit WI",   qty:"800 kg",   status:"clear", risk:"none",   supplier:"Arla Foods",            received:"2024-03-06" },
+  { code:"B-44890",   mat:"Infant Formula A1-Gold", plant:"Beloit WI", qty:"6,000 units", status:"held",  risk:"high",   supplier:"Kerry Beloit",   received:"2024-03-12" },
+  { code:"B-44895",   mat:"SynerBase F11", plant:"Beloit WI",   qty:"340 kg",   status:"trace", risk:"med",    supplier:"Dupont · Copenhagen",   received:"2024-03-10" },
+  { code:"B-44901",   mat:"K-Pectin LV40", plant:"Beloit WI",   qty:"1,600 kg", status:"held",  risk:"high",   supplier:"Cargill · Rotterdam",   received:"2024-03-12" },
+  { code:"B-44905",   mat:"Lactase 50T",   plant:"Lismore IE",  qty:"200 kg",   status:"clear", risk:"none",   supplier:"Chr. Hansen",           received:"2024-03-08" },
+  { code:"B-44912",   mat:"Infant Formula A2-Gold", plant:"Lismore IE", qty:"7,200 units", status:"trace", risk:"med",   supplier:"Kerry Lismore",  received:"2024-03-12" },
+  { code:"B-44920",   mat:"Phospholipid Blend", plant:"Beloit WI", qty:"480 kg", status:"clear", risk:"low",   supplier:"Lipoid · Ludwigshafen", received:"2024-03-07" },
+];
+
+const TIMELINE = [
+  { type:"red",    icon:"🚨", label:"Recall initiated",         time:"2024-03-12 06:14", text:"P1 recall triggered following positive Listeria monocytogenes result on incoming K-Pectin LV40 (Lot P-44810). 3 batches held immediately at Beloit." },
+  { type:"red",    icon:"⚠",  label:"Secondary holds issued",   time:"2024-03-12 08:31", text:"Downstream finished-goods batches B-44831 and B-44832 held pending trace. Dispatch hold issued to logistics. FSRA notified." },
+  { type:"yellow", icon:"🔍", label:"Root cause investigation",  time:"2024-03-12 10:05", text:"Positive swab identified to conveyor belt C-07 in intake area. Likely environmental persistence. Environmental monitoring sweep initiated (47 sites)." },
+  { type:"blue",   icon:"📋", label:"Lineage scope confirmed",   time:"2024-03-12 13:20", text:"Trace completed across 17 batches (Beloit and Lismore). 2 facilities in scope. Supplier Cargill Rotterdam notified. Voluntary hold extended to Lismore." },
+  { type:"blue",   icon:"📞", label:"Regulator notification",    time:"2024-03-12 15:00", text:"FSRA and FDA notified per regulatory requirement. Market withdrawal team engaged for Class II voluntary recall readiness." },
+  { type:"yellow", icon:"🧪", label:"Environmental swab results", time:"2024-03-13 08:30", text:"47 swab results received. 3 additional positive sites on C-07 conveyor path. Scope confirmed contained. Sanitation remediation in progress." },
+  { type:"green",  icon:"✅", label:"Containment plan approved",  time:"2024-03-13 11:00", text:"QA Director approved containment plan. 12 of 17 batches accounted for in distribution network. Remaining 5 under customer recall confirmation." },
+];
+
+const EXPOSURE_ROWS = [
+  { customer:"Kerry Direct EU",    market:"Germany / France", batches:3, vol:"14,400 units", risk:"high",   status:"Market withdrawal in progress" },
+  { customer:"Nestlé Procurement", market:"UK",               batches:2, vol:"7,200 units",  risk:"high",   status:"Hold confirmed — awaiting return" },
+  { customer:"Danone Supply",      market:"Ireland",          batches:2, vol:"7,200 units",  risk:"med",    status:"Precautionary hold issued" },
+  { customer:"Internal Transfer",  market:"Beloit → Lismore", batches:2, vol:"4,600 kg",     risk:"med",    status:"Held at Lismore — trace ongoing" },
+  { customer:"Export Hub Cork",    market:"Americas",         batches:1, vol:"6,000 units",  risk:"high",   status:"Shipment recalled — port hold" },
+  { customer:"Kerry Ingredients",  market:"Internal",         batches:3, vol:"7,640 kg",     risk:"low",    status:"Internal hold — not yet dispatched" },
+  { customer:"Unilever Foods",     market:"Netherlands",      batches:1, vol:"2,400 kg",     risk:"low",    status:"No confirmed exposure — monitoring" },
+  { customer:"Arla Supplier",      market:"Sweden",           batches:1, vol:"1,200 kg",     risk:"none",   status:"Clear — not in contamination chain" },
+];
+
+const FLOW_STAGES = [
+  { label:"Inbound RM",     nodes:[
+    { code:"P-44810", mat:"K-Pectin LV40", qty:"7,200 kg total", flagged:true },
+    { code:"C-44820", mat:"K-Carrageenan", qty:"3,000 kg total",  flagged:false },
+  ]},
+  { label:"Intake / QC",   nodes:[
+    { code:"QC-44810", mat:"Intake swab — FAIL", qty:"Lot P-44810 · C-07 positive", flagged:true },
+    { code:"QC-44820", mat:"Intake swab — PASS", qty:"Lot C-44820 · clear",          flagged:false },
+  ]},
+  { label:"Processing",    nodes:[
+    { code:"MFG-B44831", mat:"Infant Formula A1-Gold", qty:"18,000 units",  flagged:true },
+    { code:"MFG-B44832", mat:"Infant Formula A2-Gold", qty:"12,000 units",  flagged:false },
+    { code:"MFG-B44895", mat:"SynerBase F11 blend",    qty:"340 kg",        flagged:false },
+  ]},
+  { label:"Finished Goods", nodes:[
+    { code:"FG-44831", mat:"A1-Gold 400g tin", qty:"18,000 — HELD",  flagged:true },
+    { code:"FG-44832", mat:"A2-Gold 400g tin", qty:"12,000 — TRACE", flagged:false },
+    { code:"FG-44890", mat:"A1-Gold 400g tin", qty:"6,000 — HELD",   flagged:true },
+  ]},
+  { label:"Distribution",   nodes:[
+    { code:"DISP-EU", mat:"Kerry Direct EU", qty:"14,400 units — recall active",  flagged:true },
+    { code:"DISP-UK", mat:"Nestlé UK",       qty:"7,200 units — hold confirmed",   flagged:true },
+    { code:"DISP-IE", mat:"Danone Ireland",  qty:"7,200 units — precautionary",    flagged:false },
+  ]},
+];
+
+// ── SVG Lineage Graph ──
+function LineageGraph() {
+  const [hover, setHover] = useState(null);
+
+  const nodes = [
+    { id:"supplier", x:40,   y:160, w:140, h:48, label:"Cargill Rotterdam", sub:"Raw material supplier",    fill:"#E8F4F8", stroke:"#005776", ring:false },
+    { id:"rm1",      x:230,  y:80,  w:148, h:48, label:"K-Pectin LV40",     sub:"Lot P-44810 · CONTAMINATED", fill:"#FFF0EC", stroke:"#F24A00", ring:true },
+    { id:"rm2",      x:230,  y:200, w:148, h:48, label:"K-Carrageenan",     sub:"Lot C-44820 · Trace",      fill:"#FFFCE8", stroke:"#F9C20A", ring:false },
+    { id:"qc",       x:440,  y:140, w:140, h:48, label:"QC Intake",         sub:"C-07 belt — Lm positive",  fill:"#FFF0EC", stroke:"#F24A00", ring:true },
+    { id:"mfg1",     x:640,  y:80,  w:148, h:48, label:"A1-Gold MFG",       sub:"B-44831 · 18,000 units",   fill:"#FFF0EC", stroke:"#F24A00", ring:true },
+    { id:"mfg2",     x:640,  y:180, w:148, h:48, label:"A2-Gold MFG",       sub:"B-44832 · 12,000 units",   fill:"#FFFCE8", stroke:"#F9C20A", ring:false },
+    { id:"mfg3",     x:640,  y:280, w:148, h:48, label:"A1-Gold MFG",       sub:"B-44890 · 6,000 units",    fill:"#FFF0EC", stroke:"#F24A00", ring:true },
+    { id:"dist1",    x:850,  y:80,  w:148, h:48, label:"Kerry Direct EU",   sub:"14,400 — recall active",   fill:"#FFF0EC", stroke:"#F24A00", ring:true },
+    { id:"dist2",    x:850,  y:180, w:148, h:48, label:"Nestlé UK",         sub:"7,200 — hold confirmed",   fill:"#FFF0EC", stroke:"#F24A00", ring:true },
+    { id:"dist3",    x:850,  y:280, w:148, h:48, label:"Danone Ireland",    sub:"7,200 — precautionary",    fill:"#FFFCE8", stroke:"#F9C20A", ring:false },
+    { id:"lismore",  x:230,  y:300, w:148, h:48, label:"K-Pectin Lismore",  sub:"B-44845 · 9,600 units",    fill:"#FFFCE8", stroke:"#F9C20A", ring:false },
+  ];
+
+  const edges = [
+    { from:"supplier", to:"rm1",   path:"M 180 184 C 210 184 220 104 230 104" },
+    { from:"supplier", to:"rm2",   path:"M 180 184 C 210 184 220 224 230 224" },
+    { from:"rm1",      to:"qc",    path:"M 378 104 C 410 104 420 164 440 164" },
+    { from:"rm2",      to:"qc",    path:"M 378 224 C 410 224 420 164 440 164" },
+    { from:"qc",       to:"mfg1",  path:"M 580 164 C 610 164 620 104 640 104" },
+    { from:"qc",       to:"mfg2",  path:"M 580 164 C 610 164 620 204 640 204" },
+    { from:"qc",       to:"mfg3",  path:"M 580 164 C 610 164 620 304 640 304" },
+    { from:"mfg1",     to:"dist1", path:"M 788 104 C 820 104 830 104 850 104" },
+    { from:"mfg2",     to:"dist2", path:"M 788 204 C 820 204 830 204 850 204" },
+    { from:"mfg3",     to:"dist3", path:"M 788 304 C 820 304 830 304 850 304" },
+    { from:"rm1",      to:"lismore",path:"M 304 128 C 304 280 230 280 230 300" },
+  ];
+
+  const getNode = (id) => nodes.find(n => n.id === id);
+
+  return (
+    <div className="lineage-canvas" style={{ height: 400 }}>
+      <div className="lineage-key">
+        <div className="key-item"><div className="key-dot" style={{background:"#F24A00"}} /> Contaminated / Recalled</div>
+        <div className="key-item"><div className="key-dot" style={{background:"#F9C20A"}} /> Trace / Under investigation</div>
+        <div className="key-item"><div className="key-dot" style={{background:"#289BA2"}} /> Clear — no exposure</div>
+        <div className="key-item"><div className="key-dot" style={{background:"#005776"}} /> Supplier / Origin</div>
+      </div>
+      <svg viewBox="0 0 1060 380" style={{width:"100%",height:"calc(100% - 48px)",display:"block"}}>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0 0 L0 6 L8 3 z" fill="rgba(20,55,0,0.35)" />
+          </marker>
+        </defs>
+        {edges.map((e,i) => {
+          const fn = getNode(e.from);
+          const tn = getNode(e.to);
+          const isHot = fn?.ring || tn?.ring;
+          return (
+            <path key={i} d={e.path} className="lg-edge"
+                  stroke={isHot ? "rgba(242,74,0,0.45)" : "rgba(20,55,0,0.2)"}
+                  strokeDasharray={isHot ? "none" : "4 3"} />
+          );
+        })}
+        {nodes.map(n => (
+          <g key={n.id} className="lg-node" transform={`translate(${n.x},${n.y})`}
+             onMouseEnter={() => setHover(n.id)} onMouseLeave={() => setHover(null)}>
+            <rect className="lg-node-rect" width={n.w} height={n.h}
+                  fill={n.fill} stroke={n.stroke} strokeWidth={n.ring ? 2 : 1.5} rx="6" ry="6" />
+            {n.ring && <rect width={n.w} height={n.h} rx="6" ry="6" fill="none"
+                             stroke={n.stroke} strokeWidth="4" strokeOpacity=".15" />}
+            <text x="10" y="18" className="lg-label" style={{fontSize:10,fontWeight:600}}>{n.label}</text>
+            <text x="10" y="32" className="lg-sublabel" style={{fontSize:9}}>{n.sub}</text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+function BatchTag({ status }) {
+  const map = { held:"tag-held", trace:"tag-trace", clear:"tag-clear" };
+  const lbl = { held:"Held", trace:"Trace", clear:"Clear" };
+  return <span className={`batch-tag ${map[status]||""}`}>{lbl[status]||status}</span>;
+}
+
+function RiskPill({ risk }) {
+  const map = { high:"risk-high", med:"risk-med", low:"risk-low", none:"risk-none" };
+  const lbl = { high:"High", med:"Medium", low:"Low", none:"Clear" };
+  return <span className={`risk-pill ${map[risk]||""}`}>{lbl[risk]||risk}</span>;
+}
+
+function InvestigationTab({ sel, setSel }) {
+  return (
+    <div className="inv-grid">
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div className="card">
+          <div className="card-head">
+            <span className="card-title">Affected batches</span>
+            <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--fg3)"}}>{BATCHES.length} in scope</span>
+          </div>
+          <div className="card-body" style={{padding:10}}>
+            <div className="batch-list">
+              {BATCHES.map(b => (
+                <div key={b.code} className={`batch-row${sel?.code===b.code?" sel":""}`} onClick={() => setSel(b)}>
+                  <span className="batch-code">{b.code}</span>
+                  <span className="batch-mat">{b.mat}</span>
+                  <BatchTag status={b.status} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        {sel ? (
+          <div className="card">
+            <div className="card-head">
+              <span className="card-title">{sel.code}</span>
+              <BatchTag status={sel.status} />
+            </div>
+            <div className="card-body">
+              <div className="detail-section">
+                <div className="detail-section-title">Batch details</div>
+                <dl className="dl">
+                  <dt>Material</dt><dd>{sel.mat}</dd>
+                  <dt>Quantity</dt><dd style={{fontFamily:"var(--mono)"}}>{sel.qty}</dd>
+                  <dt>Plant</dt><dd>{sel.plant}</dd>
+                  <dt>Supplier</dt><dd>{sel.supplier}</dd>
+                  <dt>Received</dt><dd style={{fontFamily:"var(--mono)"}}>{sel.received}</dd>
+                  <dt>Risk level</dt><dd><RiskPill risk={sel.risk} /></dd>
+                </dl>
+              </div>
+              <div className="detail-section">
+                <div className="detail-section-title">Recall confidence</div>
+                <div className="conf-row">
+                  <span className="conf-pct" style={{color:sel.risk==="high"?"#a83500":sel.risk==="med"?"#a07800":"#0e5c35"}}>
+                    {sel.risk==="high"?"92%":sel.risk==="med"?"74%":sel.risk==="low"?"31%":"< 5%"}
+                  </span>
+                  <div className="conf-bar-wrap">
+                    <div className="conf-bar-fill" style={{width:sel.risk==="high"?"92%":sel.risk==="med"?"74%":sel.risk==="low"?"31%":"5%"}} />
+                  </div>
+                </div>
+              </div>
+              <div className="detail-section">
+                <div className="detail-section-title">Recommended action</div>
+                <div style={{padding:"10px 12px",borderRadius:"var(--r)",background:sel.risk==="high"?"rgba(242,74,0,.06)":sel.risk==="med"?"rgba(249,194,10,.06)":"rgba(68,207,147,.06)",border:"1px solid",borderColor:sel.risk==="high"?"rgba(242,74,0,.2)":sel.risk==="med"?"rgba(249,194,10,.3)":"rgba(68,207,147,.25)",fontSize:12,color:"var(--fg)",lineHeight:1.5}}>
+                  {sel.risk==="high" && "⚠ Immediate hold and recall notification required. Do not dispatch. Contact FSM team."}
+                  {sel.risk==="med"  && "🔍 Precautionary hold in place. Trace investigation ongoing. Await QA sign-off."}
+                  {sel.risk==="low"  && "📋 Monitoring only — traceability confirmed but no direct contamination link. Review within 24h."}
+                  {sel.risk==="none" && "✅ No exposure in contamination chain. Normal operations may continue after sign-off."}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="card" style={{height:240}}>
+            <div className="empty-state">
+              <div className="empty-icon">🔍</div>
+              <div className="empty-lbl">Select a batch to view details</div>
+            </div>
+          </div>
+        )}
+
+        <div className="card">
+          <div className="card-head"><span className="card-title">Investigation timeline</span></div>
+          <div className="card-body">
+            <div className="timeline-events">
+              {TIMELINE.map((e,i) => (
+                <div key={i} className="tl-event">
+                  <div className={`tl-dot ${e.type}`}>{e.icon}</div>
+                  <div className="tl-body">
+                    <div className="tl-head">
+                      <span className="tl-label">{e.label}</span>
+                      <span className="tl-time">{e.time}</span>
+                    </div>
+                    <div className="tl-text">{e.text}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LineageTab() {
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:14,maxWidth:1400}}>
+      <div className="card">
+        <div className="card-head">
+          <span className="card-title">Contamination lineage graph</span>
+          <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--fg3)"}}>P-44810 contamination path · Beloit + Lismore</span>
+        </div>
+        <LineageGraph />
+      </div>
+    </div>
+  );
+}
+
+function MaterialFlowTab() {
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:14,maxWidth:1400}}>
+      <div className="card">
+        <div className="card-head">
+          <span className="card-title">Material flow trace</span>
+          <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--fg3)"}}>Supplier → Inbound → Processing → Distribution</span>
+        </div>
+        <div className="flow-stages">
+          {FLOW_STAGES.map((stage, si) => (
+            <React.Fragment key={si}>
+              {si > 0 && <div className="flow-arrow">→</div>}
+              <div className="flow-stage">
+                <div className="flow-stage-head">{stage.label}</div>
+                <div className="flow-stage-body">
+                  {stage.nodes.map((n, ni) => (
+                    <div key={ni} className={`flow-node${n.flagged?" flagged":""}`}>
+                      <div className="flow-node-code">{n.code}</div>
+                      <div className="flow-node-mat">{n.mat}</div>
+                      <div className="flow-node-qty">{n.qty}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExposureTab() {
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:14,maxWidth:1400}}>
+      <div className="card">
+        <div className="card-head">
+          <span className="card-title">Customer exposure matrix</span>
+          <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--fg3)"}}>8 customers · 3 risk levels</span>
+        </div>
+        <div style={{padding:"0 4px"}}>
+          <table className="exp-table">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Market</th>
+                <th>Batches</th>
+                <th>Volume</th>
+                <th>Risk</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {EXPOSURE_ROWS.map((r,i) => (
+                <tr key={i}>
+                  <td style={{fontWeight:600}}>{r.customer}</td>
+                  <td style={{color:"var(--fg2)"}}>{r.market}</td>
+                  <td style={{fontFamily:"var(--mono)",textAlign:"center"}}>{r.batches}</td>
+                  <td style={{fontFamily:"var(--mono)"}}>{r.vol}</td>
+                  <td><RiskPill risk={r.risk} /></td>
+                  <td style={{color:"var(--fg2)",fontSize:11}}>{r.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const TABS = [
+  { id:"investigation", label:"Investigation" },
+  { id:"lineage",       label:"Lineage Graph" },
+  { id:"flow",          label:"Material Flow" },
+  { id:"exposure",      label:"Exposure Matrix" },
+];
+
+function App() {
+  const [tab, setTab] = useState("investigation");
+  const [sel, setSel] = useState(BATCHES[0]);
+
+  const held  = BATCHES.filter(b => b.status === "held").length;
+  const trace = BATCHES.filter(b => b.status === "trace").length;
+
+  return (
+    <div className="app">
+      <div className="topbar">
+        <div className="topbar-brand">
+          <div className="topbar-kk">K</div>
+          <div>
+            <div className="topbar-name">Investigation Workspace</div>
+            <div className="topbar-eyebrow">Kerry ConnectIO · Food Safety Response</div>
+          </div>
+        </div>
+        <div className="topbar-right">
+          <div className="case-badge">
+            <div className="case-badge-dot" />
+            <span className="case-badge-lbl">Case {CASE.id} · P1 Active</span>
+          </div>
+          <div className="user-chip">
+            <div className="user-av">MK</div>
+            <div className="user-meta">
+              <div className="user-name">M. Kowalski</div>
+              <div className="user-role">QA Director · Beloit</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="case-header">
+        <div className="case-header-inner">
+          <div>
+            <div className="case-id">{CASE.id} · {CASE.severity}</div>
+            <div className="case-title">{CASE.title}</div>
+            <div className="case-sub">{CASE.sub}</div>
+          </div>
+          <div className="case-stats">
+            <div className="cstat">
+              <span className="cstat-val danger">{held}</span>
+              <span className="cstat-lbl">Batches held</span>
+            </div>
+            <div className="cstat">
+              <span className="cstat-val warn">{trace}</span>
+              <span className="cstat-lbl">Under trace</span>
+            </div>
+            <div className="cstat">
+              <span className="cstat-val good">{BATCHES.length}</span>
+              <span className="cstat-lbl">Total in scope</span>
+            </div>
+            <div className="cstat">
+              <span className="cstat-val">{CASE.recall_confidence}%</span>
+              <span className="cstat-lbl">Recall confidence</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="tab-nav">
+        {TABS.map(t => (
+          <button key={t.id} className={`tab-btn${tab===t.id?" active":""}`} onClick={() => setTab(t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="main">
+        <div className="panel-scroll">
+          {tab === "investigation" && <InvestigationTab sel={sel} setSel={setSel} />}
+          {tab === "lineage"       && <LineageTab />}
+          {tab === "flow"          && <MaterialFlowTab />}
+          {tab === "exposure"      && <ExposureTab />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

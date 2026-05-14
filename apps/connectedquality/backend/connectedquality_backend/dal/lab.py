@@ -1,7 +1,7 @@
 """Data-access helpers for the ConnectedQuality Lab Board."""
 from typing import Optional
 
-from connectedquality_backend.db import run_sql_async, sql_param, tbl
+from connectedquality_backend.db import CQ_CATALOG, run_sql_async, sql_param, tbl
 
 
 async def fetch_lab_failure_rows(token: str, *, plant_id: str, lot_type: Optional[str] = None) -> list[dict]:
@@ -41,7 +41,8 @@ async def fetch_lab_failure_rows(token: str, *, plant_id: str, lot_type: Optiona
                 WHEN ir.INSPECTION_RESULT_VALUATION LIKE 'W%' THEN 'W'
                 ELSE 'R'
             END                                                      AS judgement,
-            ud.USAGE_DECISION_CREATED_DATE                           AS result_ts
+            ud.USAGE_DECISION_CREATED_DATE                           AS result_ts,
+            po.INSPECTION_LOT_TYPE                                   AS lot_type
         FROM {tbl('vw_gold_inspection_result')} ir
         JOIN {tbl('vw_gold_process_order')} po
           ON po.PROCESS_ORDER_ID = ir.PROCESS_ORDER_ID
@@ -76,7 +77,6 @@ async def fetch_lab_plants(token: str) -> list[dict]:
     Returns:
         List of ``{plant_id, plant_name}`` dicts ordered by ``plant_id``.
     """
-    from connectedquality_backend.db import CQ_CATALOG
     q = f"""
         SELECT
             PLANT_ID   AS plant_id,
