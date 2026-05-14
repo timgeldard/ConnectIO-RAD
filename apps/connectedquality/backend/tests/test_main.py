@@ -165,28 +165,27 @@ def test_lab_plants_endpoint(mock_fetch_lab_plants):
 
 @patch("connectedquality_backend.routers.trace.fetch_top_down")
 @patch("connectedquality_backend.routers.trace.fetch_bottom_up")
-def test_trace_lineage_merges_upstream_and_downstream(mock_bottom_up, mock_top_down):
+def test_trace_lineage_returns_upstream_and_downstream(mock_bottom_up, mock_top_down):
     mat_id = test_data.material_id()
     b_id = test_data.batch_id()
-    mock_bottom_up.return_value = {
-        "max_depth": 2,
-        "nodes": [{"id": "raw"}, {"id": "fg"}],
-        "edges": [{"id": "raw-fg"}],
+    upstream_payload = {"header": {"material_id": mat_id}, "lineage": [{"level": 1}]}
+    downstream_payload = {
+        "header": {"material_id": mat_id},
+        "lineage": [{"level": 1}],
+        "countries": [],
+        "customers": [],
+        "deliveries": [],
     }
-    mock_top_down.return_value = {
-        "max_depth": 3,
-        "nodes": [{"id": "fg"}, {"id": "ship"}],
-        "edges": [{"id": "fg-ship"}],
-    }
+    mock_bottom_up.return_value = upstream_payload
+    mock_top_down.return_value = downstream_payload
 
     response = client.get(f"/api/cq/trace/lineage?material={mat_id}&batch={b_id}")
 
     assert response.status_code == 200
     data = response.json()
-    assert data["upstream_depth"] == 2
-    assert data["downstream_depth"] == 3
-    assert {node["id"] for node in data["nodes"]} == {"raw", "fg", "ship"}
-    assert {edge["id"] for edge in data["edges"]} == {"raw-fg", "fg-ship"}
+    assert data["batch"] == b_id
+    assert data["upstream"] == upstream_payload
+    assert data["downstream"] == downstream_payload
 
 
 @patch("connectedquality_backend.routers.trace.fetch_mass_balance")
