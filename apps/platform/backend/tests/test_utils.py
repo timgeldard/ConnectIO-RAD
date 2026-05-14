@@ -10,8 +10,10 @@ import pytest
 
 from backend.utils import (
     ArtifactTracker,
+    PLATFORM_BACKEND_PACKAGES,
     RequiredArtifactMissing,
     _optional_attr,
+    discover_app_routers,
     discover_active_modules,
     get_missing_optional_artifacts,
 )
@@ -98,6 +100,32 @@ def test_default_tracker_shim_still_works():
     """
     _optional_attr("definitely_not_a_real_module_via_shim", "router", required=False)
     assert "definitely_not_a_real_module_via_shim" in get_missing_optional_artifacts()
+
+
+def test_platform_backend_packages_include_required_runtime_modules():
+    """Runtime router registration uses packaged modules, not deployed source files."""
+    assert PLATFORM_BACKEND_PACKAGES == [
+        "connectedquality_backend",
+        "envmon_backend",
+        "processorderhistory_backend",
+        "spc_backend",
+        "trace2_backend",
+        "warehouse360_backend",
+    ]
+
+
+def test_platform_backend_packages_register_poh_post_routes():
+    """The packaged POH backend exposes the POST routes that were 405ing."""
+    routers = discover_app_routers(PLATFORM_BACKEND_PACKAGES)
+
+    registered: dict[str, set[str]] = {}
+    for router, prefix, _tags in routers:
+        for route in router.routes:
+            path = f"{prefix}{route.path}"
+            registered.setdefault(path, set()).update(getattr(route, "methods", set()))
+
+    assert "POST" in registered["/api/poh/orders"]
+    assert "POST" in registered["/api/poh/pours/analytics"]
 
 
 def test_discover_active_modules_uses_backend_pyproject_when_deploy_omits_backend_project(tmp_path):

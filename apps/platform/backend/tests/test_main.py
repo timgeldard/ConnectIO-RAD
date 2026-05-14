@@ -20,6 +20,7 @@ def test_routers_health_lists_registered_routes():
     assert response.status_code == 200
     body = response.json()
     assert body["registered_count"] > 0
+    assert "processorderhistory_backend" in body["active_modules"]
     assert isinstance(body["registered"], list)
     assert any(path.startswith("/api/cq") for path in body["registered"])
     assert any(path == "/api/batch-header" for path in body["registered"])
