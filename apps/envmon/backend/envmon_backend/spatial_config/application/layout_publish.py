@@ -10,6 +10,7 @@ test_architecture_boundaries).
 
 from __future__ import annotations
 
+import asyncio
 import json
 import uuid
 from datetime import datetime, timezone
@@ -25,6 +26,7 @@ from envmon_backend.spatial_config.dal.revisions import (
     create_revision,
     fetch_active_revision,
     fetch_draft_revision,
+    fetch_revision,
     fetch_revisions,
     set_active_revision,
     supersede_active_revision,
@@ -219,35 +221,31 @@ async def publish_layout(
     # Set active_revision_id on the floor row
     await set_active_revision(token, plant_id, floor_id, revision_id)
 
-    # Stamp coordinate rows with zone assignment from this revision
+    # Stamp all coordinate rows with zone assignment in a single bulk MERGE
     coord_rows = await coordinates_dal.fetch_studio_coordinates(token, plant_id, floor_id)
+    issues_by_subject = {}
+    for issue in validation.issues:
+        if issue.subject_id:
+            issues_by_subject.setdefault(issue.subject_id, []).append(issue)
+
+    coord_updates = []
     for coord in coord_rows:
         func_loc_id = coord["func_loc_id"]
-        parent_zone_id = coord.get("parent_zone_id")
-
-        # Determine per-coord validation outcome from the result
-        coord_issues = [
-            i for i in validation.issues
-            if i.subject_id == func_loc_id
-        ]
+        coord_issues = issues_by_subject.get(func_loc_id, [])
         has_error = any(i.severity == "blocking_error" for i in coord_issues)
         has_warning = any(i.severity == "warning" for i in coord_issues)
-        v_status = "error" if has_error else ("warning" if has_warning else "ok")
-        v_messages = json.dumps([i.message for i in coord_issues]) if coord_issues else None
+        coord_updates.append({
+            "func_loc_id": func_loc_id,
+            "parent_zone_id": coord.get("parent_zone_id"),
+            "revision_id": revision_id,
+            "placement_source": coord.get("placement_source") or "manual",
+            "validation_status": "error" if has_error else ("warning" if has_warning else "ok"),
+            "validation_messages_json": json.dumps([i.message for i in coord_issues]) if coord_issues else None,
+        })
 
-        await coordinates_dal.update_coordinate_zone_assignment(
-            token,
-            plant_id=plant_id,
-            func_loc_id=func_loc_id,
-            parent_zone_id=parent_zone_id,
-            revision_id=revision_id,
-            placement_source=coord.get("placement_source") or "manual",
-            validation_status=v_status,
-            validation_messages_json=v_messages,
-        )
+    await coordinates_dal.bulk_update_coordinate_zone_assignments(token, plant_id, updates=coord_updates)
 
     # Return the now-published revision
-    from envmon_backend.spatial_config.dal.revisions import fetch_revision  # avoid circular at module level
     rows = await fetch_revision(token, revision_id)
     return _revision_from_row(rows[0])
 
@@ -372,7 +370,6 @@ async def _load_layout_data(
     Returns:
         ``(zone_rows, coord_rows)`` tuple.
     """
-    import asyncio
     zone_rows, coord_rows = await asyncio.gather(
         zones_dal.fetch_zones(token, plant_id, floor_id, revision_id),
         coordinates_dal.fetch_studio_coordinates(token, plant_id, floor_id),

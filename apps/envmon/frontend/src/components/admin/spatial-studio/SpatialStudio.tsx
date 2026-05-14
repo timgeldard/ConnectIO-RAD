@@ -9,6 +9,7 @@
  */
 
 import { useState } from 'react';
+import { useI18n } from '@connectio/shared-frontend-i18n';
 import { useEM } from '~/context/EMContext';
 import { useFloors } from '~/api/client';
 import StudioShell from './StudioShell';
@@ -16,6 +17,7 @@ import type { FloorInfo } from '~/types';
 
 /** Spatial Studio page — floor selector + authoring shell. */
 export default function SpatialStudio() {
+  const { t } = useI18n();
   const { view } = useEM();
   const plantId = view.plantId;
 
@@ -25,7 +27,7 @@ export default function SpatialStudio() {
   if (!plantId) {
     return (
       <div style={centreStyle}>
-        <div style={promptStyle}>Select a plant to open Spatial Studio.</div>
+        <div style={promptStyle}>{t('envmon.studio.selectPlant')}</div>
       </div>
     );
   }
@@ -33,7 +35,7 @@ export default function SpatialStudio() {
   if (isLoading) {
     return (
       <div style={centreStyle}>
-        <div style={promptStyle}>Loading floors…</div>
+        <div style={promptStyle}>{t('envmon.studio.loadingFloors')}</div>
       </div>
     );
   }
@@ -41,9 +43,7 @@ export default function SpatialStudio() {
   if (floors.length === 0) {
     return (
       <div style={centreStyle}>
-        <div style={promptStyle}>
-          No floors configured for this plant. Add floors in the Coordinate Mapper first.
-        </div>
+        <div style={promptStyle}>{t('envmon.studio.noFloors')}</div>
       </div>
     );
   }
@@ -52,7 +52,7 @@ export default function SpatialStudio() {
     return (
       <div style={{ padding: 32 }}>
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 16 }}>
-          Spatial Studio · Select a floor
+          {t('envmon.studio.selectFloor')}
         </div>
         <div
           style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}
@@ -106,12 +106,12 @@ export default function SpatialStudio() {
           style={{ fontSize: 12 }}
           aria-label="Back to floor selector"
         >
-          ← Floors
+          {t('envmon.studio.backToFloors')}
         </button>
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>
           {selectedFloor?.floor_name ?? selectedFloorId}
         </span>
-        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Spatial Studio</span>
+        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{t('envmon.studio.label')}</span>
       </div>
 
       <div style={{ flex: 1, overflow: 'hidden' }}>

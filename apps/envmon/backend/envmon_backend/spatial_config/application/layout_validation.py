@@ -7,6 +7,7 @@ checks, and returns a :class:`ValidationResult`. Must not import ``fastapi``
 
 from __future__ import annotations
 
+import asyncio
 import json
 import math
 from dataclasses import dataclass, field
@@ -144,9 +145,11 @@ async def validate_draft_layout(
     """
     result = ValidationResult()
 
-    # --- Load data ---
-    zone_rows = await zones_dal.fetch_zones(token, plant_id, floor_id, revision_id)
-    coord_rows = await coordinates_dal.fetch_studio_coordinates(token, plant_id, floor_id)
+    # --- Load data concurrently ---
+    zone_rows, coord_rows = await asyncio.gather(
+        zones_dal.fetch_zones(token, plant_id, floor_id, revision_id),
+        coordinates_dal.fetch_studio_coordinates(token, plant_id, floor_id),
+    )
 
     zone_by_id = {z["zone_id"]: z for z in zone_rows}
 
@@ -264,7 +267,6 @@ async def validate_draft_layout(
             ))
 
     # --- Warnings: L5 near boundary ---
-    NEAR_BOUNDARY_THRESHOLD_PCT = 2.0
     for coord in coord_rows:
         parent_zone_id = coord.get("parent_zone_id")
         x = float(coord["x_pos"]) if coord.get("x_pos") is not None else None
@@ -294,6 +296,10 @@ async def validate_draft_layout(
             ))
 
     return result
+
+
+NEAR_BOUNDARY_THRESHOLD_PCT: float = 2.0
+"""L5 points within this many percentage units of their zone boundary trigger a warning."""
 
 
 def _zone_has_valid_geometry(zone_row: dict) -> bool:

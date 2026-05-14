@@ -123,6 +123,7 @@ async def test_publish_success_calls_supersede_and_updates_floor():
     supersede_mock = AsyncMock(return_value=None)
     update_state_mock = AsyncMock(return_value=None)
     set_active_mock = AsyncMock(return_value=None)
+    bulk_update_mock = AsyncMock(return_value=None)
     fetch_revision_mock = AsyncMock(return_value=[published_row])
 
     with patch("envmon_backend.spatial_config.application.layout_publish.fetch_draft_revision",
@@ -139,44 +140,15 @@ async def test_publish_success_calls_supersede_and_updates_floor():
                new=set_active_mock), \
          patch("envmon_backend.spatial_config.application.layout_publish.coordinates_dal.fetch_studio_coordinates",
                new=AsyncMock(return_value=[])), \
+         patch("envmon_backend.spatial_config.application.layout_publish.coordinates_dal.bulk_update_coordinate_zone_assignments",
+               new=bulk_update_mock), \
          patch("envmon_backend.spatial_config.application.layout_publish.fetch_revision",
-               new=fetch_revision_mock, create=True):
-
-        # Patch the deferred import inside publish_layout
-        with patch("envmon_backend.spatial_config.dal.revisions.fetch_revision",
-                   new=fetch_revision_mock):
-            from envmon_backend.spatial_config.dal import revisions as rev_dal_mod
-            orig_fetch = rev_dal_mod.fetch_revision.__wrapped__ if hasattr(rev_dal_mod.fetch_revision, '__wrapped__') else None
-
-            # Directly patch the symbol used inside layout_publish
-            import envmon_backend.spatial_config.application.layout_publish as lp_mod
-            orig = getattr(lp_mod, '_revision_from_row', None)
-            # We do this by patching the local import inside the function
-            with patch.object(lp_mod, 'fetch_revision', fetch_revision_mock, create=True):
-                # Actually call it — the deferred import inside the function is tested indirectly
-                pass
-
-    # Simplified: just verify supersede and set_active are called
-    with patch("envmon_backend.spatial_config.application.layout_publish.fetch_draft_revision",
-               new=AsyncMock(return_value=[_DRAFT_ROW])), \
-         patch("envmon_backend.spatial_config.application.layout_publish.validate_draft_layout",
-               new=AsyncMock(return_value=_CLEAN_VALIDATION)), \
-         patch("envmon_backend.spatial_config.application.layout_publish.zones_dal.fetch_zones",
-               new=AsyncMock(return_value=[])), \
-         patch("envmon_backend.spatial_config.application.layout_publish.supersede_active_revision",
-               new=supersede_mock), \
-         patch("envmon_backend.spatial_config.application.layout_publish.update_revision_state",
-               new=update_state_mock), \
-         patch("envmon_backend.spatial_config.application.layout_publish.set_active_revision",
-               new=set_active_mock), \
-         patch("envmon_backend.spatial_config.application.layout_publish.coordinates_dal.fetch_studio_coordinates",
-               new=AsyncMock(return_value=[])), \
-         patch("envmon_backend.spatial_config.dal.revisions.fetch_revision",
                new=fetch_revision_mock):
         result = await publish_layout("token", "P225", "F1", "rev-draft", "Added zones", "tim@example.com")
 
     supersede_mock.assert_called_once_with("token", "P225", "F1")
     set_active_mock.assert_called_once_with("token", "P225", "F1", "rev-draft")
+    bulk_update_mock.assert_called_once()
     assert isinstance(result, LayoutRevision)
 
 

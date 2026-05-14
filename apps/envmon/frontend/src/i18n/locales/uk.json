@@ -1,4 +1,4 @@
-{
+﻿{
   "envmon.action.admin": "Адмін",
   "envmon.action.exitAdmin": "Вийти з адмін-панелі",
   "envmon.admin.canvas.floorPlanAlt": "План {{floor}}",
@@ -155,3 +155,4 @@
   "envmon.trend.upperLimit": "Верхня межа допуску: {{n}}",
   "envmon.trend.windowLabel": "Вікно"
 }
+

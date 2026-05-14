@@ -1,4 +1,4 @@
-{
+﻿{
   "envmon.action.admin": "管理",
   "envmon.action.exitAdmin": "退出管理",
   "envmon.admin.canvas.floorPlanAlt": "{{floor}} 平面图",
@@ -155,3 +155,4 @@
   "envmon.trend.upperLimit": "容差上限: {{n}}",
   "envmon.trend.windowLabel": "窗口"
 }
+

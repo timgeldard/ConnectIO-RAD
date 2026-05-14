@@ -1,4 +1,4 @@
-{
+﻿{
   "envmon.action.admin": "管理者",
   "envmon.action.exitAdmin": "管理者終了",
   "envmon.admin.canvas.floorPlanAlt": "{{floor}} プラン",
@@ -155,3 +155,4 @@
   "envmon.trend.upperLimit": "許容上限値: {{n}}",
   "envmon.trend.windowLabel": "ウィンドウ"
 }
+

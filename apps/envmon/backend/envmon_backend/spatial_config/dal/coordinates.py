@@ -187,51 +187,65 @@ async def fetch_studio_coordinates(token: str, plant_id: str, floor_id: str) -> 
     return await run_sql_async(token, sql, params)
 
 
-async def update_coordinate_zone_assignment(
+async def bulk_update_coordinate_zone_assignments(
     token: str,
     plant_id: str,
-    func_loc_id: str,
-    parent_zone_id: str | None,
-    revision_id: str | None,
-    placement_source: str,
-    validation_status: str,
-    validation_messages_json: str | None,
+    *,
+    updates: list[dict],
 ) -> None:
-    """Update zone assignment and validation metadata for a coordinate row.
+    """Stamp zone assignment and validation metadata for all coordinates in a single MERGE.
 
-    Called by the publish workflow to stamp each coordinate with its zone
-    assignment and validation outcome from the draft revision being published.
+    Replaces the per-row ``UPDATE`` loop used during publish with one SQL
+    statement, eliminating the N+1 query pattern.
+
+    Each entry in *updates* must contain:
+        ``func_loc_id``, ``parent_zone_id`` (or ``None``),
+        ``revision_id`` (or ``None``), ``placement_source``,
+        ``validation_status``, ``validation_messages_json`` (or ``None``).
 
     Args:
         token: Databricks access token.
-        plant_id: SAP plant code.
-        func_loc_id: Functional location identifier.
-        parent_zone_id: UUID of the L4 zone, or None if unassigned.
-        revision_id: UUID of the published revision, or None.
-        placement_source: How the coordinate was placed (e.g. ``'manual'``).
-        validation_status: ``'ok'``, ``'warning'``, or ``'error'``.
-        validation_messages_json: JSON array of issue descriptions, or None.
+        plant_id: SAP plant code — used to scope the MERGE target.
+        updates: List of per-coordinate update dicts.  No-op when empty.
     """
-    params = [
-        sql_param("plant_id",                  plant_id),
-        sql_param("func_loc_id",               func_loc_id),
-        sql_param("parent_zone_id",            parent_zone_id),
-        sql_param("revision_id",               revision_id),
-        sql_param("placement_source",          placement_source),
-        sql_param("validation_status",         validation_status),
-        sql_param("validation_messages_json",  validation_messages_json),
-    ]
+    if not updates:
+        return
+
+    params = [sql_param("plant_id", plant_id)]
+    select_rows: list[str] = []
+    for i, upd in enumerate(updates):
+        params.extend([
+            sql_param(f"func_loc_id_{i}",              upd["func_loc_id"]),
+            sql_param(f"parent_zone_id_{i}",           upd.get("parent_zone_id")),
+            sql_param(f"revision_id_{i}",              upd.get("revision_id")),
+            sql_param(f"placement_source_{i}",         upd.get("placement_source", "manual")),
+            sql_param(f"validation_status_{i}",        upd.get("validation_status", "ok")),
+            sql_param(f"validation_messages_json_{i}", upd.get("validation_messages_json")),
+        ])
+        select_rows.append(
+            f"SELECT :func_loc_id_{i}              AS func_loc_id,"
+            f"       :parent_zone_id_{i}           AS parent_zone_id,"
+            f"       :revision_id_{i}              AS revision_id,"
+            f"       :placement_source_{i}         AS placement_source,"
+            f"       :validation_status_{i}        AS validation_status,"
+            f"       :validation_messages_json_{i} AS validation_messages_json"
+        )
+
+    source_sql = "\n        UNION ALL\n        ".join(select_rows)
     sql = f"""
-        UPDATE {COORD_TBL}
-        SET
-            parent_zone_id           = :parent_zone_id,
-            revision_id              = :revision_id,
-            placement_source         = :placement_source,
-            validation_status        = :validation_status,
-            validation_messages_json = :validation_messages_json,
-            updated_by               = CURRENT_USER(),
-            updated_at               = CURRENT_TIMESTAMP()
-        WHERE plant_id    = :plant_id
-          AND func_loc_id = :func_loc_id
+        MERGE INTO {COORD_TBL} AS target
+        USING (
+            {source_sql}
+        ) AS source
+        ON  target.plant_id    = :plant_id
+        AND target.func_loc_id = source.func_loc_id
+        WHEN MATCHED THEN UPDATE SET
+            target.parent_zone_id           = source.parent_zone_id,
+            target.revision_id              = source.revision_id,
+            target.placement_source         = source.placement_source,
+            target.validation_status        = source.validation_status,
+            target.validation_messages_json = source.validation_messages_json,
+            target.updated_by               = CURRENT_USER(),
+            target.updated_at               = CURRENT_TIMESTAMP()
     """
     await run_sql_async(token, sql, params)

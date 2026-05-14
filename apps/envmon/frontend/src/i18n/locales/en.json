@@ -1,4 +1,4 @@
-{
+﻿{
   "envmon.product.tag": "Kerry",
   "envmon.nav.allPlants": "All plants",
   "envmon.nav.portfolio": "Portfolio overview",
@@ -153,5 +153,12 @@
   "envmon.floorPlan.legend.pend": "PEND",
   "envmon.floorPlan.legend.pass": "PASS",
   "envmon.floorPlan.legend.na": "N/A",
-  "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap"
+  "envmon.floorPlan.emptyState": "Please select a floor to view the heatmap",
+  "envmon.studio.selectPlant": "Select a plant to open Spatial Studio.",
+  "envmon.studio.loadingFloors": "Loading floors…",
+  "envmon.studio.noFloors": "No floors configured for this plant. Add floors in the Coordinate Mapper first.",
+  "envmon.studio.selectFloor": "Spatial Studio · Select a floor",
+  "envmon.studio.backToFloors": "← Floors",
+  "envmon.studio.label": "Spatial Studio"
 }
+

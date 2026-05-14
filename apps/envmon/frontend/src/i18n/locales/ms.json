@@ -1,4 +1,4 @@
-{
+﻿{
   "envmon.action.admin": "Admin",
   "envmon.action.exitAdmin": "Keluar admin",
   "envmon.admin.canvas.floorPlanAlt": "Pelan {{floor}}",
@@ -155,3 +155,4 @@
   "envmon.trend.upperLimit": "Had toleransi atas: {{n}}",
   "envmon.trend.windowLabel": "Tetingkap"
 }
+
