@@ -331,8 +331,9 @@ function Legend() {
 }
 
 function BlockDrawer({ block, onClose }: { block: DayBlock; onClose: () => void }) {
+  const { t } = useT()
   const { navigateToOrder } = usePohNavigation()
-  const kindLabel = block.kind === 'running' ? 'Running' : block.kind === 'completed' ? 'Completed' : 'On hold'
+  const kindLabel = block.kind === 'running' ? t.statusRunning : block.kind === 'completed' ? t.statusCompleted : t.statusOnhold
   const rows = [
     ['Process order', block.poId],
     ['Line', block.lineId],
