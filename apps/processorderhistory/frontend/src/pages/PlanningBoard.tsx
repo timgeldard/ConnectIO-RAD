@@ -10,6 +10,7 @@ import {
   type IconName
 } from '@connectio/shared-ui'
 import { fetchPlanningSchedule } from '../api/planning'
+import type { Strings } from '../i18n/dictionary'
 import { usePohNavigation } from '../navigation'
 
 const HOUR = 3600 * 1000;
@@ -68,6 +69,40 @@ interface BlockData {
   requiresLine: string;
   priority: 'urgent' | 'high' | 'normal';
   due: number;
+}
+
+interface PlanningBlock extends BlockData {
+  materialId?: string;
+  materials?: unknown;
+  category?: string;
+}
+
+interface BacklogItem extends PlanningBlock {
+  category?: string;
+  poId: string;
+  qty: number;
+}
+
+interface BlockDetailDrawerProps {
+  /** Schedule block selected from the planning board. */
+  block: PlanningBlock;
+  /** Close the detail drawer. */
+  onClose: () => void;
+  /** Localized copy used by the planning board. */
+  t: Strings;
+}
+
+interface BacklogRailProps {
+  /** Backlog items waiting to be scheduled. */
+  backlog: BacklogItem[];
+  /** Current timestamp used for relative due labels. */
+  NOW: number;
+  /** Currently hovered backlog item. */
+  hovered: BacklogItem | null;
+  /** Update the hovered backlog item. */
+  setHovered: (item: BacklogItem | null) => void;
+  /** Localized copy used by the planning board. */
+  t: Strings;
 }
 
 // =====================================================
@@ -538,7 +573,12 @@ function BacklogPreview({ block, pxPerHour, laneStart, now }: any) {
 // =====================================================
 // Block detail drawer
 // =====================================================
-function BlockDetailDrawer({ block, onClose, t }: any) {
+/**
+ * Renders operational metadata and actions for the selected planning block.
+ *
+ * @returns Slide-out block detail drawer.
+ */
+function BlockDetailDrawer({ block, onClose, t }: BlockDetailDrawerProps) {
   const { navigateToOrder } = usePohNavigation();
   const isOp = block.kind !== 'changeover' && block.kind !== 'cleaning' && block.kind !== 'maintenance' && block.kind !== 'downtime';
   const isDowntime = block.kind === 'downtime';
@@ -642,7 +682,12 @@ function BlockDetailDrawer({ block, onClose, t }: any) {
 // =====================================================
 // Backlog rail
 // =====================================================
-function BacklogRail({ backlog, NOW, hovered, setHovered, t }: any) {
+/**
+ * Renders unscheduled backlog items alongside the planning board.
+ *
+ * @returns Backlog rail with open-order navigation actions.
+ */
+function BacklogRail({ backlog, NOW, hovered, setHovered, t }: BacklogRailProps) {
   const { navigateToOrder } = usePohNavigation();
   const sorted = useMemo(() => {
     const order: Record<string, number> = { urgent: 0, high: 1, normal: 2 };
@@ -670,7 +715,7 @@ function BacklogRail({ backlog, NOW, hovered, setHovered, t }: any) {
       </div>
 
       <div className="backlog-list" style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {sorted.map((item: any) => {
+        {sorted.map((item) => {
           const isHovered = hovered?.id === item.id;
           return (
             <div
