@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc */
+﻿/* eslint-disable jsdoc/require-jsdoc */
 import type { ConnectIOModule } from '@connectio/shared-ui/shell'
 
 export const MODULES: ConnectIOModule[] = [
@@ -366,7 +366,7 @@ export const MODULES: ConnectIOModule[] = [
     isUserSelectable: true,
     isPinnedByDefault: true,
     isMandatory: false,
-    backendPrefix: '/api',
+    backendPrefix: '/api/poh',
   },
   {
     moduleId: 'planning-board',
@@ -396,7 +396,7 @@ export const MODULES: ConnectIOModule[] = [
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,
-    backendPrefix: '/api',
+    backendPrefix: '/api/poh',
   },
   {
     moduleId: 'vessel-planning',
@@ -426,7 +426,7 @@ export const MODULES: ConnectIOModule[] = [
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,
-    backendPrefix: '/api',
+    backendPrefix: '/api/poh',
   },
   {
     moduleId: 'pours',
@@ -456,7 +456,7 @@ export const MODULES: ConnectIOModule[] = [
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,
-    backendPrefix: '/api',
+    backendPrefix: '/api/poh',
   },
   {
     moduleId: 'day-view',
@@ -486,7 +486,7 @@ export const MODULES: ConnectIOModule[] = [
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,
-    backendPrefix: '/api',
+    backendPrefix: '/api/poh',
   },
   {
     moduleId: 'yield',
@@ -516,7 +516,7 @@ export const MODULES: ConnectIOModule[] = [
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,
-    backendPrefix: '/api',
+    backendPrefix: '/api/poh',
   },
   {
     moduleId: 'quality-analytics',
@@ -546,7 +546,7 @@ export const MODULES: ConnectIOModule[] = [
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,
-    backendPrefix: '/api',
+    backendPrefix: '/api/poh',
   },
   {
     moduleId: 'equipment-insights',
@@ -576,7 +576,7 @@ export const MODULES: ConnectIOModule[] = [
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,
-    backendPrefix: '/api',
+    backendPrefix: '/api/poh',
   },
   {
     moduleId: 'equipment-insights-2',
@@ -606,7 +606,7 @@ export const MODULES: ConnectIOModule[] = [
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,
-    backendPrefix: '/api',
+    backendPrefix: '/api/poh',
   },
   {
     moduleId: 'pi-sheet',
@@ -668,7 +668,7 @@ export const MODULES: ConnectIOModule[] = [
     isUserSelectable: true,
     isPinnedByDefault: false,
     isMandatory: false,
-    backendPrefix: '/api',
+    backendPrefix: '/api/poh',
   },
 
   {
