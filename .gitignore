@@ -16,6 +16,8 @@ node_modules/
 **/coverage/
 **/.nx/cache/
 **/sql/views/rendered/
+graph.json
+interrogate_badge.svg
 
 # Shared lib copies staged for Databricks Apps bundle deploy
 apps/*/shared_api/

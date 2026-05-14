@@ -36,7 +36,7 @@ The **[Developer Portal](./docs/INDEX.md)** is your main entry point for the pro
 ## 🛠️ Stack at a Glance
 
 - **Backend**: Python 3.11+ / FastAPI / Databricks SQL.
-- **Frontend**: React 19 / TypeScript / Vite.
+- **Frontend**: React 18.3.1 / TypeScript / Vite.
 - **Orchestration**: Nx (Monorepo Tooling).
 - **Data**: Unity Catalog / Medallion Architecture.
 
