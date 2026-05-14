@@ -1,7 +1,9 @@
 """Tests for the platform shell — health, readiness, and router inventory."""
 
+import asyncio
 from fastapi.testclient import TestClient
 
+from backend import main
 from backend.main import app
 
 
@@ -36,3 +38,22 @@ def test_routers_health_lists_registered_routes():
     # Required-artifact failures abort startup, so by definition no required
     # artifacts can be missing here. Optional artifacts may still be empty.
     assert isinstance(body["missing_optional"], dict)
+
+
+def test_ready_preserves_upstream_failure_status(monkeypatch):
+    """Backend degradation must not hide a more severe SQL readiness status."""
+
+    async def fake_ready(**_kwargs):
+        return {"status": "error", "checks": {"sql_warehouse": "failed"}}
+
+    monkeypatch.setattr(main, "databricks_sql_ready", fake_ready)
+    monkeypatch.setattr(
+        main,
+        "get_missing_optional_artifacts",
+        lambda: {next(iter(main.REQUIRED_PLATFORM_ROUTER_PACKAGES)): "missing"},
+    )
+
+    body = asyncio.run(main.ready())
+
+    assert body["status"] == "error"
+    assert "backends" in body["checks"]

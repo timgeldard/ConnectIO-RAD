@@ -56,6 +56,7 @@ const EMContext = createContext<(EMState & EMActions) | null>(null);
 const EM_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const EM_SESSION_KEYS = ['em_view', 'em_persona', 'em_portfolio_days'] as const;
 
+/** Stored session value wrapped with an absolute expiry timestamp. */
 interface StoredValue<T> {
   value: T;
   expiresAt: number;
@@ -67,6 +68,7 @@ function readSearchParam<T extends string>(key: string, fallback: T, valid: T[])
   return v && valid.includes(v) ? v : fallback;
 }
 
+/** Clear all Environmental Monitoring session state from browser storage. */
 function clearEMSessionState() {
   if (typeof window === 'undefined') return;
   for (const key of EM_SESSION_KEYS) {
@@ -74,21 +76,44 @@ function clearEMSessionState() {
   }
 }
 
+/**
+ * Read a TTL-bound value from session storage.
+ *
+ * @param key - Session storage key.
+ * @param fallback - Value to use when the key is missing, expired, or malformed.
+ * @returns The stored value when valid, otherwise the fallback.
+ */
 function readSessionStorage<T>(key: string, fallback: T): T {
   try {
     const raw = window.sessionStorage.getItem(key);
     if (raw === null) return fallback;
-    const parsed = JSON.parse(raw) as StoredValue<T>;
+    const parsed = JSON.parse(raw) as Partial<StoredValue<T>> | null;
+    if (
+      parsed === null ||
+      typeof parsed !== 'object' ||
+      typeof parsed.expiresAt !== 'number' ||
+      !Number.isFinite(parsed.expiresAt) ||
+      !('value' in parsed)
+    ) {
+      window.sessionStorage.removeItem(key);
+      return fallback;
+    }
     if (parsed.expiresAt <= Date.now()) {
       window.sessionStorage.removeItem(key);
       return fallback;
     }
-    return parsed.value;
+    return parsed.value as T;
   } catch {
     return fallback;
   }
 }
 
+/**
+ * Write a TTL-bound value to session storage.
+ *
+ * @param key - Session storage key.
+ * @param value - Value to persist.
+ */
 function writeSessionStorage<T>(key: string, value: T) {
   try {
     const payload: StoredValue<T> = {
@@ -101,6 +126,13 @@ function writeSessionStorage<T>(key: string, value: T) {
   }
 }
 
+/**
+ * Provide Environmental Monitoring UI state and navigation actions.
+ *
+ * @param props - Provider props.
+ * @param props.children - Descendant components that consume the EM context.
+ * @returns The EM context provider tree.
+ */
 export function EMProvider({ children }: { children: React.ReactNode }) {
   const { selectedPlantId, setSelectedPlantId } = usePlantSelection();
 

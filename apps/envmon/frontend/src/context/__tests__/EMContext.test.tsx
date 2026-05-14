@@ -70,6 +70,16 @@ describe('EMContext', () => {
     expect(sessionStorage.getItem('em_view')).toBeNull()
   })
 
+  it('ignores malformed session state', () => {
+    sessionStorage.setItem('em_persona', JSON.stringify({ value: 'site', expiresAt: 'later' }))
+    const wrapper = ({ children }: { children: ReactNode }) => <EMProvider>{children}</EMProvider>
+
+    const { result } = renderHook(() => useEM(), { wrapper })
+
+    expect(result.current.personaId).toBe('regional')
+    expect(sessionStorage.getItem('em_persona')).toBeNull()
+  })
+
   it('updates active floor and syncs url', () => {
     const wrapper = ({ children }: { children: ReactNode }) => <EMProvider>{children}</EMProvider>
     const { result } = renderHook(() => useEM(), { wrapper })

@@ -50,7 +50,14 @@ async def fetch_active_plant_ids(token: str) -> list[str]:
 
 
 def _plant_id_in_clause(plant_ids: list[str]) -> tuple[str, list[dict]]:
-    """Build a parameterized IN clause for a list of plant IDs."""
+    """Build a parameterized IN clause for a list of plant IDs.
+
+    Args:
+        plant_ids: Plant IDs to include in the SQL predicate.
+
+    Returns:
+        Tuple of SQL placeholder fragment and matching named parameters.
+    """
     fragment, params = run_sql_in(plant_ids)
     return f"({fragment})", params
 

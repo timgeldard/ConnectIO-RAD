@@ -27,14 +27,22 @@ if "shared_db" not in sys.modules:
     def _noop_sync(*args, **kwargs):  # type: ignore[return]
         return []
 
+    def _typed_param(name, value):  # type: ignore[no-untyped-def]
+        if value is None:
+            return {"name": name, "value": None, "type": "STRING"}
+        if isinstance(value, bool):
+            return {"name": name, "value": str(value), "type": "BOOLEAN"}
+        if isinstance(value, int):
+            return {"name": name, "value": str(value), "type": "INT"}
+        if isinstance(value, float):
+            return {"name": name, "value": str(value), "type": "DOUBLE"}
+        return {"name": name, "value": str(value), "type": "STRING"}
+
     def _run_sql_in(values, *, prefix="p"):  # type: ignore[no-untyped-def]
         if not values:
             return "NULL", []
         placeholders = ", ".join(f":{prefix}{idx}" for idx in range(len(values)))
-        params = [
-            {"name": f"{prefix}{idx}", "value": value, "type": "STRING"}
-            for idx, value in enumerate(values)
-        ]
+        params = [_typed_param(f"{prefix}{idx}", value) for idx, value in enumerate(values)]
         return placeholders, params
 
     class _TTLCache:  # type: ignore[no-untyped-def]
@@ -82,7 +90,7 @@ if "shared_db" not in sys.modules:
         tbl=lambda *a, **k: a[0] if a else "test_table",
         check_warehouse_config=_noop_sync,
         resolve_token=lambda *a, **k: "test-token",
-        sql_param=lambda name, value: {"name": name, "value": value, "type": "STRING"},
+        sql_param=_typed_param,
         run_sql_in=_run_sql_in,
         TTLCache=_TTLCache,
     )

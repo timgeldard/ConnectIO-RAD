@@ -166,14 +166,28 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Attach conservative security headers to every response."""
 
     def __init__(self, app: ASGIApp) -> None:
-        """Initialize middleware with environment-controlled strict headers."""
+        """Initialize middleware with environment-controlled strict headers.
+
+        Args:
+            app: ASGI application instance.
+        """
         super().__init__(app)
-        self.strict_headers_enabled = os.environ.get(
+        app_env = os.environ.get("APP_ENV", "").strip().lower()
+        disable_strict = os.environ.get(
             "APP_DISABLE_STRICT_SECURITY_HEADERS", ""
-        ).strip().lower() not in {"1", "true", "yes", "on"}
+        ).strip().lower() in {"1", "true", "yes", "on"}
+        self.strict_headers_enabled = app_env == "production" or not disable_strict
 
     async def dispatch(self, request: Request, call_next):
-        """Attach headers after downstream processing completes."""
+        """Attach headers after downstream processing completes.
+
+        Args:
+            request: Incoming HTTP request.
+            call_next: Next middleware or endpoint handler in the chain.
+
+        Returns:
+            HTTP response with security headers attached.
+        """
         response = await call_next(request)
         response.headers.setdefault("x-content-type-options", "nosniff")
         response.headers.setdefault("x-frame-options", "DENY")

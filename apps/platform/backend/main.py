@@ -106,7 +106,8 @@ async def ready():
         else:
             backend_checks[pkg] = "ok"
     result.setdefault("checks", {})["backends"] = backend_checks
-    if has_required_degraded:
+    current_status = str(result.get("status", "")).lower()
+    if has_required_degraded and current_status in {"", "ok", "healthy", "ready"}:
         result["status"] = "degraded"
     return result
 

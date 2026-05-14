@@ -68,6 +68,21 @@ def test_create_api_app_can_disable_strict_security_headers(monkeypatch):
     assert "strict-transport-security" not in response.headers
 
 
+def test_create_api_app_keeps_strict_security_headers_in_production(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("APP_DISABLE_STRICT_SECURITY_HEADERS", "true")
+    app = create_api_app(title="Test API")
+
+    @app.get("/api/read")
+    async def read():
+        return {"ok": True}
+
+    response = TestClient(app).get("/api/read")
+
+    assert response.headers["content-security-policy"] == "default-src 'self'; frame-ancestors 'none'"
+    assert response.headers["strict-transport-security"] == "max-age=31536000; includeSubDomains"
+
+
 def test_register_spa_routes_uses_dynamic_static_dir(tmp_path):
     app = FastAPI()
     missing_dir = tmp_path / "missing"
