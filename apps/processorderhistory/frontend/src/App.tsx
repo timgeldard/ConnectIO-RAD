@@ -20,7 +20,11 @@ import { fetchPreferences, savePreferences } from './api/preferences'
 import { PlantProvider } from '@connectio/shared-app-context'
 import { GenieDrawer } from './genie/GenieDrawer'
 import { buildGeniePageContext } from './genie/pageContext'
-import { PohNavigationProvider, type PohDetailSource } from './navigation'
+import {
+  PohNavigationProvider,
+  type PohDetailSource,
+  type PohOrderNavigationContext,
+} from './navigation'
 
 type View =
   | { name: 'list' }
@@ -106,7 +110,8 @@ function AppContent() {
     window.scrollTo(0, 0)
   }, [])
 
-  const navigateToOrder = useCallback((poId: string | number, ctx: any = {}) => {
+  /** Open an order detail view from any POH analytics or planning surface. */
+  const navigateToOrder = useCallback((poId: string | number, ctx: PohOrderNavigationContext = {}) => {
     const order = {
       id: String(poId),
       processOrderId: String(poId),
