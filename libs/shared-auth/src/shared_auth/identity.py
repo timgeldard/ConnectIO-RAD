@@ -111,51 +111,35 @@ def resolve_token(
 
 
 def warn_if_jwks_unconfigured() -> None:
-    """Refuse to start a non-dev process with JWT verification disabled.
+    """Warn when local JWT verification is not fully configured.
 
-    JWT verification is *defence-in-depth*. The Databricks Apps proxy validates
-    tokens upstream, but the app must verify signatures itself so a bypass of
-    the proxy alone cannot mint acceptable tokens.
+    Databricks Apps authenticates users at the proxy and forwards both a user
+    access token and identity headers to the app. The app still keeps optional
+    JWKS support for diagnostics and non-proxy deployments, but normal
+    Databricks Apps requests should not fail startup just because local JWT
+    verification is absent or incomplete.
 
     Behaviour:
-        * In dev/test mode (``APP_ENV`` in {development, local, test}) — emit a
-          warning if JWKS is absent so a developer iterating locally is not
-          forced to wire JWKS for every test run.
-        * Outside dev/test mode — raise ``RuntimeError`` if both
-          ``AUTH_JWKS_URL`` is empty and ``AUTH_ALLOW_UNVERIFIED_JWT`` is not
-          enabled. This guards against deploying with neither verification
-          configured nor an explicit ack of unsafe behaviour.
-
-    Raises:
-        RuntimeError: If running in a non-dev environment with no JWKS URL
-            configured and unverified tokens not explicitly allowed.
+        * ``AUTH_JWKS_URL`` absent — warn and continue.
+        * ``AUTH_JWKS_URL`` present but ``AUTH_JWT_AUDIENCE`` absent outside
+          dev/test — warn and continue, because forwarded-header identity does
+          not require audience validation.
     """
     jwks_url = os.environ.get("AUTH_JWKS_URL", "").strip()
     if jwks_url:
-        _require_audience_for_verified_tokens()
+        if not _is_dev_mode() and not os.environ.get("AUTH_JWT_AUDIENCE", "").strip():
+            logger.warning(
+                "AUTH_JWKS_URL is set without AUTH_JWT_AUDIENCE. Local JWT "
+                "verification is not audience-pinned; Databricks Apps proxy "
+                "headers remain the primary identity source."
+            )
         return
 
-    if _is_dev_mode():
-        logger.warning(
-            "AUTH_JWKS_URL is not set. JWT signatures will not be verified. "
-            "This is acceptable in dev (APP_ENV=%s).",
-            os.environ.get("APP_ENV", "<unset>"),
-        )
-        return
-
-    if _allow_unverified_tokens():
-        logger.warning(
-            "AUTH_ALLOW_UNVERIFIED_JWT is set outside dev mode. "
-            "JWT signature verification is disabled for this deliberately "
-            "unsafe deployment. Configure AUTH_JWKS_URL and AUTH_JWT_AUDIENCE "
-            "before production use."
-        )
-        return
-
-    raise RuntimeError(
-        "AUTH_JWKS_URL is not configured and AUTH_ALLOW_UNVERIFIED_JWT is not set. "
-        "Configure AUTH_JWKS_URL to your workspace OIDC jwks_uri or, for a "
-        "deliberately-unsafe deploy, set AUTH_ALLOW_UNVERIFIED_JWT=true."
+    logger.warning(
+        "AUTH_JWKS_URL is not set. Local JWT signatures will not be verified; "
+        "Databricks Apps proxy headers remain the primary identity source. "
+        "APP_ENV=%s",
+        os.environ.get("APP_ENV", "<unset>"),
     )
 
 
@@ -214,7 +198,7 @@ async def require_user(
     the conditional themselves.
     """
     token = resolve_token(x_forwarded_access_token, authorization, strict=False)
-    return _extract_identity(token)
+    return _extract_identity_from_request(request, token)
 
 
 async def require_proxy_user(
@@ -227,7 +211,44 @@ async def require_proxy_user(
     Strictly enforces x-forwarded-access-token and rejects Authorization headers.
     """
     token = resolve_token(x_forwarded_access_token, None, strict=True)
-    return _extract_identity(token)
+    return _extract_identity_from_request(request, token)
+
+
+def _header_value(request: Request, name: str) -> str | None:
+    value = request.headers.get(name)
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
+def _extract_identity_from_request(request: Request, token: str) -> UserIdentity:
+    """Build identity from Databricks Apps forwarded headers.
+
+    Databricks Apps forwards identity separately from the access token. The
+    token is still retained for downstream Databricks SQL/API calls, but local
+    JWKS verification is not required to identify the user behind the proxy.
+    """
+    forwarded_user = _header_value(request, "x-forwarded-user")
+    email = _header_value(request, "x-forwarded-email")
+    preferred_username = _header_value(request, "x-forwarded-preferred-username")
+
+    if forwarded_user or email or preferred_username:
+        display_name = preferred_username
+        return UserIdentity(
+            user_id=forwarded_user or email or preferred_username or "unknown",
+            email=email or (
+                preferred_username if preferred_username and "@" in preferred_username else None
+            ),
+            display_name=display_name,
+            raw_token=token,
+        )
+
+    if _is_dev_mode() or _allow_unverified_tokens():
+        return _extract_identity(token)
+
+    logger.warning("proxy_identity_headers_missing")
+    return UserIdentity(user_id="unknown", raw_token=token)
 
 
 def _extract_identity(token: str) -> UserIdentity:
