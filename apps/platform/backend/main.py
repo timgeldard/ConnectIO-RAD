@@ -54,6 +54,52 @@ HOME_STATIC = _STATIC / "home"
 
 app = create_api_app(title="ConnectIO Platform API")
 
+REQUIRED_ROUTE_METHODS: dict[str, set[str]] = {
+    "/api/poh/orders": {"POST"},
+    "/api/poh/pours/analytics": {"POST"},
+    "/api/poh/me": {"GET"},
+    "/api/platform/apps/manifest": {"GET"},
+}
+
+
+def _registered_methods_by_path() -> dict[str, list[str]]:
+    """Return registered HTTP methods keyed by route path."""
+    registered_methods: dict[str, list[str]] = {}
+    for route in app.routes:
+        path = getattr(route, "path", None)
+        methods = getattr(route, "methods", None)
+        if not path or methods is None:
+            continue
+        existing = set(registered_methods.get(path, []))
+        existing.update(str(method) for method in methods)
+        registered_methods[path] = sorted(existing)
+    return dict(sorted(registered_methods.items()))
+
+
+def _validate_required_routes() -> None:
+    """Fail startup if required platform API routes were not mounted."""
+    registered_methods = _registered_methods_by_path()
+    missing: list[str] = []
+    for path, required_methods in REQUIRED_ROUTE_METHODS.items():
+        actual = set(registered_methods.get(path, []))
+        missing_methods = sorted(required_methods - actual)
+        if missing_methods:
+            missing.append(f"{path} missing {','.join(missing_methods)}")
+
+    if missing:
+        raise RuntimeError(
+            "Platform route contract incomplete: " + "; ".join(missing)
+        )
+
+
+def _build_artifact_status() -> dict[str, bool]:
+    """Expose generated build artifact presence for deploy diagnostics."""
+    return {
+        "home_index": (HOME_STATIC / "index.html").is_file(),
+        "home_module_manifest": (HOME_STATIC / "module-manifest.json").is_file(),
+        "poh_index": (POH_STATIC / "index.html").is_file(),
+    }
+
 
 def _register_discovered_routers() -> None:
     """Discover and mount routers from all active modules."""
@@ -78,6 +124,7 @@ app.include_router(dashboards_router, prefix="/api/dashboards")
 app.include_router(badges_router)
 app.include_router(manifest_router)
 app.include_router(session_router)
+_validate_required_routes()
 
 
 @app.get("/api/health", include_in_schema=False)
@@ -102,20 +149,16 @@ async def routers_health():
     registered = sorted(
         route.path for route in app.routes if hasattr(route, "path")
     )
-    registered_methods: dict[str, list[str]] = {}
-    for route in app.routes:
-        path = getattr(route, "path", None)
-        methods = getattr(route, "methods", None)
-        if not path or methods is None:
-            continue
-        existing = set(registered_methods.get(path, []))
-        existing.update(str(method) for method in methods)
-        registered_methods[path] = sorted(existing)
     return {
         "active_modules": ACTIVE_MODULES,
+        "build_artifacts": _build_artifact_status(),
         "registered": registered,
-        "registered_methods": dict(sorted(registered_methods.items())),
+        "registered_methods": _registered_methods_by_path(),
         "registered_count": len(registered),
+        "required_route_methods": {
+            path: sorted(methods)
+            for path, methods in sorted(REQUIRED_ROUTE_METHODS.items())
+        },
         "missing_optional": get_missing_optional_artifacts(),
     }
 
