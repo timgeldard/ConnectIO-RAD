@@ -31,9 +31,11 @@ export const composableWidgetSchema = z.object({
   layout: composableWidgetLayoutSchema.default({ x: 0, y: 0, w: 4, h: 4, minW: 2, minH: 2 }),
   props: z.record(z.string(), z.unknown()).default({}),
   data: z.object({
-    queryKey: z.string().min(1),
+    datasetId: z.string().optional(),
+    queryKey: z.string().min(1).optional(),
     params: z.record(z.string(), z.unknown()).optional(),
     mapping: z.record(z.string(), z.unknown()).optional(),
+    refreshSeconds: z.number().int().min(10).optional(),
   }).nullable().optional(),
 })
 
