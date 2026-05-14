@@ -18,11 +18,12 @@ import GlobalView from '~/views/GlobalView';
 import SiteView from '~/views/SiteView';
 import FloorView from '~/views/FloorView';
 import CoordinateMapper from '~/components/admin/CoordinateMapper';
+import SpatialStudio from '~/components/admin/spatial-studio/SpatialStudio';
 import type { ViewState } from '~/types';
 
 function AppShellContent() {
   const { t } = useI18n();
-  const { view, setView, personaId, setPersonaId, adminMode, setAdminMode, portfolioDays } = useEM();
+  const { view, setView, personaId, setPersonaId, adminMode, setAdminMode, portfolioDays, spatialStudioOpen, setSpatialStudioOpen } = useEM();
   const { data: plants = [] } = usePlants(portfolioDays);
 
   const isReadOnly = personaId === 'auditor';
@@ -127,18 +128,32 @@ function AppShellContent() {
                 </span>
               )}
               {isAdmin && (
-                <button
-                  className={`btn btn-sm${adminMode ? ' btn-primary' : ' btn-ghost'}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  onClick={() => {
-                    const next = !adminMode;
-                    setAdminMode(next);
-                    setView({ level: next ? 'admin' : 'global', plantId: view.plantId, floorId: view.floorId });
-                  }}
-                >
-                  <Icon name="settings" size={13} />
-                  {adminMode ? t('envmon.action.exitAdmin') : t('envmon.action.admin')}
-                </button>
+                <>
+                  <button
+                    className={`btn btn-sm${adminMode ? ' btn-primary' : ' btn-ghost'}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    onClick={() => {
+                      const next = !adminMode;
+                      setAdminMode(next);
+                      setSpatialStudioOpen(false);
+                      setView({ level: next ? 'admin' : 'global', plantId: view.plantId, floorId: view.floorId });
+                    }}
+                  >
+                    <Icon name="settings" size={13} />
+                    {adminMode ? t('envmon.action.exitAdmin') : t('envmon.action.admin')}
+                  </button>
+                  {adminMode && (
+                    <button
+                      className={`btn btn-sm${spatialStudioOpen ? ' btn-primary' : ' btn-ghost'}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                      onClick={() => setSpatialStudioOpen(!spatialStudioOpen)}
+                      aria-label="Open Spatial Studio"
+                    >
+                      <Icon name="grid" size={13} />
+                      Spatial Studio
+                    </button>
+                  )}
+                </>
               )}
               <PersonaSwitcher personaId={personaId} onChange={handlePersonaChange} />
             </>
@@ -147,7 +162,9 @@ function AppShellContent() {
       }
     >
       <div style={{ height: '100%' }}>
-        {adminMode || view.level === 'admin' ? (
+        {spatialStudioOpen && (adminMode || view.level === 'admin') ? (
+          <SpatialStudio />
+        ) : adminMode || view.level === 'admin' ? (
           <CoordinateMapper />
         ) : view.level === 'floor' && view.plantId && view.floorId ? (
           <FloorView

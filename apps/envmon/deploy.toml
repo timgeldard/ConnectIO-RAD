@@ -48,6 +48,26 @@ name = "em_plant_geo"
 file = "scripts/migrations/003_create_em_plant_geo.sql"
 warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
 
+[[migrations]]
+name = "em_layout_revision"
+file = "scripts/migrations/004_create_em_layout_revision.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "em_location_zones"
+file = "scripts/migrations/005_create_em_location_zones.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "em_plant_floor_canvas"
+file = "scripts/migrations/006_extend_em_plant_floor_canvas.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
+[[migrations]]
+name = "em_location_coordinates_zones"
+file = "scripts/migrations/007_extend_em_location_coordinates_zones.sql"
+warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"
+
 [targets.uat.env]
 DATABRICKS_WAREHOUSE_ID = "e76480b94bea6ed5"
 DATABRICKS_WAREHOUSE_HTTP_PATH = "/sql/1.0/warehouses/e76480b94bea6ed5"

@@ -148,6 +148,121 @@ export interface PlantGeoEntry {
   updated_by: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// Spatial Studio — zones, revisions, validation (Slice 6+)
+// ---------------------------------------------------------------------------
+
+export type CanvasType = 'floor_plan' | 'grid';
+export type ZoneGeometryType = 'polygon' | 'rectangle';
+export type RevisionState = 'draft' | 'published' | 'superseded' | 'rolled_back';
+export type ValidationSeverity = 'blocking_error' | 'warning' | 'suggestion';
+export type StudioMode = 'structure' | 'place' | 'review';
+
+export interface CanvasMetadata {
+  canvasType: CanvasType;
+  canvasWidth?: number;
+  canvasHeight?: number;
+  canvasUnits?: string;
+  gridSize?: number;
+  backgroundImageUrl?: string;
+  backgroundImageType?: string;
+}
+
+export interface ZonePoint {
+  x_pct: number;
+  y_pct: number;
+}
+
+export interface RectangleGeometry {
+  type: 'rectangle';
+  x_pct: number;
+  y_pct: number;
+  width_pct: number;
+  height_pct: number;
+}
+
+export interface PolygonGeometry {
+  type: 'polygon';
+  points: ZonePoint[];
+}
+
+export type ZoneGeometry = RectangleGeometry | PolygonGeometry;
+
+export interface LayoutZone {
+  zone_id: string;
+  plant_id: string;
+  floor_id: string;
+  zone_name: string;
+  geometry_type: ZoneGeometryType;
+  geometry_json: ZoneGeometry;
+  functional_location_id?: string;
+  revision_id: string;
+  status: 'draft' | 'published' | 'archived';
+  centroid_x?: number;
+  centroid_y?: number;
+  bbox_json?: string;
+}
+
+export interface LayoutRevision {
+  revision_id: string;
+  plant_id: string;
+  floor_id: string;
+  revision_number: number;
+  state: RevisionState;
+  base_revision_id?: string;
+  change_reason?: string;
+  created_by: string;
+  created_at: string;
+  published_by?: string;
+  published_at?: string;
+}
+
+export interface ValidationIssue {
+  severity: ValidationSeverity;
+  code: string;
+  message: string;
+  subject_id?: string;
+}
+
+export interface ValidationResult {
+  issues: ValidationIssue[];
+  is_publishable: boolean;
+}
+
+export interface DraftLayout {
+  revision: LayoutRevision;
+  zones: LayoutZone[];
+  coordinates: LocationMeta[];
+}
+
+export interface PublishedLayout {
+  /** null when the floor has never been published through Studio */
+  revision: LayoutRevision | null;
+  zones: LayoutZone[];
+  coordinates: LocationMeta[];
+}
+
+export interface ZoneUpsertBody {
+  plant_id: string;
+  revision_id: string;
+  zone_name: string;
+  geometry_type: ZoneGeometryType;
+  geometry_json: Omit<ZoneGeometry, 'type'>;
+  functional_location_id?: string;
+}
+
+export interface PublishBody {
+  plant_id: string;
+  revision_id: string;
+  change_reason: string;
+}
+
+export interface RollbackBody {
+  plant_id: string;
+  target_revision_id: string;
+  change_reason: string;
+}
+
 export type PersonaId = 'regional' | 'site' | 'sanitation' | 'auditor' | 'admin';
 
 export interface Persona {

@@ -153,3 +153,85 @@ async def delete_coordinate(token: str, plant_id: str, func_loc_id: str) -> None
     params = [sql_param("func_loc_id", func_loc_id), sql_param("plant_id", plant_id)]
     sql = f"DELETE FROM {COORD_TBL} WHERE func_loc_id = :func_loc_id AND plant_id = :plant_id"
     await run_sql_async(token, sql, params)
+
+
+async def fetch_studio_coordinates(token: str, plant_id: str, floor_id: str) -> list[dict]:
+    """Return all coordinate-mapped locations for a plant/floor including Slice-1 zone columns.
+
+    Includes ``parent_zone_id``, ``placement_source``, ``revision_id``, and
+    ``validation_status`` added by migration 007. Used by the layout validation
+    and publish workflows.
+
+    Args:
+        token: Databricks access token.
+        plant_id: SAP plant code to filter by.
+        floor_id: Floor identifier to filter by.
+
+    Returns:
+        List of coordinate row dicts ordered by func_loc_id.
+    """
+    params = [
+        sql_param("plant_id", plant_id),
+        sql_param("floor_id", floor_id),
+    ]
+    sql = f"""
+        SELECT
+            func_loc_id, floor_id, x_pos, y_pos,
+            parent_zone_id, placement_source, revision_id,
+            validation_status, validation_messages_json
+        FROM {COORD_TBL}
+        WHERE plant_id = :plant_id
+          AND floor_id = :floor_id
+        ORDER BY func_loc_id
+    """
+    return await run_sql_async(token, sql, params)
+
+
+async def update_coordinate_zone_assignment(
+    token: str,
+    plant_id: str,
+    func_loc_id: str,
+    parent_zone_id: str | None,
+    revision_id: str | None,
+    placement_source: str,
+    validation_status: str,
+    validation_messages_json: str | None,
+) -> None:
+    """Update zone assignment and validation metadata for a coordinate row.
+
+    Called by the publish workflow to stamp each coordinate with its zone
+    assignment and validation outcome from the draft revision being published.
+
+    Args:
+        token: Databricks access token.
+        plant_id: SAP plant code.
+        func_loc_id: Functional location identifier.
+        parent_zone_id: UUID of the L4 zone, or None if unassigned.
+        revision_id: UUID of the published revision, or None.
+        placement_source: How the coordinate was placed (e.g. ``'manual'``).
+        validation_status: ``'ok'``, ``'warning'``, or ``'error'``.
+        validation_messages_json: JSON array of issue descriptions, or None.
+    """
+    params = [
+        sql_param("plant_id",                  plant_id),
+        sql_param("func_loc_id",               func_loc_id),
+        sql_param("parent_zone_id",            parent_zone_id),
+        sql_param("revision_id",               revision_id),
+        sql_param("placement_source",          placement_source),
+        sql_param("validation_status",         validation_status),
+        sql_param("validation_messages_json",  validation_messages_json),
+    ]
+    sql = f"""
+        UPDATE {COORD_TBL}
+        SET
+            parent_zone_id           = :parent_zone_id,
+            revision_id              = :revision_id,
+            placement_source         = :placement_source,
+            validation_status        = :validation_status,
+            validation_messages_json = :validation_messages_json,
+            updated_by               = CURRENT_USER(),
+            updated_at               = CURRENT_TIMESTAMP()
+        WHERE plant_id    = :plant_id
+          AND func_loc_id = :func_loc_id
+    """
+    await run_sql_async(token, sql, params)

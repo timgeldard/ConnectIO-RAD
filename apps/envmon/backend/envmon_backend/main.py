@@ -2,6 +2,7 @@ from pathlib import Path
 
 from envmon_backend.inspection_analysis.router import router as inspection_router
 from envmon_backend.spatial_config.router import router as spatial_router
+from envmon_backend.spatial_config.studio_router import router as studio_router
 from envmon_backend.utils.db import (
     check_warehouse_config,
     run_sql,
@@ -29,6 +30,7 @@ rad_app = ConnectIoApp(
 # access, because the SPA catch-all would otherwise shadow these routes.
 rad_app.include_router(inspection_router, prefix="/api/em", tags=["Inspection Analysis"])
 rad_app.include_router(spatial_router, prefix="/api/em", tags=["Spatial Config"])
+rad_app.include_router(studio_router, prefix="/api/em/spatial", tags=["Spatial Studio"])
 
 rad_app.mount_spa()
 app = rad_app.fastapi_app
