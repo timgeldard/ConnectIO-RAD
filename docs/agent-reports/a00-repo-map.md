@@ -77,7 +77,7 @@
 *   **Test command**: `uv run pytest`, `npm test`
 *   **Data access approach**: PyPika queries against `csm_process_order_history` and `csm_equipment_history` schemas.
 *   **Environment variables**: `POH_CATALOG`, `POH_SCHEMA`
-*   **Bounded contexts/domains**: `order_execution`, `manufacturing_analytics`, `production_planning`, `genie_assist`, `user_preferences`.
+*   **Bounded contexts/domains**: order_execution, manufacturing_analytics, production_planning, genie_assist.
 
 ### `connectedquality`
 *   **Frontend framework**: React / TypeScript / Vite
