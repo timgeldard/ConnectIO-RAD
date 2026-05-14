@@ -142,7 +142,11 @@ async def attach_data_freshness(
                 request_path=request_path or "unknown",
                 detail={"message": str(exc)[:500], "source_views": sorted(set(source_views))},
             )
-        except Exception:
+        except Exception as audit_exc:
+            logger.warning(
+                "data_freshness.audit_insert_failed error_id=%s request_path=%s: %s",
+                error_id, request_path or "unknown", audit_exc,
+            )
             increment_observability_counter(
                 "data_freshness.audit_insert_failed_total",
                 tags={"error_id": error_id, "request_path": request_path or "unknown"},

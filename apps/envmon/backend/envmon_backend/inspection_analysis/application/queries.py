@@ -127,7 +127,8 @@ async def _safe_count_floors(token: str, plant_id: str) -> int:
     try:
         rows = await plants_dal.count_plant_floors(token, plant_id)
         return int(rows[0].get("n") or 0) if rows else 0
-    except Exception:
+    except Exception as exc:
+        logger.warning("Floor count query failed for plant %s: %s", plant_id, exc)
         return 0
 
 
@@ -201,7 +202,7 @@ async def get_heatmap(
 
     try:
         rows = await heatmap_dal.fetch_heatmap_rows(token, plant_id, floor_id, date_from, date_to, mics)
-    except Exception:
+    except Exception as exc:
         logger.exception("Heatmap query failed for plant=%s floor=%s window=%s", plant_id, floor_id, time_window_days)
         raise
     by_loc: dict[str, list[dict]] = defaultdict(list)
