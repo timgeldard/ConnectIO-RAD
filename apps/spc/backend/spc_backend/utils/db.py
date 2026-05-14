@@ -11,7 +11,6 @@ import json
 import logging
 import os
 import re
-import threading
 import uuid
 from typing import Optional
 
@@ -37,14 +36,7 @@ from shared_db.executors import (
     _sql_executor,
 )
 from shared_db.freshness import DataFreshnessRuntime
-from shared_db.runtime import (
-    CachePolicy,
-    SqlRuntimeConfig,
-    is_read_only_statement as _shared_is_read_only_statement,
-    is_write_statement as _shared_is_write_statement,
-    sql_cache_key as _shared_sql_cache_key,
-    statement_prefix as _shared_statement_prefix,
-)
+from shared_db.runtime import CachePolicy, SqlRuntimeConfig
 from shared_db.utils import (  # noqa: F401
     attach_payload_freshness,
     attach_validation_freshness,
@@ -106,18 +98,6 @@ def _first_param_value(params: Optional[list[dict]], *names: str) -> Optional[st
     return None
 
 
-def _statement_prefix(statement: str) -> str:
-    return _shared_statement_prefix(statement)
-
-
-def _is_read_only_statement(statement: str) -> bool:
-    return _shared_is_read_only_statement(statement)
-
-
-def _is_write_statement(statement: str) -> bool:
-    return _shared_is_write_statement(statement)
-
-
 def _is_query_audit_statement(statement: str) -> bool:
     return _QUERY_AUDIT_TABLE_NAME in statement.lower()
 
@@ -127,25 +107,8 @@ def _sql_cache_tier(statement: str) -> str:
     return tier.name if tier is not None else "chart"
 
 
-def _sql_cache_bucket(statement: str) -> tuple[TTLCache, threading.Lock]:
-    tier = _sql_cache_tier(statement)
-    if tier == "metadata":
-        return _metadata_cache, _metadata_cache_lock
-    if tier == "scorecard":
-        return _scorecard_cache, _scorecard_cache_lock
-    return _chart_cache, _chart_cache_lock
-
-
 def _clear_sql_cache() -> None:
     _sql_runtime.clear_cache()
-
-
-def _sql_cache_key(token: str, statement: str, params: Optional[list[dict]] = None) -> str:
-    return _shared_sql_cache_key(token, statement, params)
-
-
-def _should_cache_rows(rows: list[dict]) -> bool:
-    return len(rows) <= _SQL_CACHE_ROW_LIMIT
 
 
 # ---------------------------------------------------------------------------

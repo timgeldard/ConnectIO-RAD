@@ -35,19 +35,12 @@ async def trace_lineage(
     token = user.raw_token
     bottom_up, top_down = await asyncio.gather(
         fetch_bottom_up(token, material_id=material, batch_id=batch, max_levels=3),
-        fetch_top_down(token, material_id=material, batch_id=batch, max_levels=3)
+        fetch_top_down(token, material_id=material, batch_id=batch, max_levels=3),
     )
-    
-    # Merge nodes and edges, deduplicating by ID
-    nodes_map = {n["id"]: n for n in bottom_up.get("nodes", []) + top_down.get("nodes", [])}
-    edges_map = {e["id"]: e for e in bottom_up.get("edges", []) + top_down.get("edges", [])}
-
     return {
         "batch": batch,
-        "upstream_depth": bottom_up.get("max_depth", 3),
-        "downstream_depth": top_down.get("max_depth", 3),
-        "nodes": list(nodes_map.values()),
-        "edges": list(edges_map.values()),
+        "upstream": bottom_up,
+        "downstream": top_down,
     }
 
 

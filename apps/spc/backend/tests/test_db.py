@@ -11,6 +11,7 @@ import asyncio
 from unittest.mock import patch, AsyncMock
 
 import spc_backend.utils.db as db_module
+from shared_db.runtime import sql_cache_key
 from shared_manufacturing import test_data
 
 
@@ -30,7 +31,7 @@ class TestSqlCacheBehavior:
 
     def test_run_sql_async_clears_cache_after_write(self):
         db_module._clear_sql_cache()
-        cache_key = db_module._sql_cache_key("token", "SELECT 1", None)
+        cache_key = sql_cache_key("token", "SELECT 1", None)
         with db_module._metadata_cache_lock:
             db_module._metadata_cache[cache_key] = [{"cached": "metadata"}]
         with db_module._scorecard_cache_lock:

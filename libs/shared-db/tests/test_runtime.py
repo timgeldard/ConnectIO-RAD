@@ -11,6 +11,7 @@ from shared_db.runtime import (
     is_write_statement,
     sql_cache_key,
 )
+from shared_db import run_sql_in
 
 
 def test_statement_classification():
@@ -73,6 +74,24 @@ def test_sql_cache_key_excludes_token_for_shared_dashboard_reads():
 
     assert left == right
     assert len(left.split(":")) == 2
+
+
+def test_run_sql_in_builds_typed_placeholders():
+    fragment, params = run_sql_in(["IE01", 42, True], prefix="plant")
+
+    assert fragment == ":plant0, :plant1, :plant2"
+    assert params == [
+        {"name": "plant0", "value": "IE01", "type": "STRING"},
+        {"name": "plant1", "value": "42", "type": "INT"},
+        {"name": "plant2", "value": "True", "type": "BOOLEAN"},
+    ]
+
+
+def test_run_sql_in_handles_empty_values():
+    fragment, params = run_sql_in([])
+
+    assert fragment == "NULL"
+    assert params == []
 
 
 def test_apply_max_rows_guard_adds_limit_to_read_query():

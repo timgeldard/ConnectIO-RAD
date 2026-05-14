@@ -8,6 +8,7 @@ from .core import (
     check_warehouse_config,
     resolve_token,
     sql_param,
+    run_sql_in,
     run_sql,
     run_sql_async,
     run_sql_large,
@@ -35,7 +36,7 @@ from .query_builder import QueryBuilder
 __all__ = [
     "DATABRICKS_HOST", "WAREHOUSE_HTTP_PATH", "TRACE_CATALOG", "TRACE_SCHEMA",
     "hostname", "tbl", "check_warehouse_config", "resolve_token", "sql_param",
-    "run_sql", "run_sql_async", "run_sql_large", "run_sql_large_async",
+    "run_sql_in", "run_sql", "run_sql_async", "run_sql_large", "run_sql_large_async",
     "WarehouseNotConfiguredError",
     "classify_sql_runtime_error", "increment_observability_counter", "send_operational_alert",
     "CachePolicy", "CacheTier", "SqlRuntime", "DataFreshnessRuntime",

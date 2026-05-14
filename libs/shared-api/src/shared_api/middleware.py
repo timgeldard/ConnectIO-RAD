@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+import os
 import re
 import time
 import uuid
@@ -164,12 +165,42 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Attach conservative security headers to every response."""
 
+    def __init__(self, app: ASGIApp) -> None:
+        """Initialize middleware with environment-controlled strict headers.
+
+        Args:
+            app: ASGI application instance.
+        """
+        super().__init__(app)
+        app_env = os.environ.get("APP_ENV", "").strip().lower()
+        disable_strict = os.environ.get(
+            "APP_DISABLE_STRICT_SECURITY_HEADERS", ""
+        ).strip().lower() in {"1", "true", "yes", "on"}
+        self.strict_headers_enabled = app_env == "production" or not disable_strict
+
     async def dispatch(self, request: Request, call_next):
-        """Attach headers after downstream processing completes."""
+        """Attach headers after downstream processing completes.
+
+        Args:
+            request: Incoming HTTP request.
+            call_next: Next middleware or endpoint handler in the chain.
+
+        Returns:
+            HTTP response with security headers attached.
+        """
         response = await call_next(request)
         response.headers.setdefault("x-content-type-options", "nosniff")
         response.headers.setdefault("x-frame-options", "DENY")
         response.headers.setdefault("referrer-policy", "strict-origin-when-cross-origin")
         response.headers.setdefault("permissions-policy", "camera=(), microphone=(), geolocation=()")
         response.headers.setdefault("cache-control", "no-store")
+        if self.strict_headers_enabled:
+            response.headers.setdefault(
+                "content-security-policy",
+                "default-src 'self'; frame-ancestors 'none'",
+            )
+            response.headers.setdefault(
+                "strict-transport-security",
+                "max-age=31536000; includeSubDomains",
+            )
         return response

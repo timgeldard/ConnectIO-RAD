@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from envmon_backend.utils.db import run_sql_async, sql_param
+from shared_db import run_sql_in
 from envmon_backend.utils.em_config import (
     FLOOR_TBL,
     INSP_TYPES_SQL,
@@ -49,29 +50,16 @@ async def fetch_active_plant_ids(token: str) -> list[str]:
 
 
 def _plant_id_in_clause(plant_ids: list[str]) -> tuple[str, list[dict]]:
-    """Build a parameterised IN clause for a list of plant IDs.
-
-    The repo rule is "all user-supplied values via :name parameters" — even
-    though plant IDs are typed list[str] before reaching here, building the
-    IN clause via f-string concatenation normalises the unsafe pattern in a
-    repo that explicitly forbids it. This helper expands one named parameter
-    per ID so the same ``run_sql_async`` path enforces type-correct binding.
+    """Build a parameterized IN clause for a list of plant IDs.
 
     Args:
-        plant_ids: List of plant ID strings to match.
+        plant_ids: Plant IDs to include in the SQL predicate.
 
     Returns:
-        Two-tuple of ``(in_clause, params)``. ``in_clause`` is the SQL
-        fragment ``"(:p0, :p1, ...)"`` for inlining after ``IN``;
-        ``params`` is the matching named-parameter list. Returns
-        ``("(NULL)", [])`` for an empty input so the predicate produces
-        no rows rather than a syntax error.
+        Tuple of SQL placeholder fragment and matching named parameters.
     """
-    if not plant_ids:
-        return "(NULL)", []
-    placeholders = ", ".join(f":p{i}" for i in range(len(plant_ids)))
-    params = [sql_param(f"p{i}", pid) for i, pid in enumerate(plant_ids)]
-    return f"({placeholders})", params
+    fragment, params = run_sql_in(plant_ids)
+    return f"({fragment})", params
 
 
 async def fetch_plant_geo(token: str, plant_ids: list[str]) -> list[dict]:
