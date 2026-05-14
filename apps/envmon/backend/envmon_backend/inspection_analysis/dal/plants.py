@@ -50,7 +50,18 @@ async def fetch_active_plant_ids(token: str) -> list[str]:
 
 
 def _plant_id_in_clause(plant_ids: list[str]) -> tuple[str, list[dict]]:
-    """Build a parameterized IN clause for a list of plant IDs."""
+    """Build a parameterised IN clause for a list of plant IDs.
+
+    Args:
+        plant_ids: List of plant ID strings to match.
+
+    Returns:
+        Two-tuple of ``(in_clause, params)``. ``in_clause`` is the SQL
+        fragment ``"(:p0, :p1, ...)"`` for inlining after ``IN``; ``params``
+        is the matching named-parameter list. Returns ``("(NULL)", [])`` for
+        an empty input so the predicate produces no rows rather than a syntax
+        error.
+    """
     fragment, params = run_sql_in(plant_ids)
     return f"({fragment})", params
 

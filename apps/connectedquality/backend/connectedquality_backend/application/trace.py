@@ -4,20 +4,59 @@ from connectedquality_backend.db import get_trace_core_dal
 
 
 async def fetch_recall_readiness(token: str, material_id: str, batch_id: str) -> dict:
-    """Fetch recall readiness snapshot for a material/batch pair."""
+    """Fetch recall readiness snapshot for a material/batch pair.
+
+    Args:
+        token: Databricks access token forwarded from the request.
+        material_id: SAP material identifier.
+        batch_id: SAP batch identifier.
+
+    Returns:
+        Dictionary containing the recall readiness snapshot payload.
+    """
     return await get_trace_core_dal().fetch_recall_readiness(token, material_id, batch_id)
 
 
 async def fetch_bottom_up(token: str, material_id: str, batch_id: str, max_levels: int = 4) -> dict:
-    """Fetch upstream lineage for a batch."""
+    """Fetch upstream lineage for a batch.
+
+    Args:
+        token: Databricks access token forwarded from the request.
+        material_id: SAP material identifier.
+        batch_id: SAP batch identifier.
+        max_levels: Maximum depth of upstream traversal.
+
+    Returns:
+        Dictionary with ``header`` and ``lineage`` rows for the upstream tree.
+    """
     return await get_trace_core_dal().fetch_bottom_up(token, material_id, batch_id, max_levels)
 
 
 async def fetch_top_down(token: str, material_id: str, batch_id: str, max_levels: int = 4) -> dict:
-    """Fetch downstream lineage for a batch."""
+    """Fetch downstream lineage for a batch.
+
+    Args:
+        token: Databricks access token forwarded from the request.
+        material_id: SAP material identifier.
+        batch_id: SAP batch identifier.
+        max_levels: Maximum depth of downstream traversal.
+
+    Returns:
+        Dictionary with ``header``, ``lineage``, ``countries``, ``customers``,
+        and ``deliveries`` rows for the downstream tree.
+    """
     return await get_trace_core_dal().fetch_top_down(token, material_id, batch_id, max_levels)
 
 
 async def fetch_mass_balance(token: str, material_id: str, batch_id: str) -> dict:
-    """Fetch mass balance summary for a batch."""
+    """Fetch mass balance summary for a batch.
+
+    Args:
+        token: Databricks access token forwarded from the request.
+        material_id: SAP material identifier.
+        batch_id: SAP batch identifier.
+
+    Returns:
+        Dictionary containing the mass balance summary payload.
+    """
     return await get_trace_core_dal().fetch_mass_balance(token, material_id, batch_id)

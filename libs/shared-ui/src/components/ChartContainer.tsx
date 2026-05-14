@@ -22,6 +22,8 @@ export interface ChartContainerProps {
  * component (ECharts, SVG, etc.).
  *
  * A higher-level version with widget registry support lives in `shared-reporting`.
+ *
+ * @returns The rendered chart container section element.
  */
 export function ChartContainer({ title, description, height = 280, children, style }: ChartContainerProps) {
   return (

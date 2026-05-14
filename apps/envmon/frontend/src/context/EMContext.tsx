@@ -101,6 +101,14 @@ function writeSessionStorage<T>(key: string, value: T) {
   }
 }
 
+/**
+ * Provider component for the Environment Monitoring context.
+ * Manages view state, persona, and portfolio settings with TTL-bound session persistence.
+ *
+ * @param props - Component props.
+ * @param props.children - Child elements to be wrapped by the provider.
+ * @returns The EMContext provider wrapping the given children.
+ */
 export function EMProvider({ children }: { children: React.ReactNode }) {
   const { selectedPlantId, setSelectedPlantId } = usePlantSelection();
 
