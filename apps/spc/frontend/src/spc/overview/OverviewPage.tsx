@@ -53,30 +53,54 @@ export default function OverviewPage() {
 
   const derivedKpis = useMemo(() => {
     if (!scorecard.length) return { processHealth: 0, avgCpk: 0, oocPoints: 0, affectedBatches: 0 }
-    const capabilityValues = scorecard
-      .map(row => row.cpk ?? row.ppk)
-      .filter((v): v is number => v != null)
-    const healthyCount = scorecard.filter(
-      row => (row.cpk ?? row.ppk ?? 0) >= 1.33 && (row.ooc_rate ?? 0) <= 0.02,
-    ).length
+
+    let healthyCount = 0
+    let capSum = 0
+    let capCount = 0
+    let oocPoints = 0
+    let affectedBatches = 0
+
+    for (const row of scorecard) {
+      const cap = row.cpk ?? row.ppk
+      if (cap != null) {
+        capSum += cap
+        capCount++
+      }
+
+      const oocRate = row.ooc_rate ?? 0
+      if ((cap ?? 0) >= 1.33 && oocRate <= 0.02) {
+        healthyCount++
+      }
+      if (oocRate > 0) {
+        oocPoints++
+      }
+      if (row.batch_count != null && oocRate > 0) {
+        affectedBatches += Math.max(0, Math.round(row.batch_count * oocRate))
+      }
+    }
+
     return {
       processHealth: Math.round((healthyCount / scorecard.length) * 100),
-      avgCpk: capabilityValues.length
-        ? Number((capabilityValues.reduce((s, v) => s + v, 0) / capabilityValues.length).toFixed(2))
-        : 0,
-      oocPoints: scorecard.filter(row => (row.ooc_rate ?? 0) > 0).length,
-      affectedBatches: scorecard.reduce(
-        (sum, row) => sum + Math.max(0, Math.round((row.batch_count ?? 0) * (row.ooc_rate ?? 0))),
-        0,
-      ),
+      avgCpk: capCount > 0 ? Number((capSum / capCount).toFixed(2)) : 0,
+      oocPoints,
+      affectedBatches,
     }
   }, [scorecard])
 
   const capBuckets = useMemo(() => {
-    const excellent = scorecard.filter(r => (r.cpk ?? r.ppk ?? 0) >= 1.67).length
-    const capable   = scorecard.filter(r => { const v = r.cpk ?? r.ppk ?? 0; return v >= 1.33 && v < 1.67 }).length
-    const marginal  = scorecard.filter(r => { const v = r.cpk ?? r.ppk ?? 0; return v >= 1.00 && v < 1.33 }).length
-    const poor      = scorecard.filter(r => (r.cpk ?? r.ppk ?? 0) < 1.00).length
+    let excellent = 0
+    let capable = 0
+    let marginal = 0
+    let poor = 0
+
+    for (const row of scorecard) {
+      const v = row.cpk ?? row.ppk ?? 0
+      if (v >= 1.67) excellent++
+      else if (v >= 1.33) capable++
+      else if (v >= 1.00) marginal++
+      else poor++
+    }
+
     return { excellent, capable, marginal, poor, total: scorecard.length }
   }, [scorecard])
 

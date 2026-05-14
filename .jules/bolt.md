@@ -1,0 +1,3 @@
+## 2024-05-14 - Flattening chained array operations in React useMemo hooks
+**Learning:** Chained array operations (e.g. `.map().filter().length` or multiple `.filter().length` calls on the same array) in `useMemo` hooks cause multiple O(N) passes and create unnecessary intermediate arrays. This is an anti-pattern when calculating aggregate stats (KPIs, buckets, distributions) from large data sets like `scorecard` array in a frontend app.
+**Action:** Consolidate chained operations into a single `for...of` loop with accumulator variables. This reduces time complexity from O(M*N) to O(N) and minimizes garbage collection overhead, leading to faster re-renders.
