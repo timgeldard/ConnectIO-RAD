@@ -123,3 +123,24 @@ ignore_imports =
     connectedquality_backend.application.envmon -> envmon_backend.spatial_config.dal.floors
     connectedquality_backend.application.spc -> spc_backend.process_control.dal.analysis
     connectedquality_backend.application.trace -> trace2_backend.dal.trace_dal
+
+[importlinter:contract:databricks-sql-only-via-shared-db]
+name = Direct databricks SQL imports forbidden outside shared-db
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    connectedquality_backend
+    envmon_backend
+    processorderhistory_backend
+    spc_backend
+    template_backend
+    trace2_backend
+    warehouse360_backend
+    shared_ddd
+    shared_manufacturing
+forbidden_modules =
+    databricks
+ignore_imports =
+    # Temporary — both removed in Slice 1D when executors migrate to shared_db
+    spc_backend.utils.db -> databricks
+    envmon_backend.utils.db -> databricks

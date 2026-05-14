@@ -322,11 +322,16 @@ These are available as `from shared_db.utils import ...`:
 **1. Direct `databricks` imports**
 
 ```python
-# FORBIDDEN — will fail importlinter contract in CI (Slice 1C+)
+# FORBIDDEN — fails importlinter contract `databricks-sql-only-via-shared-db`
+# and AST guard `scripts/tests/test_no_direct_databricks_import.py`
 from databricks import sql as databricks_sql
 ```
 
-All Databricks SQL access goes through `shared_db`.
+All Databricks SQL access goes through `shared_db`.  The importlinter contract
+`databricks-sql-only-via-shared-db` (`.importlinter`) enforces this at CI time
+across every app backend and shared library.  A complementary AST scan in
+`scripts/tests/test_no_direct_databricks_import.py` catches violations without
+needing a full environment install.
 
 **2. Importing private executor symbols**
 
