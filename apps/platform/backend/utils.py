@@ -34,14 +34,19 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[3]
-REQUIRED_PLATFORM_ROUTER_PACKAGES = {
+
+# Databricks Apps deploys the platform shell with backend source, static assets,
+# wheels, and requirements.txt. It does not sync the repository-level apps/* tree,
+# so runtime router registration must use the packaged backend modules directly.
+PLATFORM_BACKEND_PACKAGES = [
     "connectedquality_backend",
     "envmon_backend",
     "processorderhistory_backend",
     "spc_backend",
     "trace2_backend",
     "warehouse360_backend",
-}
+]
+REQUIRED_PLATFORM_ROUTER_PACKAGES = set(PLATFORM_BACKEND_PACKAGES)
 
 
 class RequiredArtifactMissing(RuntimeError):

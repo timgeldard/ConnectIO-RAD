@@ -23,8 +23,8 @@ from backend.routes.dashboards.router import router as dashboards_router
 from backend.routes.manifest import router as manifest_router
 from backend.routes.session import router as session_router
 from backend.utils import (
+    PLATFORM_BACKEND_PACKAGES,
     _required_attr,
-    discover_active_modules,
     discover_app_routers,
     get_missing_optional_artifacts,
 )
@@ -38,9 +38,9 @@ check_warehouse_config = _required_attr(
 run_sql_async = _required_attr("processorderhistory_backend.db", "run_sql_async")
 
 
-# Discover active manufacturing modules by scanning the apps/ directory.
-ACTIVE_MODULES = discover_active_modules()
-logger.info("Discovered active modules: %s", ACTIVE_MODULES)
+# Register the backend packages that are installed into the deployed platform app.
+ACTIVE_MODULES = PLATFORM_BACKEND_PACKAGES
+logger.info("Configured active modules: %s", ACTIVE_MODULES)
 
 # Static-asset roots.
 _STATIC = Path(__file__).parent.parent / "static"
@@ -112,6 +112,7 @@ async def routers_health():
         existing.update(str(method) for method in methods)
         registered_methods[path] = sorted(existing)
     return {
+        "active_modules": ACTIVE_MODULES,
         "registered": registered,
         "registered_methods": dict(sorted(registered_methods.items())),
         "registered_count": len(registered),

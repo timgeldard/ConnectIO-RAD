@@ -16,8 +16,8 @@ import anyio
 from fastapi import APIRouter, HTTPException
 
 from backend.utils import (
+    PLATFORM_BACKEND_PACKAGES,
     discover_app_manifests,
-    discover_active_modules,
 )
 
 router = APIRouter(prefix="/api/platform/apps", tags=["Platform"])
@@ -154,9 +154,9 @@ async def get_app_manifest() -> dict[str, Any]:
     """
     manifest = await _read_manifest()
     
-    # Discover app-specific manifests from the filesystem/environment
-    active_packages = discover_active_modules()
-    discovered_modules = discover_app_manifests(active_packages)
+    # Discover app-specific manifests from installed backend packages. The
+    # deployed Databricks app does not include repository-level apps/* files.
+    discovered_modules = discover_app_manifests(PLATFORM_BACKEND_PACKAGES)
     
     # Merge discovered modules into the manifest, avoiding duplicates
     existing_ids = {m["moduleId"] for m in manifest.get("modules", [])}
