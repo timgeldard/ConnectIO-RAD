@@ -4,7 +4,7 @@ import asyncio
 from fastapi.testclient import TestClient
 
 from backend import main
-from backend.main import app
+from backend.main import REQUIRED_ROUTE_METHODS, app
 
 
 def test_platform_health_returns_ok():
@@ -23,6 +23,11 @@ def test_routers_health_lists_registered_routes():
     body = response.json()
     assert body["registered_count"] > 0
     assert "processorderhistory_backend" in body["active_modules"]
+    assert body["required_route_methods"] == {
+        path: sorted(methods)
+        for path, methods in sorted(REQUIRED_ROUTE_METHODS.items())
+    }
+    assert isinstance(body["build_artifacts"], dict)
     assert isinstance(body["registered"], list)
     assert any(path.startswith("/api/cq") for path in body["registered"])
     assert any(path == "/api/batch-header" for path in body["registered"])
@@ -35,6 +40,7 @@ def test_routers_health_lists_registered_routes():
     assert "/api/wh/imwm/stock" not in body["registered"]
     assert "POST" in body["registered_methods"]["/api/poh/orders"]
     assert "POST" in body["registered_methods"]["/api/poh/pours/analytics"]
+    assert "GET" in body["registered_methods"]["/api/platform/apps/manifest"]
     # Required-artifact failures abort startup, so by definition no required
     # artifacts can be missing here. Optional artifacts may still be empty.
     assert isinstance(body["missing_optional"], dict)
