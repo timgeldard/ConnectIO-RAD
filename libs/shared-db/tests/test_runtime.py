@@ -11,7 +11,7 @@ from shared_db.runtime import (
     is_write_statement,
     sql_cache_key,
 )
-from shared_db import run_sql_in
+from shared_db import build_in_params
 
 
 def test_statement_classification():
@@ -76,8 +76,8 @@ def test_sql_cache_key_excludes_token_for_shared_dashboard_reads():
     assert len(left.split(":")) == 2
 
 
-def test_run_sql_in_builds_typed_placeholders():
-    fragment, params = run_sql_in(["IE01", 42, True], prefix="plant")
+def test_build_in_params_builds_typed_placeholders():
+    fragment, params = build_in_params(["IE01", 42, True], prefix="plant")
 
     assert fragment == ":plant0, :plant1, :plant2"
     assert params == [
@@ -87,8 +87,8 @@ def test_run_sql_in_builds_typed_placeholders():
     ]
 
 
-def test_run_sql_in_handles_empty_values():
-    fragment, params = run_sql_in([])
+def test_build_in_params_handles_empty_values():
+    fragment, params = build_in_params([])
 
     assert fragment == "NULL"
     assert params == []
@@ -263,6 +263,30 @@ def test_data_freshness_runtime_filters_views_and_caches():
     assert second["sources"] == [{"source_view": "gold_batch_stock_v"}]
     assert len(calls) == 1
     assert [param["name"] for param in calls[0]] == ["catalog_name", "schema_name", "view_0"]
+
+
+def test_sql_runtime_concurrency_key_gates_parallel_calls():
+    """SqlRuntime.run_sql_async with concurrency_key=... should serialise calls."""
+    import os
+    os.environ["SQL_CONCURRENCY_LIMIT_TEST_CK"] = "1"
+    try:
+        order = []
+
+        def run_sql(_token, statement, params=None):
+            order.append("sql")
+            return [{"ok": True}]
+
+        runtime = SqlRuntime(run_sql=run_sql)
+
+        async def call():
+            return await runtime.run_sql_async(
+                "token", "SELECT 1", bypass_cache=True, concurrency_key="test_ck"
+            )
+
+        asyncio.run(call())
+        assert order == ["sql"]
+    finally:
+        del os.environ["SQL_CONCURRENCY_LIMIT_TEST_CK"]
 
 
 def test_data_freshness_runtime_cache_is_not_partitioned_by_token():

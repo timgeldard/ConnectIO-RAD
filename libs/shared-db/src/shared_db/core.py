@@ -6,6 +6,8 @@ Exports: run_sql, resolve_token, check_warehouse_config, tbl, sql_param,
          TRACE_SCHEMA
 """
 
+from __future__ import annotations
+
 __all__ = [
     "DATABRICKS_HOST",
     "WAREHOUSE_HTTP_PATH",
@@ -13,9 +15,11 @@ __all__ = [
     "TRACE_SCHEMA",
     "hostname",
     "tbl",
+    "silver_tbl",
     "check_warehouse_config",
     "resolve_token",
     "sql_param",
+    "build_in_params",
     "run_sql_in",
     "run_sql",
     "run_sql_async",
@@ -30,7 +34,10 @@ import json
 import hashlib
 import time
 import threading
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .runtime import CacheTier
 
 from shared_auth import resolve_token as auth_resolve_token
 from shared_db.errors import WarehouseNotConfiguredError
@@ -82,8 +89,36 @@ def hostname() -> str:
 
 
 def tbl(name: str) -> str:
-    """Return a fully-qualified backtick-quoted table reference."""
+    """Return a fully-qualified backtick-quoted gold-layer table reference.
+
+    Uses ``TRACE_CATALOG`` and ``TRACE_SCHEMA`` from the environment.
+    This is the only sanctioned way to render a table reference in SQL strings.
+
+    Args:
+        name: Unqualified view or table name (e.g. ``"gold_material"``).
+
+    Returns:
+        Backtick-quoted three-part reference like
+        `` `catalog`.`gold`.`gold_material` ``.
+    """
     return f"`{TRACE_CATALOG}`.`{TRACE_SCHEMA}`.`{name}`"
+
+
+def silver_tbl(name: str) -> str:
+    """Return a fully-qualified backtick-quoted silver-layer table reference.
+
+    Uses ``TRACE_CATALOG`` from the environment and the ``silver`` schema.
+    Use this for silver-layer staging views in the semantic-model governance
+    tests and in DALs that explicitly need silver data.
+
+    Args:
+        name: Unqualified view or table name (e.g. ``"silver_material"``).
+
+    Returns:
+        Backtick-quoted three-part reference like
+        `` `catalog`.`silver`.`silver_material` ``.
+    """
+    return f"`{TRACE_CATALOG}`.`silver`.`{name}`"
 
 
 def check_warehouse_config() -> str:
@@ -126,12 +161,16 @@ def sql_param(name: str, value: Optional[object]) -> dict:
     return {"name": name, "value": str(value), "type": db_type}
 
 
-def run_sql_in(
+def build_in_params(
     values: list[object],
     *,
     prefix: str = "p",
 ) -> tuple[str, list[dict]]:
     """Build a typed parameter list for a SQL ``IN`` predicate.
+
+    This is the low-level primitive used by :func:`run_sql_in`. Call it
+    directly when you need the placeholders string and params separately
+    (e.g. to embed them inside a more complex query).
 
     Args:
         values: Typed values to bind into the predicate.
@@ -139,15 +178,75 @@ def run_sql_in(
             ``:<prefix>0, :<prefix>1, ...``.
 
     Returns:
-        A tuple of SQL fragment and matching Databricks SQL parameters. Empty
-        values return ``("NULL", [])`` so callers can safely write
-        ``IN ({fragment})`` and match no rows without producing invalid SQL.
+        A tuple of ``(placeholders_sql, params_list)``. Empty values return
+        ``("NULL", [])`` so callers can safely write ``IN ({placeholders})``
+        and match no rows without producing invalid SQL.
     """
     if not values:
         return "NULL", []
     placeholders = ", ".join(f":{prefix}{idx}" for idx in range(len(values)))
     params = [sql_param(f"{prefix}{idx}", value) for idx, value in enumerate(values)]
     return placeholders, params
+
+
+async def run_sql_in(
+    token: str,
+    statement_template: str,
+    *,
+    in_param: str,
+    values: list[object],
+    endpoint_hint: str | None = None,
+    max_rows: int | None = None,
+    cache_tier: CacheTier | None = None,
+    concurrency_key: str | None = None,
+    **table_refs: str,
+) -> list[dict]:
+    """Execute a SQL query that uses an ``IN`` predicate over a value list.
+
+    Renders ``{placeholders}`` in the statement template with auto-generated
+    named parameters, then delegates to :func:`run_sql_async`.  Any additional
+    keyword arguments are rendered into the template as table references (e.g.
+    ``plant_table=tbl("gold_plant")`` fills ``{plant_table}``).
+
+    Args:
+        token: Databricks access token.
+        statement_template: SQL template string.  Must contain
+            ``{placeholders}`` where the ``IN (...)`` arguments should appear.
+            May also contain ``{key}`` slots for ``**table_refs``.
+        in_param: Base name for the generated parameters (e.g. ``"plant_id"``
+            produces ``:plant_id0``, ``:plant_id1``, …).
+        values: Values to bind.  Must contain 1–1000 items; scalars only.
+        endpoint_hint: Optional label for slow-query logs.
+        max_rows: Append ``LIMIT n`` when the statement lacks one.
+        cache_tier: Optional :class:`~shared_db.runtime.CacheTier` for
+            per-call TTL caching.
+        concurrency_key: Named semaphore key (see :func:`run_sql_async`).
+        **table_refs: Additional ``{key}`` replacements for table names.
+            Values should come from :func:`tbl` or :func:`silver_tbl`.
+
+    Returns:
+        List of row dicts from the SQL result set.
+
+    Raises:
+        ValueError: If ``values`` is empty or contains more than 1 000 items.
+    """
+    if not values:
+        raise ValueError("run_sql_in: values must not be empty")
+    if len(values) > 1000:
+        raise ValueError(
+            f"run_sql_in: values list too long ({len(values)}); maximum is 1000"
+        )
+    placeholders, in_params = build_in_params(values, prefix=in_param)
+    statement = statement_template.format(placeholders=placeholders, **table_refs)
+    return await run_sql_async(
+        token,
+        statement,
+        in_params,
+        endpoint_hint=endpoint_hint,
+        max_rows=max_rows,
+        cache_tier=cache_tier,
+        concurrency_key=concurrency_key,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -157,6 +256,22 @@ _sql_cache = TTLCache(maxsize=100, ttl=300)
 _sql_cache_lock = threading.Lock()
 _SQL_CACHE_ROW_LIMIT = 1000
 _SQL_SLOW_QUERY_THRESHOLD_MS = int(os.environ.get("SQL_SLOW_QUERY_THRESHOLD_MS", "3000"))
+
+# Per-tier cache registry used by run_sql_async(cache_tier=...)
+_tier_cache_registry: dict[str, tuple[Any, threading.Lock]] = {}
+_tier_cache_registry_lock = threading.Lock()
+
+
+def _get_tier_cache(tier: CacheTier) -> tuple[Any, threading.Lock]:
+    """Return the (TTLCache, Lock) pair for a given CacheTier, creating it if needed."""
+    if tier.name in _tier_cache_registry:
+        return _tier_cache_registry[tier.name]
+    with _tier_cache_registry_lock:
+        if tier.name not in _tier_cache_registry:
+            cache = TTLCache(maxsize=tier.maxsize, ttl=tier.ttl_seconds)
+            lock = threading.Lock()
+            _tier_cache_registry[tier.name] = (cache, lock)
+    return _tier_cache_registry[tier.name]
 
 
 def _core_sql_cache_key(statement: str, params: Optional[list[dict]] = None) -> str:
@@ -215,32 +330,94 @@ async def run_sql_async(
     *,
     endpoint_hint: Optional[str] = None,
     max_rows: int | None = None,
+    cache_tier: CacheTier | None = None,
+    concurrency_key: str | None = None,
+    audit: bool = False,
 ) -> list[dict]:
-    """
-    Execute a SQL statement asynchronously with a single TTL cache.
+    """Execute a SQL statement asynchronously.
 
-    This is the base implementation used by trace2 and envmon. SPC overrides
-    this with its own tiered-cache version in apps/spc/backend/utils/db.py.
+    The base implementation uses a single process-local TTL cache.  Opt into
+    richer features with the keyword arguments below — all default to the
+    existing no-op behaviour so existing callers are unaffected.
+
+    For full tiered-cache, per-instance audit hook, and write-invalidation
+    behaviour, construct a :class:`~shared_db.runtime.SqlRuntime` directly.
 
     Args:
         token: Databricks access token.
-        statement: The SQL query to execute.
-        params: Optional list of parameter dicts for the query.
-        endpoint_hint: Optional logic name of the calling endpoint for logging.
-        
+        statement: SQL query string with ``:param`` placeholders.
+        params: Named parameter list built with :func:`sql_param`.
+        endpoint_hint: Label for slow-query logs and audit events.
+        max_rows: Append ``LIMIT n`` to read statements that lack one.
+        cache_tier: When provided, use this tier's TTL/maxsize for a
+            per-tier process-local cache keyed on statement + params.
+            When ``None`` (default) the base 5-minute cache is used for
+            reads up to 1000 rows.
+        concurrency_key: When set, gate execution through the named
+            process-level semaphore (see
+            :func:`~shared_db.runtime.get_semaphore`).
+        audit: When ``True``, fire all globally registered audit hooks
+            (see :func:`~shared_db.audit.register_audit_hook`).
+
     Returns:
-        List of dictionaries representing the query result rows.
+        List of row dicts from the SQL result set.
     """
     from .executors import _sql_executor, _REST_EXECUTOR
     from .runtime import apply_max_rows_guard
 
-    statement_to_execute = apply_max_rows_guard(statement, max_rows)
-    cache_key = _core_sql_cache_key(statement_to_execute, params)
+    if concurrency_key is not None:
+        from .runtime import get_semaphore
+        semaphore = get_semaphore(concurrency_key)
+        async with semaphore:
+            return await _run_sql_async_impl(
+                token, statement, params,
+                endpoint_hint=endpoint_hint,
+                max_rows=max_rows,
+                cache_tier=cache_tier,
+                audit=audit,
+            )
+    return await _run_sql_async_impl(
+        token, statement, params,
+        endpoint_hint=endpoint_hint,
+        max_rows=max_rows,
+        cache_tier=cache_tier,
+        audit=audit,
+    )
 
-    with _sql_cache_lock:
-        cached = _sql_cache.get(cache_key)
-    if cached is not None:
-        return cached
+
+async def _run_sql_async_impl(
+    token: str,
+    statement: str,
+    params: Optional[list[dict]] = None,
+    *,
+    endpoint_hint: Optional[str] = None,
+    max_rows: int | None = None,
+    cache_tier: CacheTier | None = None,
+    audit: bool = False,
+) -> list[dict]:
+    """Inner async execution path (no semaphore wrapping)."""
+    from .executors import _sql_executor, _REST_EXECUTOR
+    from .runtime import apply_max_rows_guard, sql_cache_key as _runtime_cache_key
+
+    statement_to_execute = apply_max_rows_guard(statement, max_rows)
+
+    # Determine which cache to use: tier-specific or the module-level fallback
+    if cache_tier is not None:
+        tier_key = f"tier:{cache_tier.name}"
+        cache, lock = _get_tier_cache(cache_tier)
+        ck = _runtime_cache_key(token, statement_to_execute, params)
+        with lock:
+            cached = cache.get(ck)
+        if cached is not None:
+            return cached
+    else:
+        cache = None
+        lock = None
+        cache_key = _core_sql_cache_key(statement_to_execute, params)
+        with _sql_cache_lock:
+            cached = _sql_cache.get(cache_key)
+        if cached is not None:
+            return cached
 
     if endpoint_hint:
         logger.info("sql.execute_async hint=%s", endpoint_hint)
@@ -256,9 +433,26 @@ async def run_sql_async(
     duration_ms = int((time.monotonic() - started_at) * 1000)
     _log_slow_query(duration_ms=duration_ms, endpoint_hint=endpoint_hint)
 
-    if len(rows) <= _SQL_CACHE_ROW_LIMIT:
-        with _sql_cache_lock:
-            _sql_cache[cache_key] = rows
+    if cache_tier is not None and cache is not None and lock is not None:
+        if len(rows) <= cache_tier.row_limit:
+            with lock:
+                cache[_runtime_cache_key(token, statement_to_execute, params)] = rows
+    else:
+        if len(rows) <= _SQL_CACHE_ROW_LIMIT:
+            with _sql_cache_lock:
+                _sql_cache[cache_key] = rows
+
+    if audit:
+        from .audit import _fire_global_audit_hooks
+        await _fire_global_audit_hooks(
+            token=token,
+            statement=statement_to_execute,
+            params=params,
+            endpoint_hint=endpoint_hint or "unknown",
+            elapsed_ms=duration_ms,
+            rows=rows,
+            error=None,
+        )
 
     return rows
 
