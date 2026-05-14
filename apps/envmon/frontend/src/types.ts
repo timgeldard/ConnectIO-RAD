@@ -24,6 +24,8 @@ export interface LocationMeta {
   x_pos: number | null;
   y_pos: number | null;
   is_mapped: boolean;
+  /** FK to em_location_zones.zone_id — populated after Slice 1 migration. */
+  parent_zone_id?: string | null;
 }
 
 export interface MarkerData {

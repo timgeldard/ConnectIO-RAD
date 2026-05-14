@@ -13,6 +13,7 @@
 
 import type { StudioCanvasProps } from './StudioCanvas';
 import ZoneLayer from './ZoneLayer';
+import PointLayer from './PointLayer';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
 
 /** Floor plan canvas with background image and percentage-coordinate SVG overlay. */
@@ -21,7 +22,9 @@ export default function FloorPlanCanvas({
   draft,
   activeMode,
   selectedZoneId,
+  selectedPointId,
   onSelectZone,
+  onSelectPoint,
   onCreateDraft,
   isCreatingDraft,
 }: StudioCanvasProps) {
@@ -29,6 +32,7 @@ export default function FloorPlanCanvas({
     activeMode,
     draft,
     onSelectZone,
+    selectedPointId,
   });
 
   return (
@@ -62,7 +66,7 @@ export default function FloorPlanCanvas({
           width: '100%',
           height: '100%',
           overflow: 'visible',
-          cursor: activeMode === 'structure' && draft ? 'crosshair' : 'default',
+          cursor: (activeMode === 'structure' || (activeMode === 'place' && selectedPointId)) && draft ? 'crosshair' : 'default',
         }}
         aria-label={`${floor.floor_name} layout canvas`}
         data-testid="floor-plan-svg"
@@ -76,7 +80,12 @@ export default function FloorPlanCanvas({
           onSelectZone={onSelectZone}
           dragRect={dragRect}
         />
-        {/* PointLayer inserted here in Slice 10 */}
+        <PointLayer
+          coordinates={draft?.coordinates ?? []}
+          zones={draft?.zones ?? []}
+          selectedPointId={selectedPointId}
+          onSelectPoint={onSelectPoint}
+        />
       </svg>
 
       {/* No-draft overlay — prompt to open a draft before authoring */}

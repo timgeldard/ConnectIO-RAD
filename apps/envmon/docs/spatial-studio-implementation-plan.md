@@ -1,7 +1,7 @@
-# EnvMon Spatial Studio — Implementation Plan
+﻿# EnvMon Spatial Studio â€” Implementation Plan
 
 **File:** `apps/envmon/docs/spatial-studio-implementation-plan.md`
-**Last updated:** 2026-05-13 — Slice 0 complete
+**Last updated:** 2026-05-13 â€” Slice 0 complete
 
 ---
 
@@ -11,39 +11,39 @@
 
 ```
 apps/envmon/
-├── backend/envmon_backend/
-│   ├── inspection_analysis/          Read-only analytics bounded context
-│   │   ├── router.py                 7 GET endpoints
-│   │   ├── application/queries.py    6 service handlers
-│   │   ├── domain/                   risk.py, spc.py, status.py, valuation.py, inspection.py
-│   │   └── dal/                      heatmap.py, plants.py, lots.py, trends.py
-│   ├── spatial_config/               Admin spatial authoring bounded context
-│   │   ├── router.py                 9 endpoints (floors, coordinates, plant-geo)
-│   │   ├── application/              commands.py (re-exports), queries.py
-│   │   ├── domain/                   coordinate.py, plant_geo.py
-│   │   └── dal/                      coordinates.py, floors.py, plant_geo.py
-│   ├── schemas/em.py                 14 Pydantic request/response models
-│   └── utils/                        em_config.py (table refs), db.py (SQL runner)
-├── frontend/src/
-│   ├── types.ts                      8 interfaces + enums
-│   ├── api/client.ts                 18 TanStack Query hooks
-│   ├── context/EMContext.tsx          Global state (view, filters, adminMode)
-│   └── components/
-│       ├── admin/CoordinateMapper.tsx 1000+ lines; current only admin spatial UI
-│       └── floorplan/                FloorPlan.tsx, Marker.tsx, Tooltip.tsx
-├── scripts/migrations/               000–003 SQL files
-│   ├── 001b_create_em_location_coordinates.sql
-│   ├── 001c_create_em_plant_floor.sql
-│   └── 003_create_em_plant_geo.sql
-├── deploy.toml                       6 [[migrations]] entries, UAT + prod targets
-└── docs/                             api.md, architecture.md, setup.md
+â”œâ”€â”€ backend/envmon_backend/
+â”‚   â”œâ”€â”€ inspection_analysis/          Read-only analytics bounded context
+â”‚   â”‚   â”œâ”€â”€ router.py                 7 GET endpoints
+â”‚   â”‚   â”œâ”€â”€ application/queries.py    6 service handlers
+â”‚   â”‚   â”œâ”€â”€ domain/                   risk.py, spc.py, status.py, valuation.py, inspection.py
+â”‚   â”‚   â””â”€â”€ dal/                      heatmap.py, plants.py, lots.py, trends.py
+â”‚   â”œâ”€â”€ spatial_config/               Admin spatial authoring bounded context
+â”‚   â”‚   â”œâ”€â”€ router.py                 9 endpoints (floors, coordinates, plant-geo)
+â”‚   â”‚   â”œâ”€â”€ application/              commands.py (re-exports), queries.py
+â”‚   â”‚   â”œâ”€â”€ domain/                   coordinate.py, plant_geo.py
+â”‚   â”‚   â””â”€â”€ dal/                      coordinates.py, floors.py, plant_geo.py
+â”‚   â”œâ”€â”€ schemas/em.py                 14 Pydantic request/response models
+â”‚   â””â”€â”€ utils/                        em_config.py (table refs), db.py (SQL runner)
+â”œâ”€â”€ frontend/src/
+â”‚   â”œâ”€â”€ types.ts                      8 interfaces + enums
+â”‚   â”œâ”€â”€ api/client.ts                 18 TanStack Query hooks
+â”‚   â”œâ”€â”€ context/EMContext.tsx          Global state (view, filters, adminMode)
+â”‚   â””â”€â”€ components/
+â”‚       â”œâ”€â”€ admin/CoordinateMapper.tsx 1000+ lines; current only admin spatial UI
+â”‚       â””â”€â”€ floorplan/                FloorPlan.tsx, Marker.tsx, Tooltip.tsx
+â”œâ”€â”€ scripts/migrations/               000â€“003 SQL files
+â”‚   â”œâ”€â”€ 001b_create_em_location_coordinates.sql
+â”‚   â”œâ”€â”€ 001c_create_em_plant_floor.sql
+â”‚   â””â”€â”€ 003_create_em_plant_geo.sql
+â”œâ”€â”€ deploy.toml                       6 [[migrations]] entries, UAT + prod targets
+â””â”€â”€ docs/                             api.md, architecture.md, setup.md
 ```
 
 ### Existing tables
 
 | Table | Primary key | Key columns |
 |-------|-------------|-------------|
-| `em_location_coordinates` | (plant_id, func_loc_id) | floor_id, x_pos, y_pos (0–100 pct) |
+| `em_location_coordinates` | (plant_id, func_loc_id) | floor_id, x_pos, y_pos (0â€“100 pct) |
 | `em_plant_floor` | (plant_id, floor_id) | floor_name, svg_url, svg_width, svg_height, sort_order |
 | `em_plant_geo` | plant_id | lat, lon (WGS-84) |
 
@@ -51,21 +51,21 @@ apps/envmon/
 
 - Domain: `LocationCoordinate` (frozen dataclass), `PlantGeo` (frozen dataclass)
 - DAL: CRUD via `MERGE`/`DELETE` statements, all using `run_sql_async` + `sql_param`
-- Application: thin coordinators; `commands.py` is a pure re-export façade
+- Application: thin coordinators; `commands.py` is a pure re-export faÃ§ade
 - Router: FastAPI, auth via `require_proxy_user`, validates via domain objects
 - Table refs: resolved in `utils/em_config.py` via `_quote()` and env var overrides
 
 ### Key conventions
 
-1. **Table naming** — `em_<noun>` prefix, resolved at module load via `os.environ.get("EM_<TABLE>_TABLE", default)` in `em_config.py`
-2. **SQL execution** — `run_sql_async(token, sql, params)` + `sql_param(name, value)` in `utils/db.py`
-3. **Parameterised queries** — named params (`:param_name`), never f-string user values
-4. **Migration files** — `NNN[a-z]_description.sql`, `CREATE TABLE IF NOT EXISTS`, `${TRACE_CATALOG}.${TRACE_SCHEMA}`, `USING DELTA`, auto-optimize properties; column extension uses `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`
-5. **deploy.toml** — `[[migrations]]` block per file, `warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"`
-6. **Architecture guardrails** — `tests/test_architecture_boundaries.py` AST-scans all `*/domain/*.py`; must not import `envmon_backend.schemas`, `envmon_backend.utils.db`, `*.dal.*`, `fastapi`, `shared_db`, or `shared_auth`
-7. **Frontend** — inline styles + CSS variables; TanStack Query; no CSS modules; no heavy UI libs
-8. **Test coverage** — `pyproject.toml` floor 75%; docstring floor 68%; new code must hold both
-9. **DELTA schema evolution** — `ALTER TABLE … ADD COLUMN IF NOT EXISTS` is safe and idempotent; never drop-and-recreate existing tables
+1. **Table naming** â€” `em_<noun>` prefix, resolved at module load via `os.environ.get("EM_<TABLE>_TABLE", default)` in `em_config.py`
+2. **SQL execution** â€” `run_sql_async(token, sql, params)` + `sql_param(name, value)` in `utils/db.py`
+3. **Parameterised queries** â€” named params (`:param_name`), never f-string user values
+4. **Migration files** â€” `NNN[a-z]_description.sql`, `CREATE TABLE IF NOT EXISTS`, `${TRACE_CATALOG}.${TRACE_SCHEMA}`, `USING DELTA`, auto-optimize properties; column extension uses `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`
+5. **deploy.toml** â€” `[[migrations]]` block per file, `warehouse_id_env = "DATABRICKS_WAREHOUSE_ID"`
+6. **Architecture guardrails** â€” `tests/test_architecture_boundaries.py` AST-scans all `*/domain/*.py`; must not import `envmon_backend.schemas`, `envmon_backend.utils.db`, `*.dal.*`, `fastapi`, `shared_db`, or `shared_auth`
+7. **Frontend** â€” inline styles + CSS variables; TanStack Query; no CSS modules; no heavy UI libs
+8. **Test coverage** â€” `pyproject.toml` floor 75%; docstring floor 68%; new code must hold both
+9. **DELTA schema evolution** â€” `ALTER TABLE â€¦ ADD COLUMN IF NOT EXISTS` is safe and idempotent; never drop-and-recreate existing tables
 
 ---
 
@@ -73,56 +73,56 @@ apps/envmon/
 
 ```
 spatial_config/
-├── domain/
-│   ├── coordinate.py          EXISTING — LocationCoordinate value object
-│   ├── plant_geo.py           EXISTING — PlantGeo value object
-│   ├── geometry.py            NEW (Slice 2) — pure geometry functions
-│   ├── zone.py                NEW (Slice 3) — LayoutZone value object
-│   └── revision.py            NEW (Slice 3) — LayoutRevision entity
-├── application/
-│   ├── commands.py            EXISTING — will grow with new re-exports
-│   ├── queries.py             EXISTING — will grow
-│   ├── layout_validation.py   NEW (Slice 4)
-│   └── layout_publish.py      NEW (Slice 4)
-├── dal/
-│   ├── coordinates.py         EXISTING — will gain zone/revision writes (Slice 3)
-│   ├── floors.py              EXISTING — will gain canvas metadata reads/writes (Slice 3)
-│   ├── plant_geo.py           EXISTING — unchanged
-│   ├── zones.py               NEW (Slice 3)
-│   └── revisions.py           NEW (Slice 3)
-├── router.py                  EXISTING — unchanged (existing admin endpoints stay)
-└── studio_router.py           NEW (Slice 5) — mounted at /api/em/spatial
+â”œâ”€â”€ domain/
+â”‚   â”œâ”€â”€ coordinate.py          EXISTING â€” LocationCoordinate value object
+â”‚   â”œâ”€â”€ plant_geo.py           EXISTING â€” PlantGeo value object
+â”‚   â”œâ”€â”€ geometry.py            NEW (Slice 2) â€” pure geometry functions
+â”‚   â”œâ”€â”€ zone.py                NEW (Slice 3) â€” LayoutZone value object
+â”‚   â””â”€â”€ revision.py            NEW (Slice 3) â€” LayoutRevision entity
+â”œâ”€â”€ application/
+â”‚   â”œâ”€â”€ commands.py            EXISTING â€” will grow with new re-exports
+â”‚   â”œâ”€â”€ queries.py             EXISTING â€” will grow
+â”‚   â”œâ”€â”€ layout_validation.py   NEW (Slice 4)
+â”‚   â””â”€â”€ layout_publish.py      NEW (Slice 4)
+â”œâ”€â”€ dal/
+â”‚   â”œâ”€â”€ coordinates.py         EXISTING â€” will gain zone/revision writes (Slice 3)
+â”‚   â”œâ”€â”€ floors.py              EXISTING â€” will gain canvas metadata reads/writes (Slice 3)
+â”‚   â”œâ”€â”€ plant_geo.py           EXISTING â€” unchanged
+â”‚   â”œâ”€â”€ zones.py               NEW (Slice 3)
+â”‚   â””â”€â”€ revisions.py           NEW (Slice 3)
+â”œâ”€â”€ router.py                  EXISTING â€” unchanged (existing admin endpoints stay)
+â””â”€â”€ studio_router.py           NEW (Slice 5) â€” mounted at /api/em/spatial
 ```
 
 ### Router mount (Slice 5)
 
 `main.py` will register `studio_router` with prefix `/api/em/spatial` in addition to the existing `spatial_router` at `/api/em`. This keeps new Studio endpoints clearly separated from legacy admin endpoints without breaking any existing path.
 
-### Frontend new structure (Slices 6–11)
+### Frontend new structure (Slices 6â€“11)
 
 ```
 frontend/src/
-├── types.ts                                EXTEND — zone, revision, canvas, validation types
-├── api/client.ts                           EXTEND — Studio hooks
-└── components/
-    └── admin/
-        ├── CoordinateMapper.tsx            UNCHANGED throughout (see decision below)
-        └── spatial-studio/
-            ├── SpatialStudio.tsx           NEW (Slice 7) — top-level page
-            ├── StudioShell.tsx             NEW (Slice 7) — left/canvas/right/top layout
-            ├── HierarchyRail.tsx           NEW (Slice 7) — floor/L4/L5 tree
-            ├── CommandBar.tsx              NEW (Slice 7) — mode, zoom, validate, publish buttons
-            ├── StudioCanvas.tsx            NEW (Slice 8) — router between FloorPlanCanvas/GridCanvas
-            ├── FloorPlanCanvas.tsx         NEW (Slice 8) — SVG floor plan + zones + points
-            ├── GridCanvas.tsx              NEW (Slice 8) — configurable grid + zones + points
-            ├── ZoneLayer.tsx               NEW (Slice 9) — renders L4 zones (rect/polygon)
-            ├── PointLayer.tsx              NEW (Slice 10) — renders L5 points + constraints
-            ├── InspectorPanel.tsx          NEW (Slice 9) — right panel for selected object
-            ├── ValidationPanel.tsx         NEW (Slice 11) — blocking errors, warnings, suggestions
-            ├── PublishDialog.tsx           NEW (Slice 11) — reason-for-change + warning text
-            └── hooks/
-                ├── useStudioState.ts       NEW (Slice 7) — authoring mode, selection, dirty flag
-                └── useCanvasInteraction.ts NEW (Slice 9) — drag/place/resize pointer events
+â”œâ”€â”€ types.ts                                EXTEND â€” zone, revision, canvas, validation types
+â”œâ”€â”€ api/client.ts                           EXTEND â€” Studio hooks
+â””â”€â”€ components/
+    â””â”€â”€ admin/
+        â”œâ”€â”€ CoordinateMapper.tsx            UNCHANGED throughout (see decision below)
+        â””â”€â”€ spatial-studio/
+            â”œâ”€â”€ SpatialStudio.tsx           NEW (Slice 7) â€” top-level page
+            â”œâ”€â”€ StudioShell.tsx             NEW (Slice 7) â€” left/canvas/right/top layout
+            â”œâ”€â”€ HierarchyRail.tsx           NEW (Slice 7) â€” floor/L4/L5 tree
+            â”œâ”€â”€ CommandBar.tsx              NEW (Slice 7) â€” mode, zoom, validate, publish buttons
+            â”œâ”€â”€ StudioCanvas.tsx            NEW (Slice 8) â€” router between FloorPlanCanvas/GridCanvas
+            â”œâ”€â”€ FloorPlanCanvas.tsx         NEW (Slice 8) â€” SVG floor plan + zones + points
+            â”œâ”€â”€ GridCanvas.tsx              NEW (Slice 8) â€” configurable grid + zones + points
+            â”œâ”€â”€ ZoneLayer.tsx               NEW (Slice 9) â€” renders L4 zones (rect/polygon)
+            â”œâ”€â”€ PointLayer.tsx              NEW (Slice 10) â€” renders L5 points + constraints
+            â”œâ”€â”€ InspectorPanel.tsx          NEW (Slice 9) â€” right panel for selected object
+            â”œâ”€â”€ ValidationPanel.tsx         NEW (Slice 11) â€” blocking errors, warnings, suggestions
+            â”œâ”€â”€ PublishDialog.tsx           NEW (Slice 11) â€” reason-for-change + warning text
+            â””â”€â”€ hooks/
+                â”œâ”€â”€ useStudioState.ts       NEW (Slice 7) â€” authoring mode, selection, dirty flag
+                â””â”€â”€ useCanvasInteraction.ts NEW (Slice 9) â€” drag/place/resize pointer events
 ```
 
 ---
@@ -131,7 +131,7 @@ frontend/src/
 
 ### Spatial Studio vs CoordinateMapper coexistence
 
-**Decision: option (b) — Studio is a new admin route; CoordinateMapper.tsx is untouched.**
+**Decision: option (b) â€” Studio is a new admin route; CoordinateMapper.tsx is untouched.**
 
 - CoordinateMapper continues to function as today throughout all slices.
 - Spatial Studio is accessed via a new admin route added in Slice 7 (e.g. `/admin/spatial-studio`).
@@ -145,7 +145,7 @@ frontend/src/
 - Operational heatmap (`/api/em/heatmap`) resolves coordinates from `em_location_coordinates` as today.
 - After Studio publishes a layout, the `em_location_coordinates` table reflects the published positions (the existing table remains the authoritative source for the heatmap query).
 - `em_layout_revision` records the published layout state for governance, rollback, and audit; it is not joined into any heatmap or trend query.
-- Historical views and playback use whatever positions are currently in `em_location_coordinates` — not the revision that was active at the time of the original inspection.
+- Historical views and playback use whatever positions are currently in `em_location_coordinates` â€” not the revision that was active at the time of the original inspection.
 - Publishing a new layout can change how past inspection results are spatially displayed. Underlying SAP/gold data is never modified.
 
 This decision is reflected in the publish workflow (Slice 4) and publish UI (Slice 11).
@@ -158,7 +158,7 @@ Reason: existing floor rows predate the revision system. Backfilling requires a 
 
 ### Backfilling parent_zone_id on em_location_coordinates
 
-Existing coordinate rows will have `parent_zone_id = NULL` after the Slice 1 migration. Zone assignment is **not backfilled by migration** — it is performed manually via the Spatial Studio authoring flow on first use. This is a deliberate governance choice: a human must consciously assign each L5 to an L4 zone.
+Existing coordinate rows will have `parent_zone_id = NULL` after the Slice 1 migration. Zone assignment is **not backfilled by migration** â€” it is performed manually via the Spatial Studio authoring flow on first use. This is a deliberate governance choice: a human must consciously assign each L5 to an L4 zone.
 
 ### new router file
 
@@ -172,16 +172,16 @@ A new `spatial_config/studio_router.py` is registered in `main.py` with prefix `
 
 | # | File | Type | Table | Status |
 |---|------|------|-------|--------|
-| 000 | `000_create_em_location_coordinates.sql` | CREATE | em_location_coordinates v1 | ✅ Deployed |
-| 001a | `001a_drop_em_location_coordinates.sql` | DROP | — | ✅ Deployed |
-| 001b | `001b_create_em_location_coordinates.sql` | CREATE | em_location_coordinates v2 | ✅ Deployed |
-| 001c | `001c_create_em_plant_floor.sql` | CREATE | em_plant_floor | ✅ Deployed |
-| 002 | `002_seed_p225_floors.sql` | SEED | em_plant_floor | ✅ Deployed |
-| 003 | `003_create_em_plant_geo.sql` | CREATE | em_plant_geo | ✅ Deployed |
-| 004 | `004_create_em_layout_revision.sql` | CREATE | em_layout_revision | 🔲 Slice 1 |
-| 005 | `005_create_em_location_zones.sql` | CREATE | em_location_zones | 🔲 Slice 1 |
-| 006 | `006_extend_em_plant_floor_canvas.sql` | ALTER | em_plant_floor | 🔲 Slice 1 |
-| 007 | `007_extend_em_location_coordinates_zones.sql` | ALTER | em_location_coordinates | 🔲 Slice 1 |
+| 000 | `000_create_em_location_coordinates.sql` | CREATE | em_location_coordinates v1 | âœ… Deployed |
+| 001a | `001a_drop_em_location_coordinates.sql` | DROP | â€” | âœ… Deployed |
+| 001b | `001b_create_em_location_coordinates.sql` | CREATE | em_location_coordinates v2 | âœ… Deployed |
+| 001c | `001c_create_em_plant_floor.sql` | CREATE | em_plant_floor | âœ… Deployed |
+| 002 | `002_seed_p225_floors.sql` | SEED | em_plant_floor | âœ… Deployed |
+| 003 | `003_create_em_plant_geo.sql` | CREATE | em_plant_geo | âœ… Deployed |
+| 004 | `004_create_em_layout_revision.sql` | CREATE | em_layout_revision | ðŸ”² Slice 1 |
+| 005 | `005_create_em_location_zones.sql` | CREATE | em_location_zones | ðŸ”² Slice 1 |
+| 006 | `006_extend_em_plant_floor_canvas.sql` | ALTER | em_plant_floor | ðŸ”² Slice 1 |
+| 007 | `007_extend_em_location_coordinates_zones.sql` | ALTER | em_location_coordinates | ðŸ”² Slice 1 |
 
 ### New table: `em_layout_revision`
 
@@ -245,7 +245,7 @@ TBLPROPERTIES (
 
 ### Extension: `em_plant_floor` (ALTER TABLE, Slice 1)
 
-New columns added with `ALTER TABLE … ADD COLUMN IF NOT EXISTS`:
+New columns added with `ALTER TABLE â€¦ ADD COLUMN IF NOT EXISTS`:
 
 | Column | Type | Nullable | Default meaning | Notes |
 |--------|------|----------|-----------------|-------|
@@ -265,7 +265,7 @@ Existing `svg_url`, `svg_width`, `svg_height` columns are **not removed or chang
 
 ### Extension: `em_location_coordinates` (ALTER TABLE, Slice 1)
 
-New columns added with `ALTER TABLE … ADD COLUMN IF NOT EXISTS`:
+New columns added with `ALTER TABLE â€¦ ADD COLUMN IF NOT EXISTS`:
 
 | Column | Type | Nullable | Notes |
 |--------|------|----------|-------|
@@ -325,16 +325,16 @@ REVISION_TBL      = _quote(REVISION_TBL_NAME)
 Pure functions, **no imports from outside stdlib or this module**. Must not import `fastapi`, `envmon_backend.schemas`, `envmon_backend.utils.db`, or any DAL module (enforced by `test_architecture_boundaries.py`).
 
 Functions to implement:
-- `point_in_polygon(x: float, y: float, points: list[dict]) -> bool` — ray-casting algorithm
-- `rectangle_to_points(geo: dict) -> list[dict]` — converts rectangle JSON to 4-point list
-- `polygon_bbox(points: list[dict]) -> dict` — returns `{x_min_pct, y_min_pct, x_max_pct, y_max_pct}`
-- `polygon_centroid(points: list[dict]) -> tuple[float, float]` — returns `(cx, cy)`
-- `canvas_bounds_check(points: list[dict]) -> bool` — True if all points in [0,100]²
-- `is_self_intersecting(points: list[dict]) -> bool` — True if any non-adjacent edges cross
-- `polygons_overlap(a_points: list[dict], b_points: list[dict]) -> bool` — SAT-based overlap
-- `normalise_geometry(geo: dict) -> dict` — converts rectangle → polygon points for uniform handling
+- `point_in_polygon(x: float, y: float, points: list[dict]) -> bool` â€” ray-casting algorithm
+- `rectangle_to_points(geo: dict) -> list[dict]` â€” converts rectangle JSON to 4-point list
+- `polygon_bbox(points: list[dict]) -> dict` â€” returns `{x_min_pct, y_min_pct, x_max_pct, y_max_pct}`
+- `polygon_centroid(points: list[dict]) -> tuple[float, float]` â€” returns `(cx, cy)`
+- `canvas_bounds_check(points: list[dict]) -> bool` â€” True if all points in [0,100]Â²
+- `is_self_intersecting(points: list[dict]) -> bool` â€” True if any non-adjacent edges cross
+- `polygons_overlap(a_points: list[dict], b_points: list[dict]) -> bool` â€” SAT-based overlap
+- `normalise_geometry(geo: dict) -> dict` â€” converts rectangle â†’ polygon points for uniform handling
 
-All operate on percentage-based coordinates (`x_pct`, `y_pct` floats in 0–100).
+All operate on percentage-based coordinates (`x_pct`, `y_pct` floats in 0â€“100).
 
 #### `spatial_config/domain/zone.py`
 
@@ -383,16 +383,16 @@ Functions:
 - `fetch_zones(token, plant_id, floor_id, revision_id) -> list[dict]`
 - `fetch_zone(token, zone_id) -> list[dict]`
 - `upsert_zone(token, zone_id, plant_id, floor_id, func_loc_id, zone_name, geometry_type, geometry_json, bbox_json, centroid_x, centroid_y, revision_id) -> None`
-- `delete_draft_zone(token, zone_id, revision_id) -> None` — only deletes if revision is draft
-- `archive_zones_for_revision(token, revision_id) -> None` — marks all draft zones as archived
+- `delete_draft_zone(token, zone_id, revision_id) -> None` â€” only deletes if revision is draft
+- `archive_zones_for_revision(token, revision_id) -> None` â€” marks all draft zones as archived
 
 #### `spatial_config/dal/revisions.py`
 
 Functions:
 - `fetch_revision(token, revision_id) -> list[dict]`
 - `fetch_revisions(token, plant_id, floor_id, limit=20) -> list[dict]`
-- `fetch_active_revision(token, plant_id, floor_id) -> list[dict]` — state = 'published', most recent
-- `fetch_draft_revision(token, plant_id, floor_id) -> list[dict]` — state = 'draft', most recent
+- `fetch_active_revision(token, plant_id, floor_id) -> list[dict]` â€” state = 'published', most recent
+- `fetch_draft_revision(token, plant_id, floor_id) -> list[dict]` â€” state = 'draft', most recent
 - `create_revision(token, revision_id, plant_id, floor_id, revision_number, created_by, base_revision_id) -> None`
 - `update_revision_state(token, revision_id, state, published_by, published_at, change_reason, publish_summary_json, validation_summary_json) -> None`
 
@@ -430,8 +430,8 @@ async def get_or_create_draft(token, plant_id, floor_id, user_identity) -> Layou
     # Returns existing draft or creates a new one, incrementing revision_number
 
 async def publish_layout(token, plant_id, floor_id, revision_id, change_reason, user_identity) -> LayoutRevision:
-    # 1. Load draft revision — raise if not found or not in 'draft' state
-    # 2. Validate — raise if blocking errors exist
+    # 1. Load draft revision â€” raise if not found or not in 'draft' state
+    # 2. Validate â€” raise if blocking errors exist
     # 3. Mark previous published revision as 'superseded'
     # 4. Mark this revision as 'published', record published_by/at, change_reason
     # 5. Update em_plant_floor.active_revision_id = this revision_id
@@ -557,17 +557,17 @@ export interface PublishedLayout {
 
 ```typescript
 // Studio layout queries
-usePublishedLayout(plantId, floorId)     → PublishedLayout
-useDraftLayout(plantId, floorId)         → DraftLayout | null
-useRevisions(plantId, floorId)           → LayoutRevision[]
+usePublishedLayout(plantId, floorId)     â†’ PublishedLayout
+useDraftLayout(plantId, floorId)         â†’ DraftLayout | null
+useRevisions(plantId, floorId)           â†’ LayoutRevision[]
 
 // Studio mutations
-useCreateDraft()  → mutate({ plantId, floorId })
-useUpsertZone()   → mutate(ZoneUpsertRequest)
-useDeleteZone()   → mutate({ floorId, zoneId })
-useValidate()     → mutate({ plantId, floorId }) → ValidationResult
-usePublish()      → mutate({ plantId, floorId, changeReason })
-useRollback()     → mutate({ plantId, floorId, targetRevisionId, changeReason })
+useCreateDraft()  â†’ mutate({ plantId, floorId })
+useUpsertZone()   â†’ mutate(ZoneUpsertRequest)
+useDeleteZone()   â†’ mutate({ floorId, zoneId })
+useValidate()     â†’ mutate({ plantId, floorId }) â†’ ValidationResult
+usePublish()      â†’ mutate({ plantId, floorId, changeReason })
+useRollback()     â†’ mutate({ plantId, floorId, targetRevisionId, changeReason })
 ```
 
 All queries use 0 staleTime during active authoring to ensure fresh state. The mutation hooks invalidate `draftLayout` and `publishedLayout` query keys on settle.
@@ -578,7 +578,7 @@ All queries use 0 staleTime during active authoring to ensure fresh state. The m
 |-----------|-------|----------------|
 | `SpatialStudio.tsx` | 7 | Entry point; reads plantId from EMContext; handles floor selection |
 | `StudioShell.tsx` | 7 | Three-column layout: HierarchyRail / StudioCanvas / InspectorPanel + CommandBar |
-| `HierarchyRail.tsx` | 7 | Floor list → L4 zone list → L5 point list; click to select |
+| `HierarchyRail.tsx` | 7 | Floor list â†’ L4 zone list â†’ L5 point list; click to select |
 | `CommandBar.tsx` | 7 | Mode tabs (Structure/Place/Review), zoom controls, validate button, publish button, dirty indicator |
 | `StudioCanvas.tsx` | 8 | Routes to FloorPlanCanvas or GridCanvas based on floor.canvasType |
 | `FloorPlanCanvas.tsx` | 8 | SVG element with background image, ZoneLayer, PointLayer |
@@ -621,7 +621,7 @@ interpretation may change."
 | `L5_WRONG_HIERARCHY` | L5 functional location does not belong to the selected L4 hierarchy branch |
 | `L4_POLYGON_OPEN` | L4 polygon points list is empty or fewer than 3 points |
 | `L4_SELF_INTERSECTING` | L4 polygon edges self-intersect |
-| `L4_OUTSIDE_CANVAS` | L4 geometry has points outside [0,100]² canvas bounds |
+| `L4_OUTSIDE_CANVAS` | L4 geometry has points outside [0,100]Â² canvas bounds |
 | `PUBLISH_NO_REASON` | Publish attempted without change_reason |
 | `PUBLISH_NO_DRAFT` | Publish attempted with no active draft revision |
 
@@ -641,7 +641,7 @@ interpretation may change."
 | Code | Description |
 |------|-------------|
 | `SNAP_TO_GRID` | Point is not aligned to nearest grid line |
-| `ALIGN_ZONE_EDGE` | Zone edge is not horizontal/vertical (within 1° tolerance) |
+| `ALIGN_ZONE_EDGE` | Zone edge is not horizontal/vertical (within 1Â° tolerance) |
 
 ### Implementation approach
 
@@ -688,87 +688,87 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 
 ### Backend tests (per-slice targets)
 
-**Slice 2 — `tests/test_geometry_domain.py`**
-- `test_point_in_convex_polygon_interior` — inside → True
-- `test_point_on_polygon_boundary` — on edge → True
-- `test_point_outside_polygon` — outside → False
+**Slice 2 â€” `tests/test_geometry_domain.py`**
+- `test_point_in_convex_polygon_interior` â€” inside â†’ True
+- `test_point_on_polygon_boundary` â€” on edge â†’ True
+- `test_point_outside_polygon` â€” outside â†’ False
 - `test_rectangle_to_points_yields_4_corners`
 - `test_polygon_bbox_correct`
 - `test_polygon_centroid_square`
 - `test_canvas_bounds_check_valid`
 - `test_canvas_bounds_check_out_of_range`
-- `test_self_intersecting_bowtie` — butterfly polygon → True
-- `test_self_intersecting_square` — convex → False
-- `test_polygons_overlap_touching` — touching at edge
-- `test_polygons_overlap_separated` — False
+- `test_self_intersecting_bowtie` â€” butterfly polygon â†’ True
+- `test_self_intersecting_square` â€” convex â†’ False
+- `test_polygons_overlap_touching` â€” touching at edge
+- `test_polygons_overlap_separated` â€” False
 
-**Slice 3 — extend `tests/test_coordinates_dal.py`**
+**Slice 3 â€” extend `tests/test_coordinates_dal.py`**
 - `test_upsert_zone_builds_correct_merge`
 - `test_delete_draft_zone_sql`
 - `test_fetch_zones_filters_by_revision`
 - `test_create_revision_sql`
 - `test_fetch_active_revision_filter`
 
-**Slice 4 — `tests/test_layout_validation.py`**
+**Slice 4 â€” `tests/test_layout_validation.py`**
 - `test_validate_l5_outside_zone_is_blocking_error`
 - `test_validate_l5_inside_zone_ok`
 - `test_validate_no_reason_blocks_publish`
 - `test_validate_passes_with_only_warnings`
 - `test_overlapping_zones_is_warning_not_blocking`
 
-**Slice 4 — `tests/test_layout_publish.py`**
+**Slice 4 â€” `tests/test_layout_publish.py`**
 - `test_publish_without_reason_raises`
 - `test_publish_with_blocking_errors_raises`
 - `test_publish_success_marks_previous_superseded`
 - `test_publish_updates_floor_active_revision_id`
 
-**Slice 5 — extend `tests/test_routers.py`**
+**Slice 5 â€” extend `tests/test_routers.py`**
 - `test_get_layout_returns_200`
 - `test_get_draft_when_no_draft_returns_none`
 - `test_publish_without_reason_returns_422`
 - `test_validate_endpoint_returns_result`
 
-**Architecture boundary** — the existing `test_architecture_boundaries.py` will automatically scan new `*/domain/*.py` files. New `geometry.py`, `zone.py`, and `revision.py` must stay import-clean.
+**Architecture boundary** â€” the existing `test_architecture_boundaries.py` will automatically scan new `*/domain/*.py` files. New `geometry.py`, `zone.py`, and `revision.py` must stay import-clean.
 
 ### Frontend tests
 
-**Slice 6 — `api/__tests__/client_extended.test.tsx`**
+**Slice 6 â€” `api/__tests__/client_extended.test.tsx`**
 - Extend with hook smoke tests for `usePublishedLayout`, `useDraftLayout`, `usePublish`
 
-**Slice 7 — `components/admin/spatial-studio/__tests__/SpatialStudio.test.tsx`**
+**Slice 7 â€” `components/admin/spatial-studio/__tests__/SpatialStudio.test.tsx`**
 - Renders without crash
 - Shows floor selector when no floor selected
 - Changes mode on CommandBar click
 
-**Slice 11 — `PublishDialog.test.tsx`**
+**Slice 11 â€” `PublishDialog.test.tsx`**
 - Shows historical impact warning text verbatim
 - Disabled when no change_reason
 - Calls publish mutation on confirm
 
 ### Manual test checklist (Slice 12)
 
-1. Open existing EnvMon heatmap — confirm markers still render
+1. Open existing EnvMon heatmap â€” confirm markers still render
 2. Navigate to Spatial Studio via admin route
 3. Select a floor; confirm canvas renders (floor plan or grid placeholder)
 4. Create L4 zone via Structure mode
-5. Place L5 point inside L4 zone via Place mode — confirm green state
-6. Attempt to move L5 outside L4 zone — confirm red outline / validation error
-7. Click Validate — confirm issues panel populates
-8. Click Publish with no reason — confirm blocked
-9. Click Publish with blocking error — confirm blocked
-10. Click Publish with valid layout and reason — confirm success
-11. Open heatmap for same floor — confirm coordinates now reflect published zones
-12. Change date range on heatmap — confirm same coordinates used (no time-valid lookup)
-13. Open Revisions list — confirm published revision appears
-14. Open CoordinateMapper — confirm still functions unchanged
+5. Place L5 point inside L4 zone via Place mode â€” confirm green state
+6. Attempt to move L5 outside L4 zone â€” confirm red outline / validation error
+7. Click Validate â€” confirm issues panel populates
+8. Click Publish with no reason â€” confirm blocked
+9. Click Publish with blocking error â€” confirm blocked
+10. Click Publish with valid layout and reason â€” confirm success
+11. Open heatmap for same floor â€” confirm coordinates now reflect published zones
+12. Change date range on heatmap â€” confirm same coordinates used (no time-valid lookup)
+13. Open Revisions list â€” confirm published revision appears
+14. Open CoordinateMapper â€” confirm still functions unchanged
 15. Confirm `em_layout_revision` has a 'published' row after step 10
 
 ---
 
 ## Slice plan
 
-### Slice 0 — Discovery and implementation plan
-**Status:** ✅ Complete
+### Slice 0 â€” Discovery and implementation plan
+**Status:** âœ… Complete
 **Owner/agent:** claude-sonnet-4-6 (this session)
 **Files changed:**
 - `apps/envmon/docs/spatial-studio-implementation-plan.md` (created)
@@ -782,103 +782,103 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 
 ---
 
-### Slice 1 — Data model migrations and config
-**Status:** 🔲 Not started
-**Owner/agent:** —
+### Slice 1 â€” Data model migrations and config
+**Status:** ðŸ”² Not started
+**Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/scripts/migrations/004_create_em_layout_revision.sql`
 - `apps/envmon/scripts/migrations/005_create_em_location_zones.sql`
 - `apps/envmon/scripts/migrations/006_extend_em_plant_floor_canvas.sql`
 - `apps/envmon/scripts/migrations/007_extend_em_location_coordinates_zones.sql`
-- `apps/envmon/deploy.toml` — add 4 new `[[migrations]]` blocks
-- `apps/envmon/backend/envmon_backend/utils/em_config.py` — add `ZONE_TBL`, `REVISION_TBL`
+- `apps/envmon/deploy.toml` â€” add 4 new `[[migrations]]` blocks
+- `apps/envmon/backend/envmon_backend/utils/em_config.py` â€” add `ZONE_TBL`, `REVISION_TBL`
 
-**Summary:** —
-**Validation performed:** —
-**Open issues:** —
+**Summary:** â€”
+**Validation performed:** â€”
+**Open issues:** â€”
 
 ---
 
-### Slice 2 — Backend domain geometry and validation primitives
-**Status:** 🔲 Not started
-**Owner/agent:** —
+### Slice 2 â€” Backend domain geometry and validation primitives
+**Status:** ðŸ”² Not started
+**Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/backend/envmon_backend/spatial_config/domain/geometry.py` (new)
 - `apps/envmon/backend/tests/test_geometry_domain.py` (new)
 
-**Summary:** —
-**Validation performed:** —
-**Open issues:** —
+**Summary:** â€”
+**Validation performed:** â€”
+**Open issues:** â€”
 
 ---
 
-### Slice 3 — Backend DAL and schemas for zones/revisions
-**Status:** 🔲 Not started
-**Owner/agent:** —
+### Slice 3 â€” Backend DAL and schemas for zones/revisions
+**Status:** ðŸ”² Not started
+**Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/backend/envmon_backend/spatial_config/domain/zone.py` (new)
 - `apps/envmon/backend/envmon_backend/spatial_config/domain/revision.py` (new)
 - `apps/envmon/backend/envmon_backend/spatial_config/dal/zones.py` (new)
 - `apps/envmon/backend/envmon_backend/spatial_config/dal/revisions.py` (new)
-- `apps/envmon/backend/envmon_backend/spatial_config/dal/coordinates.py` (extend — new writes with zone/revision columns)
-- `apps/envmon/backend/envmon_backend/spatial_config/dal/floors.py` (extend — read/write canvas metadata)
-- `apps/envmon/backend/envmon_backend/schemas/em.py` (extend — new Studio schemas)
+- `apps/envmon/backend/envmon_backend/spatial_config/dal/coordinates.py` (extend â€” new writes with zone/revision columns)
+- `apps/envmon/backend/envmon_backend/spatial_config/dal/floors.py` (extend â€” read/write canvas metadata)
+- `apps/envmon/backend/envmon_backend/schemas/em.py` (extend â€” new Studio schemas)
 - `apps/envmon/backend/tests/test_coordinates_dal.py` (extend)
 
-**Summary:** —
-**Validation performed:** —
-**Open issues:** —
+**Summary:** â€”
+**Validation performed:** â€”
+**Open issues:** â€”
 
 ---
 
-### Slice 4 — Backend layout validation and publish workflow
-**Status:** 🔲 Not started
-**Owner/agent:** —
+### Slice 4 â€” Backend layout validation and publish workflow
+**Status:** ðŸ”² Not started
+**Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/backend/envmon_backend/spatial_config/application/layout_validation.py` (new)
 - `apps/envmon/backend/envmon_backend/spatial_config/application/layout_publish.py` (new)
-- `apps/envmon/backend/envmon_backend/spatial_config/application/commands.py` (extend — add new re-exports)
-- `apps/envmon/backend/envmon_backend/spatial_config/application/queries.py` (extend — add layout reads)
+- `apps/envmon/backend/envmon_backend/spatial_config/application/commands.py` (extend â€” add new re-exports)
+- `apps/envmon/backend/envmon_backend/spatial_config/application/queries.py` (extend â€” add layout reads)
 - `apps/envmon/backend/tests/test_layout_validation.py` (new)
 - `apps/envmon/backend/tests/test_layout_publish.py` (new)
 
-**Summary:** —
-**Validation performed:** —
-**Open issues:** —
+**Summary:** â€”
+**Validation performed:** â€”
+**Open issues:** â€”
 
 ---
 
-### Slice 5 — Backend API endpoints
-**Status:** 🔲 Not started
-**Owner/agent:** —
+### Slice 5 â€” Backend API endpoints
+**Status:** ðŸ”² Not started
+**Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/backend/envmon_backend/spatial_config/studio_router.py` (new)
-- `apps/envmon/backend/envmon_backend/main.py` (extend — register studio_router)
+- `apps/envmon/backend/envmon_backend/main.py` (extend â€” register studio_router)
 - `apps/envmon/backend/tests/test_routers.py` (extend)
-- `apps/envmon/docs/api.md` (update — add new Studio endpoints)
+- `apps/envmon/docs/api.md` (update â€” add new Studio endpoints)
 
-**Summary:** —
-**Validation performed:** —
-**Open issues:** —
+**Summary:** â€”
+**Validation performed:** â€”
+**Open issues:** â€”
 
 ---
 
-### Slice 6 — Frontend API hooks and types
-**Status:** 🔲 Not started
-**Owner/agent:** —
+### Slice 6 â€” Frontend API hooks and types
+**Status:** ðŸ”² Not started
+**Owner/agent:** â€”
 **Files to create/change:**
-- `apps/envmon/frontend/src/types.ts` (extend — Studio types)
-- `apps/envmon/frontend/src/api/client.ts` (extend — Studio hooks)
+- `apps/envmon/frontend/src/types.ts` (extend â€” Studio types)
+- `apps/envmon/frontend/src/api/client.ts` (extend â€” Studio hooks)
 - `apps/envmon/frontend/src/api/__tests__/client_extended.test.tsx` (extend)
 
-**Summary:** —
-**Validation performed:** —
-**Open issues:** —
+**Summary:** â€”
+**Validation performed:** â€”
+**Open issues:** â€”
 
 ---
 
-### Slice 7 — Spatial Studio shell UI
-**Status:** ✅ Complete
+### Slice 7 â€” Spatial Studio shell UI
+**Status:** âœ… Complete
 **Owner/agent:** Claude (claude/elegant-elbakyan-44fb23)
 **Files to create/change:**
 - `apps/envmon/frontend/src/components/admin/spatial-studio/SpatialStudio.tsx` (new)
@@ -886,95 +886,95 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 - `apps/envmon/frontend/src/components/admin/spatial-studio/HierarchyRail.tsx` (new)
 - `apps/envmon/frontend/src/components/admin/spatial-studio/CommandBar.tsx` (new)
 - `apps/envmon/frontend/src/components/admin/spatial-studio/hooks/useStudioState.ts` (new)
-- `apps/envmon/frontend/src/context/EMContext.tsx` (extended — added `spatialStudioOpen` state + `setSpatialStudioOpen` action)
+- `apps/envmon/frontend/src/context/EMContext.tsx` (extended â€” added `spatialStudioOpen` state + `setSpatialStudioOpen` action)
 - `apps/envmon/frontend/src/components/layout/AppShell.tsx` (wired SpatialStudio into admin routing; added Spatial Studio toggle button)
-- `apps/envmon/frontend/src/components/admin/spatial-studio/__tests__/SpatialStudio.test.tsx` (new — 3 tests)
+- `apps/envmon/frontend/src/components/admin/spatial-studio/__tests__/SpatialStudio.test.tsx` (new â€” 3 tests)
 
-**Summary:** Floor-selector grid → StudioShell (HierarchyRail + canvas placeholder + inspector placeholder) wired behind a "Spatial Studio" toggle button in the admin top bar. CommandBar provides mode tabs, validate, and publish with inline PublishDialog. Canvas and InspectorPanel are stubs until Slices 8–9.
+**Summary:** Floor-selector grid â†’ StudioShell (HierarchyRail + canvas placeholder + inspector placeholder) wired behind a "Spatial Studio" toggle button in the admin top bar. CommandBar provides mode tabs, validate, and publish with inline PublishDialog. Canvas and InspectorPanel are stubs until Slices 8â€“9.
 **Validation performed:** 3/3 Vitest tests pass; 77/77 backend tests pass (no-cov).
-**Open issues:** —
+**Open issues:** â€”
 
 ---
 
-### Slice 8 — Canvas rendering: floor plan and grid
-**Status:** ✅ Complete
+### Slice 8 â€” Canvas rendering: floor plan and grid
+**Status:** âœ… Complete
 **Owner/agent:** Claude (claude/elegant-elbakyan-44fb23)
 **Files to create/change:**
 - `apps/envmon/frontend/src/components/admin/spatial-studio/StudioCanvas.tsx` (new)
 - `apps/envmon/frontend/src/components/admin/spatial-studio/FloorPlanCanvas.tsx` (new)
 - `apps/envmon/frontend/src/components/admin/spatial-studio/GridCanvas.tsx` (new)
-- `apps/envmon/frontend/src/components/admin/spatial-studio/StudioShell.tsx` (extended — `floor: FloorInfo` prop, canvas placeholder replaced with `<StudioCanvas>`)
-- `apps/envmon/frontend/src/components/admin/spatial-studio/SpatialStudio.tsx` (extended — finds selected floor, passes to StudioShell)
-- `apps/envmon/frontend/src/components/admin/spatial-studio/__tests__/SpatialStudio.test.tsx` (updated — testid `studio-canvas-placeholder` → `studio-canvas`)
+- `apps/envmon/frontend/src/components/admin/spatial-studio/StudioShell.tsx` (extended â€” `floor: FloorInfo` prop, canvas placeholder replaced with `<StudioCanvas>`)
+- `apps/envmon/frontend/src/components/admin/spatial-studio/SpatialStudio.tsx` (extended â€” finds selected floor, passes to StudioShell)
+- `apps/envmon/frontend/src/components/admin/spatial-studio/__tests__/SpatialStudio.test.tsx` (updated â€” testid `studio-canvas-placeholder` â†’ `studio-canvas`)
 
-**Summary:** `StudioCanvas` routes to `FloorPlanCanvas` (SVG background image + overlay) or `GridCanvas` (procedural grid lines) based on whether the floor has an `svg_url`. Both canvases follow the same coordinate convention as the existing `FloorPlan` viewer: `viewBox="0 0 viewWidth viewHeight"` with zone percentages scaled to pixels. When no draft is open, both canvases render a centred "Open draft" overlay. Pan/zoom and ZoneLayer/PointLayer are deferred to Slices 9–10. `canvas_type` column routing deferred until Slice 1 migrations propagate to the API.
+**Summary:** `StudioCanvas` routes to `FloorPlanCanvas` (SVG background image + overlay) or `GridCanvas` (procedural grid lines) based on whether the floor has an `svg_url`. Both canvases follow the same coordinate convention as the existing `FloorPlan` viewer: `viewBox="0 0 viewWidth viewHeight"` with zone percentages scaled to pixels. When no draft is open, both canvases render a centred "Open draft" overlay. Pan/zoom and ZoneLayer/PointLayer are deferred to Slices 9â€“10. `canvas_type` column routing deferred until Slice 1 migrations propagate to the API.
 
 **Validation performed:** 3/3 Vitest tests pass (`SpatialStudio.test.tsx`).
-**Open issues:** —
+**Open issues:** â€”
 
 ---
 
-### Slice 9 — L4 zone authoring
-**Status:** 🔲 Not started
-**Owner/agent:** —
+### Slice 9 â€” L4 zone authoring
+**Status:** ðŸ”² Not started
+**Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/frontend/src/components/admin/spatial-studio/ZoneLayer.tsx` (new)
 - `apps/envmon/frontend/src/components/admin/spatial-studio/InspectorPanel.tsx` (new)
 - `apps/envmon/frontend/src/components/admin/spatial-studio/hooks/useCanvasInteraction.ts` (new)
 
-**Summary:** —
-**Validation performed:** —
-**Open issues:** —
+**Summary:** â€”
+**Validation performed:** â€”
+**Open issues:** â€”
 
 ---
 
-### Slice 10 — L5 constrained placement
-**Status:** 🔲 Not started
-**Owner/agent:** —
+### Slice 10 â€” L5 constrained placement
+**Status:** ðŸ”² Not started
+**Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/frontend/src/components/admin/spatial-studio/PointLayer.tsx` (new)
 
-**Summary:** —
-**Validation performed:** —
-**Open issues:** —
+**Summary:** â€”
+**Validation performed:** â€”
+**Open issues:** â€”
 
 ---
 
-### Slice 11 — Review mode and publish UX
-**Status:** 🔲 Not started
-**Owner/agent:** —
+### Slice 11 â€” Review mode and publish UX
+**Status:** ðŸ”² Not started
+**Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/frontend/src/components/admin/spatial-studio/ValidationPanel.tsx` (new)
 - `apps/envmon/frontend/src/components/admin/spatial-studio/PublishDialog.tsx` (new)
 - `apps/envmon/frontend/src/components/admin/spatial-studio/__tests__/PublishDialog.test.tsx` (new)
 
-**Summary:** —
-**Validation performed:** —
-**Open issues:** —
+**Summary:** â€”
+**Validation performed:** â€”
+**Open issues:** â€”
 
 ---
 
-### Slice 12 — Regression, cleanup, tests, and documentation
-**Status:** 🔲 Not started
-**Owner/agent:** —
+### Slice 12 â€” Regression, cleanup, tests, and documentation
+**Status:** ðŸ”² Not started
+**Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/docs/architecture.md` (update)
 - `apps/envmon/docs/api.md` (update)
 - `apps/envmon/docs/spatial-studio-implementation-plan.md` (completion log)
-- All backend tests — ensure 75% coverage
+- All backend tests â€” ensure 75% coverage
 - Evaluate CoordinateMapper deprecation (do not delete unless explicitly confirmed by user)
 
-**Summary:** —
-**Validation performed:** —
-**Open issues:** —
+**Summary:** â€”
+**Validation performed:** â€”
+**Open issues:** â€”
 
 ---
 
 ## Completion log
 
-*(Empty — no slices complete beyond Slice 0.)*
+*(Empty â€” no slices complete beyond Slice 0.)*
 
-- 2026-05-13 — Slice 0 completed — Discovery and implementation plan. All conventions documented, decisions committed, file map complete.
+- 2026-05-13 â€” Slice 0 completed â€” Discovery and implementation plan. All conventions documented, decisions committed, file map complete.
 
 ---
 
@@ -1018,12 +1018,12 @@ These questions require user decisions before or during execution:
 ### What is next (Slice 1)
 Start with these four migration files and one config file:
 
-1. **`apps/envmon/scripts/migrations/004_create_em_layout_revision.sql`** — `CREATE TABLE IF NOT EXISTS` with the schema in the Data Model section above. Follow the exact pattern of `003_create_em_plant_geo.sql`.
-2. **`apps/envmon/scripts/migrations/005_create_em_location_zones.sql`** — Same pattern.
-3. **`apps/envmon/scripts/migrations/006_extend_em_plant_floor_canvas.sql`** — Series of `ALTER TABLE … ADD COLUMN IF NOT EXISTS` statements for the 11 new canvas columns listed above. Do NOT drop or recreate the existing table.
-4. **`apps/envmon/scripts/migrations/007_extend_em_location_coordinates_zones.sql`** — `ALTER TABLE … ADD COLUMN IF NOT EXISTS` for the 5 new columns listed above.
-5. **`apps/envmon/deploy.toml`** — Add four new `[[migrations]]` blocks after the existing `em_plant_geo` entry. Follow the exact format of existing blocks.
-6. **`apps/envmon/backend/envmon_backend/utils/em_config.py`** — Add `ZONE_TBL_NAME`, `REVISION_TBL_NAME`, `ZONE_TBL`, `REVISION_TBL` following the exact pattern of existing entries.
+1. **`apps/envmon/scripts/migrations/004_create_em_layout_revision.sql`** â€” `CREATE TABLE IF NOT EXISTS` with the schema in the Data Model section above. Follow the exact pattern of `003_create_em_plant_geo.sql`.
+2. **`apps/envmon/scripts/migrations/005_create_em_location_zones.sql`** â€” Same pattern.
+3. **`apps/envmon/scripts/migrations/006_extend_em_plant_floor_canvas.sql`** â€” Series of `ALTER TABLE â€¦ ADD COLUMN IF NOT EXISTS` statements for the 11 new canvas columns listed above. Do NOT drop or recreate the existing table.
+4. **`apps/envmon/scripts/migrations/007_extend_em_location_coordinates_zones.sql`** â€” `ALTER TABLE â€¦ ADD COLUMN IF NOT EXISTS` for the 5 new columns listed above.
+5. **`apps/envmon/deploy.toml`** â€” Add four new `[[migrations]]` blocks after the existing `em_plant_geo` entry. Follow the exact format of existing blocks.
+6. **`apps/envmon/backend/envmon_backend/utils/em_config.py`** â€” Add `ZONE_TBL_NAME`, `REVISION_TBL_NAME`, `ZONE_TBL`, `REVISION_TBL` following the exact pattern of existing entries.
 
 ### How to run tests/build after Slice 1
 ```bash
@@ -1035,12 +1035,12 @@ python -m pytest tests/ -q
 ```
 
 ### Key files to read before starting any slice
-1. `apps/envmon/backend/envmon_backend/utils/em_config.py` — understand table ref pattern
-2. `apps/envmon/scripts/migrations/003_create_em_plant_geo.sql` — migration template
-3. `apps/envmon/deploy.toml` — migration registration pattern
-4. `apps/envmon/backend/tests/test_architecture_boundaries.py` — boundaries that new domain files must respect
+1. `apps/envmon/backend/envmon_backend/utils/em_config.py` â€” understand table ref pattern
+2. `apps/envmon/scripts/migrations/003_create_em_plant_geo.sql` â€” migration template
+3. `apps/envmon/deploy.toml` â€” migration registration pattern
+4. `apps/envmon/backend/tests/test_architecture_boundaries.py` â€” boundaries that new domain files must respect
 
 ### Partial implementation risks
 - `active_revision_id` on `em_plant_floor` is nullable. The heatmap/analytics endpoints do NOT join to this column. Zero risk of breaking live analytics during migration.
 - New columns on `em_location_coordinates` are all nullable. Existing MERGE statements in `coordinates.py` do not write these columns; they will remain NULL until Studio explicitly sets them. Zero regression risk.
-- The `studio_router.py` is a completely new router at a new path prefix. The existing `router.py` is not modified in Slices 1–5. Zero regression risk on existing admin endpoints.
+- The `studio_router.py` is a completely new router at a new path prefix. The existing `router.py` is not modified in Slices 1â€“5. Zero regression risk on existing admin endpoints.

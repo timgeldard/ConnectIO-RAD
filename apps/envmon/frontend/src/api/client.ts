@@ -203,6 +203,30 @@ export function useMappedLocations(plantId: string | null) {
   });
 }
 
+/**
+ * Place or move an L5 point in the current draft.
+ *
+ * Behaves identically to {@link useSaveCoordinate} but additionally invalidates
+ * the studio draftLayout query so PointLayer reflects the new position immediately.
+ * Requires `floorId` (for the query key) in addition to the standard body fields.
+ */
+export function usePlacePoint() {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, Error, CoordinateUpsertRequest & { floorId: string }>({
+    mutationFn: ({ floorId: _floorId, ...body }) =>
+      apiFetch('/api/em/coordinates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+    onSettled: (_data, _err, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['studio', 'draftLayout', variables.plant_id, variables.floorId] });
+      queryClient.invalidateQueries({ queryKey: ['coordinates', 'mapped', variables.plant_id] });
+      queryClient.invalidateQueries({ queryKey: ['locations', variables.plant_id] });
+    },
+  });
+}
+
 export function useSaveCoordinate() {
   const queryClient = useQueryClient();
   return useMutation<unknown, Error, CoordinateUpsertRequest>({

@@ -11,6 +11,7 @@
 
 import type { StudioCanvasProps } from './StudioCanvas';
 import ZoneLayer from './ZoneLayer';
+import PointLayer from './PointLayer';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
 
 /** Grid cell size in percentage units (each cell = 10% of canvas). */
@@ -25,7 +26,9 @@ export default function GridCanvas({
   draft,
   activeMode,
   selectedZoneId,
+  selectedPointId,
   onSelectZone,
+  onSelectPoint,
   onCreateDraft,
   isCreatingDraft,
 }: StudioCanvasProps) {
@@ -33,6 +36,7 @@ export default function GridCanvas({
     activeMode,
     draft,
     onSelectZone,
+    selectedPointId,
   });
 
   return (
@@ -47,7 +51,7 @@ export default function GridCanvas({
           width: '100%',
           height: '100%',
           overflow: 'visible',
-          cursor: activeMode === 'structure' && draft ? 'crosshair' : 'default',
+          cursor: (activeMode === 'structure' || (activeMode === 'place' && selectedPointId)) && draft ? 'crosshair' : 'default',
         }}
         aria-label={`${floor.floor_name} grid canvas`}
         data-testid="grid-canvas-svg"
@@ -90,7 +94,12 @@ export default function GridCanvas({
           onSelectZone={onSelectZone}
           dragRect={dragRect}
         />
-        {/* PointLayer inserted here in Slice 10 */}
+        <PointLayer
+          coordinates={draft?.coordinates ?? []}
+          zones={draft?.zones ?? []}
+          selectedPointId={selectedPointId}
+          onSelectPoint={onSelectPoint}
+        />
       </svg>
 
       {/* No-draft overlay */}

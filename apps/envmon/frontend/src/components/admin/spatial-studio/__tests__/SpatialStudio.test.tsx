@@ -23,6 +23,7 @@ vi.mock('~/api/client', () => ({
   usePublish: () => ({ mutate: vi.fn(), isPending: false }),
   useUpsertZone: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteZone: () => ({ mutate: vi.fn(), isPending: false }),
+  usePlacePoint: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 
 describe('SpatialStudio', () => {
