@@ -38,8 +38,8 @@ describe('SpatialStudio', () => {
   it('navigates into StudioShell after selecting a floor', () => {
     render(<SpatialStudio />)
     fireEvent.click(screen.getByText('Ground Floor'))
-    // Back button and canvas placeholder should now be visible
+    // Back button and canvas should now be visible
     expect(screen.getByLabelText('Back to floor selector')).toBeInTheDocument()
-    expect(screen.getByTestId('studio-canvas-placeholder')).toBeInTheDocument()
+    expect(screen.getByTestId('studio-canvas')).toBeInTheDocument()
   })
 })

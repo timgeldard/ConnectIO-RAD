@@ -16,6 +16,7 @@
 import { useState } from 'react';
 import CommandBar from './CommandBar';
 import HierarchyRail from './HierarchyRail';
+import StudioCanvas from './StudioCanvas';
 import { useStudioState } from './hooks/useStudioState';
 import {
   useDraftLayout,
@@ -23,7 +24,7 @@ import {
   useValidate,
   usePublish,
 } from '~/api/client';
-import type { ValidationResult } from '~/types';
+import type { FloorInfo, ValidationResult } from '~/types';
 
 /** Props for {@link StudioShell}. */
 export interface StudioShellProps {
@@ -31,10 +32,12 @@ export interface StudioShellProps {
   plantId: string;
   /** Floor ID currently being authored. */
   floorId: string;
+  /** Full floor metadata (name, svg_url, dimensions). */
+  floor: FloorInfo;
 }
 
 /** Three-column Studio layout shell with command bar. */
-export default function StudioShell({ plantId, floorId }: StudioShellProps) {
+export default function StudioShell({ plantId, floorId, floor }: StudioShellProps) {
   const studio = useStudioState();
 
   const { data: draftData, isLoading: isDraftLoading } = useDraftLayout(plantId, floorId);
@@ -112,36 +115,17 @@ export default function StudioShell({ plantId, floorId }: StudioShellProps) {
           onSelectPoint={studio.selectPoint}
         />
 
-        {/* Canvas placeholder — replaced by StudioCanvas in Slice 8 */}
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'var(--surface-sunken)',
-            color: 'var(--text-3)',
-            fontSize: 13,
-          }}
-          data-testid="studio-canvas-placeholder"
-        >
-          {!hasDraft ? (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ marginBottom: 12, color: 'var(--text-2)' }}>
-                No draft is open for this floor.
-              </div>
-              <button
-                className="btn btn-sm btn-primary"
-                onClick={handleOpenDraft}
-                disabled={createDraft.isPending}
-              >
-                {createDraft.isPending ? 'Opening…' : 'Open draft'}
-              </button>
-            </div>
-          ) : (
-            <span>Canvas coming in Slice 8</span>
-          )}
-        </div>
+        <StudioCanvas
+          floor={floor}
+          draft={draft}
+          activeMode={studio.activeMode}
+          selectedZoneId={studio.selectedZoneId}
+          selectedPointId={studio.selectedPointId}
+          onSelectZone={studio.selectZone}
+          onSelectPoint={studio.selectPoint}
+          onCreateDraft={handleOpenDraft}
+          isCreatingDraft={createDraft.isPending}
+        />
 
         {/* Inspector placeholder — replaced by InspectorPanel in Slice 9 */}
         <div

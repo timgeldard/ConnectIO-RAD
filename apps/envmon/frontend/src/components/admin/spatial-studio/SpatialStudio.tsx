@@ -84,6 +84,8 @@ export default function SpatialStudio() {
     );
   }
 
+  const selectedFloor = floors.find((f: FloorInfo) => f.floor_id === selectedFloorId)!;
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Back-to-floors strip */}
@@ -107,13 +109,13 @@ export default function SpatialStudio() {
           ← Floors
         </button>
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>
-          {floors.find(f => f.floor_id === selectedFloorId)?.floor_name ?? selectedFloorId}
+          {selectedFloor?.floor_name ?? selectedFloorId}
         </span>
         <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Spatial Studio</span>
       </div>
 
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        <StudioShell plantId={plantId} floorId={selectedFloorId} />
+        <StudioShell plantId={plantId} floorId={selectedFloorId} floor={selectedFloor} />
       </div>
     </div>
   );

@@ -897,15 +897,19 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 ---
 
 ### Slice 8 — Canvas rendering: floor plan and grid
-**Status:** 🔲 Not started
-**Owner/agent:** —
+**Status:** ✅ Complete
+**Owner/agent:** Claude (claude/elegant-elbakyan-44fb23)
 **Files to create/change:**
 - `apps/envmon/frontend/src/components/admin/spatial-studio/StudioCanvas.tsx` (new)
 - `apps/envmon/frontend/src/components/admin/spatial-studio/FloorPlanCanvas.tsx` (new)
 - `apps/envmon/frontend/src/components/admin/spatial-studio/GridCanvas.tsx` (new)
+- `apps/envmon/frontend/src/components/admin/spatial-studio/StudioShell.tsx` (extended — `floor: FloorInfo` prop, canvas placeholder replaced with `<StudioCanvas>`)
+- `apps/envmon/frontend/src/components/admin/spatial-studio/SpatialStudio.tsx` (extended — finds selected floor, passes to StudioShell)
+- `apps/envmon/frontend/src/components/admin/spatial-studio/__tests__/SpatialStudio.test.tsx` (updated — testid `studio-canvas-placeholder` → `studio-canvas`)
 
-**Summary:** —
-**Validation performed:** —
+**Summary:** `StudioCanvas` routes to `FloorPlanCanvas` (SVG background image + overlay) or `GridCanvas` (procedural grid lines) based on whether the floor has an `svg_url`. Both canvases follow the same coordinate convention as the existing `FloorPlan` viewer: `viewBox="0 0 viewWidth viewHeight"` with zone percentages scaled to pixels. When no draft is open, both canvases render a centred "Open draft" overlay. Pan/zoom and ZoneLayer/PointLayer are deferred to Slices 9–10. `canvas_type` column routing deferred until Slice 1 migrations propagate to the API.
+
+**Validation performed:** 3/3 Vitest tests pass (`SpatialStudio.test.tsx`).
 **Open issues:** —
 
 ---
