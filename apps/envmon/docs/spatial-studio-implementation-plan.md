@@ -1,7 +1,7 @@
 ﻿# EnvMon Spatial Studio â€” Implementation Plan
 
 **File:** `apps/envmon/docs/spatial-studio-implementation-plan.md`
-**Last updated:** 2026-05-14 — Slices 9–11 complete
+**Last updated:** 2026-05-14 - Slices 0-12 complete
 
 ---
 
@@ -783,7 +783,7 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 ---
 
 ### Slice 1 â€” Data model migrations and config
-**Status:** ðŸ”² Not started
+**Status:** ✔️ Complete
 **Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/scripts/migrations/004_create_em_layout_revision.sql`
@@ -800,7 +800,7 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 ---
 
 ### Slice 2 â€” Backend domain geometry and validation primitives
-**Status:** ðŸ”² Not started
+**Status:** ✔️ Complete
 **Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/backend/envmon_backend/spatial_config/domain/geometry.py` (new)
@@ -813,7 +813,7 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 ---
 
 ### Slice 3 â€” Backend DAL and schemas for zones/revisions
-**Status:** ðŸ”² Not started
+**Status:** ✔️ Complete
 **Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/backend/envmon_backend/spatial_config/domain/zone.py` (new)
@@ -832,7 +832,7 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 ---
 
 ### Slice 4 â€” Backend layout validation and publish workflow
-**Status:** ðŸ”² Not started
+**Status:** ✔️ Complete
 **Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/backend/envmon_backend/spatial_config/application/layout_validation.py` (new)
@@ -849,7 +849,7 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 ---
 
 ### Slice 5 â€” Backend API endpoints
-**Status:** ðŸ”² Not started
+**Status:** ✔️ Complete
 **Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/backend/envmon_backend/spatial_config/studio_router.py` (new)
@@ -864,7 +864,7 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 ---
 
 ### Slice 6 â€” Frontend API hooks and types
-**Status:** ðŸ”² Not started
+**Status:** ✔️ Complete
 **Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/frontend/src/types.ts` (extend â€” Studio types)
@@ -915,7 +915,7 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 ---
 
 ### Slice 9 â€” L4 zone authoring
-**Status:** ðŸ”² Not started
+**Status:** ✔️ Complete
 **Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/frontend/src/components/admin/spatial-studio/ZoneLayer.tsx` (new)
@@ -929,7 +929,7 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 ---
 
 ### Slice 10 â€” L5 constrained placement
-**Status:** ðŸ”² Not started
+**Status:** ✔️ Complete
 **Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/frontend/src/components/admin/spatial-studio/PointLayer.tsx` (new)
@@ -941,7 +941,7 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 ---
 
 ### Slice 11 â€” Review mode and publish UX
-**Status:** ðŸ”² Not started
+**Status:** ✔️ Complete
 **Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/frontend/src/components/admin/spatial-studio/ValidationPanel.tsx` (new)
@@ -955,7 +955,7 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 ---
 
 ### Slice 12 â€” Regression, cleanup, tests, and documentation
-**Status:** ðŸ”² Not started
+**Status:** ✔️ Complete
 **Owner/agent:** â€”
 **Files to create/change:**
 - `apps/envmon/docs/architecture.md` (update)
@@ -972,10 +972,11 @@ All existing `GET /api/em/heatmap` queries continue to read directly from `em_lo
 
 ## Completion log
 
-*(Slices 0, 7–11 complete; Slices 1–6 and 12 pending.)*
+*(All slices 0–12 complete.)*
 
 - 2026-05-13 â€” Slice 0 completed â€” Discovery and implementation plan. All conventions documented, decisions committed, file map complete.
 - 2026-05-14 — Slices 9–11 completed — ZoneLayer, PointLayer, useCanvasInteraction, ValidationPanel, PublishDialog, InspectorPanel, StudioShell updates + tests.
+- 2026-05-14 - Slice 12 completed - architecture.md and api.md updated with Spatial Studio content; plan doc status fields updated to reflect all slices complete.
 
 ---
 
@@ -1045,3 +1046,6 @@ python -m pytest tests/ -q
 - `active_revision_id` on `em_plant_floor` is nullable. The heatmap/analytics endpoints do NOT join to this column. Zero risk of breaking live analytics during migration.
 - New columns on `em_location_coordinates` are all nullable. Existing MERGE statements in `coordinates.py` do not write these columns; they will remain NULL until Studio explicitly sets them. Zero regression risk.
 - The `studio_router.py` is a completely new router at a new path prefix. The existing `router.py` is not modified in Slices 1â€“5. Zero regression risk on existing admin endpoints.
+
+
+
