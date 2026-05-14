@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "test:ci": "vitest run --coverage",
+    "test:ci": "vitest run",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
     "lint": "npm run typecheck"
