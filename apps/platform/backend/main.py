@@ -27,6 +27,7 @@ from backend.utils import (
     _required_attr,
     discover_app_routers,
     get_missing_optional_artifacts,
+    REQUIRED_PLATFORM_ROUTER_PACKAGES,
 )
 
 logger = logging.getLogger(__name__)
@@ -165,12 +166,27 @@ async def health():
 
 @app.get("/api/ready", include_in_schema=False)
 async def ready():
-    """Readiness probe."""
-    return await databricks_sql_ready(
+    """Readiness probe — reports SQL connectivity and per-backend module status."""
+    result = await databricks_sql_ready(
         check_warehouse_config=check_warehouse_config,
         run_sql=run_sql_async,
         endpoint_hint="platform.ready",
     )
+    missing = get_missing_optional_artifacts()
+    backend_checks: dict[str, str] = {}
+    has_required_degraded = False
+    for pkg in PLATFORM_BACKEND_PACKAGES:
+        if pkg in missing:
+            backend_checks[pkg] = f"degraded: {missing[pkg]}"
+            if pkg in REQUIRED_PLATFORM_ROUTER_PACKAGES:
+                has_required_degraded = True
+        else:
+            backend_checks[pkg] = "ok"
+    result.setdefault("checks", {})["backends"] = backend_checks
+    current_status = str(result.get("status", "")).lower()
+    if has_required_degraded and current_status in {"", "ok", "healthy", "ready"}:
+        result["status"] = "degraded"
+    return result
 
 
 @app.get("/api/health/routers", include_in_schema=False)
