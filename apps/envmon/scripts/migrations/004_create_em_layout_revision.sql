@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS `${TRACE_CATALOG}`.`${TRACE_SCHEMA}`.`em_layout_revis
     created_at                    TIMESTAMP  NOT NULL  COMMENT 'Creation time (UTC)',
     published_by                  STRING               COMMENT 'Identity that published this revision; NULL until published',
     published_at                  TIMESTAMP            COMMENT 'Publish time (UTC); NULL until published',
-    rolled_back_from_revision_id  STRING               COMMENT 'Populated when state = rolled_back; points to the revision that was undone'
+    rolled_back_from_revision_id  STRING               COMMENT 'Populated when state = rolled_back; points to the revision that was undone',
+    CONSTRAINT pk_em_layout_revision PRIMARY KEY (revision_id)
 )
 USING DELTA
 COMMENT 'EM App: spatial layout revision lifecycle (draft/publish/superseded/rolled_back)'

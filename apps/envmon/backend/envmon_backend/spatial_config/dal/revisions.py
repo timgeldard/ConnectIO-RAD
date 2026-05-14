@@ -139,6 +139,12 @@ async def create_revision(
 ) -> None:
     """Insert a new draft revision row into em_layout_revision.
 
+    Uses ``INSERT INTO ... SELECT ... WHERE NOT EXISTS`` so that at most one
+    draft can exist per floor even under concurrent requests. Delta Lake
+    transactions make this insert atomic — a second concurrent call racing
+    on the same (plant_id, floor_id) pair will insert zero rows and the
+    caller's subsequent ``fetch_draft_revision`` will return the winner's row.
+
     Args:
         token: Databricks access token.
         revision_id: UUID for the new revision.
@@ -160,9 +166,15 @@ async def create_revision(
         INSERT INTO {REVISION_TBL} (
             revision_id, plant_id, floor_id, revision_number, state,
             base_revision_id, created_by, created_at
-        ) VALUES (
+        )
+        SELECT
             :revision_id, :plant_id, :floor_id, :revision_number, 'draft',
             :base_revision_id, :created_by, CURRENT_TIMESTAMP()
+        WHERE NOT EXISTS (
+            SELECT 1 FROM {REVISION_TBL}
+            WHERE plant_id = :plant_id
+              AND floor_id = :floor_id
+              AND state    = 'draft'
         )
     """
     await run_sql_async(token, sql, params)

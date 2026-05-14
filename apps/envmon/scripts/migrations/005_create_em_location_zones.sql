@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS `${TRACE_CATALOG}`.`${TRACE_SCHEMA}`.`em_location_zon
     created_by               STRING     NOT NULL  COMMENT 'Identity that created this zone',
     created_at               TIMESTAMP  NOT NULL  COMMENT 'Creation time (UTC)',
     updated_by               STRING     NOT NULL  COMMENT 'Identity that last updated this zone',
-    updated_at               TIMESTAMP  NOT NULL  COMMENT 'Last modification time (UTC)'
+    updated_at               TIMESTAMP  NOT NULL  COMMENT 'Last modification time (UTC)',
+    CONSTRAINT pk_em_location_zones PRIMARY KEY (zone_id)
 )
 USING DELTA
 COMMENT 'EM App: L4 spatial zones for spatial studio (rectangles and polygons in pct coordinates)'

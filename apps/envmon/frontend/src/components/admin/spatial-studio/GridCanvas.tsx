@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 /**
  * GridCanvas — renders a procedurally generated grid as the canvas background
  * for floors that have no SVG floor plan.
@@ -109,10 +108,10 @@ export default function GridCanvas({
             position: 'relative',
             zIndex: 10,
             textAlign: 'center',
-            background: 'rgba(0,0,0,0.35)',
+            background: 'color-mix(in srgb, var(--surface-inverse) 35%, transparent)',
             borderRadius: 8,
             padding: '20px 28px',
-            color: '#fff',
+            color: 'var(--fg-on-brand)',
           }}
         >
           <div style={{ fontSize: 13, marginBottom: 12 }}>No draft open for this floor.</div>

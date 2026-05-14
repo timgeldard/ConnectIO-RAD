@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 /**
  * SpatialStudio — top-level page for the Spatial Studio admin tool.
  *

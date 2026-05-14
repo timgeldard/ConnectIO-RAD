@@ -108,7 +108,7 @@ export function LabBoard() {
           {urlPlantId ? (
             <span className="val">{plantLabel}</span>
           ) : plantsError ? (
-            <span className="val" style={{ color: 'rgba(255,100,100,0.9)', fontSize: 11 }} title={plantsError}>⚠ plant load failed</span>
+            <span className="val" style={{ color: 'var(--status-risk)', fontSize: 11 }} title={plantsError}>⚠ plant load failed</span>
           ) : plantsLoading ? (
             <span className="val" style={{ opacity: 0.5 }}>loading…</span>
           ) : (
@@ -141,19 +141,19 @@ export function LabBoard() {
         <button className="lab-arrow left" onClick={goPrev} title="Previous"><Icon name="chev" size={28} /></button>
         <div className="lab-grid">
           {!plantId ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gridColumn: '1 / -1', padding: '48px 0', color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gridColumn: '1 / -1', padding: '48px 0', color: 'var(--text-3)', textAlign: 'center' }}>
               <Icon name="flask" size={40} style={{ marginBottom: 16, opacity: 0.35 }} />
               <div style={{ fontSize: 15 }}>Select a plant above to view live lab inspection failures</div>
             </div>
           ) : isLoading ? (
-            <div style={{ gridColumn: '1 / -1', padding: '48px 0', textAlign: 'center', color: 'rgba(255,255,255,0.45)' }}>Loading lab data…</div>
+            <div style={{ gridColumn: '1 / -1', padding: '48px 0', textAlign: 'center', color: 'var(--text-3)' }}>Loading lab data…</div>
           ) : data?.data_available === false ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gridColumn: '1 / -1', padding: '48px 0', color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gridColumn: '1 / -1', padding: '48px 0', color: 'var(--text-3)', textAlign: 'center' }}>
               <Icon name="clock" size={40} style={{ marginBottom: 16, opacity: 0.35 }} />
               <div style={{ fontSize: 15 }}>{data.reason ?? 'No published lab failure dataset yet for this plant'}</div>
             </div>
           ) : fails.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gridColumn: '1 / -1', padding: '48px 0', color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gridColumn: '1 / -1', padding: '48px 0', color: 'var(--text-3)', textAlign: 'center' }}>
               <Icon name="flask" size={40} style={{ marginBottom: 16, opacity: 0.35 }} />
               <div style={{ fontSize: 15 }}>No open lab fails for this plant</div>
             </div>

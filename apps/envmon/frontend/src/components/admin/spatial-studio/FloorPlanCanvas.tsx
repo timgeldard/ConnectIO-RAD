@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 /**
  * FloorPlanCanvas — renders a floor plan background image with an SVG overlay
  * for zone and point authoring.
@@ -95,10 +94,10 @@ export default function FloorPlanCanvas({
             position: 'relative',
             zIndex: 10,
             textAlign: 'center',
-            background: 'rgba(0,0,0,0.45)',
+            background: 'color-mix(in srgb, var(--surface-inverse) 45%, transparent)',
             borderRadius: 8,
             padding: '20px 28px',
-            color: '#fff',
+            color: 'var(--fg-on-brand)',
           }}
         >
           <div style={{ fontSize: 13, marginBottom: 12 }}>No draft open for this floor.</div>

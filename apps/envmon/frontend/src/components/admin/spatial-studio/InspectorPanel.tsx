@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 /**
  * InspectorPanel — right-hand side panel for the Spatial Studio.
  *

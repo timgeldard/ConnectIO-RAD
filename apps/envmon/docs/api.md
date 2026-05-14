@@ -27,8 +27,8 @@ All endpoints require the Databricks Apps proxy to forward the user identity via
 - `GET /floors/{plant_id}/{floor_id}/image` — Retrieve the floor plan image (SVG/PNG)
 
 ### Heatmap and Trends
-- `POST /heatmap` — Aggregated health scores and coordinates for a plant/floor/time range
-- `POST /trends` — Historical inspection result trends for specific locations
+- `GET /heatmap` — Aggregated health scores and coordinates for a plant/floor/time range
+- `GET /trends` — Historical inspection result trends for specific locations
 
 ### Locations
 - `GET /locations` — Functional location list

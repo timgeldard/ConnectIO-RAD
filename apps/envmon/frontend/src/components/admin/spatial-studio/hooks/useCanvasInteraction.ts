@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 /**
  * useCanvasInteraction — pointer event logic for the Spatial Studio canvas.
  *

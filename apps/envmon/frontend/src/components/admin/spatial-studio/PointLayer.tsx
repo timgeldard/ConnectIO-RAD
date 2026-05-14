@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 /**
  * PointLayer — SVG layer that renders L5 coordinate points on the Studio canvas.
  *
@@ -77,8 +76,8 @@ export default function PointLayer({
           }
         }
 
-        const stroke = outsideParent ? '#e55' : (isSelected ? '#4082ff' : '#7aa9ff');
-        const fill = isSelected ? '#4082ff' : 'rgba(64, 130, 255, 0.25)';
+        const stroke = outsideParent ? 'var(--status-risk)' : 'var(--accent)';
+        const fill = isSelected ? 'var(--accent)' : 'var(--accent-subtle)';
 
         return (
           <circle

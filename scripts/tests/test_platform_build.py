@@ -17,7 +17,11 @@ DEPLOY_TOML = REPO_ROOT / "apps" / "platform" / "deploy.toml"
 
 
 def _load_build_module():
-    """Import build.py as a module without executing its __main__ block."""
+    """Import build.py as a module without executing its __main__ block.
+
+    Returns:
+        The loaded ``platform_build`` module with all top-level symbols available.
+    """
     spec = importlib.util.spec_from_file_location("platform_build", BUILD_SCRIPT)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
@@ -54,6 +58,7 @@ def test_collect_shared_deps_ignores_extras(build, tmp_path):
 
 
 def test_collect_shared_deps_empty_on_no_shared(build, tmp_path):
+    """Returns an empty set when no ``shared-*`` dependencies exist."""
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_bytes(b'[project]\nname = "x"\ndependencies = ["fastapi", "uvicorn"]\n')
     assert build._collect_shared_deps(pyproject) == set()

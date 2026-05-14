@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 /**
  * HierarchyRail — left-side tree panel for Spatial Studio.
  *
