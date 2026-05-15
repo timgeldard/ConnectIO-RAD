@@ -103,13 +103,57 @@ export const IMWMCockpit = () => {
   const exceptions: Row[] = React.useMemo(() => exceptionsResp?.exceptions ?? [], [exceptionsResp])
   const aging: Row[] = React.useMemo(() => agingResp?.aging ?? [], [agingResp])
 
-  const totalValue = stock.reduce((sum, row) => sum + num(row.inventory_value_eur), 0)
-  const trueMismatches = stock.filter((row) => row.mismatch_kind === 'true')
-  const timingGaps = stock.filter((row) => row.mismatch_kind === 'timing')
-  const absoluteDelta = stock.reduce((sum, row) => sum + Math.abs(num(row.delta_qty)), 0)
-  const sev4 = exceptions.filter((row) => num(row.severity) >= 4)
-  const agedValue = aging.filter((row) => num(row.age_bucket_order) >= 4).reduce((sum, row) => sum + num(row.total_value_eur), 0)
-  const maxAgingValue = Math.max(1, ...aging.map((row) => num(row.total_value_eur)))
+  // ⚡ Bolt: Consolidated multiple O(n) array passes (reduce, filter) into single-pass for...of loops.
+  // 🎯 Why: Previously, these values were computed on every render, and required multiple allocations and iterations over the large `stock`, `exceptions` and `aging` arrays.
+  // 📊 Impact: O(N) complexity instead of O(K * N) where K is number of filter/reduce calls. Reduces unneeded re-evaluations, improving page interaction latency and preventing the UI thread from dropping frames when dataset is large.
+  const { totalValue, trueMismatches, timingGaps, absoluteDelta } = React.useMemo(() => {
+    let tValue = 0
+    let aDelta = 0
+    const tMismatches: Row[] = []
+    const tGaps: Row[] = []
+
+    for (const row of stock) {
+      tValue += num(row.inventory_value_eur)
+      aDelta += Math.abs(num(row.delta_qty))
+      if (row.mismatch_kind === 'true') {
+        tMismatches.push(row)
+      } else if (row.mismatch_kind === 'timing') {
+        tGaps.push(row)
+      }
+    }
+
+    return {
+      totalValue: tValue,
+      trueMismatches: tMismatches,
+      timingGaps: tGaps,
+      absoluteDelta: aDelta,
+    }
+  }, [stock])
+
+  const sev4 = React.useMemo(() => {
+    const s4: Row[] = []
+    for (const row of exceptions) {
+      if (num(row.severity) >= 4) {
+        s4.push(row)
+      }
+    }
+    return s4
+  }, [exceptions])
+
+  const { agedValue, maxAgingValue } = React.useMemo(() => {
+    let aValue = 0
+    let maxValue = 1
+    for (const row of aging) {
+      const val = num(row.total_value_eur)
+      if (num(row.age_bucket_order) >= 4) {
+        aValue += val
+      }
+      if (val > maxValue) {
+        maxValue = val
+      }
+    }
+    return { agedValue: aValue, maxAgingValue: maxValue }
+  }, [aging])
 
   const plantExposure: Map<string, number> = React.useMemo(
     () => sumByGroup(stock, 'plant_id', 'inventory_value_eur'),
