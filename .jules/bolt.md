@@ -1,0 +1,3 @@
+## 2026-05-15 - [Consolidating Unmemoized Array Operations in React]
+**Learning:** In a codebase managing large datasets (like warehouse stock), unmemoized chained array operations (`.filter`, `.reduce`, `.map`) inside React components can severely impact rendering performance, especially since they run on every render. Furthermore, using `Math.max(...array)` with large arrays can lead to a 'Maximum call stack size exceeded' error.
+**Action:** Consolidate these multi-pass operations into a single-pass `for...of` loop, and wrap the calculation in a `React.useMemo` hook to prevent recalculation on every render.
