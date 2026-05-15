@@ -5,9 +5,7 @@ Core SQL functions are provided by shared_db. This module adds envmon-specific
 executor selection and freshness error handling.
 """
 
-import asyncio
 import logging
-import os
 import uuid
 from typing import Optional
 
@@ -32,12 +30,12 @@ from shared_db.errors import (  # noqa: F401
 )
 from shared_db import is_connector_available
 from shared_db.executors import (
-    _sql_executor,
+    run_in_sql_executor,
     _REST_EXECUTOR,
     _CONNECTOR_EXECUTOR,
 )
 from shared_db.freshness import DataFreshnessRuntime
-from shared_db.runtime import SqlRuntime, CachePolicy, is_read_only_statement, is_write_statement, sql_cache_key  # noqa: F401
+from shared_db.runtime import SqlRuntime, CachePolicy, get_semaphore, is_read_only_statement, is_write_statement, sql_cache_key  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +63,6 @@ _sql_runtime = SqlRuntime(
     run_sql=lambda token, statement, params=None: run_sql(token, statement, params),
     cache_policy=CachePolicy.manufacturing(),
 )
-_SQL_SEMAPHORE = asyncio.Semaphore(int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4")))
 _sql_cache = _sql_runtime.cache
 _sql_cache_lock = _sql_runtime.cache_lock
 _SQL_CACHE_ROW_LIMIT = _sql_runtime.cache_row_limit
@@ -88,7 +85,7 @@ async def run_sql_async(
     endpoint_hint: str = "unknown",
 ) -> list[dict]:
     """Non-blocking SQL execution with write-invalidating cache and inline error mapping."""
-    async with _SQL_SEMAPHORE:
+    async with get_semaphore("envmon"):
         return await _sql_runtime.run_sql_async(token, statement, params, endpoint_hint=endpoint_hint)
 
 
@@ -104,9 +101,8 @@ async def attach_data_freshness(
     request_path: Optional[str] = None,
 ) -> dict:
     try:
-        loop = asyncio.get_running_loop()
-        payload["data_freshness"] = await loop.run_in_executor(
-            _sql_executor, lambda: get_data_freshness(token, source_views)
+        payload["data_freshness"] = await run_in_sql_executor(
+            lambda: get_data_freshness(token, source_views)
         )
         return payload
     except Exception as exc:

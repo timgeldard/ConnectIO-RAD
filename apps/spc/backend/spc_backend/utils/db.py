@@ -6,7 +6,6 @@ tiered caching, configurable executor selection, query audit integration,
 data freshness, and exclusion snapshot helpers.
 """
 
-import asyncio
 import logging
 import os
 import re
@@ -33,10 +32,10 @@ from shared_db import is_connector_available
 from shared_db.executors import (
     _CONNECTOR_EXECUTOR,
     _REST_EXECUTOR,
-    _sql_executor,
+    run_in_sql_executor,
 )
 from shared_db.freshness import DataFreshnessRuntime
-from shared_db.runtime import CachePolicy, SqlRuntimeConfig
+from shared_db.runtime import CachePolicy, SqlRuntimeConfig, get_semaphore
 from shared_db.utils import (  # noqa: F401
     attach_payload_freshness,
     attach_validation_freshness,
@@ -163,7 +162,6 @@ _sql_runtime_config = SqlRuntimeConfig(
     audit_in_background=True,
 )
 _sql_runtime = _sql_runtime_config.build()
-_SQL_SEMAPHORE = asyncio.Semaphore(int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4")))
 
 _metadata_cache = _sql_runtime._tier_caches["metadata"]
 _metadata_cache_lock = _sql_runtime.cache_lock
@@ -192,7 +190,7 @@ async def run_sql_async(
     bypass_cache: bool = False,
 ) -> list[dict]:
     is_query_audit_statement = _is_query_audit_statement(statement)
-    async with _SQL_SEMAPHORE:
+    async with get_semaphore("spc"):
         return await _sql_runtime.run_sql_async(
             token,
             statement,
@@ -231,9 +229,8 @@ async def attach_data_freshness(
     request_path: Optional[str] = None,
 ) -> dict:
     try:
-        loop = asyncio.get_running_loop()
-        payload["data_freshness"] = await loop.run_in_executor(
-            _sql_executor, lambda: get_data_freshness(token, source_views)
+        payload["data_freshness"] = await run_in_sql_executor(
+            lambda: get_data_freshness(token, source_views)
         )
         return payload
     except Exception as exc:

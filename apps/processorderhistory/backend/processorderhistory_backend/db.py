@@ -23,7 +23,6 @@ dates.  All three accept a ``tz`` argument that **must** come from
 fragment, which is safe because zoneinfo restricts IANA names to letters,
 digits, underscores, hyphens, and forward slashes (no SQL metacharacters).
 """
-import asyncio
 import os
 from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -34,7 +33,7 @@ from shared_db.core import (  # noqa: F401 — re-exported for dal imports
     run_sql as _shared_run_sql,
     sql_param,
 )
-from shared_db.runtime import SqlRuntime, CachePolicy
+from shared_db.runtime import SqlRuntime, CachePolicy, get_semaphore
 
 POH_CATALOG: str = os.environ.get("POH_CATALOG", "")
 POH_SCHEMA: str = os.environ.get("POH_SCHEMA", "csm_process_order_history")
@@ -44,7 +43,6 @@ _sql_runtime = SqlRuntime(
     run_sql=lambda token, statement, params=None: _shared_run_sql(token, statement, params),
     cache_policy=CachePolicy.manufacturing(),
 )
-_SQL_SEMAPHORE = asyncio.Semaphore(int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4")))
 
 
 def tbl(name: str) -> str:
@@ -91,7 +89,7 @@ async def run_sql_async(
     endpoint_hint: str = "unknown",
 ) -> list[dict]:
     """Execute a SQL statement using the shared 300-second TTL-cached async executor."""
-    async with _SQL_SEMAPHORE:
+    async with get_semaphore("poh"):
         return await _sql_runtime.run_sql_async(token, statement, params, endpoint_hint=endpoint_hint)
 
 

@@ -4,7 +4,6 @@ Thin wrapper over shared_db — re-exports the helpers needed by the readiness
 probe and any future DAL modules in this app.
 """
 
-import asyncio
 import os
 from functools import lru_cache
 from typing import Optional
@@ -17,13 +16,11 @@ from shared_db.core import (  # noqa: F401 — re-exported
     sql_param,
     tbl as shared_tbl,
 )
+from shared_db.runtime import get_semaphore
 from shared_trace.dal import TraceCoreDal
 
 CQ_CATALOG: str = os.environ.get("CQ_CATALOG", os.environ.get("TRACE_CATALOG", ""))
 CQ_SCHEMA: str = os.environ.get("CQ_SCHEMA", os.environ.get("POH_SCHEMA", "csm_process_order_history"))
-
-_SQL_CONCURRENCY_LIMIT = int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4"))
-_SQL_SEMAPHORE = asyncio.Semaphore(_SQL_CONCURRENCY_LIMIT)
 
 
 def tbl(name: str) -> str:
@@ -57,7 +54,7 @@ async def run_sql_async(
     Returns:
         List of row dicts returned by the warehouse.
     """
-    async with _SQL_SEMAPHORE:
+    async with get_semaphore("cq"):
         return await _shared_run_sql_async(token, statement, params)
 
 
