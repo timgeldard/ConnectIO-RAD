@@ -6,8 +6,6 @@ tiered caching, configurable executor selection, query audit integration,
 data freshness, and exclusion snapshot helpers.
 """
 
-import asyncio
-import json
 import logging
 import os
 import re
@@ -30,13 +28,14 @@ from shared_db.errors import (  # noqa: F401
     increment_observability_counter,
     send_operational_alert,
 )
+from shared_db import is_connector_available
 from shared_db.executors import (
     _CONNECTOR_EXECUTOR,
     _REST_EXECUTOR,
-    _sql_executor,
+    run_in_sql_executor,
 )
 from shared_db.freshness import DataFreshnessRuntime
-from shared_db.runtime import CachePolicy, SqlRuntimeConfig
+from shared_db.runtime import CachePolicy, SqlRuntimeConfig, get_semaphore
 from shared_db.utils import (  # noqa: F401
     attach_payload_freshness,
     attach_validation_freshness,
@@ -45,11 +44,6 @@ from shared_db.utils import (  # noqa: F401
     handle_sql_error,
 )
 from shared_trace import schema
-
-try:
-    from databricks import sql as databricks_sql
-except ImportError:  # pragma: no cover
-    databricks_sql = None
 
 logger = logging.getLogger(__name__)
 _VIEW_NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
@@ -122,7 +116,7 @@ def _configured_sql_executor_name() -> str:
 def _get_sql_executor():
     configured = _configured_sql_executor_name()
     if configured == "connector":
-        if databricks_sql is None:
+        if not is_connector_available():
             logger.warning("connector requested but unavailable; falling back to rest")
             return _REST_EXECUTOR
         return _CONNECTOR_EXECUTOR
@@ -168,7 +162,6 @@ _sql_runtime_config = SqlRuntimeConfig(
     audit_in_background=True,
 )
 _sql_runtime = _sql_runtime_config.build()
-_SQL_SEMAPHORE = asyncio.Semaphore(int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4")))
 
 _metadata_cache = _sql_runtime._tier_caches["metadata"]
 _metadata_cache_lock = _sql_runtime.cache_lock
@@ -197,7 +190,7 @@ async def run_sql_async(
     bypass_cache: bool = False,
 ) -> list[dict]:
     is_query_audit_statement = _is_query_audit_statement(statement)
-    async with _SQL_SEMAPHORE:
+    async with get_semaphore("spc"):
         return await _sql_runtime.run_sql_async(
             token,
             statement,
@@ -217,69 +210,15 @@ def get_data_freshness(token: str, source_views: list[str]) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Audit helpers
+# Audit helpers — logic lives in process_control/dal/query_audit.py
+# These re-exports preserve the existing public names consumed by tests and
+# by attach_data_freshness below.
 # ---------------------------------------------------------------------------
-async def insert_spc_audit_event(
-    token: str,
-    *,
-    event_type: str,
-    detail: dict,
-    sql_hash: Optional[str] = None,
-    error_id: Optional[str] = None,
-    request_path: Optional[str] = None,
-) -> None:
-    params = [
-        sql_param("query_id", error_id or str(uuid.uuid4())),
-        sql_param("endpoint", request_path or f"audit:{event_type}"),
-        sql_param("material_id", detail.get("material_id")),
-        sql_param("mic_id", detail.get("mic_id")),
-        sql_param("plant_id", detail.get("plant_id")),
-        sql_param("row_count", 0),
-        sql_param("duration_ms", 0),
-        sql_param("warehouse_id", _warehouse_id()),
-    ]
-    statement = f"""
-        INSERT INTO {tbl('spc_query_audit')} (
-            query_id, endpoint, material_id, mic_id, plant_id,
-            row_count, duration_ms, warehouse_id, user_identity, executed_at
-        )
-        SELECT
-            :query_id, :endpoint, :material_id, :mic_id, :plant_id,
-            CAST(:row_count AS INT), CAST(:duration_ms AS BIGINT),
-            :warehouse_id, CURRENT_USER(), CURRENT_TIMESTAMP()
-    """
-    await run_sql_async(token, statement, params, endpoint_hint="spc.audit-event", audit=False)
-
-
-async def insert_spc_query_audit(
-    token: str,
-    *,
-    endpoint: str,
-    params: Optional[list[dict]],
-    row_count: int,
-    duration_ms: int,
-) -> None:
-    insert_params = [
-        sql_param("query_id", str(uuid.uuid4())),
-        sql_param("endpoint", endpoint),
-        sql_param("material_id", _first_param_value(params, "material_id")),
-        sql_param("mic_id", _first_param_value(params, "mic_id", "mic_a_id", "mic_b_id")),
-        sql_param("plant_id", _first_param_value(params, "plant_id")),
-        sql_param("row_count", row_count),
-        sql_param("duration_ms", duration_ms),
-        sql_param("warehouse_id", _warehouse_id()),
-    ]
-    statement = f"""
-        INSERT INTO {tbl('spc_query_audit')} (
-            query_id, endpoint, material_id, mic_id, plant_id,
-            row_count, duration_ms, warehouse_id, user_identity, executed_at
-        )
-        SELECT
-            :query_id, :endpoint, :material_id, :mic_id, :plant_id,
-            CAST(:row_count AS INT), CAST(:duration_ms AS BIGINT),
-            :warehouse_id, CURRENT_USER(), CURRENT_TIMESTAMP()
-    """
-    await run_sql_async(token, statement, insert_params, endpoint_hint="spc.query-audit", audit=False)
+from spc_backend.process_control.dal.query_audit import (  # noqa: E402
+    insert_spc_audit_event,
+    insert_spc_query_audit,
+    insert_spc_exclusion_snapshot,
+)
 
 
 async def attach_data_freshness(
@@ -290,9 +229,8 @@ async def attach_data_freshness(
     request_path: Optional[str] = None,
 ) -> dict:
     try:
-        loop = asyncio.get_running_loop()
-        payload["data_freshness"] = await loop.run_in_executor(
-            _sql_executor, lambda: get_data_freshness(token, source_views)
+        payload["data_freshness"] = await run_in_sql_executor(
+            lambda: get_data_freshness(token, source_views)
         )
         return payload
     except Exception as exc:
@@ -333,39 +271,3 @@ async def attach_data_freshness(
         ) from exc
 
 
-async def insert_spc_exclusion_snapshot(token: str, payload: dict) -> None:
-    params = [
-        sql_param("event_id", payload["event_id"]),
-        sql_param("material_id", payload["material_id"]),
-        sql_param("mic_id", payload["mic_id"]),
-        sql_param("mic_name", payload.get("mic_name")),
-        sql_param("plant_id", payload.get("plant_id")),
-        sql_param("stratify_all", payload.get("stratify_all", False)),
-        sql_param("stratify_by", payload.get("stratify_by")),
-        sql_param("chart_type", payload["chart_type"]),
-        sql_param("date_from", payload.get("date_from")),
-        sql_param("date_to", payload.get("date_to")),
-        sql_param("rule_set", payload.get("rule_set")),
-        sql_param("justification", payload["justification"]),
-        sql_param("action", payload.get("action")),
-        sql_param("excluded_count", payload["excluded_count"]),
-        sql_param("excluded_points_json", json.dumps(payload["excluded_points"], separators=(",", ":"))),
-        sql_param("before_limits_json", json.dumps(payload.get("before_limits"), separators=(",", ":"))),
-        sql_param("after_limits_json", json.dumps(payload.get("after_limits"), separators=(",", ":"))),
-    ]
-    insert_sql = f"""
-        INSERT INTO {tbl('spc_exclusions')} (
-            event_id, material_id, mic_id, mic_name, plant_id,
-            stratify_all, stratify_by, chart_type, date_from, date_to,
-            rule_set, justification, action, excluded_count,
-            excluded_points_json, before_limits_json, after_limits_json,
-            user_id, event_ts
-        )
-        SELECT
-            :event_id, :material_id, :mic_id, :mic_name, :plant_id,
-            CAST(:stratify_all AS BOOLEAN), :stratify_by, :chart_type, :date_from, :date_to,
-            :rule_set, :justification, :action, CAST(:excluded_count AS INT),
-            :excluded_points_json, :before_limits_json, :after_limits_json,
-            CURRENT_USER(), CURRENT_TIMESTAMP()
-    """
-    await run_sql_async(token, insert_sql, params, endpoint_hint="spc.exclusions.insert", audit=False)

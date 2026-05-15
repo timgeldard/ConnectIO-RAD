@@ -15,6 +15,8 @@ TODO: Request a dedicated ``authorized_scope_v`` view from UC Admin.
 """
 from __future__ import annotations
 
+__all__ = ["fetch_authorized_plants", "assert_plant_authorized"]
+
 import logging
 import re
 

@@ -1,4 +1,8 @@
+"""Read-only SQL query builder for gold-layer views."""
+
 from __future__ import annotations
+
+__all__ = ["QueryBuilder"]
 
 import re
 from dataclasses import dataclass, field

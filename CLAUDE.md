@@ -54,6 +54,7 @@ For backend work, also read `ai-context/rules/backend_rules.md`.
 - Frontend: React 18 + TypeScript + Vite, inline styles + CSS variables, no heavy UI libraries
 - All SQL targets gold-layer views only — never bronze or silver
 - Catalog resolved via `{{CATALOG}}` / `tbl()` — never hardcoded
+- **All Databricks SQL goes through `shared_db` — never `import databricks` directly.** Use `run_sql_async`, `tbl`, `sql_param`, `get_semaphore`, etc. See `docs/shared-db.md`.
 - Auth via `x-forwarded-access-token` (Databricks Apps proxy)
 
 ## Semantic Model Status

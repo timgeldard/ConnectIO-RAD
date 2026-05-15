@@ -1,6 +1,6 @@
 [project]
 name = "shared-db"
-version = "0.1.2"
+version = "1.1.0"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.110",
@@ -25,7 +25,7 @@ ignore_missing_imports = true
 # Docstring presence gate - set at the current floor as of 2026-05-08.
 # See TODO.md for the ratchet commitment toward 80%+. Run locally with
 # `uv run --with interrogate interrogate <package>` to see uncovered files.
-fail-under = 32
+fail-under = 55
 ignore-init-method = true
 ignore-init-module = true
 ignore-magic = true

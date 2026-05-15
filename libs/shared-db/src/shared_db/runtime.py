@@ -1,10 +1,28 @@
+"""
+Advanced SQL runtime with tiered caching, audit hooks, and write invalidation.
+"""
+
 from __future__ import annotations
+
+__all__ = [
+    "CacheTier",
+    "CachePolicy",
+    "SqlRuntimeConfig",
+    "SqlRuntime",
+    "statement_prefix",
+    "is_read_only_statement",
+    "is_write_statement",
+    "sql_cache_key",
+    "apply_max_rows_guard",
+    "get_semaphore",
+]
 
 import asyncio
 import hashlib
 import inspect
 import json
 import logging
+import os
 import re
 import threading
 import time
@@ -26,8 +44,44 @@ READ_SQL_PREFIXES = ("SELECT", "WITH", "SHOW", "DESCRIBE")
 DEFAULT_SLOW_QUERY_THRESHOLD_MS = 3000
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Concurrency semaphore registry
+# ---------------------------------------------------------------------------
+_SEMAPHORE_REGISTRY: dict[str, asyncio.Semaphore] = {}
+_SEMAPHORE_REGISTRY_LOCK = threading.Lock()
+
+
+def get_semaphore(key: str) -> asyncio.Semaphore:
+    """Return a named ``asyncio.Semaphore`` for the given concurrency key.
+
+    The semaphore limit is read from the ``SQL_CONCURRENCY_LIMIT_<KEY>``
+    environment variable (upper-cased, hyphens → underscores), falling back
+    to ``SQL_CONCURRENCY_LIMIT`` (default ``4``).  Semaphores are created once
+    per key and reused for the lifetime of the process.
+
+    Args:
+        key: Concurrency bucket name (e.g. ``"spc"``, ``"trace2"``).
+
+    Returns:
+        An ``asyncio.Semaphore`` shared across all callers with the same key.
+    """
+    if key in _SEMAPHORE_REGISTRY:
+        return _SEMAPHORE_REGISTRY[key]
+    with _SEMAPHORE_REGISTRY_LOCK:
+        if key not in _SEMAPHORE_REGISTRY:
+            env_key = f"SQL_CONCURRENCY_LIMIT_{key.upper().replace('-', '_')}"
+            limit = int(os.environ.get(env_key, os.environ.get("SQL_CONCURRENCY_LIMIT", "4")))
+            _SEMAPHORE_REGISTRY[key] = asyncio.Semaphore(limit)
+    return _SEMAPHORE_REGISTRY[key]
+
+
+# ---------------------------------------------------------------------------
+# SQL statement classification helpers
+# ---------------------------------------------------------------------------
+
 
 def _strip_leading_comments(statement: str) -> str:
+    """Return the statement with leading SQL line and block comments removed."""
     stripped = statement.lstrip()
     while stripped:
         if stripped.startswith("--"):
@@ -45,15 +99,41 @@ def _strip_leading_comments(statement: str) -> str:
 
 
 def statement_prefix(statement: str) -> str:
+    """Return the first keyword of a SQL statement in upper case.
+
+    Leading ``--`` and ``/* ... */`` comments are stripped before inspection.
+    Returns an empty string for blank or comment-only input.
+
+    Args:
+        statement: SQL text to inspect.
+
+    Returns:
+        Upper-cased first word (e.g. ``"SELECT"``, ``"INSERT"``), or ``""``.
+    """
     stripped = _strip_leading_comments(statement)
     return stripped.split(None, 1)[0].upper() if stripped else ""
 
 
 def is_read_only_statement(statement: str) -> bool:
+    """Return ``True`` when the statement starts with a read-only SQL keyword.
+
+    Recognised prefixes: SELECT, WITH, SHOW, DESCRIBE.
+
+    Args:
+        statement: SQL text to classify.
+    """
     return statement_prefix(statement) in READ_SQL_PREFIXES
 
 
 def is_write_statement(statement: str) -> bool:
+    """Return ``True`` when the statement starts with a mutating SQL keyword.
+
+    Recognised prefixes: INSERT, MERGE, UPDATE, DELETE, ALTER, CREATE, DROP,
+    TRUNCATE, OPTIMIZE, VACUUM.
+
+    Args:
+        statement: SQL text to classify.
+    """
     return statement_prefix(statement) in WRITE_SQL_PREFIXES
 
 
@@ -80,7 +160,11 @@ def sql_cache_key(token: str, statement: str, params: Optional[list[dict]] = Non
 
 
 def statement_has_limit(statement: str) -> bool:
-    """Return True when a read statement already contains a LIMIT clause."""
+    """Return ``True`` when a read statement already contains a LIMIT clause.
+
+    Args:
+        statement: SQL text to inspect.
+    """
     stripped = _strip_leading_comments(statement)
     return bool(re.search(r"\blimit\b", stripped, flags=re.IGNORECASE))
 
@@ -336,7 +420,59 @@ class SqlRuntime:
         invalidate_cache: bool = True,
         bypass_cache: bool = False,
         max_rows: int | None = None,
+        concurrency_key: str | None = None,
     ) -> list[dict]:
+        """Execute a SQL statement with tiered caching, audit hooks, and concurrency control.
+
+        Args:
+            token: Databricks access token.
+            statement: SQL query string with ``:param`` placeholders.
+            params: Named parameter list built with :func:`~shared_db.sql_param`.
+            endpoint_hint: Label for slow-query logs and audit events.
+            audit: Whether to fire the instance-level audit hook.
+            invalidate_cache: When ``True`` (default), mutating statements purge
+                all tier caches so subsequent reads are fresh.
+            bypass_cache: Skip cache lookup and store for this call.
+            max_rows: Append ``LIMIT n`` to read statements that lack one.
+            concurrency_key: When set, gate execution through the named
+                process-level semaphore (see :func:`~shared_db.runtime.get_semaphore`).
+
+        Returns:
+            List of row dicts from the SQL result set.
+        """
+        if concurrency_key is not None:
+            semaphore = get_semaphore(concurrency_key)
+            async with semaphore:
+                return await self._run_sql_async_inner(
+                    token, statement, params,
+                    endpoint_hint=endpoint_hint,
+                    audit=audit,
+                    invalidate_cache=invalidate_cache,
+                    bypass_cache=bypass_cache,
+                    max_rows=max_rows,
+                )
+        return await self._run_sql_async_inner(
+            token, statement, params,
+            endpoint_hint=endpoint_hint,
+            audit=audit,
+            invalidate_cache=invalidate_cache,
+            bypass_cache=bypass_cache,
+            max_rows=max_rows,
+        )
+
+    async def _run_sql_async_inner(
+        self,
+        token: str,
+        statement: str,
+        params: Optional[list[dict]] = None,
+        *,
+        endpoint_hint: str = "unknown",
+        audit: bool = True,
+        invalidate_cache: bool = True,
+        bypass_cache: bool = False,
+        max_rows: int | None = None,
+    ) -> list[dict]:
+        """Inner execution path (no semaphore wrapping)."""
         try:
             statement_to_execute = apply_max_rows_guard(statement, max_rows)
             tier = self._cache_tier_for(statement_to_execute)

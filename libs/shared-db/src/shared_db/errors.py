@@ -2,6 +2,13 @@
 Error classification and operational observability stubs for Databricks backends.
 """
 
+__all__ = [
+    "WarehouseNotConfiguredError",
+    "classify_sql_runtime_error",
+    "increment_observability_counter",
+    "send_operational_alert",
+]
+
 import json
 import logging
 import time
