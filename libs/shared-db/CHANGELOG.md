@@ -9,9 +9,10 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Summary
 
-All six per-app Databricks SQL wrappers are now clean of private `shared_db`
-symbols and direct `databricks` imports. Three enforcement tests guard the
-boundary in CI. Two new public symbols complete the migration.
+All six per-app Databricks SQL wrappers are now clean of direct `databricks`
+imports and the private `_sql_executor` symbol. Concurrency limits are
+centralised in the shared registry. Three enforcement tests guard the boundary
+in CI. Two new public symbols complete the migration.
 
 ### Added
 

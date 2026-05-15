@@ -86,7 +86,7 @@ __all__ = [
     "classify_sql_runtime_error",
     "increment_observability_counter",
     "send_operational_alert",
-    # §3.4 Audit hooks
+    # §3.5 Audit hooks
     "QueryAuditHook",
     "register_audit_hook",
     # Kept public (used by envmon wrapper; review in next major version)

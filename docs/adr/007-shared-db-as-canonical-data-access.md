@@ -41,7 +41,7 @@ directly. All SQL execution goes through `shared_db.run_sql_async` (or its varia
 | Mechanism | How it enforces |
 |---|---|
 | `importlinter` contract `databricks-sql-only-via-shared-db` | Fails CI if any `databricks` import appears outside `shared-db` |
-| `scripts/tests/test_no_direct_databricks_import.py` | AST-based defence-in-depth; catches `importlib`-based bypasses |
+| `scripts/tests/test_no_direct_databricks_import.py` | AST-based defence-in-depth against static `import`/`from` statements; does not catch `importlib.import_module` dynamic imports |
 | `scripts/tests/test_dal_uses_shared_db.py` | Asserts DAL files use no direct `databricks` import and no private `shared_db._*` names |
 
 ### Public API surface (frozen at v1.0.0, extended at v1.1.0)

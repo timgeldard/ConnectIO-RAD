@@ -362,9 +362,6 @@ async def run_sql_async(
     Returns:
         List of row dicts from the SQL result set.
     """
-    from .executors import _sql_executor, _REST_EXECUTOR
-    from .runtime import apply_max_rows_guard
-
     if concurrency_key is not None:
         from .runtime import get_semaphore
         semaphore = get_semaphore(concurrency_key)

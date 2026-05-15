@@ -3,7 +3,7 @@
 import asyncio
 import pytest
 
-from shared_db import build_in_params, run_sql_in, tbl
+from shared_db import build_in_params, run_sql_in
 
 
 # ---------------------------------------------------------------------------

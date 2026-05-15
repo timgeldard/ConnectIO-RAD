@@ -5,7 +5,7 @@ Databricks SQL. Every SQL call in every backend must go through this library.
 Direct `from databricks import sql` is forbidden by the `databricks-sql-only-via-shared-db`
 importlinter contract (added in Slice 1C of the promotion plan).
 
-**Version:** 1.0.0 (API frozen — see [CHANGELOG](../libs/shared-db/CHANGELOG.md))
+**Version:** 1.1.0 (see [CHANGELOG](../libs/shared-db/CHANGELOG.md))
 
 ---
 
