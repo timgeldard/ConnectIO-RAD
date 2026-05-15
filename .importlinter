@@ -140,7 +140,3 @@ source_modules =
     shared_manufacturing
 forbidden_modules =
     databricks
-ignore_imports =
-    # Temporary — both removed in Slice 1D when executors migrate to shared_db
-    spc_backend.utils.db -> databricks
-    envmon_backend.utils.db -> databricks

@@ -41,14 +41,7 @@ _SHARED_LIBS = [
     )
 ]
 
-# Relative paths (from REPO_ROOT) of files temporarily exempted while their
-# Databricks SQL logic migrates to shared_db in Slice 1D.
-_SLICE_1D_EXEMPTIONS: frozenset[Path] = frozenset(
-    [
-        Path("apps/spc/backend/spc_backend/utils/db.py"),
-        Path("apps/envmon/backend/envmon_backend/utils/db.py"),
-    ]
-)
+_SLICE_1D_EXEMPTIONS: frozenset[Path] = frozenset()
 
 
 def _python_files(root: Path) -> list[Path]:

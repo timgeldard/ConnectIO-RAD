@@ -30,6 +30,7 @@ from shared_db.errors import (  # noqa: F401
     increment_observability_counter,
     send_operational_alert,
 )
+from shared_db import is_connector_available
 from shared_db.executors import (
     _sql_executor,
     _REST_EXECUTOR,
@@ -38,18 +39,13 @@ from shared_db.executors import (
 from shared_db.freshness import DataFreshnessRuntime
 from shared_db.runtime import SqlRuntime, CachePolicy, is_read_only_statement, is_write_statement, sql_cache_key  # noqa: F401
 
-try:
-    from databricks import sql as databricks_sql
-except ImportError:  # pragma: no cover
-    databricks_sql = None
-
 logger = logging.getLogger(__name__)
 
 
 def _get_sql_executor():
     configured = os.environ.get("SQL_EXECUTOR", "rest").strip().lower()
     if configured == "connector":
-        if databricks_sql is None:
+        if not is_connector_available():
             logger.warning("connector executor requested but databricks-sql-connector unavailable; falling back to rest")
             return _REST_EXECUTOR
         return _CONNECTOR_EXECUTOR

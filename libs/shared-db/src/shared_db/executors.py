@@ -5,7 +5,7 @@ and the Databricks SQL Connector.
 Includes configurable exponential-backoff polling (from SPC reference impl).
 """
 
-__all__ = ["run_in_sql_executor"]
+__all__ = ["run_in_sql_executor", "is_connector_available"]
 
 import asyncio
 import hashlib
@@ -243,6 +243,18 @@ _REST_EXECUTOR: _SqlExecutor = _RestStatementExecutor()
 _CONNECTOR_EXECUTOR: _SqlExecutor = _ConnectorStatementExecutor()
 
 _T = TypeVar("_T")
+
+
+def is_connector_available() -> bool:
+    """Return True if the Databricks SQL Connector package is installed.
+
+    Use this instead of importing ``databricks`` directly when you need to
+    decide at runtime whether to prefer the connector executor over the REST
+    executor.  Apps that check this function never need a direct ``databricks``
+    import, keeping the importlinter contract ``databricks-sql-only-via-shared-db``
+    satisfied.
+    """
+    return databricks_sql is not None
 
 
 async def run_in_sql_executor(fn: Callable[[], _T]) -> _T:

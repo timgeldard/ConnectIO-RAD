@@ -25,7 +25,7 @@ def test_configured_sql_executor_selection(monkeypatch):
 def test_get_sql_executor_fallback(monkeypatch):
     monkeypatch.setenv("SPC_SQL_EXECUTOR", "connector")
     # Simulate databricks-sql not being installed
-    with patch("spc_backend.utils.db.databricks_sql", None):
+    with patch("spc_backend.utils.db.is_connector_available", return_value=False):
         executor = db_module._get_sql_executor()
         from shared_db.executors import _REST_EXECUTOR
         assert executor == _REST_EXECUTOR

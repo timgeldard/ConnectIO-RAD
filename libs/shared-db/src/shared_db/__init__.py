@@ -34,7 +34,7 @@ from .errors import (
     send_operational_alert,
 )
 from .audit import QueryAuditHook, register_audit_hook
-from .executors import run_in_sql_executor
+from .executors import run_in_sql_executor, is_connector_available
 from .runtime import (
     CachePolicy,
     CacheTier,
@@ -70,6 +70,7 @@ __all__ = [
     "run_sql_large",
     "run_sql_large_async",
     "run_in_sql_executor",
+    "is_connector_available",
     # §3.3 Advanced runtime
     "CachePolicy",
     "CacheTier",
