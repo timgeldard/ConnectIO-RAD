@@ -24,6 +24,12 @@ backend/
 
 ## 2. Data Access Layer (DAL) Rules
 
+### 2.0 Databricks SQL path
+- ALL Databricks SQL access goes through `shared_db`. **Never** `import databricks` directly in app code.
+- Use `from shared_db import run_sql_async, tbl, sql_param, get_semaphore` — these are the only sanctioned entry points.
+- Private names from `shared_db` (any symbol starting with `_`) are off-limits. `importlinter` and `scripts/tests/test_no_direct_databricks_import.py` enforce this in CI.
+- See `docs/shared-db.md` for the full API reference and `docs/shared-db-quickstart.md` for a copy-paste starter.
+
 ### 2.1 SQL Location
 - ALL SQL queries live in `dal/` files — never in routers or utils.
 - Each context has its own DAL file or adapter (e.g., `core_domain/dal/core.py`).

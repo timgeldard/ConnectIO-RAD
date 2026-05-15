@@ -1,9 +1,11 @@
 # Promoting `shared-db` to First-Class API Surface — Detailed Plan
 
-**Owner:** Platform / Data-Access guild
-**Effort:** ~3 sprints (Slices 1A–1F below), each independently shippable
-**Depends on:** Slice 4 of `docs/REVIEW.md` (consolidation of `utils/db.py` wrappers) — this plan **subsumes and extends** that slice.
-**Linked findings:** BE-01, BE-02, BE-05, LIB-01, LIB-08, SEC-05
+**Owner:** Platform / Data-Access guild  
+**Status:** **COMPLETE** — all six slices delivered 2026-05-14–2026-05-15.  
+**Effort:** ~3 sprints (Slices 1A–1F below), each independently shippable  
+**Depends on:** Slice 4 of `docs/REVIEW.md` (consolidation of `utils/db.py` wrappers) — this plan **subsumes and extends** that slice.  
+**Linked findings:** BE-01, BE-02, BE-05, LIB-01, LIB-08, SEC-05  
+**ADR:** [`docs/adr/007-shared-db-as-canonical-data-access.md`](adr/007-shared-db-as-canonical-data-access.md)
 
 ---
 
@@ -298,12 +300,12 @@ A reviewer can verify the work by running the following and getting a green resu
 ## 8. Sequencing summary
 
 ```
-Slice 1A — Freeze surface + docs              (½ sprint)
-Slice 1B — Add 4 primitives + IN-helper       (1 sprint)   ┐
-Slice 1C — Importlinter contract              (½ sprint)   │ can run in parallel
-Slice 1D — SPC + envmon migration             (1 sprint)   ┘
-Slice 1E — Remaining 4 wrappers + DAL gate    (1 sprint)
-Slice 1F — Delete shims + ADR-005             (½ sprint)
+Slice 1A — Freeze surface + docs              (½ sprint)  ✓ 2026-05-14
+Slice 1B — Add 4 primitives + IN-helper       (1 sprint)  ✓ 2026-05-14  ┐
+Slice 1C — Importlinter contract              (½ sprint)  ✓ 2026-05-14  │ ran in parallel
+Slice 1D — SPC + envmon migration             (1 sprint)  ✓ 2026-05-15  ┘
+Slice 1E — Remaining 4 wrappers + DAL gate    (1 sprint)  ✓ 2026-05-15
+Slice 1F — ADR-007 + docs mandates + v1.1.0   (½ sprint)  ✓ 2026-05-15
 ```
 
 Total: ~4 engineer-sprints. Slice 1A unblocks everything else; Slices 1B and 1C can run in parallel because 1B doesn't touch app code and 1C only adds CI gates with temporary ignores. Slices 1D, 1E, 1F are strictly sequential because each consumes the previous slice's deliverable.

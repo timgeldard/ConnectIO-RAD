@@ -5,6 +5,53 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.1.0] — 2026-05-15
+
+### Summary
+
+All six per-app Databricks SQL wrappers are now clean of private `shared_db`
+symbols and direct `databricks` imports. Three enforcement tests guard the
+boundary in CI. Two new public symbols complete the migration.
+
+### Added
+
+- `is_connector_available() -> bool` — public predicate replacing per-app
+  `try: from databricks import sql / except ImportError` guards. Importable
+  from the top-level `shared_db` package.
+- `get_semaphore(key: str) -> asyncio.Semaphore` — factory that lazily creates
+  named semaphores reading `SQL_CONCURRENCY_LIMIT_<KEY>` (falling back to
+  `SQL_CONCURRENCY_LIMIT`, default 4). Replaces six module-level
+  `asyncio.Semaphore(int(os.environ.get("SQL_CONCURRENCY_LIMIT", "4")))` blocks
+  across apps. Key names in production: `spc`, `envmon`, `trace2`, `warehouse360`,
+  `cq`, `poh`.
+- `scripts/tests/test_dal_uses_shared_db.py` — AST governance test asserting
+  every `dal/*.py` file in any app backend imports neither `databricks` directly
+  nor private `shared_db._*` names.
+
+### Changed
+
+- All six app `utils/db.py` / `db.py` wrappers now use `run_in_sql_executor`
+  in place of `loop.run_in_executor(_sql_executor, ...)`.
+- `CLAUDE.md` Key Conventions updated to mandate `shared_db` as the only
+  Databricks SQL path.
+- `ai-context/rules/backend_rules.md` section 2.0 added with the shared-db
+  mandate and links to reference docs.
+- `docs/adr/007-shared-db-as-canonical-data-access.md` added.
+
+### Anti-API additions
+
+| Symbol | Reason |
+|---|---|
+| `shared_db.executors._CONNECTOR_EXECUTOR` | Prefer `is_connector_available()` + `run_in_sql_executor` |
+| `shared_db.executors._REST_EXECUTOR` | Prefer `run_in_sql_executor` |
+
+Note: SPC and envmon still import `_CONNECTOR_EXECUTOR` / `_REST_EXECUTOR` for
+their `_get_sql_executor()` fallback functions. These are the last remaining
+callers of private executor symbols and are candidates for a future
+`shared_db.get_executor()` helper.
+
+---
+
 ## [1.0.0] — 2026-05-14
 
 ### Summary
