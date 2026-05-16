@@ -636,10 +636,15 @@ export function PourAnalyticsPage() {
   const hourly24h = f?.hourly24h ?? []
 
   const allEvents = f?.events ?? []
-  const sourceTypes = useMemo(
-    () => [...new Set(allEvents.map(e => e.source_type).filter((v): v is string => v != null))].sort(),
-    [allEvents],
-  )
+  const sourceTypes = useMemo(() => {
+    const types = new Set<string>()
+    for (const e of allEvents) {
+      if (e.source_type != null) {
+        types.add(e.source_type)
+      }
+    }
+    return Array.from(types).sort()
+  }, [allEvents])
   const events = useMemo(
     () => sourceTypeFilter === 'ALL' ? allEvents : allEvents.filter(e => e.source_type === sourceTypeFilter),
     [allEvents, sourceTypeFilter],
