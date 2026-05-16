@@ -1,3 +1,4 @@
+
 /* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -74,6 +75,7 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
         }}>
           <h3 style={{ margin: 0, fontSize: 'var(--fs-18)', fontWeight: 600 }}>{title}</h3>
           <button
+            aria-label="Close modal"
             onClick={onClose}
             style={{
               background: 'none',

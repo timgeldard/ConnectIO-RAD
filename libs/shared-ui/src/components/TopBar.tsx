@@ -1,3 +1,4 @@
+
 /* eslint-disable jsdoc/require-jsdoc */
 import type { ReactNode, CSSProperties } from 'react'
 import { Icon } from './Icon'
@@ -85,6 +86,7 @@ export function TopBar({
           />
           <input
             type="search"
+            aria-label="Search"
             value={search.value}
             onChange={e => search.onChange(e.target.value)}
             placeholder={search.placeholder || 'Search...'}
