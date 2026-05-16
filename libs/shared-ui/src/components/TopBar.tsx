@@ -85,6 +85,7 @@ export function TopBar({
           />
           <input
             type="search"
+            aria-label="Search"
             value={search.value}
             onChange={e => search.onChange(e.target.value)}
             placeholder={search.placeholder || 'Search...'}

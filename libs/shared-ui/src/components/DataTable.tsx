@@ -96,6 +96,7 @@ const DataTableRow = memo(function DataTableRow<T>({
         <td style={{ padding: rowPad, width: 40 }} onClick={(e) => e.stopPropagation()}>
           <input 
             type="checkbox" 
+            aria-label="Select row"
             checked={isSelected} 
             onChange={() => onToggle(rowKeyVal)} 
             style={{ cursor: 'pointer' }}
@@ -168,6 +169,7 @@ export function DataTable<T>({
               <th style={{ padding: rowPad, width: 40, borderBottom: '1px solid var(--line-2)', background: 'var(--surface-0)' }}>
                 <input 
                   type="checkbox" 
+                  aria-label="Select all rows"
                   checked={selection.allSelected} 
                   ref={el => { if (el) el.indeterminate = selection.someSelected }}
                   onChange={selection.onToggleAll}
@@ -249,6 +251,7 @@ export function DataTable<T>({
       {pagination && totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, padding: '8px 16px', borderTop: '1px solid var(--line-1)', fontSize: 12, color: 'var(--text-3)' }}>
           <button
+            aria-label="Previous page"
             onClick={handlePrevPage}
             disabled={page === 0}
             style={{ background: 'none', border: '1px solid var(--line-1)', borderRadius: 4, padding: '2px 8px', cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.4 : 1 }}
@@ -257,6 +260,7 @@ export function DataTable<T>({
           </button>
           <span style={{ fontFamily: 'var(--font-mono)' }}>{page + 1} / {totalPages}</span>
           <button
+            aria-label="Next page"
             onClick={handleNextPage}
             disabled={page >= totalPages - 1}
             style={{ background: 'none', border: '1px solid var(--line-1)', borderRadius: 4, padding: '2px 8px', cursor: page >= totalPages - 1 ? 'default' : 'pointer', opacity: page >= totalPages - 1 ? 0.4 : 1 }}
