@@ -1,5 +1,5 @@
 
-/* eslint-disable jsdoc/require-jsdoc */
+
 import { memo, useState, useCallback, type ReactNode, type CSSProperties } from 'react'
 
 export interface Column<T> {

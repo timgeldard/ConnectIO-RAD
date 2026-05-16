@@ -1,5 +1,5 @@
 
-/* eslint-disable jsdoc/require-jsdoc */
+
 import type { ReactNode, CSSProperties } from 'react'
 import { Icon } from './Icon'
 
