@@ -1,5 +1,4 @@
-
-
+/* eslint-disable jsdoc/require-jsdoc */
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from './Icon';
