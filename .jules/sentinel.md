@@ -1,0 +1,4 @@
+## 2024-05-18 - XSS Vulnerability in Standalone HTML
+**Vulnerability:** A Cross-Site Scripting (XSS) vulnerability was present in `apps/platform/standalone/factory-mood-board/index.html` where `plant.narrative` was injected using `dangerouslySetInnerHTML`.
+**Learning:** Standalone applications in this repository (e.g., `apps/platform/standalone/`) operate without standard build tools and inject hardcoded data directly via React. The lack of standard linting in these standalone scripts can allow React anti-patterns like `dangerouslySetInnerHTML` to go unnoticed.
+**Prevention:** Always validate and sanitize inputs in standalone HTML files. When rendering HTML using `dangerouslySetInnerHTML`, apply a sanitizer like `DOMPurify` via CDN with Subresource Integrity (SRI) hashes to prevent XSS and supply chain attacks.
