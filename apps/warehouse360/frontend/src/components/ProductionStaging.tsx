@@ -135,18 +135,27 @@ const ProductionStaging = ({ onOpenOrder }: ProductionStagingProps) => {
   }, [allOrders, tab, filters, sort]);
 
   const counts = React.useMemo(() => {
-    const c = { all: allOrders.length };
+    const c: any = { all: allOrders.length };
     for (const m of STAGING_METHODS) {
-      c[m.id] = allOrders.filter((o: any) => o.method.id === m.id).length;
+      c[m.id] = 0;
+    }
+    for (const o of allOrders) {
+      if (o.method?.id && c[o.method.id] !== undefined) {
+        c[o.method.id]++;
+      }
     }
     return c;
   }, [allOrders]);
 
-  const riskCounts = React.useMemo(() => ({
-    red: allOrders.filter((o: any) => o.risk === 'red').length,
-    amber: allOrders.filter((o: any) => o.risk === 'amber').length,
-    green: allOrders.filter((o: any) => o.risk === 'green').length,
-  }), [allOrders]);
+  const riskCounts = React.useMemo(() => {
+    let red = 0, amber = 0, green = 0;
+    for (const o of allOrders) {
+      if (o.risk === 'red') red++;
+      else if (o.risk === 'amber') amber++;
+      else if (o.risk === 'green') green++;
+    }
+    return { red, amber, green };
+  }, [allOrders]);
 
   const columns: Column<any>[] = [
     {
