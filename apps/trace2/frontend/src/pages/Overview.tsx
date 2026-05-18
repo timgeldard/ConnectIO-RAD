@@ -12,14 +12,17 @@ import { fetchOverview, fetchMassBalance } from "../data/api";
 import { useBatchData } from "../data/useBatchData";
 import { LoadFrame } from "../components/LoadFrame";
 import {
-  BarChart, Button, Card, DataTable, KPI,
-  SectionHeader, StatusPill, fmtN, fmtInt, flag,
+  BarChart, Card, DataTable, StatusPill, fmtN, flag,
 } from "../ui";
+import { calculateConfidence } from "../components/EvidenceConfidence";
+import { InvestigationSummary } from "../components/InvestigationSummary";
+import { EvidencePackReadiness } from "../components/EvidencePackReadiness";
 
 export function PageOverview({
   batch: headerBatch,
   sim,
   onSim,
+  navigate,
 }: {
   batch: Batch;
   navigate: (id: PageId) => void;
@@ -48,6 +51,7 @@ export function PageOverview({
           mbEvents={mbState.kind === "ready" ? mbState.data.events : []}
           sim={sim ?? false}
           onSim={onSim ?? (() => {})}
+          navigate={navigate}
         />
       )}
     </LoadFrame>
@@ -86,7 +90,7 @@ function MiniInventoryChart({ data, height = 170 }: { data: MassBalanceEvent[]; 
 }
 
 function OverviewBody({
-  batch, countries, customers, deliveries, mbEvents, sim, onSim,
+  batch, countries, customers, deliveries, mbEvents, sim, onSim, navigate,
 }: {
   batch: Batch;
   countries: CountryRow[];
@@ -95,8 +99,11 @@ function OverviewBody({
   mbEvents: MassBalanceEvent[];
   sim: boolean;
   onSim: (v: boolean) => void;
+  navigate: (id: PageId) => void;
 }) {
   const { t } = useI18n();
+  const confidence = calculateConfidence(batch, deliveries, mbEvents, countries, customers);
+
   const recentDeliveries = [...deliveries]
     .sort((a, b) => (a.date < b.date ? 1 : -1))
     .slice(0, 8);
@@ -107,107 +114,61 @@ function OverviewBody({
 
   return (
     <div>
-      <SectionHeader
-        eyebrow={t("trace.overview.header.eyebrow")}
-        title={t("trace.overview.header.title")}
-        subtitle={t("trace.overview.header.subtitle", {
-          batch: batch.batch_id,
-          material: batch.material_desc40,
-          plant: batch.plant_name || batch.plant_id,
-          date: batch.manufacture_date,
-        })}
-        action={
-          <div style={{ display: "flex", gap: 8 }}>
-            <Button variant="ghost" size="md">{t("trace.overview.action.print")}</Button>
-            <Button
-              variant="danger"
-              size="md"
-              active={sim}
-              onClick={() => onSim(!sim)}
-            >
-              {sim ? t("trace.overview.action.exitSimulation") : t("trace.overview.action.simulateRecall")}
-            </Button>
-          </div>
-        }
+      <InvestigationSummary
+        batch={batch}
+        deliveries={deliveries}
+        mbEvents={mbEvents}
+        countries={countries}
+        customers={customers}
+        navigate={navigate}
+        confidence={confidence}
+        sim={sim}
+        onSim={onSim}
       />
 
-      {/* 6-KPI row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 28 }}>
-        <KPI
-          label={t("trace.metric.qtyProduced")}
-          value={fmtInt(batch.qty_produced)}
-          unit={batch.uom}
-          tone="neutral"
-        />
-        <KPI
-          label={t("trace.metric.unrestricted")}
-          value={fmtInt(batch.unrestricted)}
-          unit={batch.uom}
-          tone="ok"
-        />
-        <KPI
-          label={t("trace.metric.qtyShipped")}
-          value={fmtInt(batch.qty_shipped)}
-          unit={batch.uom}
-          tone="neutral"
-        />
-        <KPI
-          label={t("trace.metric.qtyConsumed")}
-          value={fmtInt(batch.qty_consumed)}
-          unit={batch.uom}
-          tone="neutral"
-        />
-        <KPI
-          label={t("trace.metric.customersExposed")}
-          value={fmtInt(batch.customers_affected)}
-          tone={sim ? "bad" : "warn"}
-          subtext={t(batch.countries_affected === 1 ? "trace.metric.country.one" : "trace.metric.country.other", { count: batch.countries_affected })}
-        />
-        <KPI
-          label={t("trace.metric.daysToExpiry")}
-          value={batch.days_to_expiry >= 0 ? fmtInt(batch.days_to_expiry) : t("trace.metric.expired")}
-          tone={batch.days_to_expiry < 0 ? "bad" : batch.days_to_expiry < 30 ? "warn" : "good"}
-          subtext={batch.expiry_date}
-        />
-      </div>
-
-      {/* Mass balance chart + Batch identity card */}
+      {/* Mass balance chart + Batch identity card + Readiness checklist */}
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 20 }}>
-        <Card title={t("trace.overview.massBalance.title")} subtitle={t("trace.overview.massBalance.subtitle")}>
-          <div style={{ padding: "12px 16px 16px" }}>
-            {mbEvents.length < 2 ? (
-              <div style={{ height: 170, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)" }}>
-                {t("trace.overview.massBalance.noData")}
-              </div>
-            ) : (
-              <MiniInventoryChart data={mbEvents} height={170} />
-            )}
-          </div>
-        </Card>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <Card title={t("trace.overview.massBalance.title")} subtitle={t("trace.overview.massBalance.subtitle")}>
+            <div style={{ padding: "12px 16px 16px" }}>
+              {mbEvents.length < 2 ? (
+                <div style={{ height: 170, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)" }}>
+                  {t("trace.overview.massBalance.noData")}
+                </div>
+              ) : (
+                <MiniInventoryChart data={mbEvents} height={170} />
+              )}
+            </div>
+          </Card>
+        </div>
 
-        <Card title={t("trace.overview.identity.title")}>
-          <div style={{ padding: "4px 0" }}>
-            {[
-              { k: t("trace.field.materialId"), v: batch.material_id, mono: true },
-              { k: t("trace.field.material"), v: batch.material_name || batch.material_id, mono: false },
-              { k: t("trace.field.batch"), v: batch.batch_id, mono: true },
-              { k: t("trace.field.processOrder"), v: batch.process_order || "—", mono: true },
-              { k: t("trace.field.plant"), v: `${batch.plant_id} · ${batch.plant_name}`, mono: false },
-              { k: t("trace.field.manufactured"), v: batch.manufacture_date, mono: true },
-              { k: t("trace.field.expiry"), v: batch.expiry_date, mono: true },
-              { k: t("trace.field.status"), v: <StatusPill status={batch.batch_status} size="sm" />, mono: false },
-            ].map(({ k, v, mono }) => (
-              <div key={k} style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "8px 18px",
-                borderBottom: "1px solid var(--line)",
-              }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.1em" }}>{k}</span>
-                <span style={{ fontFamily: mono ? "var(--font-mono)" : "var(--font-sans)", fontSize: 12, color: "var(--ink)", fontWeight: 500 }}>{v as any}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <EvidencePackReadiness confidence={confidence} />
+          
+          <Card title={t("trace.overview.identity.title")}>
+            <div style={{ padding: "4px 0" }}>
+              {[
+                { k: t("trace.field.materialId"), v: batch.material_id, mono: true },
+                { k: t("trace.field.material"), v: batch.material_name || batch.material_id, mono: false },
+                { k: t("trace.field.batch"), v: batch.batch_id, mono: true },
+                { k: t("trace.field.processOrder"), v: batch.process_order || "—", mono: true },
+                { k: t("trace.field.plant"), v: `${batch.plant_id} · ${batch.plant_name}`, mono: false },
+                { k: t("trace.field.manufactured"), v: batch.manufacture_date, mono: true },
+                { k: t("trace.field.expiry"), v: batch.expiry_date, mono: true },
+                { k: t("trace.field.status"), v: <StatusPill status={batch.batch_status} size="sm" />, mono: false },
+              ].map(({ k, v, mono }) => (
+                <div key={k} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "8px 18px",
+                  borderBottom: "1px solid var(--line)",
+                }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.1em" }}>{k}</span>
+                  <span style={{ fontFamily: mono ? "var(--font-mono)" : "var(--font-sans)", fontSize: 12, color: "var(--ink)", fontWeight: 500 }}>{v as any}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
       </div>
 
       {/* Country + customer bar charts */}

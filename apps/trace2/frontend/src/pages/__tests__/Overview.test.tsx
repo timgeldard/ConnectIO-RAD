@@ -28,7 +28,8 @@ vi.mock('../../data/useBatchData', () => ({
             countries_affected: 2,
             batch_status: 'UNRESTRICTED',
             total_deliveries: 10,
-            total_shipped_kg: 200
+            total_shipped_kg: 200,
+            current_stock: 500
           },
           countries: [{ name: 'Ireland', code: 'IE', qty: 100 }],
           customers: [{ name: 'Cust 1', country: 'IE', qty: 100 }],
@@ -52,10 +53,10 @@ describe('PageOverview', () => {
   it('renders correctly with ready data', () => {
     render(<PageOverview batch={mockBatch} navigate={vi.fn()} />)
     
-    expect(screen.getByText(/One batch. Every movement, mass-balance and downstream exposure./i)).toBeInTheDocument()
-    expect(screen.getByText(/Qty produced/i)).toBeInTheDocument()
-    expect(screen.getByText('1,000')).toBeInTheDocument() // Formatted value
-    expect(screen.getAllByText('M1').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('B1').length).toBeGreaterThan(0)
+    expect(screen.getByText(/Batch Investigation Cockpit/i)).toBeInTheDocument()
+    expect(screen.getByText(/Evidence Confidence:/i)).toBeInTheDocument()
+    expect(screen.getByText(/Evidence Pack Readiness/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/M1/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/B1/i).length).toBeGreaterThan(0)
   })
 })
