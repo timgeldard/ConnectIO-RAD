@@ -251,6 +251,7 @@ export function DataTable<T>({
           <button
             onClick={handlePrevPage}
             disabled={page === 0}
+            aria-label="Previous page"
             style={{ background: 'none', border: '1px solid var(--line-1)', borderRadius: 4, padding: '2px 8px', cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.4 : 1 }}
           >
             ←
@@ -259,6 +260,7 @@ export function DataTable<T>({
           <button
             onClick={handleNextPage}
             disabled={page >= totalPages - 1}
+            aria-label="Next page"
             style={{ background: 'none', border: '1px solid var(--line-1)', borderRadius: 4, padding: '2px 8px', cursor: page >= totalPages - 1 ? 'default' : 'pointer', opacity: page >= totalPages - 1 ? 0.4 : 1 }}
           >
             →
