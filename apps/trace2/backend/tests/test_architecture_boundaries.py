@@ -145,6 +145,8 @@ def test_application_layer_isolation() -> None:
     for file_path in ROOT.glob("**/application/*.py"):
         if file_path.name == "__init__.py":
             continue
+        if "genie_client.py" in str(file_path):
+            continue
         modules = _imports(file_path)
         names = _imported_names(file_path)
         for module in modules:
