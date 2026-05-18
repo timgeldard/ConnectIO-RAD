@@ -43,13 +43,21 @@ const Outbound = ({ onOpen }: OutboundProps) => {
   }, [tab, filters, allDeliveries]);
 
   const counts = React.useMemo(() => {
+    let picking = 0, staged = 0, shipped = 0, risk = 0;
     const s = deliveryStatus;
+    for (const d of allDeliveries) {
+      const status = s(d);
+      if (status === 'Picking' || status === 'Open') picking++;
+      if (status === 'Staged') staged++;
+      if (status === 'Shipped') shipped++;
+      if (d.risk === 'red') risk++;
+    }
     return {
-      all:     allDeliveries.length,
-      picking: allDeliveries.filter((d: any) => s(d) === 'Picking' || s(d) === 'Open').length,
-      staged:  allDeliveries.filter((d: any) => s(d) === 'Staged').length,
-      shipped: allDeliveries.filter((d: any) => s(d) === 'Shipped').length,
-      risk:    allDeliveries.filter((d: any) => d.risk === 'red').length,
+      all: allDeliveries.length,
+      picking,
+      staged,
+      shipped,
+      risk,
     };
   }, [allDeliveries]);
 

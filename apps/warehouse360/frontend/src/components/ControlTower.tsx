@@ -3,7 +3,7 @@ import React from 'react'
 import { useI18n } from '@connectio/shared-frontend-i18n'
 import { useApi } from '../hooks/useApi';
 import { usePlantSelection } from '../context/PlantContext';
-import { Icon, Pill, Progress, RiskDot, Hbar } from './Primitives';
+import { Icon, Pill, Progress, RiskDot, Hbar, KPI } from './Primitives';
 import { Card } from './Shared';
 import { KpiCardWidget, makeKpiConfig } from '@connectio/shared-reporting'
 import { StagingTimeline, normalizeOrder } from './ProductionStaging';
