@@ -54,6 +54,7 @@ export function TopBar({
               <button
                 onClick={bc.onClick}
                 disabled={!bc.onClick}
+                title={bc.label}
                 style={{
                   display: 'flex',
                   alignItems: 'center',

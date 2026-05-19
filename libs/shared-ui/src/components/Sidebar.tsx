@@ -143,6 +143,7 @@ function NavButton({ item, active, onClick }: { item: NavItem; active: boolean; 
       type="button"
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
+      title={item.label}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{

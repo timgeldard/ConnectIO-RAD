@@ -30,6 +30,8 @@ export interface ButtonProps {
   type?: ButtonHTMLAttributes<HTMLButtonElement>['type']
   /** Native title tooltip text. */
   title?: string
+  /** ARIA label for screen readers. */
+  'aria-label'?: string
 }
 
 /**
@@ -48,7 +50,8 @@ export function Button({
   className,
   style,
   type = 'button',
-  title
+  title,
+  'aria-label': ariaLabel
 }: ButtonProps) {
   const [hover, setHover] = useState(false)
 
@@ -95,6 +98,7 @@ export function Button({
     <button
       type={type}
       title={title}
+      aria-label={ariaLabel}
       onClick={disabled || loading ? undefined : onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
