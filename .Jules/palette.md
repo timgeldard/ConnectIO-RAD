@@ -1,0 +1,3 @@
+## 2026-05-19 - Support ARIA labels on base components and icon-only buttons
+**Learning:** The core shared `Button` component lacked support for `aria-label`, making it impossible for consumers to create accessible icon-only buttons. Furthermore, built-in shared components (like `Modal` and `DataTable`) featured native icon-only buttons missing both `aria-label` for screen readers and `title` tooltips for sighted users.
+**Action:** Always ensure core base components expose essential accessibility props (like `aria-label`). For icon-only actions, habitually pair `aria-label` with a `title` to serve both assistive technology users and mouse users seeking context.
