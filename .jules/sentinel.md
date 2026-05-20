@@ -1,0 +1,4 @@
+## 2024-05-20 - [Fix XSS Vulnerability in factory-mood-board Standalone App]
+**Vulnerability:** A Cross-Site Scripting (XSS) vulnerability was found in `apps/platform/standalone/factory-mood-board/index.html` where raw HTML was being injected using `dangerouslySetInnerHTML={{__html:plant.narrative}}`.
+**Learning:** Standalone frontend apps that load their dependencies via CDNs can be vulnerable to XSS if user-controlled input or dynamic properties are passed to `dangerouslySetInnerHTML` without sanitization. In React applications, even standalone ones, it is a risk to dynamically evaluate HTML content directly.
+**Prevention:** Always use a sanitization library like `DOMPurify` before passing content into `dangerouslySetInnerHTML`. For HTML applications using script tags, ensure the library is loaded via a CDN script tag and used as `DOMPurify.sanitize(content)` to remove potentially malicious scripts.
