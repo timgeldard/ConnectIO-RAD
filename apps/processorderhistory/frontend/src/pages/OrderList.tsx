@@ -80,14 +80,28 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
 
   const orders = ordersData?.orders ?? []
 
-  const totalRunning = useMemo(() => orders.filter(o => o.status === 'running').length, [orders])
-  const onHold = useMemo(() => orders.filter(o => o.status === 'onhold' || o.status === 'failed').length, [orders])
-  const ordersThisMonth = orders.length
-  const avgYield = useMemo(() => {
-    const valid = orders.filter(o => o.yieldPct != null)
-    if (valid.length === 0) return null
-    return Math.round(valid.reduce((acc, o) => acc + (o.yieldPct || 0), 0) / valid.length)
+  const { totalRunning, onHold, avgYield } = useMemo(() => {
+    let running = 0
+    let hold = 0
+    let validYieldCount = 0
+    let totalYield = 0
+
+    for (const o of orders) {
+      if (o.status === 'running') running++
+      if (o.status === 'onhold' || o.status === 'failed') hold++
+      if (o.yieldPct != null) {
+        validYieldCount++
+        totalYield += o.yieldPct
+      }
+    }
+
+    return {
+      totalRunning: running,
+      onHold: hold,
+      avgYield: validYieldCount === 0 ? null : Math.round(totalYield / validYieldCount)
+    }
   }, [orders])
+  const ordersThisMonth = orders.length
 
   const statusLabel = useMemo(() => {
     const map: Record<string, string> = {
@@ -116,29 +130,35 @@ export function OrderList({ onOpen, lineFilter = 'ALL' }: OrderListProps) {
   )
 
   const filtered = useMemo(() => {
-    let list = orders
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      list = list.filter(o =>
-        o.id.toLowerCase().includes(q) ||
-        (o.lot ?? '').toLowerCase().includes(q) ||
-        o.product.name.toLowerCase().includes(q) ||
-        o.product.sku.toLowerCase().includes(q),
-      )
+    const searchTrimmed = search.trim().toLowerCase()
+    const fromMs = dateFrom ? new Date(dateFrom).getTime() : null
+    const toMs = dateTo ? new Date(dateTo).getTime() + 86_400_000 : null
+
+    const list: Order[] = []
+
+    for (const o of orders) {
+      if (searchTrimmed) {
+        if (!(
+          o.id.toLowerCase().includes(searchTrimmed) ||
+          (o.lot ?? '').toLowerCase().includes(searchTrimmed) ||
+          o.product.name.toLowerCase().includes(searchTrimmed) ||
+          o.product.sku.toLowerCase().includes(searchTrimmed)
+        )) {
+          continue
+        }
+      }
+      if (statusFilter.size > 0 && !statusFilter.has(o.status)) continue
+      if (productFilter && o.product.category !== productFilter) continue
+      if (lineFilter && lineFilter !== 'ALL' && o.line !== lineFilter) continue
+
+      const refDate = o.end ?? o.start
+      if (fromMs && refDate != null && refDate < fromMs) continue
+      if (toMs && refDate != null && refDate >= toMs) continue
+
+      list.push(o)
     }
-    if (statusFilter.size > 0) list = list.filter(o => statusFilter.has(o.status))
-    if (productFilter) list = list.filter(o => o.product.category === productFilter)
-    if (lineFilter && lineFilter !== 'ALL') list = list.filter(o => o.line === lineFilter)
-    if (dateFrom) {
-      const fromMs = new Date(dateFrom).getTime()
-      // Use end date for completed/closed orders so they appear in the range they finished in
-      list = list.filter(o => { const ref = o.end ?? o.start; return ref == null || ref >= fromMs })
-    }
-    if (dateTo) {
-      const toMs = new Date(dateTo).getTime() + 86_400_000  // inclusive end of day
-      list = list.filter(o => { const ref = o.end ?? o.start; return ref == null || ref < toMs })
-    }
-    const sorted = [...list].sort((a, b) => {
+
+    const sorted = list.sort((a, b) => {
       let av: any, bv: any
       switch (sortBy.key) {
         case 'id': av = a.id; bv = b.id; break

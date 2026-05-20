@@ -1,0 +1,3 @@
+## 2024-05-20 - Loop Fusion in React useMemo
+**Learning:** Chaining multiple `.filter()` methods inside a `useMemo` block creates numerous intermediate arrays. In components dealing with large datasets (e.g., up to 2000 elements in `OrderList.tsx`), this causes significant memory allocation and garbage collection overhead, leading to visible UI thread blocking.
+**Action:** When deriving filtered lists or computing aggregations (like KPIs) from a large array, consolidate the logic into a single `for...of` loop pass. Combine multiple conditions to directly push to a local array or increment counters, reducing time complexity and eliminating intermediate object allocations.
