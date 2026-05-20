@@ -1,0 +1,3 @@
+## 2024-05-18 - Missing Component-level Accessibility Support
+**Learning:** Found that the core `Button` component in the shared UI library did not support passing down the `aria-label` attribute to its underlying `<button>` element. This caused screen reader descriptions to be stripped away from icon-only buttons across all applications consuming it.
+**Action:** Always ensure that core wrapper components map essential accessibility attributes (like `aria-label`, `aria-describedby`, `aria-expanded`, etc.) to their native HTML elements. If they are omitted from the component interface, they will be silently dropped.

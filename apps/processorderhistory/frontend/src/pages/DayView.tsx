@@ -298,12 +298,12 @@ function DateNav({ day, onChange }: { day: string; onChange: (d: string) => void
   const isToday = day === toLocalIso(Date.now())
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <Button variant="secondary" size="sm" onClick={() => shift(-1)} icon={<Icon name="arrow-left" />} />
+      <Button variant="secondary" size="sm" onClick={() => shift(-1)} icon={<Icon name="arrow-left" />} title="Previous day" aria-label="Previous day" />
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface-sunken)', padding: '4px 16px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line-1)' }}>
         <span style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--fs-16)' }}>{fmtDate(day)}</span>
         {isToday && <span style={{ background: 'var(--status-ok)', color: 'var(--fg-on-brand)', fontSize: 10, fontWeight: 'var(--fw-extrabold)', padding: '2px 8px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }}>Today</span>}
       </div>
-      <Button variant="secondary" size="sm" onClick={() => shift(1)} disabled={isToday} icon={<Icon name="arrow-right" />} />
+      <Button variant="secondary" size="sm" onClick={() => shift(1)} disabled={isToday} icon={<Icon name="arrow-right" />} title="Next day" aria-label="Next day" />
       {!isToday && (
         <Button variant="ghost" size="sm" onClick={() => onChange(toLocalIso(Date.now()))}>Go to today</Button>
       )}
