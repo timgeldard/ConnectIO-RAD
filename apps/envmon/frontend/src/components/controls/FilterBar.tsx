@@ -171,6 +171,7 @@ export default function FilterBar() {
           size="sm"
           onClick={() => setIsPlaying(!isPlaying)}
           title={isPlaying ? t('envmon.filterBar.pause') : t('envmon.filterBar.play')}
+          aria-label={isPlaying ? t('envmon.filterBar.pause') : t('envmon.filterBar.play')}
           icon={<Icon name={isPlaying ? "pause" : "play"} size={14} />}
         />
         <div style={{ width: 180 }}>
